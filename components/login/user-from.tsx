@@ -10,20 +10,12 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from '~/components/ui/input-otp'
-import { Button } from '~/components/ui/button'
 import { ReloadIcon } from '@radix-ui/react-icons'
 import { cn } from '~/lib/utils'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '~/components/ui/card'
-import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
 import { useTranslations } from 'next-intl'
 import { authClient } from '~/server/auth/auth-client'
 import { PasskeyLogin } from '~/components/auth/passkey-login'
+import { Form, Input, Button as AntButton, Card, Typography, Space, Divider, theme } from 'antd'
 
 export const UserFrom = ({
   className,
@@ -31,6 +23,7 @@ export const UserFrom = ({
 }: React.ComponentPropsWithoutRef<'div'>) => {
   const router = useRouter()
   const t = useTranslations()
+  const { token } = theme.useToken()
 
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
@@ -39,37 +32,27 @@ export const UserFrom = ({
   const [token, setToken] = useState<string>('')
   const [otp, setOtp] = useState(false)
 
-  const emailRef = React.useRef<HTMLInputElement>(null)
-  const passwordRef = React.useRef<HTMLInputElement>(null)
+  const [form] = Form.useForm()
 
   useEffect(() => {
-    emailRef.current?.focus()
-  }, [])
+    // 自动聚焦邮箱字段
+    const emailField = form.getFieldInstance?.('email') as HTMLInputElement | undefined
+    emailField?.focus()
+  }, [form])
 
-  const emailKeyPressHandler = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      passwordRef.current?.focus()
-    }
-  }
-
-  const passwordKeyPressHandler = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      passwordRef.current?.blur()
-      if (otp) {
-        await verifyTotp()
-      } else {
-        await handleLogin()
-      }
+  const onFinish = async () => {
+    if (otp) {
+      await verifyTotp()
+    } else {
+      await handleLogin()
     }
   }
   
   function zHandle(): SafeParseReturnType<string | any, string | any> {
+    const values = form.getFieldsValue()
     const parsedCredentials = z
       .object({ email: z.string().email(), password: z.string().min(8) })
-      .safeParse({ email, password })
-
+      .safeParse({ email: values.email, password: values.password })
     return parsedCredentials
   }
 
@@ -96,14 +79,8 @@ export const UserFrom = ({
         toast.error('请检查您的账号密码格式！')
         return
       }
-
       const { email, password } = parsedCredentials.data
-
-      const { error } = await authClient.signIn.email({
-        email,
-        password,
-        callbackURL: '/',
-      }, {
+      const { error } = await authClient.signIn.email({ email, password, callbackURL: '/' }, {
         onSuccess(ctx) {
           if (ctx.data.twoFactorRedirect) {
             setOtp(true)
@@ -125,112 +102,81 @@ export const UserFrom = ({
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl select-none">{t('Login.title')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6">
-            <div className="grid gap-6">
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="email" className="select-none">{t('Login.email')}</Label>
-                  <div
-                    onClick={() => router.push('/sign-up')}
-                    className="ml-auto text-sm underline-offset-4 hover:underline select-none cursor-pointer"
-                  >
-                    {t('Login.signUp')}
-                  </div>
-                </div>
-                <Input
-                  id="email"
-                  type="email"
-                  ref={emailRef}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={emailKeyPressHandler}
-                  required
-                />
+      <Card
+        bordered
+        style={{ maxWidth: 420, width: '100%', boxShadow: token.boxShadowSecondary }}
+        bodyStyle={{ padding: token.paddingLG }}
+        title={<Typography.Title level={4} style={{ margin: 0 }}>{t('Login.title')}</Typography.Title>}
+        extra={<Typography.Link onClick={() => router.push('/sign-up')}>{t('Login.signUp')}</Typography.Link>}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={onFinish}
+          requiredMark={false}
+          initialValues={{ email, password }}
+          style={{ display: 'flex', flexDirection: 'column', gap: token.marginLG }}
+        >
+          <Form.Item
+            label={t('Login.email')}
+            name="email"
+            rules={[{ required: true, message: t('Login.email') }, { type: 'email', message: '邮箱格式不正确' }]}
+          >
+            <Input
+              placeholder={t('Login.email')}
+              onChange={e => setEmail(e.target.value)}
+              autoComplete="email"
+            />
+          </Form.Item>
+          <Form.Item
+            label={t('Login.password')}
+            name="password"
+            rules={[{ required: true, message: t('Login.password') }, { min: 8, message: '至少 8 位密码' }]}
+          >
+            <Input.Password
+              placeholder={t('Login.password')}
+              onChange={e => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+          </Form.Item>
+          {otp && (
+            <Space direction="vertical" style={{ width: '100%' }} size={token.marginSM}>
+              <Typography.Text type="secondary" style={{ userSelect: 'none' }}>{t('Login.otp')}</Typography.Text>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <InputOTP
+                  className="object-center"
+                  maxLength={6}
+                  value={token}
+                  onChange={(value: string) => setToken(value)}
+                  onComplete={(value: string) => setToken(value)}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                  </InputOTPGroup>
+                  <InputOTPSeparator />
+                  <InputOTPGroup>
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
               </div>
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password" className="select-none">{t('Login.password')}</Label>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  ref={passwordRef}
-                  required
-                  value={password}
-                  onKeyDown={passwordKeyPressHandler}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              {
-                otp &&
-                  <div className="grid gap-2">
-                    <div className="flex items-center select-none">
-                      <div>{t('Login.otp')}</div>
-                    </div>
-                    <div className="mx-auto">
-                      <InputOTP
-                        className="object-center"
-                        maxLength={6}
-                        value={token}
-                        onChange={(value: string) => setToken(value)}
-                        onComplete={(value: string) => setToken(value)}
-                      >
-                        <InputOTPGroup>
-                          <InputOTPSlot index={0}/>
-                          <InputOTPSlot index={1}/>
-                          <InputOTPSlot index={2}/>
-                        </InputOTPGroup>
-                        <InputOTPSeparator/>
-                        <InputOTPGroup>
-                          <InputOTPSlot index={3}/>
-                          <InputOTPSlot index={4}/>
-                          <InputOTPSlot index={5}/>
-                        </InputOTPGroup>
-                      </InputOTP>
-                    </div>
-                  </div>
-              }
-              <Button
-                type="submit"
-                className="w-full select-none cursor-pointer"
-                disabled={email.length === 0 || password.length < 8}
-                onClick={async () => {
-                  if (otp) {
-                    await verifyTotp()
-                  } else {
-                    await handleLogin()
-                  }
-                }}
-                aria-label={t('Login.signIn')}
-              >
-                {isLoading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin"/>}{t('Login.signIn')}
-              </Button>
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground select-none">
-                    {t('Login.or')}
-                  </span>
-                </div>
-              </div>
-              <PasskeyLogin className="w-full" email={email} />
-              <Button
-                className="w-full select-none cursor-pointer"
-                onClick={() => router.push('/')}
-                aria-label={t('Login.goHome')}
-              >
-                {t('Login.goHome')}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
+            </Space>
+          )}
+          <AntButton
+            type="primary"
+            htmlType="submit"
+            block
+            disabled={isLoading}
+          >
+            {isLoading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />} {t('Login.signIn')}
+          </AntButton>
+          <Divider plain style={{ margin: `${token.marginLG}px 0 ${token.marginSM}px` }}>{t('Login.or')}</Divider>
+          <PasskeyLogin className="w-full" email={email} />
+          <AntButton block onClick={() => router.push('/')}>{t('Login.goHome')}</AntButton>
+        </Form>
       </Card>
     </div>
   )

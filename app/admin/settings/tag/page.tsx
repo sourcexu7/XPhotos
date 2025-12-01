@@ -1,6 +1,7 @@
 'use client'
 import React from 'react'
 import dynamic from 'next/dynamic'
+import { theme } from 'antd'
 
 const TagManager = dynamic(
   () => import('~/components/admin/tags/tag-manager'),
@@ -8,8 +9,9 @@ const TagManager = dynamic(
 )
 
 export default function AdminSettingsTagPage() {
+  const { token } = theme.useToken()
   return (
-    <div className="p-4">
+    <div style={{ padding: token.paddingMD, background: token.colorBgLayout, minHeight: '100%', borderRadius: token.borderRadiusLG }}>
       <TagManager />
     </div>
   )
