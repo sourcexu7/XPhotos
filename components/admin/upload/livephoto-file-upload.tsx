@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner'
@@ -69,7 +69,7 @@ export default function LivephotoFileUpload() {
   useEffect(() => {
     if (!primarySelect && (!secondarySelect || secondarySelect.length === 0)) return
     setImageLabels(prev => {
-      let labels = Array.isArray(prev) ? [...prev] : []
+      const labels = Array.isArray(prev) ? [...prev] : []
       if (primarySelect && !labels.includes(primarySelect)) labels.push(primarySelect)
       secondarySelect?.forEach(s => { if (!labels.includes(s)) labels.push(s) })
       return labels

@@ -90,7 +90,6 @@ export default function MultipleFileUpload(props: any) {
     setFiles(items)
   }
 
-
   async function getAlistStorage() {
     if (alistStorage.length > 0) {
       setStorageSelect(true)
@@ -617,9 +616,9 @@ export default function MultipleFileUpload(props: any) {
       <AntModal
         title={`有 ${missingFiles.length} 个未上传的文件`}
         open={showMissingModal}
-        onCancel={() => { setShowMissingModal(false); }}
+        onCancel={() => { setShowMissingModal(false) }}
         footer={[
-          <AntButton key="cancel" onClick={() => { setShowMissingModal(false); }}>{'取消'}</AntButton>,
+          <AntButton key="cancel" onClick={() => { setShowMissingModal(false) }}>{'取消'}</AntButton>,
           <AntButton key="skip" onClick={async () => { await handleSkipAndSubmit() }}>{'跳过未上传并提交'}</AntButton>,
           <AntButton key="upload" type="primary" onClick={async () => { await handleUploadSelectedAndSubmit() }}>{'上传所选并提交'}</AntButton>
         ]}
