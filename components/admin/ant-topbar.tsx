@@ -5,6 +5,7 @@ import { Input, Avatar, Dropdown, Space, Badge, Button } from 'antd'
 import { BellOutlined, SearchOutlined, UserOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { authClient } from '~/server/auth/auth-client'
 
 // using Input + Button inside Space.Compact instead of Input.Search
 
@@ -20,7 +21,16 @@ export default function AdminAntTopbar() {
 
   const menuItems = [
     { key: 'settings', icon: <SettingOutlined />, label: t('Link.preferences'), onClick: () => router.push('/admin/settings/preferences') },
-    { key: 'logout', icon: <LogoutOutlined />, label: t('Button.logout') || 'Logout', onClick: () => router.push('/login') },
+    { key: 'logout', icon: <LogoutOutlined />, label: t('Button.logout') || 'Logout', onClick: async () => {
+      try {
+        await authClient.signOut()
+      } catch {
+        // eslint-disable-next-line no-console
+        console.error('logout failed')
+      } finally {
+        location.replace('/login')
+      }
+    } },
   ]
 
   return (

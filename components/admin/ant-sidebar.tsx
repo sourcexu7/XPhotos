@@ -17,6 +17,7 @@ import {
   LogoutOutlined,
   HomeOutlined,
 } from '@ant-design/icons'
+import { authClient } from '~/server/auth/auth-client'
 
 const { Text } = Typography
 
@@ -114,6 +115,16 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
       icon: <LogoutOutlined />,
       label: '退出登录',
       danger: true,
+      onClick: async () => {
+        try {
+          await authClient.signOut()
+        } catch {
+          // eslint-disable-next-line no-console
+          console.error('logout failed')
+        } finally {
+          location.replace('/login')
+        }
+      },
     },
   ]
 

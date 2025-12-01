@@ -29,7 +29,7 @@ export const UserFrom = ({
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [token, setToken] = useState<string>('')
+  const [otpCode, setOtpCode] = useState<string>('')
   const [otp, setOtp] = useState(false)
 
   const [form] = Form.useForm()
@@ -57,7 +57,7 @@ export const UserFrom = ({
   }
 
   const verifyTotp = async () => {
-    const { error } = await authClient.twoFactor.verifyTotp({ code: token })
+    const { error } = await authClient.twoFactor.verifyTotp({ code: otpCode })
 
     if (error) {
       toast.error('双因素口令验证失败！')
@@ -80,10 +80,13 @@ export const UserFrom = ({
         return
       }
       const { email, password } = parsedCredentials.data
-      const { error } = await authClient.signIn.email({ email, password, callbackURL: '/' }, {
+      const { error } = await authClient.signIn.email({ email, password, callbackURL: '/admin' }, {
         onSuccess(ctx) {
           if (ctx.data.twoFactorRedirect) {
             setOtp(true)
+          } else {
+            // 确保服务端设置的会话 Cookie 被中间件识别，强制整页跳转
+            location.replace('/admin')
           }
         }
       })
@@ -103,9 +106,9 @@ export const UserFrom = ({
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Card
-        bordered
+        variant="outlined"
         style={{ maxWidth: 420, width: '100%', boxShadow: token.boxShadowSecondary }}
-        bodyStyle={{ padding: token.paddingLG }}
+        styles={{ body: { padding: token.paddingLG } }}
         title={<Typography.Title level={4} style={{ margin: 0 }}>{t('Login.title')}</Typography.Title>}
         extra={<Typography.Link onClick={() => router.push('/sign-up')}>{t('Login.signUp')}</Typography.Link>}
       >
@@ -146,9 +149,9 @@ export const UserFrom = ({
                 <InputOTP
                   className="object-center"
                   maxLength={6}
-                  value={token}
-                  onChange={(value: string) => setToken(value)}
-                  onComplete={(value: string) => setToken(value)}
+                  value={otpCode}
+                  onChange={(value: string) => setOtpCode(value)}
+                  onComplete={(value: string) => setOtpCode(value)}
                 >
                   <InputOTPGroup>
                     <InputOTPSlot index={0} />

@@ -12,10 +12,12 @@ const { useBreakpoint } = Grid
 export default function AdminAntLayout({ children }: { children: React.ReactNode }) {
   const screens = useBreakpoint()
   const { token } = theme.useToken()
-  const [collapsed, setCollapsed] = React.useState<boolean>(!screens.lg)
+  // 为避免 SSR 与客户端断点不一致导致的水合差异，初始固定为未折叠
+  const [collapsed, setCollapsed] = React.useState<boolean>(false)
   const isMobile = !screens.md
 
   React.useEffect(() => {
+    // 挂载后根据实际断点更新，避免首屏 SSR 与客户端不一致
     setCollapsed(!screens.lg)
   }, [screens.lg])
 

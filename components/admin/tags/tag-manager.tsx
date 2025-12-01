@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState, useMemo } from 'react'
 import { fetcher } from '~/lib/utils/fetcher'
-import { Input, Button, Tag, Popconfirm, App, Spin, Row, Col, Card, Space, Typography, Flex, theme } from 'antd'
-import { PlusOutlined, EditOutlined, SearchOutlined } from '@ant-design/icons'
+import { Input, Button, Tag, Popconfirm, App, Spin, Row, Col, Card, Space, Typography, Flex, theme, Empty, Badge, Tooltip } from 'antd'
+import { PlusOutlined, EditOutlined } from '@ant-design/icons'
 
 type TagItem = { id: string; name: string }
 type TagTreeNode = { id?: string | null; category: string | null; children: TagItem[] }
@@ -15,8 +15,9 @@ export default function TagManager() {
   const [loading, setLoading] = useState(false)
   const [addingPrimary, setAddingPrimary] = useState(false)
   const [addingSecondary, setAddingSecondary] = useState(false)
-  // 搜索过滤状态
-  const [primaryFilter, setPrimaryFilter] = useState('')
+  // 交互状态
+  const [hoverPrimaryIdx, setHoverPrimaryIdx] = useState<number | null>(null)
+  const [hoverSecondaryIdx, setHoverSecondaryIdx] = useState<number | null>(null)
 
   const [primaryName, setPrimaryName] = useState('')
   const [secondaryName, setSecondaryName] = useState('')
@@ -46,11 +47,8 @@ export default function TagManager() {
   const selectedPrimaryNode = tree.find(n => n.id === selectedPrimary)
   const selectedPrimaryName = selectedPrimaryNode?.category ?? ''
 
-  const filteredTree = useMemo(() => {
-    const keyword = primaryFilter.trim().toLowerCase()
-    if (!keyword) return tree
-    return tree.filter(n => (n.category || '').toLowerCase().includes(keyword))
-  }, [tree, primaryFilter])
+  // 当前未提供搜索，直接使用完整树列表
+  const filteredTree = useMemo(() => tree, [tree])
 
   const addPrimary = async () => {
     if (!primaryName?.trim()) return message.warning('请输入一级标签名')
@@ -160,40 +158,51 @@ export default function TagManager() {
         <Typography.Title level={4} style={{ margin: 0 }}>标签管理</Typography.Title>
         <Row gutter={token.margin}>
           <Col xs={24} md={8} lg={7} xl={6}>
-            <Card size="small" styles={{ body: { padding: token.paddingSM } }} title={<Typography.Text strong>一级标签</Typography.Text>} extra={
-              <Input
-                allowClear
-                size="small"
-                prefix={<SearchOutlined />}
-                placeholder="搜索"
-                value={primaryFilter}
-                onChange={e => setPrimaryFilter(e.target.value)}
-                style={{ width: 160 }}
-              />
-            }>
-              <Space orientation="vertical" style={{ width: '100%' }} size={token.marginSM}>
-                <Space style={{ width: '100%' }}>
-                  <Input placeholder="新一级标签名" value={primaryName} onChange={e => setPrimaryName(e.target.value)} onPressEnter={addPrimary} />
-                  <Button type="primary" icon={<PlusOutlined />} onClick={addPrimary} loading={addingPrimary}>添加</Button>
-                </Space>
+            <Card
+              size="small"
+              styles={{ body: { padding: token.paddingSM } }}
+              title={<Typography.Text strong>一级标签</Typography.Text>}
+              extra={
+                <Space.Compact style={{ width: 220 }}>
+                  <Input
+                    size="small"
+                    placeholder="新一级标签"
+                    value={primaryName}
+                    onChange={e => setPrimaryName(e.target.value)}
+                    onPressEnter={addPrimary}
+                  />
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={addPrimary}
+                    loading={addingPrimary}
+                  >添加</Button>
+                </Space.Compact>
+              }
+            >
+              <Space orientation="vertical" style={{ width: '100%' }} size={token.margin}>
                 <Spin spinning={loading}>
-                  <Flex vertical gap={4} style={{ border: `1px solid ${token.colorBorderSecondary}`, borderRadius: token.borderRadius, overflow: 'hidden', background: token.colorBgContainer }}>
-                    {filteredTree.length === 0 ? (
-                      <div style={{ padding: 16, textAlign: 'center', color: token.colorTextTertiary }}>暂无一级标签</div>
-                    ) : (
-                      filteredTree.map(node => (
+                  {filteredTree.length === 0 ? (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无一级标签" style={{ margin: token.marginLG }} />
+                  ) : (
+                    <div style={{ border: `1px solid ${token.colorBorderSecondary}`, borderRadius: token.borderRadius, overflow: 'hidden' }}>
+                      {filteredTree.map((node, i) => (
                         <div
                           key={String(node.id ?? node.category ?? 'uncat')}
+                          onMouseEnter={() => setHoverPrimaryIdx(i)}
+                          onMouseLeave={() => setHoverPrimaryIdx(null)}
                           onClick={editingPrimaryKey ? undefined : () => setSelectedPrimary(node.id ?? null)}
                           style={{
                             cursor: editingPrimaryKey ? 'default' : 'pointer',
-                            background: selectedPrimary === node.id ? token.colorFillAlter : undefined,
-                            padding: '10px 14px',
-                            borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                            background: selectedPrimary === node.id ? token.colorFillAlter : (hoverPrimaryIdx === i ? token.colorFillSecondary : undefined),
+                            padding: '12px 16px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            gap: 8
+                            gap: 12,
+                            borderBottom: i === filteredTree.length - 1 ? 'none' : `1px solid ${token.colorBorderSecondary}`,
+                            transition: 'background-color .2s'
                           }}
                         >
                           {editingPrimaryKey === node.id ? (
@@ -206,11 +215,13 @@ export default function TagManager() {
                             </div>
                           ) : (
                             <>
-                              <Space orientation="vertical" size={2} style={{ flex: 1, minWidth: 0 }}>
+                              <Space size={6} style={{ marginInlineEnd: 'auto' }}>
                                 <Typography.Text strong ellipsis>{node.category ?? '未分类'}</Typography.Text>
-                                <Typography.Text type="secondary" style={{ fontSize: 12 }}>{`子标签 ${node.children.length}`}</Typography.Text>
+                                <Tooltip title="子标签数量">
+                                  <Badge count={node.children.length} size="small" style={{ backgroundColor: token.colorPrimary }} />
+                                </Tooltip>
                               </Space>
-                              <Space size={2}>
+                              <Space size={6}>
                                 <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); startEditPrimary(node) }}>编辑</Button>
                                 <Popconfirm
                                   title={node.children && node.children.length > 0 ? '删除该一级标签会同时删除其所有二级标签，确定吗？' : '确认删除该一级标签吗？'}
@@ -234,75 +245,80 @@ export default function TagManager() {
                                   okText="确定"
                                   cancelText="取消"
                                 >
-                                  <Button danger type="text" size="small">删除</Button>
-                                </Popconfirm>
-                              </Space>
-                            </>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </Flex>
-                </Spin>
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} md={16} lg={17} xl={18}>
-            <Card size="small" styles={{ body: { padding: token.paddingSM } }} title={<Typography.Text strong>二级标签 {selectedPrimary ? `— ${selectedPrimaryName}` : ''}</Typography.Text>}>
-              <Space orientation="vertical" style={{ width: '100%' }} size={token.marginSM}>
-                <Space style={{ width: '100%' }}>
-                  <Input placeholder={selectedPrimary ? `在 ${selectedPrimaryName} 下添加` : '先选择一级分类'} value={secondaryName} onChange={e => setSecondaryName(e.target.value)} onPressEnter={addSecondary} disabled={!selectedPrimary} />
-                  <Button type="primary" icon={<PlusOutlined />} onClick={addSecondary} loading={addingSecondary} disabled={!selectedPrimary}>添加</Button>
-                </Space>
-                <Spin spinning={loading}>
-                  <Flex vertical gap={4} style={{ border: `1px solid ${token.colorBorderSecondary}`, borderRadius: token.borderRadius, overflow: 'hidden', background: token.colorBgContainer }}>
-                    {(() => {
-                      const children = selectedPrimary ? (tree.find(n => n.id === selectedPrimary)?.children || []) : []
-                      if (children.length === 0) {
-                        return (
-                          <div style={{ padding: 16, textAlign: 'center', color: token.colorTextTertiary }}>
-                            {selectedPrimary ? '暂无二级标签' : '请选择左侧一级标签'}
-                          </div>
-                        )
-                      }
-                      return children.map((t: TagItem) => (
-                        <div
-                          key={t.id}
-                          style={{
-                            padding: '10px 14px',
-                            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: 8
-                          }}
-                        >
-                          {editingSecondaryId === t.id ? (
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%' }}>
-                              <Input size="small" value={editingSecondaryValue} onChange={e => { e.stopPropagation?.(); setEditingSecondaryValue(e.target.value) }} onPressEnter={saveSecondaryEdit} />
-                              <Space size={4}>
-                                <Button size="small" type="primary" onClick={saveSecondaryEdit}>保存</Button>
-                                <Button size="small" onClick={cancelSecondaryEdit}>取消</Button>
-                              </Space>
-                            </div>
-                          ) : (
-                            <>
-                              <Tag color="blue" style={{ marginInlineEnd: 'auto' }}>{t.name}</Tag>
-                              <Space size={2}>
-                                <Button type="link" size="small" onClick={() => copy(t.name)}>复制</Button>
-                                <Button type="link" size="small" onClick={() => startEditSecondary(t)}>编辑</Button>
-                                <Popconfirm title="确认删除该标签吗？" onConfirm={() => removeTag(t.id)} okText="确定" cancelText="取消">
                                   <Button danger type="link" size="small">删除</Button>
                                 </Popconfirm>
                               </Space>
                             </>
                           )}
                         </div>
-                      ))
-                    })()}
-                  </Flex>
+                      ))}
+                    </div>
+                  )}
                 </Spin>
               </Space>
+            </Card>
+          </Col>
+          <Col xs={24} md={16} lg={17} xl={18}>
+            <Card size="small" styles={{ body: { padding: token.paddingSM } }} title={<Typography.Text strong>二级标签 {selectedPrimary ? `— ${selectedPrimaryName}` : ''}</Typography.Text>}>
+              {!selectedPrimary ? (
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="请选择左侧一级标签" style={{ margin: token.marginXL }} />
+              ) : (
+                <Space orientation="vertical" style={{ width: '100%' }} size={token.margin}>
+                  <Space.Compact style={{ width: '100%' }}>
+                    <Input placeholder={`在 ${selectedPrimaryName} 下添加`} value={secondaryName} onChange={e => setSecondaryName(e.target.value)} onPressEnter={addSecondary} />
+                    <Button type="primary" icon={<PlusOutlined />} onClick={addSecondary} loading={addingSecondary}>添加</Button>
+                  </Space.Compact>
+                  <Spin spinning={loading}>
+                    {(() => {
+                      const children = selectedPrimary ? (tree.find(n => n.id === selectedPrimary)?.children || []) : []
+                      if (children.length === 0) {
+                        return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无二级标签" style={{ margin: token.marginLG }} />
+                      }
+                      return (
+                        <div style={{ border: `1px solid ${token.colorBorderSecondary}`, borderRadius: token.borderRadius, overflow: 'hidden' }}>
+                          {children.map((t: TagItem, i: number) => (
+                            <div
+                              key={t.id}
+                              onMouseEnter={() => setHoverSecondaryIdx(i)}
+                              onMouseLeave={() => setHoverSecondaryIdx(null)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '12px 16px',
+                                background: hoverSecondaryIdx === i ? token.colorFillSecondary : undefined,
+                                borderBottom: i === children.length - 1 ? 'none' : `1px solid ${token.colorBorderSecondary}`,
+                                transition: 'background-color .2s'
+                              }}
+                            >
+                              {editingSecondaryId === t.id ? (
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%' }}>
+                                  <Input size="small" value={editingSecondaryValue} onChange={e => setEditingSecondaryValue(e.target.value)} onPressEnter={saveSecondaryEdit} />
+                                  <Space size={4}>
+                                    <Button size="small" type="primary" onClick={saveSecondaryEdit}>保存</Button>
+                                    <Button size="small" onClick={cancelSecondaryEdit}>取消</Button>
+                                  </Space>
+                                </div>
+                              ) : (
+                                <Tag color="blue" style={{ marginInlineEnd: 'auto' }}>{t.name}</Tag>
+                              )}
+                              {editingSecondaryId !== t.id && (
+                                <Space size={6}>
+                                  <Button type="link" size="small" onClick={() => copy(t.name)}>复制</Button>
+                                  <Button type="link" size="small" onClick={() => startEditSecondary(t)}>编辑</Button>
+                                  <Popconfirm title="确认删除该标签吗？" onConfirm={() => removeTag(t.id)} okText="确定" cancelText="取消">
+                                    <Button danger type="link" size="small">删除</Button>
+                                  </Popconfirm>
+                                </Space>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })()}
+                  </Spin>
+                </Space>
+              )}
             </Card>
           </Col>
         </Row>
