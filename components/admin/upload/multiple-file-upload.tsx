@@ -136,7 +136,7 @@ export default function MultipleFileUpload(props: any) {
 
       // Ensure width/height are present. If missing, try to read from the file.
       // This avoids server-side validation errors like "Image height cannot be empty..."
-      // @ts-ignore
+      // @ts-expect-error - dynamic third-party typing
       const key = meta.file?.__key
       if ((!meta.width || !meta.height || meta.width <= 0 || meta.height <= 0) && meta.file) {
         try {
@@ -148,7 +148,7 @@ export default function MultipleFileUpload(props: any) {
                   const img = new Image()
                   img.onload = () => resolve({ width: img.width, height: img.height })
                   img.onerror = (err) => reject(err)
-                  // @ts-ignore
+                  // @ts-expect-error - dynamic third-party typing
                   img.src = e.target?.result
                 } catch (err) {
                   reject(err)
@@ -242,7 +242,7 @@ export default function MultipleFileUpload(props: any) {
       mimeType: 'image/webp',
       maxWidth: previewImageMaxWidthLimitSwitchOn && previewImageMaxWidthLimit > 0 ? previewImageMaxWidthLimit : undefined,
       async success(compressedFile) {
-        // @ts-ignore
+        // @ts-expect-error - dynamic third-party typing
         const key = file.__key
         const res = await uploadFile(compressedFile, type, storage, alistMountPath, { onProgress: (p:number) => setUploadProgressMap(prev => ({ ...prev, [key]: p })) })
         if (res?.code === 200) {
@@ -261,7 +261,7 @@ export default function MultipleFileUpload(props: any) {
   async function resHandle(res: any, file: File) {
     try {
       // 保存原图 url 与 clientImageId
-      // @ts-ignore
+      // @ts-expect-error - dynamic third-party typing
       const key = file.__key
       setUploadedMeta(prev => ({ ...prev, [key]: { ...(prev[key] || {}), url: res?.data?.url, clientImageId: res?.data?.imageId, fileName: res?.data?.fileName } }))
       // 上传预览图并保存 previewUrl
@@ -280,7 +280,7 @@ export default function MultipleFileUpload(props: any) {
             const hash = await encodeBrowserThumbHash(file)
             setUploadedMeta(prev => ({ ...prev, [file.name]: { ...(prev[file.name] || {}), exifObj, width: img.width, height: img.height, blurhash: hash } }))
           }
-          // @ts-ignore
+          // @ts-expect-error - dynamic third-party typing
           img.src = e.target?.result
         }
         reader.readAsDataURL(file)
@@ -302,14 +302,14 @@ export default function MultipleFileUpload(props: any) {
         type: 'image/jpeg',
       })
       const outputFile = new File([outputBuffer], fileName + '.jpg', { type: 'image/jpeg' })// 添加文件名
-      // @ts-ignore
+      // @ts-expect-error - dynamic third-party typing
       new Compressor(outputFile, {
         quality: previewCompressQuality,
         checkOrientation: false,
         mimeType: 'image/jpeg',
         maxWidth: previewImageMaxWidthLimitSwitchOn && previewImageMaxWidthLimit > 0 ? previewImageMaxWidthLimit : undefined,
         async success(compressedFile) {
-          // @ts-ignore
+          // @ts-expect-error - dynamic third-party typing
           if (!outputFile.__key) outputFile.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
           await uploadFile(compressedFile, album, storage, alistMountPath, {
               onProgress: (p:number) => setUploadProgressMap(prev => ({ ...prev, [outputFile.__key]: p }))
@@ -324,7 +324,7 @@ export default function MultipleFileUpload(props: any) {
       })
     } else {
       // ensure __key exists
-      // @ts-ignore
+      // @ts-expect-error - dynamic third-party typing
       if (!file.__key) file.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
       await uploadFile(file, album, storage, alistMountPath, { onProgress: (p:number) => setUploadProgressMap(prev => ({ ...prev, [file.__key]: p })) }).then(async (res) => {
         if (res.code === 200) {
@@ -347,19 +347,19 @@ export default function MultipleFileUpload(props: any) {
       setFiles(prev => prev.filter(f => ((f && (f.__key || f.id || f.name)) !== key)))
       setUploadedMeta(prev => {
         const nxt = { ...prev }
-        // @ts-ignore
+        // @ts-expect-error - dynamic third-party typing
         delete nxt[key]
         return nxt
       })
       setUploadProgressMap(prev => {
         const nxt = { ...prev }
-        // @ts-ignore
+        // @ts-expect-error - dynamic third-party typing
         delete nxt[key]
         return nxt
       })
       setMissingSelection(prev => {
         const nxt = { ...prev }
-        // @ts-ignore
+        // @ts-expect-error - dynamic third-party typing
         delete nxt[key]
         return nxt
       })
@@ -420,7 +420,7 @@ export default function MultipleFileUpload(props: any) {
     setIsSubmitting(true)
     try {
       const toUpload = missingFiles.filter(f => {
-        // @ts-ignore
+        // @ts-expect-error - dynamic third-party typing
         return !!missingSelection[f.__key]
       })
       for (const f of toUpload) {
@@ -428,7 +428,7 @@ export default function MultipleFileUpload(props: any) {
       }
       // Submit all files that now have urls
       for (const file of files as File[]) {
-        // @ts-ignore
+        // @ts-expect-error - dynamic third-party typing
         const key = file.__key
         const meta = uploadedMeta[key]
         if (!meta || !meta.url) continue
@@ -449,7 +449,7 @@ export default function MultipleFileUpload(props: any) {
     try {
       // Only submit files that already have uploaded urls
       for (const file of files as File[]) {
-        // @ts-ignore
+        // @ts-expect-error - dynamic third-party typing
         const key = file.__key
         const meta = uploadedMeta[key]
         if (!meta || !meta.url) continue
@@ -570,7 +570,7 @@ export default function MultipleFileUpload(props: any) {
               try {
                 // Find files that don't have storage url yet
                 const missing = (files as File[]).filter(f => {
-                      // @ts-ignore
+                      // @ts-expect-error - dynamic third-party typing
                       const key = f.__key
                       const m = uploadedMeta[key]
                       return !(m && m.url)
@@ -579,7 +579,7 @@ export default function MultipleFileUpload(props: any) {
                   // Open modal to let user choose which missing files to upload or skip
                   // initialize selection to all checked
                     const sel: Record<string, boolean> = {}
-                    missing.forEach(f => { /* @ts-ignore */ sel[f.__key] = true })
+                    missing.forEach(f => { /* @ts-expect-error - dynamic third-party typing */ sel[f.__key] = true })
                   setMissingSelection(sel)
                   setMissingFiles(missing)
                   // close submitting state and show modal for user decision
@@ -590,7 +590,7 @@ export default function MultipleFileUpload(props: any) {
 
                 // If no missing files, submit all
                 for (const file of files as File[]) {
-                  // @ts-ignore
+                  // @ts-expect-error - dynamic third-party typing
                   const key = file.__key
                   const meta = uploadedMeta[key]
                   if (!meta || !meta.url) {
@@ -665,7 +665,7 @@ export default function MultipleFileUpload(props: any) {
                 const fileList = info.fileList || []
                 const selected = fileList.map(f => f.originFileObj).filter(Boolean).map((orig: File) => {
                   // ensure a stable temporary key per file to avoid name collisions
-                  // @ts-ignore
+                  // @ts-expect-error - dynamic third-party typing
                   if (!orig.__key) orig.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
                   return orig
                 })
@@ -677,7 +677,7 @@ export default function MultipleFileUpload(props: any) {
                 }
                 selected.forEach((file: File) => {
                   // 避免重复上传（通过 __key 判断）
-                  // @ts-ignore
+                  // @ts-expect-error - dynamic third-party typing
                   const key = file.__key
                   const meta = uploadedMeta[key]
                   if (!meta || !meta.url) {
@@ -710,7 +710,7 @@ export default function MultipleFileUpload(props: any) {
                         {/* per-file upload status */}
                         <div className="text-xs text-gray-500 mt-1">
                           {(() => {
-                            // @ts-ignore
+                            // @ts-expect-error - dynamic third-party typing
                             const key = f.__key
                             const meta = uploadedMeta[key]
                             const p = uploadProgressMap[key]
@@ -720,7 +720,7 @@ export default function MultipleFileUpload(props: any) {
                           })()}
                         </div>
                         {/* per-file small progress bar */}
-                        {/* @ts-ignore */}
+                        {/* @ts-expect-error - dynamic third-party typing */}
                         {typeof uploadProgressMap[f.__key] === 'number' && (
                           <div className="w-full mt-2">
                             <AntProgress percent={uploadProgressMap[f.__key]} size="small" />
@@ -734,7 +734,7 @@ export default function MultipleFileUpload(props: any) {
                             icon={<CloseOutlined />}
                             onClick={() => {
                               // remove file from list
-                              // @ts-ignore
+                              // @ts-expect-error - dynamic third-party typing
                               const k = f.__key || f.id || f.name
                               if (k) removeFileByKey(k)
                             }}

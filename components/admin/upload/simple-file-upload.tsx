@@ -172,7 +172,7 @@ export default function SimpleFileUpload(props: any) {
           setWidth(Number(img.width))
           setHeight(Number(img.height))
         }
-        // @ts-ignore
+        // @ts-expect-error - FileReader result typing
         img.src = e.target.result
       }
       reader.readAsDataURL(file)
@@ -235,7 +235,7 @@ export default function SimpleFileUpload(props: any) {
         // map each secondary -> primary for backend upsert
         const map: Record<string, string> = {}
         secondarySelect.forEach(s => { map[s] = primarySelect })
-        // @ts-ignore
+        // @ts-expect-error - attach stable key on File
         ;(data as any).tagCategoryMap = map
       }
 
@@ -364,7 +364,7 @@ export default function SimpleFileUpload(props: any) {
       })
     } else {
       // ensure __key exists
-      // @ts-ignore
+      // @ts-expect-error - preview dataURL typing
       if (!file.__key) file.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
       await uploadFile(file, album, storage, alistMountPath, { onProgress: (p:number) => setUploadProgress(p) }).then(async (res) => {
         if (res.code === 200) {
@@ -485,7 +485,7 @@ export default function SimpleFileUpload(props: any) {
           const reader = new FileReader()
           reader.onload = (e) => {
             if (cancelled) return
-            // @ts-ignore
+            // @ts-expect-error - conditional preview key reading
             setPreviewUrl(typeof e.target?.result === 'string' ? e.target.result : '')
           }
           reader.readAsDataURL(file)
@@ -644,7 +644,7 @@ export default function SimpleFileUpload(props: any) {
                 const last = fileList.length > 0 ? (fileList[fileList.length - 1].originFileObj as File) : undefined
                 if (last) {
                   // ensure stable key
-                  // @ts-ignore
+                  // @ts-expect-error - attach stable key on File
                   if (!last.__key) last.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
                   setFiles([last])
                 } else {
@@ -852,7 +852,7 @@ export default function SimpleFileUpload(props: any) {
                     danger
                     icon={<CloseOutlined />}
                     onClick={() => {
-                      // @ts-ignore
+                      // @ts-expect-error - read key from possibly-augmented File
                       const k = (file && ((file as any).__key || file.name))
                       if (k) removeFileByKey(String(k))
                       else onRemoveFile()

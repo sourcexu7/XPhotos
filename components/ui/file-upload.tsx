@@ -819,8 +819,9 @@ const FileUploadList = React.forwardRef<HTMLDivElement, FileUploadListProps>(
 
     const context = useFileUploadContext(LIST_NAME)
 
-    const shouldRender =
-      forceMount || useStore((state) => state.files.size > 0)
+    // Ensure hook always runs; previously used short-circuit caused conditional hook evaluation
+    const filesSizeForList = useStore((state) => state.files.size)
+    const shouldRender = forceMount || filesSizeForList > 0
 
     if (!shouldRender) return null
 
@@ -1300,7 +1301,9 @@ const FileUploadClear = React.forwardRef<
     [store, propsRef],
   )
 
-  const shouldRender = forceMount || useStore((state) => state.files.size > 0)
+  // Ensure hook always runs; avoid short-circuit conditional invocation
+  const filesSizeForClear = useStore((state) => state.files.size)
+  const shouldRender = forceMount || filesSizeForClear > 0
 
   if (!shouldRender) return null
 

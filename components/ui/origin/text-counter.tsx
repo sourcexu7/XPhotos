@@ -95,7 +95,7 @@ export default function TextCounter({
     
     springValue.on('change', (value) => {
       if (ref.current) {
-        // @ts-ignore
+        // @ts-expect-error - textContent expects string
         ref.current.textContent = format ? format(value) : value
       }
     })
