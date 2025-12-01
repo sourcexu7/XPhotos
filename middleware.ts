@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSessionCookie } from 'better-auth/cookies'
 
 const COOKIE_PREFIX = 'pic-impact'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  
-  const sessionCookie = getSessionCookie(request, {
-    cookiePrefix: COOKIE_PREFIX
-  })
+  // Edge Runtime 中禁止使用 Node.js API 与非 Edge 兼容库（如 better-auth/cookies）
+  // 这里仅通过检测带有前缀的会话 Cookie 是否存在来做最小鉴权门禁
+  const cookies = request.cookies.getAll()
+  const sessionCookie = cookies.find((c) => c.name.startsWith(`${COOKIE_PREFIX}`))
 
   // API v1 路由需要认证
   if (pathname.startsWith('/api/v1') && !sessionCookie) {
