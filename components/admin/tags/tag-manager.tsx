@@ -156,7 +156,7 @@ export default function TagManager() {
 
   return (
     <div style={{ padding: token.paddingMD }}>
-      <Space direction="vertical" size={token.marginLG} style={{ width: '100%' }}>
+      <Space orientation="vertical" size={token.marginLG} style={{ width: '100%' }}>
         <Typography.Title level={4} style={{ margin: 0 }}>标签管理</Typography.Title>
         <Row gutter={token.margin}>
           <Col xs={24} md={8} lg={7} xl={6}>
@@ -171,7 +171,7 @@ export default function TagManager() {
                 style={{ width: 160 }}
               />
             }>
-              <Space direction="vertical" style={{ width: '100%' }} size={token.marginSM}>
+              <Space orientation="vertical" style={{ width: '100%' }} size={token.marginSM}>
                 <Space style={{ width: '100%' }}>
                   <Input placeholder="新一级标签名" value={primaryName} onChange={e => setPrimaryName(e.target.value)} onPressEnter={addPrimary} />
                   <Button type="primary" icon={<PlusOutlined />} onClick={addPrimary} loading={addingPrimary}>添加</Button>
@@ -206,7 +206,7 @@ export default function TagManager() {
                             </div>
                           ) : (
                             <>
-                              <Space direction="vertical" size={2} style={{ flex: 1, minWidth: 0 }}>
+                              <Space orientation="vertical" size={2} style={{ flex: 1, minWidth: 0 }}>
                                 <Typography.Text strong ellipsis>{node.category ?? '未分类'}</Typography.Text>
                                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>{`子标签 ${node.children.length}`}</Typography.Text>
                               </Space>
@@ -249,7 +249,7 @@ export default function TagManager() {
           </Col>
           <Col xs={24} md={16} lg={17} xl={18}>
             <Card size="small" styles={{ body: { padding: token.paddingSM } }} title={<Typography.Text strong>二级标签 {selectedPrimary ? `— ${selectedPrimaryName}` : ''}</Typography.Text>}>
-              <Space direction="vertical" style={{ width: '100%' }} size={token.marginSM}>
+              <Space orientation="vertical" style={{ width: '100%' }} size={token.marginSM}>
                 <Space style={{ width: '100%' }}>
                   <Input placeholder={selectedPrimary ? `在 ${selectedPrimaryName} 下添加` : '先选择一级分类'} value={secondaryName} onChange={e => setSecondaryName(e.target.value)} onPressEnter={addSecondary} disabled={!selectedPrimary} />
                   <Button type="primary" icon={<PlusOutlined />} onClick={addSecondary} loading={addingSecondary} disabled={!selectedPrimary}>添加</Button>

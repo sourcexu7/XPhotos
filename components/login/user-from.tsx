@@ -140,7 +140,7 @@ export const UserFrom = ({
             />
           </Form.Item>
           {otp && (
-            <Space direction="vertical" style={{ width: '100%' }} size={token.marginSM}>
+            <Space orientation="vertical" style={{ width: '100%' }} size={token.marginSM}>
               <Typography.Text type="secondary" style={{ userSelect: 'none' }}>{t('Login.otp')}</Typography.Text>
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <InputOTP
