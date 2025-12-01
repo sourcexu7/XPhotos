@@ -216,9 +216,9 @@ export default function Preferences() {
 
                 <Form.Item
                   label={t('Preferences.previewQuality')}
-                  name="previewQualityInput"
+                  name="previewQuality"
                 >
-                  <Input placeholder={t('Preferences.inputPreviewQuality')} />
+                  <Input type="number" min={0.01} max={1} step={0.01} placeholder={t('Preferences.inputPreviewQuality')} />
                 </Form.Item>
 
                 <Form.Item
