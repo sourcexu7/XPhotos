@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner'
@@ -69,7 +69,7 @@ export default function LivephotoFileUpload() {
   useEffect(() => {
     if (!primarySelect && (!secondarySelect || secondarySelect.length === 0)) return
     setImageLabels(prev => {
-      let labels = Array.isArray(prev) ? [...prev] : []
+      const labels = Array.isArray(prev) ? [...prev] : []
       if (primarySelect && !labels.includes(primarySelect)) labels.push(primarySelect)
       secondarySelect?.forEach(s => { if (!labels.includes(s)) labels.push(s) })
       return labels
@@ -311,7 +311,7 @@ export default function LivephotoFileUpload() {
         <div className="h-full">
           <AntCard className="h-full" title="上传文件">
             <AntSpace vertical size="middle" style={{ width: '100%' }}>
-              <Dragger multiple={false} maxCount={1} beforeUpload={()=>false} showUploadList={false} disabled={storage===''||album===''||(storage==='alist'&&alistMountPath==='')} style={{ padding:12, minHeight:120 }} onChange={(info)=>{ const fileList=info.fileList||[]; const last=fileList.length>0? (fileList[fileList.length-1].originFileObj as File): undefined; if (last) { /* @ts-ignore */ if (!last.__key) last.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`; setImages(last?[last]:[]) } else setImages([]) }}>
+              <Dragger multiple={false} maxCount={1} beforeUpload={()=>false} showUploadList={false} disabled={storage===''||album===''||(storage==='alist'&&alistMountPath==='')} style={{ padding:12, minHeight:120 }} onChange={(info)=>{ const fileList=info.fileList||[]; const last=fileList.length>0? (fileList[fileList.length-1].originFileObj as File): undefined; if (last) { /* @ts-expect-error - attach stable key */ if (!last.__key) last.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`; setImages(last?[last]:[]) } else setImages([]) }}>
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                   <UploadIcon />
                   <p className="font-medium text-sm">{t('Upload.dragOrClick')}</p>
@@ -324,7 +324,7 @@ export default function LivephotoFileUpload() {
                 </div>
               </Dragger>
 
-              <Dragger multiple={false} maxCount={1} beforeUpload={()=>false} showUploadList={false} disabled={storage===''||album===''||(storage==='alist'&&alistMountPath==='')} style={{ padding:12, minHeight:120 }} onChange={(info)=>{ const fileList=info.fileList||[]; const last=fileList.length>0? (fileList[fileList.length-1].originFileObj as File): undefined; if (last) { /* @ts-ignore */ if (!last.__key) last.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`; setVideos(last?[last]:[]) } else setVideos([]) }}>
+              <Dragger multiple={false} maxCount={1} beforeUpload={()=>false} showUploadList={false} disabled={storage===''||album===''||(storage==='alist'&&alistMountPath==='')} style={{ padding:12, minHeight:120 }} onChange={(info)=>{ const fileList=info.fileList||[]; const last=fileList.length>0? (fileList[fileList.length-1].originFileObj as File): undefined; if (last) { /* @ts-expect-error - attach stable key */ if (!last.__key) last.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`; setVideos(last?[last]:[]) } else setVideos([]) }}>
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                   <UploadIcon />
                   <p className="font-medium text-sm">{t('Upload.dragOrClickVideo') ?? '拖拽或点击上传视频'}</p>

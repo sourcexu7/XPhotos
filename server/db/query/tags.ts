@@ -2,12 +2,12 @@
 import { db } from '~/server/lib/db'
 
 export async function fetchTagsList(): Promise<{ id: string; name: string; category?: string }[]> {
-  const tags = await db.tags.findMany({ orderBy: { name: 'asc' } });
+  const tags = await db.tags.findMany({ orderBy: { name: 'asc' } })
   return tags.map(tag => ({
     id: tag.id,
     name: tag.name,
     category: tag.category ?? undefined,
-  }));
+  }))
 }
 
 /**

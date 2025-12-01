@@ -22,7 +22,7 @@ async function main() {
     console.log(`Updated ${String(updated)} rows for category ${cat}`)
   }
 
-  console.log('Migration completed.');
+  console.log('Migration completed.')
 }
 
 main().catch((e) => { console.error(e); process.exit(1) }).finally(async () => { await prisma.$disconnect() })

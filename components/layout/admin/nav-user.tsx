@@ -50,7 +50,7 @@ export function NavUser() {
               className="space-x-2 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
             >
               <Avatar className="h-8 w-8 rounded-lg select-none">
-                <AvatarImage src={session?.user?.image!} alt={session?.user?.name!} />
+                <AvatarImage src={session?.user?.image ?? ''} alt={session?.user?.name ?? ''} />
                 <AvatarFallback className="rounded-lg">CN</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight select-none">
@@ -69,7 +69,7 @@ export function NavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={session?.user?.image!} alt={session?.user?.name!} />
+                  <AvatarImage src={session?.user?.image ?? ''} alt={session?.user?.name ?? ''} />
                   <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
@@ -103,8 +103,9 @@ export function NavUser() {
                     },
                   },
                 })
-              } catch (e) {
-                console.error(e)
+              } catch {
+                // eslint-disable-next-line no-console
+                console.error('logout failed')
               }
             }}>
               <LogoutIcon size={18} />

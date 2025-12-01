@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import React, { useEffect, useState } from 'react'
 import { fetcher } from '~/lib/utils/fetcher'
@@ -14,7 +14,6 @@ export default function TagManager() {
   const [loading, setLoading] = useState(false)
   const [addingPrimary, setAddingPrimary] = useState(false)
   const [addingSecondary, setAddingSecondary] = useState(false)
-  
 
   const [primaryName, setPrimaryName] = useState('')
   const [secondaryName, setSecondaryName] = useState('')
@@ -191,11 +190,11 @@ export default function TagManager() {
                               <div style={{ color: '#888', fontSize: 12 }}>{`子标签 ${node.children.length}`}</div>
                             </div>
                             <Space size="small">
-                              <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); startEditPrimary(node); }}>编辑</Button>
+                              <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); startEditPrimary(node) }}>编辑</Button>
                               <Popconfirm
                                 title={node.children && node.children.length > 0 ? '删除该一级标签会同时删除其所有二级标签，确定吗？' : '确认删除该一级标签吗？'}
                                 onConfirm={async (e: any) => {
-                                  e?.stopPropagation?.();
+                                  e?.stopPropagation?.()
                                   try {
                                     if (node.id) {
                                       if (node.children && node.children.length > 0) {

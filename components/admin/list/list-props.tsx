@@ -344,7 +344,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
               </SelectContent>
             </Select>
             <div style={{ minWidth: 140 }}>
-              <Select value={stagedSelectedExposure} onValueChange={(v: string) => { setStagedSelectedExposure(v); }}>
+              <Select value={stagedSelectedExposure} onValueChange={(v: string) => { setStagedSelectedExposure(v) }}>
                 <SelectTrigger className="cursor-pointer">
                   <SelectValue placeholder="快门 (exposure)" />
                 </SelectTrigger>
@@ -360,7 +360,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
               </Select>
             </div>
             <div style={{ minWidth: 100 }}>
-              <Select value={stagedSelectedAperture} onValueChange={(v: string) => { setStagedSelectedAperture(v); }}>
+              <Select value={stagedSelectedAperture} onValueChange={(v: string) => { setStagedSelectedAperture(v) }}>
                 <SelectTrigger className="cursor-pointer">
                   <SelectValue placeholder="光圈 (f/)" />
                 </SelectTrigger>
@@ -376,7 +376,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
               </Select>
             </div>
             <div style={{ minWidth: 100 }}>
-              <Select value={stagedSelectedISO} onValueChange={(v: string) => { setStagedSelectedISO(v); }}>
+              <Select value={stagedSelectedISO} onValueChange={(v: string) => { setStagedSelectedISO(v) }}>
                 <SelectTrigger className="cursor-pointer">
                   <SelectValue placeholder="ISO" />
                 </SelectTrigger>
@@ -400,20 +400,20 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                   <div className="flex items-center justify-between mb-2">
                     <div className="text-sm">选择标签</div>
                     <div>
-                      <button className={`px-2 py-1 mr-1 border rounded ${labelsOperator === 'and' ? 'bg-gray-200' : ''}`} onClick={async ()=>{ setLabelsOperator('and'); await totalMutate(); await mutate(); }}>AND</button>
-                      <button className={`px-2 py-1 border rounded ${labelsOperator === 'or' ? 'bg-gray-200' : ''}`} onClick={async ()=>{ setLabelsOperator('or'); await totalMutate(); await mutate(); }}>OR</button>
+                      <button className={`px-2 py-1 mr-1 border rounded ${labelsOperator === 'and' ? 'bg-gray-200' : ''}`} onClick={async ()=>{ setLabelsOperator('and'); await totalMutate(); await mutate() }}>AND</button>
+                      <button className={`px-2 py-1 border rounded ${labelsOperator === 'or' ? 'bg-gray-200' : ''}`} onClick={async ()=>{ setLabelsOperator('or'); await totalMutate(); await mutate() }}>OR</button>
                     </div>
                   </div>
                     <div className="grid grid-cols-2 gap-2">
                     {tagsList.map(tag => (
                       <label key={tag} className="inline-flex items-center space-x-2">
-                        <input type="checkbox" checked={stagedSelectedTags.includes(tag)} onChange={(e)=>{ const next = e.target.checked ? [...stagedSelectedTags, tag] : stagedSelectedTags.filter(t=>t!==tag); setStagedSelectedTags(next); }} />
+                        <input type="checkbox" checked={stagedSelectedTags.includes(tag)} onChange={(e)=>{ const next = e.target.checked ? [...stagedSelectedTags, tag] : stagedSelectedTags.filter(t=>t!==tag); setStagedSelectedTags(next) }} />
                         <span className="text-sm">{tag}</span>
                       </label>
                     ))}
                   </div>
                   <div className="mt-2 flex justify-end space-x-2">
-                    <button className="px-2 py-1 border rounded" onClick={()=>{ setStagedSelectedTags([]); }}>清除</button>
+                    <button className="px-2 py-1 border rounded" onClick={()=>{ setStagedSelectedTags([]) }}>清除</button>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -564,7 +564,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                   </SelectContent>
                 </Select>
                 <div className="w-full">
-                  <Select value={selectedExposure} onValueChange={async (v: string) => { setSelectedExposure(v); await totalMutate(); await mutate(); }}>
+                  <Select value={selectedExposure} onValueChange={async (v: string) => { setSelectedExposure(v); await totalMutate(); await mutate() }}>
                     <SelectTrigger className="w-full cursor-pointer">
                       <SelectValue placeholder="快门 (exposure)" />
                     </SelectTrigger>
@@ -580,7 +580,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                   </Select>
                 </div>
                 <div className="w-full">
-                  <Select value={selectedAperture} onValueChange={async (v: string) => { setSelectedAperture(v); await totalMutate(); await mutate(); }}>
+                  <Select value={selectedAperture} onValueChange={async (v: string) => { setSelectedAperture(v); await totalMutate(); await mutate() }}>
                     <SelectTrigger className="w-full cursor-pointer">
                       <SelectValue placeholder="光圈 (f/)" />
                     </SelectTrigger>
@@ -596,7 +596,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                   </Select>
                 </div>
                 <div className="w-full">
-                  <Select value={selectedISO} onValueChange={async (v: string) => { setSelectedISO(v); await totalMutate(); await mutate(); }}>
+                  <Select value={selectedISO} onValueChange={async (v: string) => { setSelectedISO(v); await totalMutate(); await mutate() }}>
                     <SelectTrigger className="w-full cursor-pointer">
                       <SelectValue placeholder="ISO" />
                     </SelectTrigger>
@@ -616,20 +616,20 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-sm">选择标签</div>
                       <div>
-                        <button className={`px-2 py-1 mr-1 border rounded ${labelsOperator === 'and' ? 'bg-gray-200' : ''}`} onClick={async ()=>{ setLabelsOperator('and'); await totalMutate(); await mutate(); }}>AND</button>
-                        <button className={`px-2 py-1 border rounded ${labelsOperator === 'or' ? 'bg-gray-200' : ''}`} onClick={async ()=>{ setLabelsOperator('or'); await totalMutate(); await mutate(); }}>OR</button>
+                        <button className={`px-2 py-1 mr-1 border rounded ${labelsOperator === 'and' ? 'bg-gray-200' : ''}`} onClick={async ()=>{ setLabelsOperator('and'); await totalMutate(); await mutate() }}>AND</button>
+                        <button className={`px-2 py-1 border rounded ${labelsOperator === 'or' ? 'bg-gray-200' : ''}`} onClick={async ()=>{ setLabelsOperator('or'); await totalMutate(); await mutate() }}>OR</button>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 max-h-40 overflow-auto">
                       {tagsList.map(tag => (
                         <label key={tag} className="inline-flex items-center space-x-2">
-                          <input type="checkbox" checked={selectedTags.includes(tag)} onChange={async (e)=>{ const next = e.target.checked ? [...selectedTags, tag] : selectedTags.filter(t=>t!==tag); setSelectedTags(next); await totalMutate(); await mutate(); }} />
+                          <input type="checkbox" checked={selectedTags.includes(tag)} onChange={async (e)=>{ const next = e.target.checked ? [...selectedTags, tag] : selectedTags.filter(t=>t!==tag); setSelectedTags(next); await totalMutate(); await mutate() }} />
                           <span className="text-sm">{tag}</span>
                         </label>
                       ))}
                     </div>
                     <div className="mt-2 flex justify-end">
-                      <button className="px-2 py-1 border rounded" onClick={async ()=>{ setSelectedTags([]); await totalMutate(); await mutate(); }}>清除</button>
+                      <button className="px-2 py-1 border rounded" onClick={async ()=>{ setSelectedTags([]); await totalMutate(); await mutate() }}>清除</button>
                     </div>
                   </div>
                 </div>
