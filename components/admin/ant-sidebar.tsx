@@ -155,11 +155,11 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
             fontSize: collapsed ? 14 : 16,
           }}
         >
-          PI
+          XP
         </Avatar>
         {!collapsed && (
           <Text strong style={{ fontSize: 16 }}>
-            PicImpact
+            XPhotos
           </Text>
         )}
       </div>
@@ -219,7 +219,7 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
                   Admin
                 </Text>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  admin@picimpact.com
+                  admin@xphotos.com
                 </Text>
               </Space>
             )}

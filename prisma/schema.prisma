@@ -17,6 +17,9 @@ model Images {
   url                  String?                @db.Text
   preview_url          String?                @db.Text
   video_url            String?                @db.Text
+  original_key         String?                @db.Text
+  preview_key          String?                @db.Text
+  video_key            String?                @db.Text
   blurhash             String?                @db.Text
   exif                 Json?                  @db.Json
   labels               Json?                  @db.Json

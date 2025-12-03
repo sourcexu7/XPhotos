@@ -42,6 +42,7 @@ interface UploadResponse {
     url: string
     imageId: string
     fileName: string
+    key?: string
   }
 }
 
@@ -59,6 +60,12 @@ export async function uploadFile(
   mountPath: string,
   options?: UploadOptions
 ): Promise<UploadResponse> {
+  if (!file || !file.name) {
+    throw new Error('Invalid file')
+  }
+  if (!storage) {
+    throw new Error('Storage type is required')
+  }
   const imageId = createId()
   const ext = file.name.split('.').pop()
   const fileName = file.name
@@ -95,12 +102,20 @@ async function uploadViaAList(
     body: formData,
     credentials: 'include',
     headers: { Accept: 'application/json' },
-  }).then((res) => res.json())
+  })
+  // 尝试以 JSON 解析，若失败则读取文本并抛错
+  const isJson = res.headers.get('content-type')?.includes('application/json')
+  const parsed = isJson ? await res.json().catch(async () => ({ code: res.status })) : null
+  if (!parsed) {
+    const text = await res.text().catch(() => '')
+    throw new Error(text || 'Upload failed')
+  }
+  const json = parsed
 
-  if (res?.code === 200) {
+  if (json?.code === 200) {
     return {
       code: 200,
-      data: { url: res.data, imageId, fileName },
+      data: { url: json.data, imageId, fileName },
     }
   }
   throw new Error('Upload failed')
@@ -119,38 +134,98 @@ async function uploadViaPresignedUrl(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      // 服务端将根据 storage_folder 与 type 组合 key
       filename: file.name,
       contentType: file.type,
       type,
       storage,
     }),
-  }).then((res) => res.json())
-
-  if (presignedResponse?.code !== 200) {
-    throw new Error('Failed to get presigned URL')
+  })
+  const isJson1 = presignedResponse.headers.get('content-type')?.includes('application/json')
+  const presignedJson = isJson1 ? await presignedResponse.json().catch(async () => ({ code: presignedResponse.status })) : null
+  if (!presignedJson) {
+    const text = await presignedResponse.text().catch(() => '')
+    throw new Error(text || `Failed to get presigned URL (status: ${presignedResponse.status})`)
   }
 
-  const { presignedUrl, key } = presignedResponse.data
+  // 若后端要求强制服务器端上传，直接走回退路径
+  if (presignedJson?.data?.serverUpload === true || presignedJson?.code === 286) {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('storage', storage)
+    formData.append('type', type)
+    const resp = await fetch('/api/v1/file/upload', { method: 'POST', body: formData, credentials: 'include', headers: { Accept: 'application/json' } })
+    const isJson = resp.headers.get('content-type')?.includes('application/json')
+    const json = isJson ? await resp.json().catch(async () => ({ code: resp.status })) : null
+    if (!json || json.code !== 200) {
+      const text = await resp.text().catch(() => '')
+      throw new Error(text || 'Server fallback upload failed')
+    }
+    options?.onProgress?.(100)
+    return {
+      code: 200,
+      data: { url: json.data?.url, imageId, fileName, key: json.data?.key },
+    }
+  }
+
+  if (presignedJson?.code !== 200) {
+    const msg = presignedJson?.message || `Failed to get presigned URL (code: ${presignedJson?.code})`
+    throw new Error(msg)
+  }
+
+  const { presignedUrl, key } = presignedJson.data
 
   // 使用 XHR 上传并跟踪进度
-  await uploadWithProgress(presignedUrl, file, options)
+  try {
+    await uploadWithProgress(presignedUrl, file, options)
+  } catch (e) {
+    // 回退：改用服务器端代理上传，规避浏览器 CORS/网络限制
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('storage', storage)
+      formData.append('type', type)
+      const resp = await fetch('/api/v1/file/upload', { method: 'POST', body: formData, credentials: 'include', headers: { Accept: 'application/json' } })
+      const isJson = resp.headers.get('content-type')?.includes('application/json')
+      const json = isJson ? await resp.json().catch(async () => ({ code: resp.status })) : null
+      if (!json || json.code !== 200) {
+        const text = await resp.text().catch(() => '')
+        throw new Error(text || 'Server fallback upload failed')
+      }
+      options?.onProgress?.(100)
+      return {
+        code: 200,
+        data: { url: json.data?.url, imageId, fileName },
+      }
+    } catch (fallbackErr) {
+      // 原始直传错误透传，以便定位 CORS 或签名问题
+      throw e instanceof Error ? e : new Error('Upload failed')
+    }
+  }
 
   // 获取对象 URL
   const getObjectResponse = await fetch('/api/v1/file/getObjectUrl', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ key, storage }),
-  }).then((res) => res.json())
+  })
+  const isJson2 = getObjectResponse.headers.get('content-type')?.includes('application/json')
+  const objectJson = isJson2 ? await getObjectResponse.json().catch(async () => ({ code: getObjectResponse.status })) : null
+  if (!objectJson) {
+    const text = await getObjectResponse.text().catch(() => '')
+    throw new Error(text || `Failed to get object URL (status: ${getObjectResponse.status})`)
+  }
 
-  if (getObjectResponse?.code !== 200) {
-    throw new Error('Failed to get object URL')
+  if (objectJson?.code !== 200) {
+    const msg = objectJson?.message || `Failed to get object URL (code: ${objectJson?.code})`
+    throw new Error(msg)
   }
 
   options?.onProgress?.(100)
 
   return {
     code: 200,
-    data: { url: getObjectResponse.data, imageId, fileName },
+    data: { url: objectJson.data, imageId, fileName, key },
   }
 }
 
@@ -180,11 +255,15 @@ function uploadWithProgress(
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve()
       } else {
-        reject(new Error(`Upload failed with status: ${xhr.status}`))
+        const msg = xhr.responseText || xhr.statusText || `Upload failed with status: ${xhr.status}`
+        reject(new Error(msg))
       }
     }
 
-    xhr.onerror = () => reject(new Error('Upload failed'))
+    xhr.onerror = () => {
+      const msg = xhr.responseText || xhr.statusText || 'Upload failed'
+      reject(new Error(msg))
+    }
     xhr.send(file)
   })
 }

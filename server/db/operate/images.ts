@@ -17,6 +17,9 @@ async function reviveDeletedImage(tx: any, imageId: string, image: ImageType) {
       title: image.title,
       preview_url: image.preview_url,
       video_url: image.video_url,
+      original_key: (image as any).original_key ?? null,
+      preview_key: (image as any).preview_key ?? null,
+      video_key: (image as any).video_key ?? null,
       blurhash: image.blurhash,
       exif: image.exif,
       labels: image.labels,
@@ -49,28 +52,31 @@ async function syncImageTags(tx: any, imageId: string, image: ImageType) {
     return
   }
 
+  // 去重，防止输入中包含重复标签
+  const uniqueLabels = Array.from(new Set(image.labels))
+
   const categoryMap = (image as any).tagCategoryMap as Record<string, string> | undefined
 
   if (categoryMap && typeof categoryMap === 'object') {
-    const tags = await upsertTagsByName(image.labels, categoryMap)
-    await Promise.all(
-      tags.map((tag) =>
-        tx.imagesTagsRelation.create({ data: { imageId, tagId: tag.id } })
-      )
-    )
+    const tags = await upsertTagsByName(uniqueLabels, categoryMap)
+    const relations = tags.map((tag) => ({ imageId, tagId: tag.id }))
+    if (relations.length > 0) {
+      await tx.imagesTagsRelation.createMany({ data: relations, skipDuplicates: true })
+    }
   } else {
-    await Promise.all(
-      image.labels.map(async (label) => {
-        const tag = await tx.tags.upsert({
+    const tags = await Promise.all(
+      uniqueLabels.map(async (label) => {
+        return await tx.tags.upsert({
           where: { name: label },
           update: {},
           create: { name: label },
         })
-        await tx.imagesTagsRelation.create({
-          data: { imageId, tagId: tag.id },
-        })
       })
     )
+    const relations = tags.map((tag: any) => ({ imageId, tagId: tag.id }))
+    if (relations.length > 0) {
+      await tx.imagesTagsRelation.createMany({ data: relations, skipDuplicates: true })
+    }
   }
 }
 
@@ -111,6 +117,9 @@ export async function insertImage(image: ImageType) {
         blurhash: image.blurhash,
         preview_url: image.preview_url,
         video_url: image.video_url,
+        original_key: (image as any).original_key ?? null,
+        preview_key: (image as any).preview_key ?? null,
+        video_key: (image as any).video_key ?? null,
         exif: image.exif,
         labels: image.labels,
         width: image.width,
@@ -145,6 +154,45 @@ export async function insertImage(image: ImageType) {
  */
 export async function deleteImage(id: string) {
   await db.$transaction(async (tx) => {
+    // 尝试删除存储对象（尽力而为，失败不阻断）
+    try {
+      const img = await tx.images.findUnique({ where: { id } })
+      const originalKey = (img as any)?.original_key as string | undefined
+      const previewKey = (img as any)?.preview_key as string | undefined
+      const videoKey = (img as any)?.video_key as string | undefined
+      const keys = [originalKey, previewKey, videoKey].filter(Boolean) as string[]
+      if (keys.length) {
+        // 删除 S3
+        try {
+          const { fetchConfigsByKeys } = await import('~/server/db/query/configs')
+          const s3Configs = await fetchConfigsByKeys(['accesskey_id','accesskey_secret','region','endpoint','bucket'])
+          const s3Bucket = s3Configs.find((i: any) => i.config_key === 'bucket')?.config_value || ''
+          if (s3Bucket) {
+            const { getClient } = await import('~/server/lib/s3')
+            const client = getClient(s3Configs)
+            const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
+            for (const k of keys) {
+              await client.send(new DeleteObjectCommand({ Bucket: s3Bucket, Key: k }))
+            }
+          }
+        } catch {}
+        // 删除 R2（与 S3 兼容协议）
+        try {
+          const { fetchConfigsByKeys } = await import('~/server/db/query/configs')
+          const r2Configs = await fetchConfigsByKeys(['r2_account_id','r2_accesskey_id','r2_accesskey_secret','r2_bucket'])
+          const { getR2Client } = await import('~/server/lib/r2')
+          const r2Bucket = r2Configs.find((i: any) => i.config_key === 'r2_bucket')?.config_value || ''
+          if (r2Bucket) {
+            const r2Client = getR2Client(r2Configs)
+            const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
+            for (const k of keys) {
+              await r2Client.send(new DeleteObjectCommand({ Bucket: r2Bucket, Key: k }))
+            }
+          }
+        } catch {}
+      }
+    } catch {}
+
     await tx.imagesAlbumsRelation.deleteMany({ where: { imageId: id } })
     await tx.images.update({
       where: { id },

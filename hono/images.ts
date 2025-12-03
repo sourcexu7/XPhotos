@@ -45,6 +45,26 @@ app.post('/add', async (c) => {
   }
 })
 
+// 检查是否重复图片（根据 blurhash 或 url）
+app.post('/check-duplicate', async (c) => {
+  try {
+    const body = await c.req.json()
+    const blurhash = body?.blurhash as string | undefined
+    const url = body?.url as string | undefined
+    if (!blurhash && !url) {
+      throw new HTTPException(400, { message: 'blurhash 或 url 至少提供一个' })
+    }
+    // 优先用 blurhash，其次用 url
+    const { db } = await import('~/server/lib/db')
+    const existing = blurhash
+      ? await db.images.findFirst({ where: { blurhash } })
+      : await db.images.findFirst({ where: { url } })
+    return c.json({ code: 200, data: { duplicate: !!existing, image: existing || null } })
+  } catch (e) {
+    throw new HTTPException(500, { message: 'Failed to check duplicate', cause: e })
+  }
+})
+
 app.delete('/batch-delete', async (c) => {
   try {
     const data = await c.req.json()

@@ -12,20 +12,21 @@ export async function updateS3Config(configs: any) {
   return await db.$executeRaw`
     UPDATE "public"."configs"
     SET config_value = CASE
-       WHEN config_key = 'accesskey_id' THEN ${configs.accesskeyId}
-       WHEN config_key = 'accesskey_secret' THEN ${configs.accesskeySecret}
-       WHEN config_key = 'region' THEN ${configs.region}
-       WHEN config_key = 'endpoint' THEN ${configs.endpoint}
-       WHEN config_key = 'bucket' THEN ${configs.bucket}
-       WHEN config_key = 'storage_folder' THEN ${configs.storageFolder}
-       WHEN config_key = 'force_path_style' THEN ${configs.forcePathStyle}
-       WHEN config_key = 's3_cdn' THEN ${configs.s3Cdn}
-       WHEN config_key = 's3_cdn_url' THEN ${configs.s3CdnUrl}
-       WHEN config_key = 's3_direct_download' THEN ${configs.s3DirectDownload}
+       WHEN config_key = 'accesskey_id' THEN ${configs.accesskeyId?.toString().trim()}
+       WHEN config_key = 'accesskey_secret' THEN ${configs.accesskeySecret?.toString().trim()}
+       WHEN config_key = 'region' THEN ${configs.region?.toString().trim()}
+       WHEN config_key = 'endpoint' THEN ${configs.endpoint?.toString().trim()}
+       WHEN config_key = 'bucket' THEN ${configs.bucket?.toString().trim()}
+       WHEN config_key = 'storage_folder' THEN ${configs.storageFolder?.toString().trim()}
+       WHEN config_key = 'force_path_style' THEN ${configs.forcePathStyle?.toString().trim()}
+       WHEN config_key = 's3_force_server_upload' THEN ${configs.s3ForceServerUpload?.toString().trim()}
+       WHEN config_key = 's3_cdn' THEN ${configs.s3Cdn?.toString().trim()}
+       WHEN config_key = 's3_cdn_url' THEN ${configs.s3CdnUrl?.toString().trim()}
+       WHEN config_key = 's3_direct_download' THEN ${configs.s3DirectDownload?.toString().trim()}
        ELSE 'N&A'
     END,
         updated_at = NOW()
-    WHERE config_key IN ('accesskey_id', 'accesskey_secret', 'region', 'endpoint', 'bucket', 'storage_folder', 'force_path_style', 's3_cdn', 's3_cdn_url', 's3_direct_download');
+    WHERE config_key IN ('accesskey_id', 'accesskey_secret', 'region', 'endpoint', 'bucket', 'storage_folder', 'force_path_style', 's3_force_server_upload', 's3_cdn', 's3_cdn_url', 's3_direct_download');
   `
 }
 

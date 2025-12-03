@@ -4,7 +4,7 @@ import { fetchConfigsByKeys } from '~/server/db/query/configs'
 import UnifiedNav from '~/components/layout/unified-nav'
 
 const DEFAULT_STYLE = '0'
-const DEFAULT_TITLE = 'PicImpact'
+const DEFAULT_TITLE = 'XPhotos'
 
 export default async function DefaultLayout({
   children,

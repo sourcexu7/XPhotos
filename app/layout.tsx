@@ -24,7 +24,7 @@ type ConfigItem = {
   detail: string | null
 }
 
-const DEFAULT_TITLE = 'PicImpact'
+const DEFAULT_TITLE = 'XPhotos'
 const DEFAULT_FAVICON = './favicon.ico'
 const DEFAULT_UMAMI_HOST = 'https://cloud.umami.is/script.js'
 

@@ -9,7 +9,7 @@ export default function Storages() {
   const items = [
     {
       key: 's3',
-      label: 'S3 API',
+      label: 'Amazon S3',
       children: <S3Tabs />
     },
     {

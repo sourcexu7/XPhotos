@@ -9,7 +9,7 @@ export default async function Logo() {
 
   return (
     <Link href="/" className="select-none">
-      <Button variant="link" className="cursor-pointer">{ data[0].config_value ?? 'PicImpact' }</Button>
+      <Button variant="link" className="cursor-pointer">{ data[0].config_value ?? 'XPhotos' }</Button>
     </Link>
   )
 }

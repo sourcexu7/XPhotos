@@ -34,6 +34,8 @@ export default function SimpleFileUpload(props: any) {
   const [url, setUrl] = useState('')
   const [previewUrl, setPreviewUrl] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
+  const [originalKey, setOriginalKey] = useState<string>('')
+  const [previewKey, setPreviewKey] = useState<string>('')
   const [isUploading, setIsUploading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -239,6 +241,30 @@ export default function SimpleFileUpload(props: any) {
         ;(data as any).tagCategoryMap = map
       }
 
+      // 提交前进行重复检测（优先 blurhash，其次 url）
+      const dupRes = await fetchWithTimeout('/api/v1/images/check-duplicate', {
+        headers: { 'Content-Type': 'application/json' },
+        method: 'post',
+        body: JSON.stringify({ blurhash: hash || undefined, url: url || undefined }),
+      }, 10000).then(r => r.json()).catch(() => ({ code: 200, data: { duplicate: false } }))
+
+      if (dupRes?.code === 200 && dupRes?.data?.duplicate) {
+        const ok = await new Promise<boolean>((resolve) => {
+          AntModal.confirm({
+            title: '检测到重复图片',
+            content: '该图片已存在，是否仍然继续保存（可能会复用已有记录）？',
+            okText: '继续保存',
+            cancelText: '取消',
+            onOk: () => resolve(true),
+            onCancel: () => resolve(false),
+          })
+        })
+        if (!ok) {
+          setIsSubmitting(false)
+          return
+        }
+      }
+
       const res = await fetchWithTimeout('/api/v1/images/add', {
         headers: { 'Content-Type': 'application/json' },
         method: 'post',
@@ -295,12 +321,12 @@ export default function SimpleFileUpload(props: any) {
 
   const storages = [
     {
-      label: 'S3 API',
-      value: 's3',
-    },
-    {
       label: 'Cloudflare R2',
       value: 'r2',
+    },
+    {
+      label: 'Amazon S3',
+      value: 's3',
     },
     {
       label: 'AList API',
@@ -318,6 +344,7 @@ export default function SimpleFileUpload(props: any) {
         const res = await uploadFile(compressedFile, type, storage, alistMountPath, { onProgress: (p:number) => setUploadProgress(p) })
         if (res?.code === 200) {
           setPreviewUrl(res?.data?.url)
+          if (res?.data?.key) setPreviewKey(res.data.key)
         } else {
           throw new Error('Upload failed')
         }
@@ -343,6 +370,7 @@ export default function SimpleFileUpload(props: any) {
     setUrl(res?.data?.url)
     setImageId(res?.data?.imageId)
     setImageName(res?.data?.fileName)
+    if (res?.data?.key) setOriginalKey(res.data.key)
   }
 
   async function onRequestUpload(file: File) {
@@ -377,6 +405,18 @@ export default function SimpleFileUpload(props: any) {
   }
 
   function onRemoveFile() {
+    // 若已上传原图，尝试删除存储对象
+    ;(async () => {
+      try {
+        if (originalKey && storage) {
+          await fetch('/api/v1/file/delete', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ storage, key: originalKey })
+          })
+        }
+        // 预览文件删除：若能推断同 imageId 则构造前缀删除。此处先跳过，依赖后台清理或后续增强。
+      } catch {}
+    })()
     setExif({} as ExifType)
     setUrl('')
     setHash('')
@@ -390,6 +430,8 @@ export default function SimpleFileUpload(props: any) {
     setLon('')
     setPreviewUrl('')
     setVideoUrl('')
+    setOriginalKey('')
+    setPreviewKey('')
     setImageLabels([])
     setFiles([])
   }
@@ -527,6 +569,9 @@ export default function SimpleFileUpload(props: any) {
                   await getAlistStorage()
                 } else {
                   setStorageSelect(false)
+                }
+                if (value === 's3') {
+                  try { toast.info('已切换到 Amazon S3：无需选择目录，请先选择相册再上传') } catch {}
                 }
               }}
               style={{ width: 160 }}

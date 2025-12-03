@@ -8,6 +8,8 @@ import { updateAListConfig, updateCustomInfo, updateR2Config, updateS3Config } f
 
 import { fetchTagsList, fetchTagsTree, fetchTagsByCategory } from '~/server/db/query/tags'
 import { createTag, updateTag, deleteTag, deleteTagAndChildren } from '~/server/db/operate/tags'
+import { getClient } from '~/server/lib/s3'
+import { HeadBucketCommand, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 
 const app = new Hono()
 
@@ -122,11 +124,86 @@ app.get('/s3-info', async (c) => {
     'bucket',
     'storage_folder',
     'force_path_style',
+    's3_force_server_upload',
     's3_cdn',
     's3_cdn_url',
     's3_direct_download'
   ])
   return c.json(data)
+})
+
+// 轻量验证 S3 配置是否可操作存储桶
+app.get('/validate-s3', async (c) => {
+  try {
+    const keys = [
+      'accesskey_id',
+      'accesskey_secret',
+      'region',
+      'endpoint',
+      'bucket',
+      'storage_folder',
+      'force_path_style',
+    ]
+    const configs = await fetchConfigsByKeys(keys)
+    const getVal = (k: string) => configs.find((i: Config) => i.config_key === k)?.config_value || ''
+
+    const accesskeyId = getVal('accesskey_id')
+    const accesskeySecret = getVal('accesskey_secret')
+    const region = getVal('region')
+    const endpoint = getVal('endpoint')
+    const bucket = getVal('bucket')
+    let storageFolder = getVal('storage_folder')
+
+    if (!accesskeyId || !accesskeySecret || !region || !endpoint || !bucket) {
+      throw new HTTPException(400, { message: 'S3 配置不完整，缺少必要字段' })
+    }
+
+    // 规范 storageFolder
+    if (storageFolder === '/') storageFolder = ''
+    if (storageFolder.endsWith('/')) storageFolder = storageFolder.slice(0,-1)
+
+    const client = getClient(configs)
+    const checks: Record<string, string> = {}
+
+    // 1) HeadBucket
+    try {
+      await client.send(new HeadBucketCommand({ Bucket: bucket }))
+      checks.headBucket = 'ok'
+    } catch (e: any) {
+      checks.headBucket = `error: ${e?.name || e?.message || 'unknown'}`
+    }
+
+    // 2) PutObject 一个小测试文件
+    const keyPrefix = storageFolder ? `${storageFolder}/` : ''
+    const testKey = `${keyPrefix}picimpact-validate-${Date.now()}.txt`
+    try {
+      await client.send(new PutObjectCommand({ Bucket: bucket, Key: testKey, Body: 'picimpact-validation', ContentType: 'text/plain' }))
+      checks.putObject = 'ok'
+    } catch (e: any) {
+      checks.putObject = `error: ${e?.name || e?.message || 'unknown'}`
+    }
+
+    // 3) GetObject 读取刚写入的内容
+    try {
+      await client.send(new GetObjectCommand({ Bucket: bucket, Key: testKey }))
+      checks.getObject = 'ok'
+    } catch (e: any) {
+      checks.getObject = `error: ${e?.name || e?.message || 'unknown'}`
+    }
+
+    // 4) DeleteObject 删除测试文件
+    try {
+      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: testKey }))
+      checks.deleteObject = 'ok'
+    } catch (e: any) {
+      checks.deleteObject = `error: ${e?.name || e?.message || 'unknown'}`
+    }
+
+    return c.json({ code: 200, data: { bucket, endpoint, testKey, checks } })
+  } catch (e: any) {
+    const msg = e?.message || 'S3 配置验证失败'
+    throw new HTTPException(e?.status || 500, { message: msg, cause: e })
+  }
 })
 
 app.get('/get-admin-config', async (c) => {
@@ -176,11 +253,12 @@ app.put('/update-s3-info', async (c) => {
   const bucket = query?.find((item: Config) => item.config_key === 'bucket').config_value
   const storageFolder = query?.find((item: Config) => item.config_key === 'storage_folder').config_value
   const forcePathStyle = query?.find((item: Config) => item.config_key === 'force_path_style').config_value
+  const s3ForceServerUpload = query?.find((item: Config) => item.config_key === 's3_force_server_upload')?.config_value
   const s3Cdn = query?.find((item: Config) => item.config_key === 's3_cdn').config_value
   const s3CdnUrl = query?.find((item: Config) => item.config_key === 's3_cdn_url').config_value
   const s3DirectDownload = query?.find((item: Config) => item.config_key === 's3_direct_download').config_value
 
-  const data = await updateS3Config({ accesskeyId, accesskeySecret, region, endpoint, bucket, storageFolder, forcePathStyle, s3Cdn, s3CdnUrl, s3DirectDownload })
+  const data = await updateS3Config({ accesskeyId, accesskeySecret, region, endpoint, bucket, storageFolder, forcePathStyle, s3ForceServerUpload, s3Cdn, s3CdnUrl, s3DirectDownload })
   return c.json(data)
 })
 

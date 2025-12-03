@@ -26,6 +26,7 @@ export default function MultipleFileUpload(props: any) {
   const [lon, setLon] = React.useState('')
   // 改为 any[]，因为后面会扩展文件项的元数据（labels/exif 等）
   const [files, setFiles] = React.useState<any[]>([])
+  const [fileKeyMap, setFileKeyMap] = React.useState<Record<string, string>>({})
   const [primarySelect, setPrimarySelect] = React.useState<string | null>(null)
   const [secondarySelect, setSecondarySelect] = React.useState<string[]>([])
   const [isUploading, setIsUploading] = React.useState(false)
@@ -113,12 +114,12 @@ export default function MultipleFileUpload(props: any) {
 
   const storages = [
     {
-      label: 'S3 API',
-      value: 's3',
-    },
-    {
       label: 'Cloudflare R2',
       value: 'r2',
+    },
+    {
+      label: 'Amazon S3',
+      value: 's3',
     },
     {
       label: 'AList API',
@@ -198,6 +199,29 @@ export default function MultipleFileUpload(props: any) {
         tagCategoryMap: Object.keys(tagCategoryMap).length ? tagCategoryMap : undefined,
       } as ImageType & { tagCategoryMap?: Record<string,string> }
 
+      // 提交前进行重复检测（优先 blurhash，其次 url），若重复则弹窗确认
+      const dupRes = await fetch('/api/v1/images/check-duplicate', {
+        headers: { 'Content-Type': 'application/json' },
+        method: 'post',
+        body: JSON.stringify({ blurhash: hash || undefined, url: url || undefined }),
+      }).then(r => r.json()).catch(() => ({ code: 200, data: { duplicate: false } }))
+
+      if (dupRes?.code === 200 && dupRes?.data?.duplicate) {
+        const ok = await new Promise<boolean>((resolve) => {
+          AntModal.confirm({
+            title: '检测到重复图片',
+            content: '该图片已存在，是否仍然继续保存（可能会复用已有记录）？',
+            okText: '继续保存',
+            cancelText: '取消',
+            onOk: () => resolve(true),
+            onCancel: () => resolve(false),
+          })
+        })
+        if (!ok) {
+          return { code: 499 }
+        }
+      }
+
       const resp = await fetch('/api/v1/images/add', {
         headers: { 'Content-Type': 'application/json' },
         method: 'post',
@@ -205,10 +229,10 @@ export default function MultipleFileUpload(props: any) {
       })
 
       const contentType = resp.headers.get('content-type') || ''
-      let res: any = null
+      let json: any = null
       if (contentType.includes('application/json')) {
         try {
-          res = await resp.json()
+          json = await resp.json()
         } catch (e) {
           const text = await resp.text().catch(() => '')
           console.error('Failed to parse JSON response for /api/v1/images/add:', e, text)
@@ -223,10 +247,10 @@ export default function MultipleFileUpload(props: any) {
         return
       }
 
-      if (res?.code === 200) {
+      if (json?.code === 200) {
         toast.success('保存成功')
       } else {
-        const msg = res?.message || '保存失败'
+        const msg = json?.message || '保存失败'
         toast.error(msg)
       }
     } catch (e) {
@@ -316,6 +340,7 @@ export default function MultipleFileUpload(props: any) {
             }).then(async (res) => {
               if (res.code === 200) {
                 await resHandle(res, outputFile)
+                if (res?.data?.key && outputFile?.__key) setFileKeyMap(prev => ({ ...prev, [outputFile.__key]: res.data.key }))
               } else {
                 throw new Error('Upload failed')
               }
@@ -329,6 +354,7 @@ export default function MultipleFileUpload(props: any) {
       await uploadFile(file, album, storage, alistMountPath, { onProgress: (p:number) => setUploadProgressMap(prev => ({ ...prev, [file.__key]: p })) }).then(async (res) => {
         if (res.code === 200) {
           await resHandle(res, file)
+          if (res?.data?.key && file?.__key) setFileKeyMap(prev => ({ ...prev, [file.__key]: res.data.key }))
         } else {
           throw new Error('Upload failed')
         }
@@ -344,6 +370,8 @@ export default function MultipleFileUpload(props: any) {
 
   function removeFileByKey(key: string) {
     try {
+      // 删除对应存储对象
+      (async () => { try { const k = fileKeyMap[key]; if (k && storage) { await fetch('/api/v1/file/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ storage, key: k }) }) } setFileKeyMap(prev => { const next = { ...prev }; delete next[key]; return next }) } catch {} })()
       setFiles(prev => prev.filter(f => ((f && (f.__key || f.id || f.name)) !== key)))
       setUploadedMeta(prev => {
         const nxt = { ...prev }
@@ -482,6 +510,9 @@ export default function MultipleFileUpload(props: any) {
                   await getAlistStorage()
                 } else {
                   setStorageSelect(false)
+                }
+                if (value === 's3') {
+                  try { toast.info('已切换到 Amazon S3：无需选择目录，请先选择相册再上传') } catch {}
                 }
               }}
             >

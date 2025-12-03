@@ -135,20 +135,20 @@ export default function CardList({ data }: Readonly<AnalysisDataProps>) {
                 <div style={{ flex: 1, height: 1, background: token.colorBorder }} />
               </div>
               <Space size={token.marginSM}>
-                <Link href="https://github.com/besscroft/PicImpact" target="_blank">
+                <Link href="https://github.com/sourcexu7/XPhotos" target="_blank">
                   <Button type="default" icon={<Star size={16} />}>
                     Star
                   </Button>
                 </Link>
                 <Link
-                  href="https://github.com/besscroft/PicImpact/issues/new"
+                  href="https://github.com/sourcexu7/XPhotos/issues/new"
                   target="_blank"
                 >
                   <Button type="default" icon={<MessageSquareHeart size={16} />}>
                     {t('Button.issue')}
                   </Button>
                 </Link>
-                <Link href="https://ziyume.com/docs/pic" target="_blank">
+                <Link href="https://ziyume.com/docs/xphotos" target="_blank">
                   <Button type="link" icon={<Send />}>
                     文档
                   </Button>

@@ -32,7 +32,7 @@ export const PasskeyRegister: React.FC<PasskeyRegisterProps> = ({
       return
     }
 
-    const name = passkeyName.trim() || email || `PicImpact-${new Date().toLocaleDateString()}`
+    const name = passkeyName.trim() || email || `XPhotos-${new Date().toLocaleDateString()}`
 
     setIsLoading(true)
     try {

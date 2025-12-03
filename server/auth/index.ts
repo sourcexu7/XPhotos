@@ -25,7 +25,7 @@ export const auth = betterAuth({
     twoFactor(),
     passkey({
       rpID: process.env.BETTER_AUTH_PASSKEY_RP_ID || 'localhost',
-      rpName: process.env.BETTER_AUTH_PASSKEY_RP_NAME || 'PicImpact'
+      rpName: process.env.BETTER_AUTH_PASSKEY_RP_NAME || 'XPhotos'
     }),
     customSession(async ({ user, session }) => {
       // 可拓展 session

@@ -111,7 +111,7 @@ export default function LivephotoFileUpload() {
     } catch (e) { toast.error('获取失败') }
   }
 
-  const storages = [ { label: 'S3 API', value: 's3' }, { label: 'Cloudflare R2', value: 'r2' }, { label: 'AList API', value: 'alist' } ]
+  const storages = [ { label: 'Cloudflare R2', value: 'r2' }, { label: 'Amazon S3', value: 's3' }, { label: 'AList API', value: 'alist' } ]
 
   async function uploadPreviewImage(file: File, type: string) {
     new Compressor(file, {
@@ -225,7 +225,8 @@ export default function LivephotoFileUpload() {
         <div className="flex flex-1 w-full space-x-1">
           <div className="flex flex-col" style={{ minWidth: 140 }}>
             <div className="text-xs text-gray-600 mb-1">{t('Upload.selectStorage')}</div>
-            <AntSelect size="middle" value={storage} placeholder={t('Upload.selectStorage')} style={{ minWidth: 140 }} onChange={async (value: string) => { setStorage(value); if (value === 'alist') await getAlistStorage(); else setStorageSelect(false) }}>
+            <AntSelect size="middle" value={storage} placeholder={t('Upload.selectStorage')} style={{ minWidth: 140 }} onChange={async (value: string) => { setStorage(value); if (value === 'alist') await getAlistStorage(); else setStorageSelect(false); if (value === 's3') { try { toast.info('已切换到 Amazon S3：无需选择目录，请先选择相册再上传') } catch {} } }}>
+              {/* storage options */}
               {storages?.map((s: any) => (<AntSelect.Option key={s.value} value={s.value}>{s.label}</AntSelect.Option>))}
             </AntSelect>
           </div>

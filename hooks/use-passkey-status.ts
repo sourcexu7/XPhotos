@@ -47,7 +47,7 @@ export function usePasskeyStatus() {
   const addPasskey = async (name?: string) => {
     try {
       const result = await authClient.passkey.addPasskey({
-        name: name || `PicImpact-${new Date().toLocaleDateString()}`
+        name: name || `XPhotos-${new Date().toLocaleDateString()}`
       })
 
       if (result?.error) {

@@ -34,7 +34,7 @@ export default async function ThemeAlbumLayout({
   // 使用系统配置的主题，而不是相册的主题字段
   const currentTheme = configs.find(a => a.config_key === 'custom_index_style')?.config_value || '0'
   const currentAlbum = data?.album_value || `/${album}`
-  const siteTitle = configs.find(a => a.config_key === 'custom_title')?.config_value || 'PicImpact'
+  const siteTitle = configs.find(a => a.config_key === 'custom_title')?.config_value || 'XPhotos'
 
   return (
     <>

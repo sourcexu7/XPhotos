@@ -19,15 +19,60 @@ export default function S3EditSheet() {
   )
   const t = useTranslations()
 
+  function getVal(arr: Config[] | undefined, key: string): string {
+    return (arr || []).find((c) => c.config_key === key)?.config_value || ''
+  }
+
+  function setVal(arr: Config[] | undefined, key: string, val: string): Config[] {
+    return (arr || []).map((c) => {
+      if (c.config_key === key) c.config_value = val
+      return c
+    })
+  }
+
+  function normalizeAndValidate(data: Config[] | undefined): { ok: boolean, next: Config[], message?: string } {
+    const required = ['accesskey_id','accesskey_secret','region','endpoint','bucket']
+    const missing = required.filter(k => !getVal(data, k))
+    if (missing.length) {
+      return { ok: false, next: data || [], message: `缺少必要配置：${missing.join(', ')}` }
+    }
+
+    let next = [...(data || [])]
+    // endpoint ensure https
+    const endpoint = getVal(next, 'endpoint')
+    if (endpoint && !/^https:\/\//i.test(endpoint)) {
+      next = setVal(next, 'endpoint', `https://${endpoint.replace(/^https?:\/\//i,'')}`)
+    }
+
+    // storage_folder cleanup
+    let storageFolder = getVal(next, 'storage_folder')
+    if (storageFolder === '/') storageFolder = ''
+    if (storageFolder.endsWith('/')) storageFolder = storageFolder.slice(0,-1)
+    next = setVal(next, 'storage_folder', storageFolder)
+
+    // Force path style suggestion for AWS
+    const forcePathStyle = getVal(next, 'force_path_style')
+    if (/amazonaws\.com/i.test(getVal(next, 'endpoint')) && forcePathStyle === 'true') {
+      toast.info('AWS S3 通常使用虚拟主机风格，建议将 force_path_style 设为 false')
+    }
+    return { ok: true, next }
+  }
+
   async function submit() {
     setLoading(true)
     try {
+      const { ok, next, message } = normalizeAndValidate(s3Data)
+      if (!ok) {
+        toast.error(message || '配置不完整')
+        return
+      }
+      setS3EditData(next)
       await fetch('/api/v1/settings/update-s3-info', {
         headers: {
           'Content-Type': 'application/json',
         },
         method: 'PUT',
-        body: JSON.stringify(s3Data),
+        body: JSON.stringify(next),
       }).then(res => res.json())
       toast.success(t('Config.updateSuccess'))
       mutate('/api/v1/settings/s3-info')
@@ -59,7 +104,7 @@ export default function S3EditSheet() {
         <div className="flex flex-col space-y-2">
           {
             s3Data?.map((config: Config) => (
-              config.config_key === 'force_path_style' || config.config_key === 's3_cdn' || config.config_key === 's3_direct_download' ?
+              config.config_key === 'force_path_style' || config.config_key === 's3_cdn' || config.config_key === 's3_direct_download' || config.config_key === 's3_force_server_upload' ?
                 <div
                   key={config.id}
                   className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"

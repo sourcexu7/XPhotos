@@ -10,7 +10,7 @@ jobs:
     name: Running Compile Next Multi-arch Docker Main Image
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PicImpact
+      - name: Checkout XPhotos
         uses: actions/checkout@v4
       - name: Get Version
         id: get_version
@@ -33,4 +33,4 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/picimpact:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/xphotos:latest

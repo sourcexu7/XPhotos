@@ -16,7 +16,7 @@ export default function Login() {
               height={36}
             />
           </div>
-          PicImpact
+          XPhotos
         </Link>
         <UserFrom/>
       </div>

@@ -1,6 +1,6 @@
 {
-  "name": "PicImpact",
-  "short_name": "PicImpact",
+  "name": "XPhotos",
+  "short_name": "XPhotos",
   "description": "A powerful image processing and enhancement platform",
   "start_url": "/",
   "display": "standalone",

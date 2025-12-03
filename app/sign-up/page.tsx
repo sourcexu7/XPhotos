@@ -16,7 +16,7 @@ export default function SignUp() {
               height={36}
             />
           </div>
-          PicImpact
+          XPhotos
         </Link>
         <SignUpForm />
       </div>

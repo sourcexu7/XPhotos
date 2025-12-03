@@ -57,7 +57,12 @@ export default function AlistTabs() {
               icon={<EditOutlined />}
               onClick={() => {
                 setAListEdit(true)
-                setAListEditData(JSON.parse(JSON.stringify(data)))
+                try {
+                  const cloned = typeof structuredClone === 'function' ? structuredClone(data) : JSON.parse(JSON.stringify(data ?? {}))
+                  setAListEditData(cloned)
+                } catch {
+                  setAListEditData(data ?? {})
+                }
               }}
             >
               {t('Config.edit')}

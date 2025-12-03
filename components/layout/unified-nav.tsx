@@ -23,7 +23,7 @@ export default function UnifiedNav({
   albums,
   currentAlbum = '/',
   currentTheme = '2',
-  siteTitle = 'PicImpact',
+  siteTitle = 'XPhotos',
 }: UnifiedNavProps) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [themeState, setThemeState] = useState(currentTheme)
@@ -116,7 +116,7 @@ export default function UnifiedNav({
       label: 'GitHub',
       onClick: () => {
         setOpenKeys([])
-        window.open('https://github.com/besscroft/PicImpact', '_blank')
+        window.open('https://github.com/sourcexu7/XPhotos', '_blank')
       },
     },
   ]
