@@ -1,17 +1,20 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Input, Avatar, Dropdown, Space, Badge, Button } from 'antd'
+import { Input, Avatar, Dropdown, Space, Badge, Button, Switch, Tooltip } from 'antd'
 import { BellOutlined, SearchOutlined, UserOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { authClient } from '~/server/auth/auth-client'
+import { useTheme } from 'next-themes'
+import { MoonOutlined, SunOutlined } from '@ant-design/icons'
 
 // using Input + Button inside Space.Compact instead of Input.Search
 
 export default function AdminAntTopbar() {
   const t = useTranslations()
   const router = useRouter()
+  const { theme, setTheme, resolvedTheme } = useTheme()
 
   const [searchValue, setSearchValue] = useState('')
   const onSearch = (value: string) => {
@@ -46,6 +49,14 @@ export default function AdminAntTopbar() {
         />
         <Button onClick={() => onSearch(searchValue)} icon={<SearchOutlined />} />
       </Space.Compact>
+      <Tooltip title={resolvedTheme === 'dark' ? (t('Button.light') || '切换至浅色') : (t('Button.dark') || '切换至深色')}>
+        <Switch
+          checked={resolvedTheme === 'dark'}
+          checkedChildren={<MoonOutlined />}
+          unCheckedChildren={<SunOutlined />}
+          onChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+        />
+      </Tooltip>
       <Badge count={0}>
         <BellOutlined style={{fontSize:18}} />
       </Badge>

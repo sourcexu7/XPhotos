@@ -343,6 +343,8 @@
   "Theme": {
     "indexDefaultStyle": "Default Theme",
     "indexSimpleStyle": "Single Column Theme",
-    "indexWaterfallStyle": "Waterfall Theme"
+    "indexWaterfallStyle": "Waterfall Theme",
+    "light": "Light",
+    "dark": "Dark"
   }
 }

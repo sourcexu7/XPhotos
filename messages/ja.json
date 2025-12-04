@@ -338,6 +338,8 @@
   "Theme": {
     "indexDefaultStyle": "デフォルトテーマ",
     "indexSimpleStyle": "シングルカラムテーマ",
-    "indexWaterfallStyle": "ウォーターフォールテーマ"
+    "indexWaterfallStyle": "ウォーターフォールテーマ",
+    "light": "ライト",
+    "dark": "ダーク"
   }
 }
