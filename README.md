@@ -1,5 +1,5 @@
 <h1 align="center">
-<img width="28" src="./public/maskable-icon.png">
+
 XPhotos
 </h1>
 
@@ -86,9 +86,6 @@ pnpm prisma:dev
 
 如果您有任何建议，欢迎反馈！
 
-### TODO
-
-- [ ] Map 地图展示
 
 ### 代码贡献
 
