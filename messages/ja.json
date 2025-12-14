@@ -7,6 +7,7 @@
     "type": "タイプ",
     "default": "デフォルト",
     "showStatus": "表示状態",
+    "explore_now": "今すぐ探索",
     "public": "公開済み",
     "private": "非公開",
     "camera": "カメラ",

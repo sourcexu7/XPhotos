@@ -1,12 +1,12 @@
 'use client'
 
-import * as React from "react"
-import { useState, useEffect } from "react"
+import * as React from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { Lock, Mail, ArrowLeft, Loader2, Fingerprint } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
+import { Lock, Mail, ArrowLeft, Loader2, Fingerprint } from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { authClient } from '~/lib/auth-client'
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '~/components/ui/input-otp'
 import { useTranslations } from 'next-intl'
@@ -14,16 +14,16 @@ import { useTranslations } from 'next-intl'
 export const UserFrom = () => {
   const router = useRouter()
   const t = useTranslations()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [isPasskeyLoading, setIsPasskeyLoading] = useState(false)
   const [logoError, setLogoError] = useState(false)
   
   // 2FA State
   const [otp, setOtp] = useState(false)
-  const [otpCode, setOtpCode] = useState("")
+  const [otpCode, setOtpCode] = useState('')
 
   useEffect(() => {
     // 自动聚焦邮箱字段
@@ -38,7 +38,7 @@ export const UserFrom = () => {
       return
     }
     
-    setError("")
+    setError('')
     setLoading(true)
 
     try {
@@ -143,10 +143,10 @@ export const UserFrom = () => {
         </div>
         
         <h2 className="text-2xl font-semibold mb-3 text-center text-[#2A4365]">
-          {otp ? t('Login.otp') : "XPhotos"}
+          {otp ? t('Login.otp') : 'XPhotos'}
         </h2>
         <p className="text-gray-500 text-sm mb-10 text-center">
-          {otp ? t('Login.otpRequired') : "专业风光摄影作品集管理系统"}
+          {otp ? t('Login.otpRequired') : '专业风光摄影作品集管理系统'}
         </p>
         
         <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6 mb-6">
@@ -242,7 +242,7 @@ export const UserFrom = () => {
         
         {otp && (
            <button 
-             onClick={() => { setOtp(false); setOtpCode(""); setError("") }}
+             onClick={() => { setOtp(false); setOtpCode(''); setError('') }}
              className="mt-4 text-sm text-gray-500 hover:text-[#2A4365]"
            >
              {t('Login.backToLogin')}

@@ -6,7 +6,7 @@ import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
 import type { AlbumType, ImageType } from '~/types'
 import Compressor from 'compressorjs'
-import { Select as AntSelect, Upload as AntUpload, Button as AntButton, Input as AntInput, Form as AntForm, Modal as AntModal, message as AntMessage, Checkbox as AntCheckbox, Tag as AntTag, Card as AntCard, Space as AntSpace, Progress as AntProgress, InputNumber as AntInputNumber, DatePicker as AntDatePicker } from 'antd'
+import { Select as AntSelect, Upload as AntUpload, Button as AntButton, Input as AntInput, Form as AntForm, Modal as AntModal, message as AntMessage, Checkbox as AntCheckbox, Tag as AntTag, Card as AntCard, Progress as AntProgress, DatePicker as AntDatePicker } from 'antd'
 import dayjs from 'dayjs'
 import { CloseOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
@@ -16,20 +16,58 @@ import { UploadIcon } from '~/components/icons/upload'
 import { heicTo, isHeic } from 'heic-to'
 import { encodeBrowserThumbHash } from '~/lib/utils/blurhash-client'
 
-export default function MultipleFileUpload(props: any) {
-  const [alistStorage, setAlistStorage] = React.useState([])
+interface TagNode {
+  category: string
+  id?: string
+  name?: string
+  children: { name: string }[]
+}
+
+interface AlistStorage {
+  mount_path: string
+}
+
+interface UploadFile extends File {
+  __key?: string
+  id?: string
+  labels?: string[]
+  exif?: Record<string, unknown>
+}
+
+interface UploadMeta {
+  url?: string
+  clientImageId?: string
+  fileName?: string
+  exifObj?: Record<string, unknown>
+  width?: number
+  height?: number
+  blurhash?: string
+  previewUrl?: string
+  file?: UploadFile
+}
+
+interface UploadResponse {
+  code: number
+  data?: {
+    url?: string
+    key?: string
+    imageId?: string
+    fileName?: string
+  }
+  message?: string
+}
+
+export default function MultipleFileUpload() {
+  const [alistStorage, setAlistStorage] = React.useState<AlistStorage[]>([])
   const [storageSelect, setStorageSelect] = React.useState(false)
   const [storage, setStorage] = React.useState('r2')
   const [album, setAlbum] = React.useState('')
   const [alistMountPath, setAlistMountPath] = React.useState('')
-  const [lat, setLat] = React.useState('')
-  const [lon, setLon] = React.useState('')
-  // 改为 any[]，因为后面会扩展文件项的元数据（labels/exif 等）
-  const [files, setFiles] = React.useState<any[]>([])
+  // 改为 UploadFile[]，因为后面会扩展文件项的元数据（labels/exif 等）
+  const [files, setFiles] = React.useState<UploadFile[]>([])
   const [fileKeyMap, setFileKeyMap] = React.useState<Record<string, string>>({})
   const [primarySelect, setPrimarySelect] = React.useState<string | null>(null)
   const [secondarySelect, setSecondarySelect] = React.useState<string[]>([])
-  const [isUploading, setIsUploading] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const t = useTranslations()
   const idPrefix = React.useId()
@@ -42,7 +80,7 @@ export default function MultipleFileUpload(props: any) {
   const previewCompressQuality = parseFloat(configs?.find(config => config.config_key === 'preview_quality')?.config_value || '0.2')
   const maxUploadFiles = parseInt(configs?.find(config => config.config_key === 'max_upload_files')?.config_value || '5')
   const [presetTags, setPresetTags] = React.useState<string[]>([])
-  const [tagTree, setTagTree] = React.useState<any[]>([])
+  const [tagTree, setTagTree] = React.useState<TagNode[]>([])
   // EXIF presets (editable via modal persisted in localStorage)
   const presetsStorageKey = 'picimpact_exif_presets'
   const defaultPresets = {
@@ -52,21 +90,21 @@ export default function MultipleFileUpload(props: any) {
     apertures: ['1.4','1.8','2.0','2.8','3.5','4.0','5.6','8.0','11','16'],
   }
   const [exifPresets, setExifPresets] = React.useState(() => {
-    try { const raw = localStorage.getItem(presetsStorageKey); if (raw) return JSON.parse(raw) } catch (e) {}
+    try { const raw = localStorage.getItem(presetsStorageKey); if (raw) return JSON.parse(raw) } catch {}
     return defaultPresets
   })
   const [isPresetModalOpen, setIsPresetModalOpen] = React.useState(false)
   const [editingPresetsText, setEditingPresetsText] = React.useState({ cameraModels: '', shutterSpeeds: '', isos: '', apertures: '' })
   const [uploadProgressMap, setUploadProgressMap] = React.useState<Record<string, number>>({})
-  const [uploadedMeta, setUploadedMeta] = React.useState<Record<string, any>>({})
+  const [uploadedMeta, setUploadedMeta] = React.useState<Record<string, UploadMeta>>({})
   // Modal state for missing (not-yet-uploaded) files before submit
   const [showMissingModal, setShowMissingModal] = React.useState(false)
-  const [missingFiles, setMissingFiles] = React.useState<File[]>([])
+  const [missingFiles, setMissingFiles] = React.useState<UploadFile[]>([])
   const [missingSelection, setMissingSelection] = React.useState<Record<string, boolean>>({})
   React.useEffect(() => {
-    fetcher('/api/v1/settings/tags/get').then((res:any)=>{ if (res?.data) setPresetTags(res.data.map((t:any)=>t.name)) }).catch(()=>{})
+    fetcher('/api/v1/settings/tags/get').then((res: { data: { name: string }[] })=>{ if (res?.data) setPresetTags(res.data.map((t)=>t.name)) }).catch(()=>{})
     // 拉取树形标签（category -> children）用于一级/二级联动
-    fetcher('/api/v1/settings/tags/get?tree=true').then((res:any) => { if (res?.data) setTagTree(res.data) }).catch(()=>{})
+    fetcher('/api/v1/settings/tags/get?tree=true').then((res: { data: TagNode[] }) => { if (res?.data) setTagTree(res.data) }).catch(()=>{})
   }, [])
 
   // When primary/secondary selection changes, merge them into each file's labels if not present
@@ -107,7 +145,7 @@ export default function MultipleFileUpload(props: any) {
       } else {
         toast.error('获取失败')
       }
-    } catch (e) {
+    } catch {
       toast.error('获取失败')
     }
   }
@@ -128,7 +166,7 @@ export default function MultipleFileUpload(props: any) {
   ]
 
   // 现在 autoSubmit 接受已经准备好的元数据对象并提交到后端（仅保存元数据，不再做文件上传）
-  async function autoSubmit(meta: { file: File, url: string, previewUrl?: string, clientImageId?: string, exifObj?: any, width?: number, height?: number, blurhash?: string, labels?: string[] }) {
+  async function autoSubmit(meta: { file: UploadFile, url: string, previewUrl?: string, clientImageId?: string, exifObj?: Record<string, unknown>, width?: number, height?: number, blurhash?: string, labels?: string[] }) {
     try {
       if (album === '') {
         toast.warning('请先选择相册！')
@@ -137,20 +175,20 @@ export default function MultipleFileUpload(props: any) {
 
       // Ensure width/height are present. If missing, try to read from the file.
       // This avoids server-side validation errors like "Image height cannot be empty..."
-      // @ts-expect-error - dynamic third-party typing
       const key = meta.file?.__key
       if ((!meta.width || !meta.height || meta.width <= 0 || meta.height <= 0) && meta.file) {
         try {
           const dims: { width: number, height: number } = await new Promise((resolve, reject) => {
             try {
               const reader = new FileReader()
-              reader.onload = (e) => {
+              reader.onload = () => {
                 try {
                   const img = new Image()
                   img.onload = () => resolve({ width: img.width, height: img.height })
                   img.onerror = (err) => reject(err)
-                  // @ts-expect-error - dynamic third-party typing
-                  img.src = e.target?.result
+                  if (typeof reader.result === 'string') {
+                    img.src = reader.result
+                  }
                 } catch (err) {
                   reject(err)
                 }
@@ -176,10 +214,10 @@ export default function MultipleFileUpload(props: any) {
         return
       }
 
-      const labels = Array.isArray(meta.labels) ? meta.labels : (Array.isArray((meta.file as any).labels) ? (meta.file as any).labels : [])
+      const labels = Array.isArray(meta.labels) ? meta.labels : (Array.isArray(meta.file.labels) ? meta.file.labels : [])
       const tagCategoryMap: Record<string, string> = {}
       if (primarySelect && secondarySelect && secondarySelect.length > 0) {
-        secondarySelect.forEach(s => { tagCategoryMap[s] = primarySelect })
+        secondarySelect.forEach(s => { if (primarySelect) tagCategoryMap[s] = primarySelect })
       }
 
       const data = {
@@ -194,8 +232,8 @@ export default function MultipleFileUpload(props: any) {
         detail: '',
         width: meta.width,
         height: meta.height,
-        lat: lat,
-        lon: lon,
+        lat: '',
+        lon: '',
         tagCategoryMap: Object.keys(tagCategoryMap).length ? tagCategoryMap : undefined,
       } as ImageType & { tagCategoryMap?: Record<string,string> }
 
@@ -203,7 +241,7 @@ export default function MultipleFileUpload(props: any) {
       const dupRes = await fetch('/api/v1/images/check-duplicate', {
         headers: { 'Content-Type': 'application/json' },
         method: 'post',
-        body: JSON.stringify({ blurhash: hash || undefined, url: url || undefined }),
+        body: JSON.stringify({ blurhash: meta.blurhash || undefined, url: meta.url || undefined }),
       }).then(r => r.json()).catch(() => ({ code: 200, data: { duplicate: false } }))
 
       if (dupRes?.code === 200 && dupRes?.data?.duplicate) {
@@ -229,7 +267,7 @@ export default function MultipleFileUpload(props: any) {
       })
 
       const contentType = resp.headers.get('content-type') || ''
-      let json: any = null
+      let json: UploadResponse | null = null
       if (contentType.includes('application/json')) {
         try {
           json = await resp.json()
@@ -259,7 +297,7 @@ export default function MultipleFileUpload(props: any) {
     }
   }
 
-  async function uploadPreviewImage(file: File, type: string, url: string, clientImageId?: string) {
+  async function uploadPreviewImage(file: File, type: string) {
     new Compressor(file, {
       quality: previewCompressQuality,
       checkOrientation: false,
@@ -282,41 +320,41 @@ export default function MultipleFileUpload(props: any) {
     })
   }
 
-  async function resHandle(res: any, file: File) {
+  async function resHandle(res: UploadResponse, file: UploadFile) {
     try {
-      // 保存原图 url 与 clientImageId
-      // @ts-expect-error - dynamic third-party typing
+      const { exifObj } = await exifReader(file)
       const key = file.__key
-      setUploadedMeta(prev => ({ ...prev, [key]: { ...(prev[key] || {}), url: res?.data?.url, clientImageId: res?.data?.imageId, fileName: res?.data?.fileName } }))
+      if (key) setUploadedMeta(prev => ({ ...prev, [key]: { ...(prev[key] || {}), url: res?.data?.url, clientImageId: res?.data?.imageId, fileName: res?.data?.fileName, exifObj } }))
       // 上传预览图并保存 previewUrl
       if (album === '/') {
-        await uploadPreviewImage(file, '/preview', res?.data?.url, res?.data?.imageId)
+        await uploadPreviewImage(file, '/preview')
       } else {
-        await uploadPreviewImage(file, album + '/preview', res?.data?.url, res?.data?.imageId)
+        await uploadPreviewImage(file, album + '/preview')
       }
       // 解析 EXIF/尺寸并保存
       try {
-        const { tags, exifObj } = await exifReader(file)
+        const { exifObj } = await exifReader(file)
         const reader = new FileReader()
         reader.onload = (e) => {
           const img = new Image()
           img.onload = async () => {
             const hash = await encodeBrowserThumbHash(file)
-            setUploadedMeta(prev => ({ ...prev, [file.name]: { ...(prev[file.name] || {}), exifObj, width: img.width, height: img.height, blurhash: hash } }))
+            if (key) setUploadedMeta(prev => ({ ...prev, [key]: { ...(prev[key] || {}), exifObj, width: img.width, height: img.height, blurhash: hash } }))
           }
-          // @ts-expect-error - dynamic third-party typing
-          img.src = e.target?.result
+          if (typeof e.target?.result === 'string') {
+            img.src = e.target.result
+          }
         }
         reader.readAsDataURL(file)
       } catch (e) {
         console.error('EXIF read failed', e)
       }
-    } catch (e) {
+    } catch {
       throw new Error('Upload failed')
     }
   }
 
-  async function onRequestUpload(file: File) {
+  async function onRequestUpload(file: UploadFile) {
     // 获取文件名但是去掉扩展名部分
     const fileName = file.name.split('.').slice(0, -1).join('.')
     if (await isHeic(file)) {
@@ -325,22 +363,20 @@ export default function MultipleFileUpload(props: any) {
         blob: file,
         type: 'image/jpeg',
       })
-      const outputFile = new File([outputBuffer], fileName + '.jpg', { type: 'image/jpeg' })// 添加文件名
-      // @ts-expect-error - dynamic third-party typing
+      const outputFile = new File([outputBuffer], fileName + '.jpg', { type: 'image/jpeg' }) as UploadFile // 添加文件名
       new Compressor(outputFile, {
         quality: previewCompressQuality,
         checkOrientation: false,
         mimeType: 'image/jpeg',
         maxWidth: previewImageMaxWidthLimitSwitchOn && previewImageMaxWidthLimit > 0 ? previewImageMaxWidthLimit : undefined,
         async success(compressedFile) {
-          // @ts-expect-error - dynamic third-party typing
-          if (!outputFile.__key) outputFile.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
+          if (!outputFile.__key) outputFile.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
           await uploadFile(compressedFile, album, storage, alistMountPath, {
-              onProgress: (p:number) => setUploadProgressMap(prev => ({ ...prev, [outputFile.__key]: p }))
+              onProgress: (p:number) => { if (outputFile.__key) setUploadProgressMap(prev => ({ ...prev, [outputFile.__key!]: p })) }
             }).then(async (res) => {
               if (res.code === 200) {
                 await resHandle(res, outputFile)
-                if (res?.data?.key && outputFile?.__key) setFileKeyMap(prev => ({ ...prev, [outputFile.__key]: res.data.key }))
+                if (res?.data?.key && outputFile?.__key) setFileKeyMap(prev => ({ ...prev, [outputFile.__key!]: res.data!.key! }))
               } else {
                 throw new Error('Upload failed')
               }
@@ -349,23 +385,16 @@ export default function MultipleFileUpload(props: any) {
       })
     } else {
       // ensure __key exists
-      // @ts-expect-error - dynamic third-party typing
-      if (!file.__key) file.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
-      await uploadFile(file, album, storage, alistMountPath, { onProgress: (p:number) => setUploadProgressMap(prev => ({ ...prev, [file.__key]: p })) }).then(async (res) => {
+      if (!file.__key) file.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
+      await uploadFile(file, album, storage, alistMountPath, { onProgress: (p:number) => { if (file.__key) setUploadProgressMap(prev => ({ ...prev, [file.__key]: p })) } }).then(async (res) => {
         if (res.code === 200) {
           await resHandle(res, file)
-          if (res?.data?.key && file?.__key) setFileKeyMap(prev => ({ ...prev, [file.__key]: res.data.key }))
+          if (res?.data?.key && file?.__key) setFileKeyMap(prev => ({ ...prev, [file.__key]: res.data!.key! }))
         } else {
           throw new Error('Upload failed')
         }
       })
     }
-  }
-
-  function onRemoveFile() {
-    // 保留 storage 与 alist 选择，只清空与文件相关的位置信息
-    setLat('')
-    setLon('')
   }
 
   function removeFileByKey(key: string) {
@@ -375,19 +404,16 @@ export default function MultipleFileUpload(props: any) {
       setFiles(prev => prev.filter(f => ((f && (f.__key || f.id || f.name)) !== key)))
       setUploadedMeta(prev => {
         const nxt = { ...prev }
-        // @ts-expect-error - dynamic third-party typing
         delete nxt[key]
         return nxt
       })
       setUploadProgressMap(prev => {
         const nxt = { ...prev }
-        // @ts-expect-error - dynamic third-party typing
         delete nxt[key]
         return nxt
       })
       setMissingSelection(prev => {
         const nxt = { ...prev }
-        // @ts-expect-error - dynamic third-party typing
         delete nxt[key]
         return nxt
       })
@@ -397,71 +423,25 @@ export default function MultipleFileUpload(props: any) {
     }
   }
 
-  const onUpload = React.useCallback(
-    async (
-      files: File[],
-      {
-        onSuccess,
-        onError,
-      }: {
-        onSuccess: (file: File) => void;
-        onError: (file: File, error: Error) => void;
-      },
-    ) => {
-      setIsUploading(true)
-      try {
-        // Process each file individually
-        const uploadPromises = files.map(async (file) => {
-          try {
-            await onRequestUpload(file)
-            onSuccess(file)
-          } catch (error) {
-            onError(
-              file,
-              error instanceof Error ? error : new Error('Upload failed'),
-            )
-            throw new Error('Upload failed')
-          }
-        })
-
-        toast.promise(() => Promise.all(uploadPromises), {
-          loading: t('Upload.uploading'),
-          success: () => {
-            return t('Upload.uploadSuccess')
-          },
-          error: t('Upload.uploadError'),
-        })
-        .finally(() => setIsUploading(false))
-      } catch (error) {
-        // This handles any error that might occur outside the individual upload processes
-        console.error('Unexpected error during upload:', error)
-        toast.error('Upload failed')
-        setIsUploading(false)
-      }
-    },
-    [onRequestUpload],
-  )
-
   // Handlers for the missing-files modal
   async function handleUploadSelectedAndSubmit() {
     setShowMissingModal(false)
     setIsSubmitting(true)
     try {
       const toUpload = missingFiles.filter(f => {
-        // @ts-expect-error - dynamic third-party typing
-        return !!missingSelection[f.__key]
+        return !!(f.__key && missingSelection[f.__key])
       })
       for (const f of toUpload) {
         await onRequestUpload(f)
       }
       // Submit all files that now have urls
-      for (const file of files as File[]) {
-        // @ts-expect-error - dynamic third-party typing
+      for (const file of files) {
         const key = file.__key
+        if (!key) continue
         const meta = uploadedMeta[key]
         if (!meta || !meta.url) continue
         const finalMeta = { ...(uploadedMeta[key] || {}), file }
-        await autoSubmit(finalMeta as any)
+        await autoSubmit(finalMeta)
       }
     } catch (e) {
       console.error(e)
@@ -476,13 +456,13 @@ export default function MultipleFileUpload(props: any) {
     setIsSubmitting(true)
     try {
       // Only submit files that already have uploaded urls
-      for (const file of files as File[]) {
-        // @ts-expect-error - dynamic third-party typing
+      for (const file of files) {
         const key = file.__key
+        if (!key) continue
         const meta = uploadedMeta[key]
         if (!meta || !meta.url) continue
         const finalMeta = { ...(uploadedMeta[key] || {}), file }
-        await autoSubmit(finalMeta as any)
+        await autoSubmit(finalMeta)
       }
     } catch (e) {
       console.error(e)
@@ -516,7 +496,7 @@ export default function MultipleFileUpload(props: any) {
                 }
               }}
             >
-              {storages?.map((s: any) => (
+              {storages?.map((s: { label: string, value: string }) => (
                 <AntSelect.Option key={s.value} value={s.value}>{s.label}</AntSelect.Option>
               ))}
             </AntSelect>
@@ -548,7 +528,7 @@ export default function MultipleFileUpload(props: any) {
                 style={{ minWidth: 240 }}
                 onChange={(value: string) => { setPrimarySelect(value); setSecondarySelect([]) }}
               >
-                {tagTree.filter((n: any) => n && (n.category || n.id || n.name)).map((n: any, i: number) => (
+                {tagTree.filter((n: TagNode) => n && (n.category || n.id || n.name)).map((n: TagNode, i: number) => (
                   <AntSelect.Option key={`${(n.category ?? n.id ?? n.name)}-${i}`} value={n.category}>{n.category ?? '未分类'}</AntSelect.Option>
                 ))}
               </AntSelect>
@@ -565,7 +545,7 @@ export default function MultipleFileUpload(props: any) {
                 style={{ minWidth: 240 }}
                 onChange={(value: string[]) => setSecondarySelect(value)}
               >
-                {(tagTree.find((n: any) => n.category === primarySelect)?.children || []).filter((c: any) => c && c.name).map((c: any, i: number) => (
+                {(tagTree.find((n: TagNode) => n.category === primarySelect)?.children || []).filter((c: { name: string }) => c && c.name).map((c: { name: string }, i: number) => (
                   <AntSelect.Option key={`${c.name}-${i}`} value={c.name}>{c.name}</AntSelect.Option>
                 ))}
               </AntSelect>
@@ -582,7 +562,7 @@ export default function MultipleFileUpload(props: any) {
                 style={{ minWidth: 240 }}
                 onChange={(value: string) => setAlistMountPath(value)}
               >
-                {alistStorage?.map((s: any) => (
+                {alistStorage?.map((s: AlistStorage) => (
                   <AntSelect.Option key={s?.mount_path} value={s?.mount_path}>{s?.mount_path}</AntSelect.Option>
                 ))}
               </AntSelect>
@@ -600,9 +580,9 @@ export default function MultipleFileUpload(props: any) {
               setIsSubmitting(true)
               try {
                 // Find files that don't have storage url yet
-                const missing = (files as File[]).filter(f => {
-                      // @ts-expect-error - dynamic third-party typing
+                const missing = files.filter(f => {
                       const key = f.__key
+                      if (!key) return true
                       const m = uploadedMeta[key]
                       return !(m && m.url)
                     })
@@ -610,7 +590,7 @@ export default function MultipleFileUpload(props: any) {
                   // Open modal to let user choose which missing files to upload or skip
                   // initialize selection to all checked
                     const sel: Record<string, boolean> = {}
-                    missing.forEach(f => { /* @ts-expect-error - dynamic third-party typing */ sel[f.__key] = true })
+                    missing.forEach(f => { if (f.__key) sel[f.__key] = true })
                   setMissingSelection(sel)
                   setMissingFiles(missing)
                   // close submitting state and show modal for user decision
@@ -620,16 +600,16 @@ export default function MultipleFileUpload(props: any) {
                 }
 
                 // If no missing files, submit all
-                for (const file of files as File[]) {
-                  // @ts-expect-error - dynamic third-party typing
+                for (const file of files) {
                   const key = file.__key
+                  if (!key) continue
                   const meta = uploadedMeta[key]
                   if (!meta || !meta.url) {
                     // upload and wait
                     await onRequestUpload(file)
                   }
                   const finalMeta = { ...(uploadedMeta[key] || {}), file }
-                  await autoSubmit(finalMeta as any)
+                  await autoSubmit(finalMeta)
                 }
               } catch (e) {
                 console.error(e)
@@ -658,11 +638,11 @@ export default function MultipleFileUpload(props: any) {
           {missingFiles.length === 0 ? (
             <div className="text-sm text-gray-500">暂无未上传文件</div>
           ) : (
-            missingFiles.map((f: File) => (
+            missingFiles.map((f: UploadFile) => (
               // use __key as stable identifier for selection
-              <div key={(f as any).__key || (f as any).name} style={{ display: 'flex', alignItems: 'center', padding: 8, borderBottom: '1px solid #f0f0f0' }}>
-                <AntCheckbox checked={!!missingSelection[(f as any).__key || (f as any).name]} onChange={(e) => setMissingSelection(prev => ({ ...prev, [(f as any).__key || (f as any).name]: e.target.checked }))} />
-                <div style={{ marginLeft: 8 }}>{(f as any).name}</div>
+              <div key={f.__key || f.name} style={{ display: 'flex', alignItems: 'center', padding: 8, borderBottom: '1px solid #f0f0f0' }}>
+                <AntCheckbox checked={!!missingSelection[f.__key || f.name]} onChange={(e) => setMissingSelection(prev => ({ ...prev, [f.__key || f.name]: e.target.checked }))} />
+                <div style={{ marginLeft: 8 }}>{f.name}</div>
               </div>
             ))
           )}
@@ -694,10 +674,9 @@ export default function MultipleFileUpload(props: any) {
               style={{ padding: 12, minHeight: 120, height: '100%' }}
               onChange={(info) => {
                 const fileList = info.fileList || []
-                const selected = fileList.map(f => f.originFileObj).filter(Boolean).map((orig: File) => {
+                const selected = fileList.map(f => f.originFileObj).filter(Boolean).map((orig: UploadFile) => {
                   // ensure a stable temporary key per file to avoid name collisions
-                  // @ts-expect-error - dynamic third-party typing
-                  if (!orig.__key) orig.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
+                  if (!orig.__key) orig.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
                   return orig
                 })
                 setFiles(selected)
@@ -706,10 +685,10 @@ export default function MultipleFileUpload(props: any) {
                   toast.warning('请先选择相册以便自动上传')
                   return
                 }
-                selected.forEach((file: File) => {
+                selected.forEach((file: UploadFile) => {
                   // 避免重复上传（通过 __key 判断）
-                  // @ts-expect-error - dynamic third-party typing
                   const key = file.__key
+                  if (!key) return
                   const meta = uploadedMeta[key]
                   if (!meta || !meta.url) {
                     // fire-and-forget; onRequestUpload 会填充 uploadedMeta
@@ -733,7 +712,7 @@ export default function MultipleFileUpload(props: any) {
             {files.length === 0 ? (
               <div className="text-sm text-gray-500">暂无文件</div>
             ) : (
-                files.map((f: any, idx: number) => (
+                files.map((f: UploadFile, idx: number) => (
                   <div key={f.__key || f.id || idx} className="p-2 border rounded mb-2">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col">
@@ -741,8 +720,8 @@ export default function MultipleFileUpload(props: any) {
                         {/* per-file upload status */}
                         <div className="text-xs text-gray-500 mt-1">
                           {(() => {
-                            // @ts-expect-error - dynamic third-party typing
                             const key = f.__key
+                            if (!key) return '待上传'
                             const meta = uploadedMeta[key]
                             const p = uploadProgressMap[key]
                             if (meta?.url) return '已上传'
@@ -751,8 +730,7 @@ export default function MultipleFileUpload(props: any) {
                           })()}
                         </div>
                         {/* per-file small progress bar */}
-                        {/* @ts-expect-error - dynamic third-party typing */}
-                        {typeof uploadProgressMap[f.__key] === 'number' && (
+                        {f.__key && typeof uploadProgressMap[f.__key] === 'number' && (
                           <div className="w-full mt-2">
                             <AntProgress percent={uploadProgressMap[f.__key]} size="small" />
                           </div>
@@ -765,7 +743,6 @@ export default function MultipleFileUpload(props: any) {
                             icon={<CloseOutlined />}
                             onClick={() => {
                               // remove file from list
-                              // @ts-expect-error - dynamic third-party typing
                               const k = f.__key || f.id || f.name
                               if (k) removeFileByKey(k)
                             }}
@@ -855,10 +832,10 @@ export default function MultipleFileUpload(props: any) {
               apertures: editingPresetsText.apertures.split(',').map(s=>s.trim()).filter(Boolean),
             }
             setExifPresets(newPresets)
-            try { localStorage.setItem(presetsStorageKey, JSON.stringify(newPresets)) } catch (e) {}
+            try { localStorage.setItem(presetsStorageKey, JSON.stringify(newPresets)) } catch {}
             AntMessage.success('已保存')
             setIsPresetModalOpen(false)
-          } catch (e) {
+          } catch {
             AntMessage.error('保存失败')
           }
         }}

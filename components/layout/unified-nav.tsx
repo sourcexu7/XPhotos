@@ -77,9 +77,9 @@ export default function UnifiedNav({
       <Affix offsetTop={0}>
         <nav
           className={cn(
-            "w-full h-[60px] fixed top-0 left-0 z-50 transition-all duration-300",
-            "backdrop-blur-[12px] bg-[#1a1a1a]/15 border-b border-transparent",
-            isScrolled && "border-b-[1px] border-white/10 shadow-lg"
+            'w-full h-[60px] fixed top-0 left-0 z-50 transition-all duration-300',
+            'backdrop-blur-[12px] bg-[#1a1a1a]/15 border-b border-transparent',
+            isScrolled && 'border-b-[1px] border-white/10 shadow-lg'
           )}
           style={{
             borderBottomImage: isScrolled ? 'linear-gradient(to right, #9d4edd, #ff9505) 1' : 'none'
@@ -103,10 +103,10 @@ export default function UnifiedNav({
                 >
                   <span 
                     className={cn(
-                      "text-[16px] transition-all duration-300 block",
+                      'text-[16px] transition-all duration-300 block',
                       isActive(link.href) 
-                        ? "bg-clip-text text-transparent bg-gradient-to-r from-[#9d4edd] to-[#ff9505] font-medium"
-                        : "text-[#e0e0e0] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#9d4edd] group-hover:to-[#ff9505] group-hover:translate-x-[5px]"
+                        ? 'bg-clip-text text-transparent bg-gradient-to-r from-[#9d4edd] to-[#ff9505] font-medium'
+                        : 'text-[#e0e0e0] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#9d4edd] group-hover:to-[#ff9505] group-hover:translate-x-[5px]'
                     )}
                   >
                     {link.name}
@@ -124,10 +124,10 @@ export default function UnifiedNav({
               <div className="relative group py-2 cursor-pointer">
                  <Link href="/covers" className="relative block">
                     <span className={cn(
-                      "text-[16px] transition-all duration-300 block select-none",
+                      'text-[16px] transition-all duration-300 block select-none',
                       isActive('/covers') 
-                        ? "bg-clip-text text-transparent bg-gradient-to-r from-[#9d4edd] to-[#ff9505] font-medium"
-                        : "text-[#e0e0e0] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#9d4edd] group-hover:to-[#ff9505] group-hover:translate-x-[5px]"
+                        ? 'bg-clip-text text-transparent bg-gradient-to-r from-[#9d4edd] to-[#ff9505] font-medium'
+                        : 'text-[#e0e0e0] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#9d4edd] group-hover:to-[#ff9505] group-hover:translate-x-[5px]'
                     )}>
                       相册分类
                     </span>
@@ -155,14 +155,14 @@ export default function UnifiedNav({
 
               {/* Console / Login */}
               <Link
-                href={session ? "/admin" : "/login"}
+                href={session ? '/admin' : '/login'}
                 className="relative group py-2"
               >
                  <span className={cn(
-                      "text-[16px] transition-all duration-300 block",
+                      'text-[16px] transition-all duration-300 block',
                       isActive('/admin') || isActive('/login')
-                        ? "bg-clip-text text-transparent bg-gradient-to-r from-[#9d4edd] to-[#ff9505] font-medium"
-                        : "text-[#e0e0e0] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#9d4edd] group-hover:to-[#ff9505] group-hover:translate-x-[5px]"
+                        ? 'bg-clip-text text-transparent bg-gradient-to-r from-[#9d4edd] to-[#ff9505] font-medium'
+                        : 'text-[#e0e0e0] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#9d4edd] group-hover:to-[#ff9505] group-hover:translate-x-[5px]'
                     )}>
                     {session ? t('Link.dashboard') : t('Login.signIn')}
                  </span>
@@ -221,7 +221,7 @@ export default function UnifiedNav({
               <div className="h-[1px] bg-white/10 my-4" />
 
               <Link
-                href={session ? "/admin" : "/login"}
+                href={session ? '/admin' : '/login'}
                 className="text-xl text-gray-200"
                 onClick={() => setMobileMenuOpen(false)}
               >

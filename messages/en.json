@@ -7,6 +7,7 @@
     "type": "Type",
     "default": "Default",
     "showStatus": "Show Status",
+    "explore_now": "Explore Now",
     "public": "Public",
     "private": "Private",
     "camera": "Camera",

@@ -3,7 +3,6 @@
 import { ProgressiveImageProps } from '~/types/props.ts'
 import { useEffect, useRef, useState } from 'react'
 import Lightbox from 'yet-another-react-lightbox'
-import { Zoom } from 'yet-another-react-lightbox/plugins'
 import { useTranslations } from 'next-intl'
 import { MotionImage } from '~/components/album/motion-image'
 import { useBlurImageDataUrl } from '~/hooks/use-blurhash'
@@ -23,92 +22,44 @@ export default function ProgressiveImage(
   const [highDipImageUrl, setHighDipImageUrl] = useState<string | null>(null)
   const [showLightbox,setShowLightbox] = useState(Boolean(props.showLightbox))
   const zoomRef = useRef(null)
+  const objectUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
     setShowLightbox(Boolean(props.showLightbox))
   }, [props.showLightbox])
   
+  // 只显示 previewUrl，不再加载原图
   useEffect(() => {
-    loadHighResolutionImage()
-    return () => {
-      if (highDipImageUrl) {
-        // clean blob
-        URL.revokeObjectURL(highDipImageUrl)
-      }
-    }
-  }, [])
-
-  const loadHighResolutionImage = () => {
-    setIsLoading(true)
-    setLoadingProgress(0)
+    setIsLoading(false)
+    setLoadingProgress(100)
     setError(null)
-
-    const xhr = new XMLHttpRequest()
-    xhr.open('GET', props.imageUrl, true)
-    xhr.responseType = 'blob'
-
-    xhr.onprogress = (e) => {
-      if (e.lengthComputable) {
-        const percentComplete = Math.round((e.loaded / e.total) * 100)
-        setLoadingProgress(percentComplete)
-      }
-    }
-
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        const imgBlob = xhr.response
-        const imgUrl = URL.createObjectURL(imgBlob)
-        setHighDipImageUrl(imgUrl)
-        setIsLoading(false)
-      } else {
-        setError(t('Tips.imageLoadFailed'))
-        setIsLoading(false)
-      }
-    }
-    xhr.onerror = () => {
-      setError(t('Tips.imageLoadFailed'))
-      setIsLoading(false)
-    }
-    xhr.send()
-  }
+    setHighDipImageUrl(null)
+  }, [props.imageUrl])
 
   const dataURL = useBlurImageDataUrl(props.blurhash)
 
   return (
     <div className="relative">
-      {!highDipImageUrl ? (
-        (props.previewUrl && props.previewUrl.trim() !== '') ? (
-          <MotionImage
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1 }}
-            className="object-contain md:max-h-[90vh] cursor-pointer"
-            src={props.previewUrl}
-            overrideSrc={props.previewUrl}
-            placeholder="blur"
-            unoptimized
-            blurDataURL={dataURL}
-            width={props.width}
-            height={props.height}
-            alt={props.alt || 'image'}
-            onClick={() => setShowLightbox(true)}
-          />
-        ) : (
-          <div className="flex items-center justify-center w-full h-[90vh] bg-gray-100">
-            <div className="text-gray-400">{t('Tips.imageLoadFailed')}</div>
-          </div>
-        )
-      ) : (
-        <Image
+      {(props.previewUrl && props.previewUrl.trim() !== '') ? (
+        <MotionImage
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1 }}
           className="object-contain md:max-h-[90vh] cursor-pointer"
-          src={highDipImageUrl}
+          src={props.previewUrl}
+          overrideSrc={props.previewUrl}
+          placeholder="blur"
+          unoptimized
+          blurDataURL={dataURL}
           width={props.width}
           height={props.height}
           alt={props.alt || 'image'}
           onClick={() => setShowLightbox(true)}
-          sizes="100vw"
-          unoptimized
         />
+      ) : (
+        <div className="flex items-center justify-center w-full h-[90vh] bg-gray-100">
+          <div className="text-gray-400">{t('Tips.imageLoadFailed')}</div>
+        </div>
       )}
 
       {isLoading && (
@@ -143,10 +94,33 @@ export default function ProgressiveImage(
           src: highDipImageUrl || props.previewUrl,
           alt: props.alt,
         }]}
-        plugins={[Zoom]}
-        zoom={{ ref: zoomRef }}
+        plugins={[]}
         carousel={{ finite: true }}
-        render={{ buttonPrev: () => null, buttonNext: () => null }}
+        render={{
+          buttonPrev: () => null,
+          buttonNext: () => null,
+          buttonClose: () => null,
+          slide: ({ slide, rect }) => (
+            <img
+              src={slide.src}
+              alt={slide.alt}
+              style={{
+                display: 'block',
+                maxWidth: '100vw',
+                maxHeight: '90vh',
+                margin: '0 auto',
+                cursor: 'pointer',
+                objectFit: 'contain',
+              }}
+              onClick={() => {
+                setShowLightbox(false)
+                if (props.onShowLightboxChange) {
+                  props.onShowLightboxChange(false)
+                }
+              }}
+            />
+          ),
+        }}
         styles={{ root: { '--yarl__color_backdrop': 'rgba(0, 0, 0, .8)' } }}
         controller={{
           closeOnBackdropClick: true,

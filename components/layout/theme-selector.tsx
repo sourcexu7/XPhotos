@@ -36,7 +36,7 @@ export default function ThemeSelector({ currentTheme }: ThemeSelectorProps) {
   // 从 localStorage 读取用户偏好主题
   useEffect(() => {
     const savedTheme = localStorage.getItem('preferredTheme')
-    if (savedTheme && savedTheme !== theme) {
+    if (savedTheme) {
       setTheme(savedTheme)
     }
   }, [])

@@ -57,7 +57,7 @@ export default function ThemeGalleryClient({ systemStyle, ...props }: ThemeGalle
           size="icon"
           className="h-12 w-12 rounded-full bg-background/80 backdrop-blur-sm shadow-lg border-border hover:bg-accent"
           onClick={toggleTheme}
-          title={activeStyle === '1' ? "切换到瀑布流视图" : "切换到单列视图"}
+          title={activeStyle === '1' ? '切换到瀑布流视图' : '切换到单列视图'}
         >
           {activeStyle === '1' ? <LayoutGrid className="h-5 w-5" /> : <Rows className="h-5 w-5" />}
         </Button>

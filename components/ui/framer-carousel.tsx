@@ -1,8 +1,8 @@
-'use client';
-import React, { useEffect, useRef, useState } from 'react';
-import { motion, useMotionValue, animate } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import Link from 'next/link';
+'use client'
+import React, { useEffect, useRef, useState } from 'react'
+import { motion, useMotionValue, animate } from 'framer-motion'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import Link from 'next/link'
 
 export interface CarouselItem {
   id: string;
@@ -16,25 +16,25 @@ interface FramerCarouselProps {
 }
 
 export function FramerCarousel({ items }: FramerCarouselProps) {
-  const [index, setIndex] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [index, setIndex] = useState(0)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  const x = useMotionValue(0);
+  const x = useMotionValue(0)
 
   useEffect(() => {
     if (containerRef.current) {
-      const containerWidth = containerRef.current.offsetWidth || 1;
-      const targetX = -index * containerWidth;
+      const containerWidth = containerRef.current.offsetWidth || 1
+      const targetX = -index * containerWidth
 
       animate(x, targetX, {
         type: 'spring',
         stiffness: 300,
         damping: 30,
-      });
+      })
     }
-  }, [index, x]);
+  }, [index, x])
 
-  if (!items || items.length === 0) return null;
+  if (!items || items.length === 0) return null
 
   return (
     <div className='lg:p-10 sm:p-4 p-2 max-w-4xl mx-auto'>
@@ -100,5 +100,5 @@ export function FramerCarousel({ items }: FramerCarouselProps) {
         </div>
       </div>
     </div>
-  );
+  )
 }

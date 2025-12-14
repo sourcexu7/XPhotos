@@ -11,19 +11,41 @@ import type { Config } from '~/types'
  * @return {Promise<Config[]>} 配置列表
  */
 export async function fetchConfigsByKeys(keys: string[]): Promise<Config[]> {
-  return await db.configs.findMany({
-    where: {
-      config_key: {
-        in: keys
+  try {
+    return await db.configs.findMany({
+      where: {
+        config_key: {
+          in: keys
+        }
+      },
+      select: {
+        id: true,
+        config_key: true,
+        config_value: true,
+        detail: true
       }
-    },
-    select: {
-      id: true,
-      config_key: true,
-      config_value: true,
-      detail: true
+    })
+  } catch (error) {
+    console.error('Failed to fetch configs, retrying...', error)
+    try {
+      return await db.configs.findMany({
+        where: {
+          config_key: {
+            in: keys
+          }
+        },
+        select: {
+          id: true,
+          config_key: true,
+          config_value: true,
+          detail: true
+        }
+      })
+    } catch (retryError) {
+      console.error('Retry failed, returning empty config:', retryError)
+      return []
     }
-  })
+  }
 }
 
 /**

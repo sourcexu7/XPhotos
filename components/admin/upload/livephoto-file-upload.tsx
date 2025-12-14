@@ -15,8 +15,23 @@ import { heicTo, isHeic } from 'heic-to'
 import { encodeBrowserThumbHash } from '~/lib/utils/blurhash-client'
 const { Dragger } = AntUpload
 
+interface UploadFile extends File {
+  __key?: string
+}
+
+interface UploadResponse {
+  code: number
+  data?: {
+    url?: string
+    key?: string
+    imageId?: string
+    fileName?: string
+  }
+  message?: string
+}
+
 export default function LivephotoFileUpload() {
-  const [alistStorage, setAlistStorage] = useState([])
+  const [alistStorage, setAlistStorage] = useState<{ mount_path: string }[]>([])
   const [storageSelect, setStorageSelect] = useState(false)
   const [storage, setStorage] = useState('r2')
   const [album, setAlbum] = useState('')
@@ -27,11 +42,9 @@ export default function LivephotoFileUpload() {
   const [previewUrl, setPreviewUrl] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
   const [imageId, setImageId] = useState('')
-  const [loading, setLoading] = useState(false)
   const [primarySelect, setPrimarySelect] = useState<string | null>(null)
   const [secondarySelect, setSecondarySelect] = useState<string[]>([])
   const [isUploading, setIsUploading] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showMissingModal, setShowMissingModal] = useState(false)
   // EXIF presets (editable in modal, persisted in localStorage)
   const presetsStorageKey = 'picimpact_exif_presets'
@@ -42,7 +55,7 @@ export default function LivephotoFileUpload() {
     apertures: ['1.4','1.8','2.0','2.8','3.5','4.0','5.6','8.0','11','16'],
   }
   const [exifPresets, setExifPresets] = useState(() => {
-    try { const raw = localStorage.getItem(presetsStorageKey); if (raw) return JSON.parse(raw) } catch (e) {}
+    try { const raw = localStorage.getItem(presetsStorageKey); if (raw) return JSON.parse(raw) } catch {}
     return defaultPresets
   })
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false)
@@ -64,7 +77,7 @@ export default function LivephotoFileUpload() {
   const previewImageMaxWidthLimit = parseInt(configs?.find(config => config.config_key === 'preview_max_width_limit')?.config_value || '0')
   const previewCompressQuality = parseFloat(configs?.find(config => config.config_key === 'preview_quality')?.config_value || '0.2')
   const [presetTags, setPresetTags] = useState<string[]>([])
-  useEffect(() => { fetcher('/api/v1/settings/tags/get').then((res:any) => { if (res?.data) setPresetTags(res.data.map((t:any)=>t.name)) }).catch(()=>{}) }, [])
+  useEffect(() => { fetcher('/api/v1/settings/tags/get').then((res: { data: { name: string }[] }) => { if (res?.data) setPresetTags(res.data.map((t)=>t.name)) }).catch(()=>{}) }, [])
 
   useEffect(() => {
     if (!primarySelect && (!secondarySelect || secondarySelect.length === 0)) return
@@ -82,7 +95,7 @@ export default function LivephotoFileUpload() {
     else setImageLabels([...imageLabels, tag])
   }
 
-  async function loadExif(file: File | any) {
+  const loadExif = React.useCallback(async (file: File) => {
     try {
       const { tags, exifObj } = await exifReader(file)
       setExif(exifObj)
@@ -90,7 +103,7 @@ export default function LivephotoFileUpload() {
       else setLat('')
       if (tags?.GPSLongitude?.description) setLon(tags?.GPSLongitude?.description)
       else setLon('')
-    } catch (e) { console.error(e) }
+    } catch { console.error('loadExif error') }
     try {
       const reader = new FileReader()
       reader.onload = (e) => {
@@ -99,8 +112,8 @@ export default function LivephotoFileUpload() {
         if (e.target && typeof e.target.result === 'string') img.src = e.target.result
       }
       reader.readAsDataURL(file)
-    } catch (e) { console.error(e) }
-  }
+    } catch { console.error('loadExif reader error') }
+  }, [])
 
   async function getAlistStorage() {
     if (alistStorage.length > 0) { setStorageSelect(true); return }
@@ -108,79 +121,73 @@ export default function LivephotoFileUpload() {
       const res = await fetch('/api/v1/storage/alist/storages', { method: 'GET' }).then(r=>r.json())
       if (res?.code === 200) { setAlistStorage(res.data?.content); setStorageSelect(true) }
       else toast.error('获取失败')
-    } catch (e) { toast.error('获取失败') }
+    } catch { toast.error('获取失败') }
   }
 
   const storages = [ { label: 'Cloudflare R2', value: 'r2' }, { label: 'Amazon S3', value: 's3' }, { label: 'AList API', value: 'alist' } ]
 
-  async function uploadPreviewImage(file: File, type: string) {
+  const uploadPreviewImage = React.useCallback(async (file: File, type: string) => {
     new Compressor(file, {
       quality: previewCompressQuality,
       checkOrientation: false,
       mimeType: 'image/webp',
       maxWidth: previewImageMaxWidthLimitSwitchOn && previewImageMaxWidthLimit > 0 ? previewImageMaxWidthLimit : undefined,
       async success(compressedFile) {
-        const res = await uploadFile(compressedFile, type, storage, alistMountPath, { onProgress: (p:number) => {} })
-        if (res?.code === 200) setPreviewUrl(res?.data?.url)
+        const res = await uploadFile(compressedFile, type, storage, alistMountPath, { onProgress: () => {} })
+        if (res?.code === 200) setPreviewUrl(res?.data?.url || '')
         else throw new Error('Upload failed')
       },
       error() { throw new Error('Upload failed') }
     })
-  }
+  }, [previewCompressQuality, previewImageMaxWidthLimitSwitchOn, previewImageMaxWidthLimit, storage, alistMountPath])
 
-  async function resHandle(res: any, file: File, type: number) {
+  const resHandle = React.useCallback(async (res: UploadResponse, file: File, type: number) => {
     if (type === 2) {
-      if (res?.code === 200) setVideoUrl(res?.data?.url)
+      if (res?.code === 200) setVideoUrl(res?.data?.url || '')
       else throw new Error('Upload failed')
     } else {
       if (res?.code === 200) {
         try { if (album === '/') await uploadPreviewImage(file, '/preview'); else await uploadPreviewImage(file, album + '/preview') }
-        catch (e) { throw new Error('Upload failed') }
+        catch { throw new Error('Upload failed') }
         await loadExif(file)
         setHash(await encodeBrowserThumbHash(file))
-        setUrl(res?.data?.url)
+        setUrl(res?.data?.url || '')
         if (res?.data?.imageId) setImageId(res?.data?.imageId)
       } else throw new Error('Upload failed')
     }
-  }
+  }, [album, uploadPreviewImage, loadExif])
 
-  async function onRequestUpload(file: File, type: number) {
+  const onRequestUpload = React.useCallback(async (file: File, type: number) => {
     const fileName = file.name.split('.').slice(0, -1).join('.')
       if (await isHeic(file) && type === 1) {
       const outputBuffer: Blob | Blob[] = await heicTo({ blob: file, type: 'image/jpeg' })
       const outputFile = new File([outputBuffer], fileName + '.jpg', { type: 'image/jpeg' })
-      await uploadFile(outputFile, album, storage, alistMountPath, { onProgress: (p:number) => {} }).then(async (res) => { if (res.code === 200) await resHandle(res, outputFile, type); else throw new Error('Upload failed') })
+      await uploadFile(outputFile, album, storage, alistMountPath, { onProgress: () => {} }).then(async (res) => { if (res.code === 200) await resHandle(res, outputFile, type); else throw new Error('Upload failed') })
     } else {
-      await uploadFile(file, album, storage, alistMountPath, { onProgress: (p:number) => {} }).then(async (res) => { await resHandle(res, file, type) })
+      await uploadFile(file, album, storage, alistMountPath, { onProgress: () => {} }).then(async (res) => { await resHandle(res, file, type) })
     }
-  }
+  }, [album, storage, alistMountPath, resHandle])
 
   async function onBeforeUpload(type: number) { if (type === 1) { setTitle(''); setPreviewUrl(''); setVideoUrl(''); setImageLabels([]) } }
 
-  function onRemoveFile() {
-    setExif({} as ExifType); setHash(''); setUrl(''); setTitle(''); setDetail(''); setWidth(0); setHeight(0); setLat(''); setLon(''); setPreviewUrl(''); setVideoUrl(''); setImageLabels([])
-    // clear selected files
-    try { setImages([]); setVideos([]) } catch (e) { /* ignore */ }
-  }
+  const [images, setImages] = React.useState<UploadFile[]>([])
+  const [videos, setVideos] = React.useState<UploadFile[]>([])
 
-  const [images, setImages] = React.useState<File[]>([])
-  const [videos, setVideos] = React.useState<File[]>([])
-
-  const onImageUpload = React.useCallback(async (files: File[], { onSuccess, onError }: any) => {
+  const onImageUpload = React.useCallback(async (files: File[], { onSuccess, onError }: { onSuccess: (file: File) => void, onError: (file: File, error: Error) => void }) => {
     setIsUploading(true)
     try {
       const uploadPromises = files.map(async (file) => { try { await onBeforeUpload(1); await onRequestUpload(file, 1); onSuccess(file) } catch (error) { onError(file, error instanceof Error ? error : new Error('Upload failed')); throw new Error('Upload failed') } })
       toast.promise(() => Promise.all(uploadPromises), { loading: t('Upload.uploading'), success: () => t('Upload.uploadSuccess'), error: t('Upload.uploadError') }).finally(()=>setIsUploading(false))
     } catch (error) { console.error('Unexpected error during upload:', error); toast.error('Upload failed'); setIsUploading(false) }
-  }, [onRequestUpload])
+  }, [onRequestUpload, t])
 
-  const onVideoUpload = React.useCallback(async (files: File[], { onSuccess, onError }: any) => {
+  const onVideoUpload = React.useCallback(async (files: File[], { onSuccess, onError }: { onSuccess: (file: File) => void, onError: (file: File, error: Error) => void }) => {
     setIsUploading(true)
     try {
       const uploadPromises = files.map(async (file) => { try { await onBeforeUpload(2); await onRequestUpload(file, 2); onSuccess(file) } catch (error) { onError(file, error instanceof Error ? error : new Error('Upload failed')); throw new Error('Upload failed') } })
       toast.promise(() => Promise.all(uploadPromises), { loading: t('Upload.uploading'), success: () => t('Upload.uploadSuccess'), error: t('Upload.uploadError') }).finally(()=>setIsUploading(false))
     } catch (error) { console.error('Unexpected error during upload:', error); toast.error('Upload failed'); setIsUploading(false) }
-  }, [onRequestUpload])
+  }, [onRequestUpload, t])
 
   const submit = async () => {
     if (!url || url === '') { 
@@ -216,7 +223,7 @@ export default function LivephotoFileUpload() {
       const res = await fetch('/api/v1/images/add', { headers: { 'Content-Type': 'application/json' }, method: 'post', body: JSON.stringify(data) }).then(r => r.json())
       if (res?.code === 200) toast.success(t('Tips.saveSuccess'))
       else toast.error(t('Tips.saveFailed'))
-    } catch (e) { toast.error(t('Tips.saveFailed')) }
+    } catch { toast.error(t('Tips.saveFailed')) }
   }
 
   return (
@@ -227,7 +234,7 @@ export default function LivephotoFileUpload() {
             <div className="text-xs text-gray-600 mb-1">{t('Upload.selectStorage')}</div>
             <AntSelect size="middle" value={storage} placeholder={t('Upload.selectStorage')} style={{ minWidth: 140 }} onChange={async (value: string) => { setStorage(value); if (value === 'alist') await getAlistStorage(); else setStorageSelect(false); if (value === 's3') { try { toast.info('已切换到 Amazon S3：无需选择目录，请先选择相册再上传') } catch {} } }}>
               {/* storage options */}
-              {storages?.map((s: any) => (<AntSelect.Option key={s.value} value={s.value}>{s.label}</AntSelect.Option>))}
+              {storages?.map((s: { label: string, value: string }) => (<AntSelect.Option key={s.value} value={s.value}>{s.label}</AntSelect.Option>))}
             </AntSelect>
           </div>
 
@@ -247,7 +254,7 @@ export default function LivephotoFileUpload() {
               style={{ minWidth: 240 }}
               onChange={(value: string) => setPrimarySelect(value)}
             >
-              {presetTags?.map((s: any) => (
+              {presetTags?.map((s: string) => (
                 <AntSelect.Option key={s} value={s}>{s}</AntSelect.Option>
               ))}
             </AntSelect>
@@ -263,7 +270,7 @@ export default function LivephotoFileUpload() {
               style={{ minWidth: 240 }}
               onChange={(value: string[]) => setSecondarySelect(value)}
             >
-              {presetTags?.map((s: any) => (
+              {presetTags?.map((s: string) => (
                 <AntSelect.Option key={s} value={s}>{s}</AntSelect.Option>
               ))}
             </AntSelect>
@@ -273,7 +280,7 @@ export default function LivephotoFileUpload() {
             <div style={{ minWidth: 220 }}>
               <div className="text-xs text-gray-600 mb-1">{t('Upload.selectAlistDirectory')}</div>
               <AntSelect size="middle" disabled={isLoading} value={alistMountPath} placeholder={t('Upload.selectAlistDirectory')} onChange={(value: string)=>setAlistMountPath(value)} style={{ minWidth: 220 }}>
-                {alistStorage?.map((s:any)=>(<AntSelect.Option key={s?.mount_path} value={s?.mount_path}>{s?.mount_path}</AntSelect.Option>))}
+                {alistStorage?.map((s: { mount_path: string })=>(<AntSelect.Option key={s?.mount_path} value={s?.mount_path}>{s?.mount_path}</AntSelect.Option>))}
               </AntSelect>
             </div>
           )}
@@ -304,7 +311,7 @@ export default function LivephotoFileUpload() {
         </AntModal>
 
         <div>
-          <AntButton size="middle" type="primary" loading={isUploading} onClick={async ()=>{ try { if (images.length>0) await onImageUpload(images,{onSuccess:()=>{},onError:()=>{}}); if (videos.length>0) await onVideoUpload(videos,{onSuccess:()=>{},onError:()=>{}}); await submit() } catch(e){ } }} disabled={(images.length===0 && videos.length===0) || album==='' || storage==='' || (storage==='alist' && alistMountPath==='')}>{t('Button.submit')}</AntButton>
+          <AntButton size="middle" type="primary" loading={isUploading} onClick={async ()=>{ try { if (images.length>0) await onImageUpload(images,{onSuccess:()=>{},onError:()=>{}}); if (videos.length>0) await onVideoUpload(videos,{onSuccess:()=>{},onError:()=>{}}); await submit() } catch{ } }} disabled={(images.length===0 && videos.length===0) || album==='' || storage==='' || (storage==='alist' && alistMountPath==='')}>{t('Button.submit')}</AntButton>
         </div>
       </div>
 
@@ -312,7 +319,7 @@ export default function LivephotoFileUpload() {
         <div className="h-full">
           <AntCard className="h-full" title="上传文件">
             <AntSpace vertical size="middle" style={{ width: '100%' }}>
-              <Dragger multiple={false} maxCount={1} beforeUpload={()=>false} showUploadList={false} disabled={storage===''||album===''||(storage==='alist'&&alistMountPath==='')} style={{ padding:12, minHeight:120 }} onChange={(info)=>{ const fileList=info.fileList||[]; const last=fileList.length>0? (fileList[fileList.length-1].originFileObj as File): undefined; if (last) { /* @ts-expect-error - attach stable key */ if (!last.__key) last.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`; setImages(last?[last]:[]) } else setImages([]) }}>
+              <Dragger multiple={false} maxCount={1} beforeUpload={()=>false} showUploadList={false} disabled={storage===''||album===''||(storage==='alist'&&alistMountPath==='')} style={{ padding:12, minHeight:120 }} onChange={(info)=>{ const fileList=info.fileList||[]; const last=fileList.length>0? (fileList[fileList.length-1].originFileObj as UploadFile): undefined; if (last) { if (!last.__key) last.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`; setImages(last?[last]:[]) } else setImages([]) }}>
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                   <UploadIcon />
                   <p className="font-medium text-sm">{t('Upload.dragOrClick')}</p>
@@ -325,7 +332,7 @@ export default function LivephotoFileUpload() {
                 </div>
               </Dragger>
 
-              <Dragger multiple={false} maxCount={1} beforeUpload={()=>false} showUploadList={false} disabled={storage===''||album===''||(storage==='alist'&&alistMountPath==='')} style={{ padding:12, minHeight:120 }} onChange={(info)=>{ const fileList=info.fileList||[]; const last=fileList.length>0? (fileList[fileList.length-1].originFileObj as File): undefined; if (last) { /* @ts-expect-error - attach stable key */ if (!last.__key) last.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`; setVideos(last?[last]:[]) } else setVideos([]) }}>
+              <Dragger multiple={false} maxCount={1} beforeUpload={()=>false} showUploadList={false} disabled={storage===''||album===''||(storage==='alist'&&alistMountPath==='')} style={{ padding:12, minHeight:120 }} onChange={(info)=>{ const fileList=info.fileList||[]; const last=fileList.length>0? (fileList[fileList.length-1].originFileObj as UploadFile): undefined; if (last) { if (!last.__key) last.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`; setVideos(last?[last]:[]) } else setVideos([]) }}>
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                   <UploadIcon />
                   <p className="font-medium text-sm">{t('Upload.dragOrClickVideo') ?? '拖拽或点击上传视频'}</p>
@@ -402,7 +409,7 @@ export default function LivephotoFileUpload() {
                   setExifPresets(next)
                   setIsPresetModalOpen(false)
                   AntMessage.success('已保存常用 EXIF 选项')
-                } catch (e) { AntMessage.error('保存失败') }
+                } catch { AntMessage.error('保存失败') }
               }}
               onCancel={() => setIsPresetModalOpen(false)}
             >

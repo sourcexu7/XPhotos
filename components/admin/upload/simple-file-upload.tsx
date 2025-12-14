@@ -13,16 +13,33 @@ import { CloseOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { exifReader, uploadFile } from '~/lib/utils/file'
 // RocketIcon removed; submit button moved to top
-import { RefreshCWIcon } from '~/components/icons/refresh-cw'
 // InboxOutlined not used here
 const { Dragger } = AntUpload
 import { UploadIcon } from '~/components/icons/upload'
 import { heicTo, isHeic } from 'heic-to'
 import { encodeBrowserThumbHash } from '~/lib/utils/blurhash-client'
 
-export default function SimpleFileUpload(props: any) {
-  const { token } = theme.useToken()
-  const [alistStorage, setAlistStorage] = useState([])
+interface UploadResponse {
+  code: number
+  data?: {
+    url: string
+    imageId: string
+    fileName: string
+    key?: string
+  }
+}
+
+interface TagNode {
+  category: string
+  children: { name: string }[]
+}
+
+interface AlistStorage {
+  mount_path: string
+}
+
+export default function SimpleFileUpload() {
+  const [alistStorage, setAlistStorage] = useState<AlistStorage[]>([])
   const [storageSelect, setStorageSelect] = useState(false)
   const [storage, setStorage] = useState('r2')
   const [album, setAlbum] = useState('')
@@ -35,8 +52,7 @@ export default function SimpleFileUpload(props: any) {
   const [previewUrl, setPreviewUrl] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
   const [originalKey, setOriginalKey] = useState<string>('')
-  const [previewKey, setPreviewKey] = useState<string>('')
-  const [isUploading, setIsUploading] = useState(false)
+  const [, setPreviewKey] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [width, setWidth] = useState(0)
@@ -58,7 +74,7 @@ export default function SimpleFileUpload(props: any) {
   const previewImageMaxWidthLimit = parseInt(configs?.find(config => config.config_key === 'preview_max_width_limit')?.config_value || '0')
   const previewCompressQuality = parseFloat(configs?.find(config => config.config_key === 'preview_quality')?.config_value || '0.2')
   const [presetTags, setPresetTags] = useState<string[]>([])
-  const [tagTree, setTagTree] = useState<any[]>([])
+  const [tagTree, setTagTree] = useState<TagNode[]>([])
   const [primarySelect, setPrimarySelect] = useState<string | null>(null)
   const [secondarySelect, setSecondarySelect] = useState<string[]>([])
   const [cascaderValue, setCascaderValue] = useState<string[]>([])
@@ -74,48 +90,23 @@ export default function SimpleFileUpload(props: any) {
     try {
       const raw = localStorage.getItem(presetsStorageKey)
       if (raw) return JSON.parse(raw)
-    } catch (e) {}
+    } catch {}
     return defaultPresets
   })
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false)
   const [editingPresetsText, setEditingPresetsText] = useState({ cameraModels: '', shutterSpeeds: '', isos: '', apertures: '' })
 
-  function openPresetModal() {
-    setEditingPresetsText({
-      cameraModels: exifPresets.cameraModels.join(', '),
-      shutterSpeeds: exifPresets.shutterSpeeds.join(', '),
-      isos: exifPresets.isos.join(', '),
-      apertures: exifPresets.apertures.join(', '),
-    })
-    setIsPresetModalOpen(true)
-  }
 
-  function savePresetsFromModal() {
-    try {
-      const next = {
-        cameraModels: editingPresetsText.cameraModels.split(',').map(s=>s.trim()).filter(Boolean),
-        shutterSpeeds: editingPresetsText.shutterSpeeds.split(',').map(s=>s.trim()).filter(Boolean),
-        isos: editingPresetsText.isos.split(',').map(s=>s.trim()).filter(Boolean),
-        apertures: editingPresetsText.apertures.split(',').map(s=>s.trim()).filter(Boolean),
-      }
-      localStorage.setItem(presetsStorageKey, JSON.stringify(next))
-      setExifPresets(next)
-      setIsPresetModalOpen(false)
-      AntMessage.success('已保存常用 EXIF 选项')
-    } catch (e) {
-      AntMessage.error('保存失败')
-    }
-  }
   // 拉取后端预设标签 + 树形结构
   useEffect(() => {
     fetcher('/api/v1/settings/tags/get')
-      .then((res: any) => {
-        if (res?.data) setPresetTags(res.data.map((t: any) => t.name))
+      .then((res: { data: { name: string }[] }) => {
+        if (res?.data) setPresetTags(res.data.map((t) => t.name))
       })
       .catch(() => {})
 
     fetcher('/api/v1/settings/tags/get?tree=true')
-      .then((res: any) => {
+      .then((res: { data: TagNode[] }) => {
         if (res?.data) setTagTree(res.data)
       })
       .catch(() => {})
@@ -197,7 +188,7 @@ export default function SimpleFileUpload(props: any) {
     }
   }
 
-  async function loadExif(file: any) {
+  const loadExif = React.useCallback(async (file: File) => {
     try {
       const { tags, exifObj } = await exifReader(file)
       setExif(exifObj)
@@ -229,7 +220,7 @@ export default function SimpleFileUpload(props: any) {
     } catch (e) {
       console.error(e)
     }
-  }
+  }, [])
   
   async function handleSubmit() {
     setIsSubmitting(true)
@@ -324,7 +315,7 @@ export default function SimpleFileUpload(props: any) {
       } else {
         toast.error(t('Tips.saveFailed'))
       }
-    } catch (e) {
+    } catch {
       toast.error(t('Tips.saveFailed'))
     } finally {
       setIsSubmitting(false)
@@ -362,7 +353,7 @@ export default function SimpleFileUpload(props: any) {
       } else {
         toast.error(t('Tips.getFailed'))
       }
-    } catch (e) {
+    } catch {
       toast.error(t('Tips.getFailed'))
     }
   }
@@ -382,7 +373,7 @@ export default function SimpleFileUpload(props: any) {
     }
   ]
 
-  async function uploadPreviewImage(file: File, type: string) {
+  const uploadPreviewImage = React.useCallback(async (file: File, type: string) => {
     new Compressor(file, {
       quality: previewCompressQuality,
       checkOrientation: false,
@@ -401,9 +392,9 @@ export default function SimpleFileUpload(props: any) {
         throw new Error('Upload failed')
       },
     })
-  }
+  }, [previewCompressQuality, previewImageMaxWidthLimitSwitchOn, previewImageMaxWidthLimit, storage, alistMountPath])
 
-  async function resHandle(res: any, file: File) {
+  const resHandle = React.useCallback(async (res: UploadResponse, file: File) => {
     try {
       if (album === '/') {
         await uploadPreviewImage(file, '/preview')
@@ -419,9 +410,9 @@ export default function SimpleFileUpload(props: any) {
     setImageId(res?.data?.imageId)
     setImageName(res?.data?.fileName)
     if (res?.data?.key) setOriginalKey(res.data.key)
-  }
+  }, [album, loadExif, uploadPreviewImage])
 
-  async function onRequestUpload(file: File) {
+  const onRequestUpload = React.useCallback(async (file: File) => {
     // 获取文件名但是去掉扩展名部分
     const fileName = file.name.split('.').slice(0, -1).join('.')
     if (await isHeic(file)) {
@@ -441,7 +432,7 @@ export default function SimpleFileUpload(props: any) {
     } else {
       // ensure __key exists
       // @ts-expect-error - preview dataURL typing
-      if (!file.__key) file.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
+      if (!file.__key) file.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
       await uploadFile(file, album, storage, alistMountPath, { onProgress: (p:number) => setUploadProgress(p) }).then(async (res) => {
         if (res.code === 200) {
           await resHandle(res, file)
@@ -450,7 +441,7 @@ export default function SimpleFileUpload(props: any) {
         }
       })
     }
-  }
+  }, [album, storage, alistMountPath, resHandle])
 
   function onRemoveFile() {
     // 若已上传原图，尝试删除存储对象
@@ -490,12 +481,14 @@ export default function SimpleFileUpload(props: any) {
   function removeFileByKey(key: string) {
     try {
       // If current files contain the key, clear all file-related states
-      const has = files.some(f => ((f as any).__key || (f as any).name || '').toString() === key)
+      // @ts-expect-error - file key
+      const has = files.some(f => (f.__key || f.name || '').toString() === key)
       if (has) {
         onRemoveFile()
       }
       // ensure files cleared
-      setFiles(prev => prev.filter(f => ((f as any).__key || (f as any).name || '').toString() !== key))
+      // @ts-expect-error - file key
+      setFiles(prev => prev.filter(f => (f.__key || f.name || '').toString() !== key))
     } catch (e) {
       console.error('removeFileByKey error', e)
       setFiles([])
@@ -503,7 +496,7 @@ export default function SimpleFileUpload(props: any) {
     }
   }
 
-  async function onBeforeUpload() {
+  const onBeforeUpload = React.useCallback(async () => {
     setTitle('')
     setImageId('')
     setImageName('')
@@ -513,11 +506,11 @@ export default function SimpleFileUpload(props: any) {
     setCascaderValue([])
     setPrimarySelect(null)
     setSecondarySelect([])
-  }
+  }, [])
 
   const [files, setFiles] = React.useState<File[]>([])
 
-  const onUpload = React.useCallback(
+  const _onUpload = React.useCallback(
     async (
       files: File[],
       {
@@ -599,7 +592,7 @@ export default function SimpleFileUpload(props: any) {
     })()
 
     return () => { cancelled = true }
-  }, [files])
+  }, [files, album, autoUploadedFor, onRequestUpload, loadExif])
 
   return (
     <div className="admin-upload flex flex-col space-y-4 h-full flex-1 font-sans text-sm">
@@ -630,7 +623,7 @@ export default function SimpleFileUpload(props: any) {
               }}
               style={{ width: 160 }}
             >
-              {storages?.map((s: any) => (
+              {storages?.map((s) => (
                 <AntSelect.Option key={s.value} value={s.value}>{s.label}</AntSelect.Option>
               ))}
             </AntSelect>
@@ -673,7 +666,7 @@ export default function SimpleFileUpload(props: any) {
                 onChange={(value: string) => setAlistMountPath(value)}
                 style={{ width: 200 }}
               >
-                {alistStorage?.map((s: any) => (
+                {alistStorage?.map((s) => (
                   <AntSelect.Option key={s?.mount_path} value={s?.mount_path}>{s?.mount_path}</AntSelect.Option>
                 ))}
               </AntSelect>
@@ -691,7 +684,7 @@ export default function SimpleFileUpload(props: any) {
                       await onRequestUpload(files[0])
                     }
                     await handleSubmit()
-                } catch (e) {}
+                } catch {}
               }}
               disabled={(files.length === 0 && (!url || url === '')) || album === '' || storage === '' || (storage === 'alist' && alistMountPath === '')}
             >
@@ -744,7 +737,7 @@ export default function SimpleFileUpload(props: any) {
                 if (last) {
                   // ensure stable key
                   // @ts-expect-error - attach stable key on File
-                  if (!last.__key) last.__key = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
+                  if (!last.__key) last.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
                   setFiles([last])
                 } else {
                   setFiles([])
@@ -918,10 +911,10 @@ export default function SimpleFileUpload(props: any) {
                       maxTagCount="responsive"
                       value={cascaderValue}
                       onChange={(val) => setCascaderValue(val as string[])}
-                      options={tagTree.filter(Boolean).map((n: any) => ({
+                      options={tagTree.filter(Boolean).map((n) => ({
                         value: n.category,
                         label: n.category ?? '未分类',
-                        children: (n.children || []).filter((c: any) => c && c.name).map((c: any) => ({ value: c.name, label: c.name }))
+                        children: (n.children || []).filter((c) => c && c.name).map((c) => ({ value: c.name, label: c.name }))
                       }))}
                     />
                   </div>
@@ -980,7 +973,7 @@ export default function SimpleFileUpload(props: any) {
               setExifPresets(next)
               setIsPresetModalOpen(false)
               AntMessage.success('已保存常用 EXIF 选项')
-            } catch (e) { AntMessage.error('保存失败') }
+            } catch { AntMessage.error('保存失败') }
           }}
           onCancel={() => setIsPresetModalOpen(false)}
         >

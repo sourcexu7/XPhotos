@@ -374,20 +374,20 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       <div className="flex items-center gap-2 ml-auto md:ml-0 w-full md:w-auto mt-2 md:mt-0">
         <Tooltip title="应用筛选条件">
           <AntButton type="primary" className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 border-none shadow-sm transition-all" onClick={async () => {
-            setAlbum(stagedAlbum); setShowStatus(stagedShowStatus); setSelectedCamera(stagedSelectedCamera); setSelectedLens(stagedSelectedLens);
-            setSelectedExposure(stagedSelectedExposure); setSelectedAperture(stagedSelectedAperture); setSelectedISO(stagedSelectedISO);
-            setSelectedTags(stagedSelectedTags); setLabelsOperator(stagedLabelsOperator);
-            await totalMutate(); await mutate();
+            setAlbum(stagedAlbum); setShowStatus(stagedShowStatus); setSelectedCamera(stagedSelectedCamera); setSelectedLens(stagedSelectedLens)
+            setSelectedExposure(stagedSelectedExposure); setSelectedAperture(stagedSelectedAperture); setSelectedISO(stagedSelectedISO)
+            setSelectedTags(stagedSelectedTags); setLabelsOperator(stagedLabelsOperator)
+            await totalMutate(); await mutate()
           }}>{t('Button.query') || '查询'}</AntButton>
         </Tooltip>
         <Tooltip title="重置所有筛选条件">
           <AntButton className="flex-1 md:flex-none hover:text-blue-600 hover:border-blue-600 transition-all" onClick={async () => {
-            setStagedAlbum(''); setStagedShowStatus(''); setStagedSelectedCamera(''); setStagedSelectedLens('');
-            setStagedSelectedExposure(''); setStagedSelectedAperture(''); setStagedSelectedISO(''); setStagedSelectedTags([]); setStagedLabelsOperator('and');
+            setStagedAlbum(''); setStagedShowStatus(''); setStagedSelectedCamera(''); setStagedSelectedLens('')
+            setStagedSelectedExposure(''); setStagedSelectedAperture(''); setStagedSelectedISO(''); setStagedSelectedTags([]); setStagedLabelsOperator('and')
             // Also reset active filters
-            setAlbum(''); setShowStatus(''); setSelectedCamera(''); setSelectedLens('');
-            setSelectedExposure(''); setSelectedAperture(''); setSelectedISO(''); setSelectedTags([]); setLabelsOperator('and');
-            await totalMutate(); await mutate();
+            setAlbum(''); setShowStatus(''); setSelectedCamera(''); setSelectedLens('')
+            setSelectedExposure(''); setSelectedAperture(''); setSelectedISO(''); setSelectedTags([]); setLabelsOperator('and')
+            await totalMutate(); await mutate()
           }}>{t('Button.reset') || '清空'}</AntButton>
         </Tooltip>
       </div>
@@ -433,7 +433,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                 label="相册"
                 value={(Array.isArray(albums) ? (albums as AlbumType[]).find(a => a.album_value === album)?.name : undefined) || album}
                 onRemove={async () => {
-                  setStagedAlbum(''); setAlbum(''); await totalMutate(); await mutate();
+                  setStagedAlbum(''); setAlbum(''); await totalMutate(); await mutate()
                 }}
               />
             )}
@@ -442,7 +442,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                 label="状态"
                 value={showStatus === '0' ? '公开' : '私密'}
                 onRemove={async () => {
-                  setStagedShowStatus(''); setShowStatus(''); await totalMutate(); await mutate();
+                  setStagedShowStatus(''); setShowStatus(''); await totalMutate(); await mutate()
                 }}
               />
             )}
@@ -451,7 +451,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                 label="相机"
                 value={selectedCamera}
                 onRemove={async () => {
-                  setStagedSelectedCamera(''); setSelectedCamera(''); await totalMutate(); await mutate();
+                  setStagedSelectedCamera(''); setSelectedCamera(''); await totalMutate(); await mutate()
                 }}
               />
             )}
@@ -460,7 +460,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                 label="镜头"
                 value={selectedLens}
                 onRemove={async () => {
-                  setStagedSelectedLens(''); setSelectedLens(''); await totalMutate(); await mutate();
+                  setStagedSelectedLens(''); setSelectedLens(''); await totalMutate(); await mutate()
                 }}
               />
             )}
@@ -469,7 +469,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                 label="快门"
                 value={selectedExposure}
                 onRemove={async () => {
-                  setStagedSelectedExposure(''); setSelectedExposure(''); await totalMutate(); await mutate();
+                  setStagedSelectedExposure(''); setSelectedExposure(''); await totalMutate(); await mutate()
                 }}
               />
             )}
@@ -478,7 +478,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                 label="光圈"
                 value={selectedAperture}
                 onRemove={async () => {
-                  setStagedSelectedAperture(''); setSelectedAperture(''); await totalMutate(); await mutate();
+                  setStagedSelectedAperture(''); setSelectedAperture(''); await totalMutate(); await mutate()
                 }}
               />
             )}
@@ -487,7 +487,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                 label="ISO"
                 value={selectedISO}
                 onRemove={async () => {
-                  setStagedSelectedISO(''); setSelectedISO(''); await totalMutate(); await mutate();
+                  setStagedSelectedISO(''); setSelectedISO(''); await totalMutate(); await mutate()
                 }}
               />
             )}
@@ -500,7 +500,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                     value={tag}
                     onRemove={async () => {
                       const next = selectedTags.filter(t => t !== tag)
-                      setSelectedTags(next); setStagedSelectedTags(next); await totalMutate(); await mutate();
+                      setSelectedTags(next); setStagedSelectedTags(next); await totalMutate(); await mutate()
                     }}
                   />
                 ))}
@@ -509,7 +509,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                   label="标签逻辑"
                   value={labelsOperator.toUpperCase()}
                   onRemove={async () => {
-                    setSelectedTags([]); setStagedSelectedTags([]); await totalMutate(); await mutate();
+                    setSelectedTags([]); setStagedSelectedTags([]); await totalMutate(); await mutate()
                   }}
                 />
               </>
@@ -601,7 +601,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
             {/* 底部操作栏 */}
             <CardFooter className="flex h-14 p-2 w-full bg-white border-t border-gray-100 justify-between items-center">
               <div className="flex items-center gap-2">
-                <Tooltip title={image.show === 0 ? "当前公开" : "当前隐藏"}>
+                <Tooltip title={image.show === 0 ? '当前公开' : '当前隐藏'}>
                   <Switch
                     checked={image.show === 0}
                     disabled={updateShowLoading && updateShowId === image.id}
@@ -609,7 +609,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                     onCheckedChange={(isSelected: boolean) => updateImageShow(image.id, isSelected ? 0 : 1)}
                   />
                 </Tooltip>
-                <Tooltip title={image.featured === 1 ? "已精选" : "设为精选"}>
+                <Tooltip title={image.featured === 1 ? '已精选' : '设为精选'}>
                   <div 
                     className={`cursor-pointer p-1 rounded hover:bg-gray-100 ${image.featured === 1 ? 'text-[#E2B714]' : 'text-gray-400'}`}
                     onClick={() => updateImageFeatured(image.id, image.featured === 1 ? 0 : 1)}

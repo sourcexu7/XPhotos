@@ -330,14 +330,14 @@ const FileUploadRoot = React.forwardRef<HTMLDivElement, FileUploadRootProps>(
       value,
       defaultValue,
       onValueChange,
-      onAccept,
-      onFileAccept,
-      onFileReject,
-      onFileValidate,
-      onUpload,
+      onAccept: _onAccept,
+      onFileAccept: _onFileAccept,
+      onFileReject: _onFileReject,
+      onFileValidate: _onFileValidate,
+      onUpload: _onUpload,
       accept,
-      maxFiles,
-      maxSize,
+      maxFiles: _maxFiles,
+      maxSize: _maxSize,
       dir: dirProp,
       label,
       name,
@@ -392,6 +392,52 @@ const FileUploadRoot = React.forwardRef<HTMLDivElement, FileUploadRootProps>(
         store.dispatch({ variant: 'SET_FILES', files: defaultValue })
       }
     }, [value, defaultValue, isControlled, store])
+
+    const onFilesUpload = React.useCallback(
+      async (files: File[]) => {
+        try {
+          for (const file of files) {
+            store.dispatch({ variant: 'SET_PROGRESS', file, progress: 0 })
+          }
+
+          if (propsRef.current.onUpload) {
+            await propsRef.current.onUpload(files, {
+              onProgress: (file, progress) => {
+                store.dispatch({
+                  variant: 'SET_PROGRESS',
+                  file,
+                  progress: Math.min(Math.max(0, progress), 100),
+                })
+              },
+              onSuccess: (file) => {
+                store.dispatch({ variant: 'SET_SUCCESS', file })
+              },
+              onError: (file, _error) => {
+                store.dispatch({
+                  variant: 'SET_ERROR',
+                  file,
+                })
+              },
+            })
+          } else {
+            for (const file of files) {
+              store.dispatch({ variant: 'SET_SUCCESS', file })
+            }
+          }
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Upload failed'
+          for (const file of files) {
+            store.dispatch({
+              variant: 'SET_ERROR',
+              file,
+              error: errorMessage,
+            })
+          }
+        }
+      },
+      [store, propsRef],
+    )
 
     const onFilesChange = React.useCallback(
       (originalFiles: File[]) => {
@@ -518,53 +564,7 @@ const FileUploadRoot = React.forwardRef<HTMLDivElement, FileUploadRootProps>(
           }
         }
       },
-      [store, isControlled, propsRef],
-    )
-
-    const onFilesUpload = React.useCallback(
-      async (files: File[]) => {
-        try {
-          for (const file of files) {
-            store.dispatch({ variant: 'SET_PROGRESS', file, progress: 0 })
-          }
-
-          if (propsRef.current.onUpload) {
-            await propsRef.current.onUpload(files, {
-              onProgress: (file, progress) => {
-                store.dispatch({
-                  variant: 'SET_PROGRESS',
-                  file,
-                  progress: Math.min(Math.max(0, progress), 100),
-                })
-              },
-              onSuccess: (file) => {
-                store.dispatch({ variant: 'SET_SUCCESS', file })
-              },
-              onError: (file, error) => {
-                store.dispatch({
-                  variant: 'SET_ERROR',
-                  file,
-                })
-              },
-            })
-          } else {
-            for (const file of files) {
-              store.dispatch({ variant: 'SET_SUCCESS', file })
-            }
-          }
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Upload failed'
-          for (const file of files) {
-            store.dispatch({
-              variant: 'SET_ERROR',
-              file,
-              error: errorMessage,
-            })
-          }
-        }
-      },
-      [store, propsRef.current.onUpload],
+      [store, isControlled, propsRef, onFilesUpload],
     )
 
     const onInputChange = React.useCallback(
@@ -663,7 +663,7 @@ const FileUploadDropzone = React.forwardRef<
       event.preventDefault()
       store.dispatch({ variant: 'SET_DRAG_OVER', dragOver: true })
     },
-    [store, propsRef.current.onDragOver],
+    [store, propsRef],
   )
 
   const onDragEnter = React.useCallback(
@@ -675,7 +675,7 @@ const FileUploadDropzone = React.forwardRef<
       event.preventDefault()
       store.dispatch({ variant: 'SET_DRAG_OVER', dragOver: true })
     },
-    [store, propsRef.current.onDragEnter],
+    [store, propsRef],
   )
 
   const onDragLeave = React.useCallback(
@@ -687,7 +687,7 @@ const FileUploadDropzone = React.forwardRef<
       event.preventDefault()
       store.dispatch({ variant: 'SET_DRAG_OVER', dragOver: false })
     },
-    [store, propsRef.current.onDragLeave],
+    [store, propsRef],
   )
 
   const onDrop = React.useCallback(
@@ -711,7 +711,7 @@ const FileUploadDropzone = React.forwardRef<
       inputElement.files = dataTransfer.files
       inputElement.dispatchEvent(new Event('change', { bubbles: true }))
     },
-    [store, context.inputRef, propsRef.current.onDrop],
+    [store, context.inputRef, propsRef],
   )
 
   const onKeyDown = React.useCallback(
@@ -726,7 +726,7 @@ const FileUploadDropzone = React.forwardRef<
         context.inputRef.current?.click()
       }
     },
-    [context.inputRef, propsRef.current.onKeyDown],
+    [context.inputRef, propsRef],
   )
 
   const DropzonePrimitive = asChild ? Slot : 'div'
@@ -782,7 +782,7 @@ const FileUploadTrigger = React.forwardRef<
 
       context.inputRef.current?.click()
     },
-    [context.inputRef, propsRef.current],
+    [context.inputRef, propsRef],
   )
 
   const TriggerPrimitive = asChild ? Slot : 'button'
@@ -1256,7 +1256,7 @@ const FileUploadItemDelete = React.forwardRef<
         file: itemContext.fileState.file,
       })
     },
-    [store, itemContext.fileState, propsRef.current?.onClick],
+    [store, itemContext.fileState, propsRef],
   )
 
   if (!itemContext.fileState) return null

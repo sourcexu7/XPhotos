@@ -341,6 +341,66 @@ export async function fetchClientImagesPageTotalByAlbum(album: string): Promise<
 }
 
 /**
+ * 根据相册获取图片总数（客户端）
+ * @param album 相册
+ * @returns {Promise<number>} 图片总数
+ */
+export async function fetchClientImagesCountByAlbum(album: string): Promise<number> {
+  if (album === '/') {
+    const pageTotal = await db.$queryRaw`
+    SELECT COALESCE(COUNT(1),0) AS total
+    FROM (
+        SELECT DISTINCT ON (image.id)
+           image.id
+        FROM
+           "public"."images" AS image
+        INNER JOIN "public"."images_albums_relation" AS relation
+            ON image.id = relation."imageId"
+        INNER JOIN "public"."albums" AS albums
+            ON relation.album_value = albums.album_value
+        WHERE
+            image.del = 0
+        AND
+            image.show = 0
+        AND
+            image.show_on_mainpage = 0
+        AND
+            albums.del = 0
+        AND
+            albums.show = 0
+    ) AS unique_images;
+  `
+    // @ts-ignore
+    return Number(pageTotal[0].total)
+  }
+  const pageTotal = await db.$queryRaw`
+    SELECT COALESCE(COUNT(1),0) AS total
+    FROM (
+        SELECT DISTINCT ON (image.id)
+           image.id
+        FROM
+           "public"."images" AS image
+        INNER JOIN "public"."images_albums_relation" AS relation
+            ON image.id = relation."imageId"
+        INNER JOIN "public"."albums" AS albums
+            ON relation.album_value = albums.album_value
+        WHERE
+            image.del = 0
+        AND
+            albums.del = 0
+        AND
+            image.show = 0
+        AND
+            albums.show = 0
+        AND
+            albums.album_value = ${album}
+    ) AS unique_images;
+  `
+  // @ts-ignore
+  return Number(pageTotal[0].total)
+}
+
+/**
  * 根据图片标签获取图片分页列表（客户端）
  * @param pageNum 页码
  * @param tag 标签

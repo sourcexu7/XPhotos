@@ -104,7 +104,7 @@ export function NavUser() {
                   },
                 })
               } catch {
-                // eslint-disable-next-line no-console
+                 
                 console.error('logout failed')
               }
             }}>

@@ -29,7 +29,7 @@ export default function TagManager() {
   const [editingSecondaryId, setEditingSecondaryId] = useState<string | null>(null)
   const [editingSecondaryValue, setEditingSecondaryValue] = useState<string>('')
 
-  const loadTree = async () => {
+  const loadTree = React.useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetcher('/api/v1/settings/tags/get?tree=true')
@@ -39,9 +39,9 @@ export default function TagManager() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  useEffect(() => { loadTree() }, [])
+  useEffect(() => { loadTree() }, [loadTree])
 
   // derive selected primary node name from id for display
   const selectedPrimaryNode = tree.find(n => n.id === selectedPrimary)

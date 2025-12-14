@@ -1,4 +1,4 @@
-import type { Config } from "tailwindcss";
+import type { Config } from 'tailwindcss'
 
 export default {
   theme: {
@@ -12,4 +12,4 @@ export default {
       },
     },
   },
-} satisfies Config;
+} satisfies Config

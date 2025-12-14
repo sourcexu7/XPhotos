@@ -1,18 +1,18 @@
-"use client";
+'use client'
 
 import React, {
   useEffect,
   useId,
   useMemo,
   useState,
-} from "react";
+} from 'react'
 import { 
   LayoutGrid, 
   List, 
   Search, 
   ArrowUpDown, 
-} from "lucide-react";
-import { useTranslations } from 'next-intl';
+} from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 /**
  * ===================================
@@ -25,7 +25,7 @@ export type Stat = {
   value: number | string;
 };
 
-export type ProjectStatus = "inProgress" | "upcoming" | "completed" | "paused";
+export type ProjectStatus = 'inProgress' | 'upcoming' | 'completed' | 'paused';
 
 export type Project = {
   id: string;
@@ -40,14 +40,14 @@ export type Project = {
   bgColorClass?: string;
 };
 
-export type SortBy = "manual" | "date" | "name" | "progress";
-export type SortDir = "asc" | "desc";
+export type SortBy = 'manual' | 'date' | 'name' | 'progress';
+export type SortDir = 'asc' | 'desc';
 
 export type ModernDashboardProps = {
   stats?: Stat[];
   projects: Project[];
-  view?: "grid" | "list";
-  defaultView?: "grid" | "list";
+  view?: 'grid' | 'list';
+  defaultView?: 'grid' | 'list';
   searchQuery?: string;
   defaultSearchQuery?: string;
   sortBy?: SortBy;
@@ -66,12 +66,12 @@ export type ModernDashboardProps = {
  * ===================================
  */
 const cx = (...classes: Array<string | false | null | undefined>) => {
-  return classes.filter(Boolean).join(" ");
-};
+  return classes.filter(Boolean).join(' ')
+}
 
 const clamp = (n: number, min: number, max: number) => {
-  return Math.min(Math.max(n, min), max);
-};
+  return Math.min(Math.max(n, min), max)
+}
 
 /**
  * ===================================
@@ -81,71 +81,71 @@ const clamp = (n: number, min: number, max: number) => {
 export function ModernDashboard({
   stats,
   projects,
-  defaultView = "grid",
-  defaultSearchQuery = "",
-  defaultSortBy = "progress",
-  defaultSortDir = "desc",
+  defaultView = 'grid',
+  defaultSearchQuery = '',
+  defaultSortBy = 'progress',
+  defaultSortDir = 'desc',
   pageSize = 9,
-  className = "",
+  className = '',
   emptyProjectsLabel,
 }: ModernDashboardProps) {
-  const t = useTranslations('Dashboard');
+  const t = useTranslations('Dashboard')
   
   // State
-  const [viewMode, setViewMode] = useState<"grid" | "list">(defaultView);
-  const [query, setQuery] = useState<string>(defaultSearchQuery);
-  const [sortBy, setSortBy] = useState<SortBy>(defaultSortBy);
-  const [sortDir, setSortDir] = useState<SortDir>(defaultSortDir);
-  const [page, setPage] = useState<number>(1);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(defaultView)
+  const [query, setQuery] = useState<string>(defaultSearchQuery)
+  const [sortBy, setSortBy] = useState<SortBy>(defaultSortBy)
+  const [sortDir, setSortDir] = useState<SortDir>(defaultSortDir)
+  const [page, setPage] = useState<number>(1)
 
-  const searchInputId = useId();
+  const searchInputId = useId()
 
   // Filter and sort
   const preparedProjects = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    let list = projects.slice();
+    const q = query.trim().toLowerCase()
+    let list = projects.slice()
 
     if (q) {
       list = list.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
           (p.subtitle?.toLowerCase().includes(q) ?? false)
-      );
+      )
     }
 
     list.sort((a, b) => {
-      let cmp = 0;
+      let cmp = 0
       switch (sortBy) {
-        case "name":
-          cmp = a.name.localeCompare(b.name);
-          break;
-        case "progress":
-          cmp = (a.progress ?? 0) - (b.progress ?? 0);
-          break;
+        case 'name':
+          cmp = a.name.localeCompare(b.name)
+          break
+        case 'progress':
+          cmp = (a.progress ?? 0) - (b.progress ?? 0)
+          break
         default:
-          cmp = 0;
+          cmp = 0
       }
-      return sortDir === "asc" ? cmp : -cmp;
-    });
+      return sortDir === 'asc' ? cmp : -cmp
+    })
 
-    return list;
-  }, [projects, query, sortBy, sortDir]);
+    return list
+  }, [projects, query, sortBy, sortDir])
 
   // Pagination
-  const totalPages = Math.max(1, Math.ceil(preparedProjects.length / pageSize));
-  const currentPage = clamp(page, 1, totalPages);
+  const totalPages = Math.max(1, Math.ceil(preparedProjects.length / pageSize))
+  const currentPage = clamp(page, 1, totalPages)
   const pagedProjects = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return preparedProjects.slice(start, start + pageSize);
-  }, [preparedProjects, currentPage, pageSize]);
+    const start = (currentPage - 1) * pageSize
+    return preparedProjects.slice(start, start + pageSize)
+  }, [preparedProjects, currentPage, pageSize])
 
   // Reset page on filter change
   useEffect(() => {
-    setPage(1);
-  }, [query, sortBy, sortDir]);
+    setPage(1)
+  }, [query, sortBy, sortDir])
 
   return (
-    <div className={cx("flex flex-col w-full h-full bg-transparent", className)}>
+    <div className={cx('flex flex-col w-full h-full bg-transparent', className)}>
       
       {/* Stats Row */}
       {stats && (
@@ -187,27 +187,27 @@ export function ModernDashboard({
             </select>
 
             <button
-              onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
+              onClick={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
               className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
-              <ArrowUpDown className={cx("size-4 text-slate-600 dark:text-slate-400 transition-transform", sortDir === "asc" && "rotate-180")} />
+              <ArrowUpDown className={cx('size-4 text-slate-600 dark:text-slate-400 transition-transform', sortDir === 'asc' && 'rotate-180')} />
             </button>
 
             <div className="flex rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-1">
               <button
-                onClick={() => setViewMode("list")}
+                onClick={() => setViewMode('list')}
                 className={cx(
-                  "p-1.5 rounded-md transition-colors",
-                  viewMode === "list" ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100" : "text-slate-400 hover:text-slate-600"
+                  'p-1.5 rounded-md transition-colors',
+                  viewMode === 'list' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100' : 'text-slate-400 hover:text-slate-600'
                 )}
               >
                 <List className="size-4" />
               </button>
               <button
-                onClick={() => setViewMode("grid")}
+                onClick={() => setViewMode('grid')}
                 className={cx(
-                  "p-1.5 rounded-md transition-colors",
-                  viewMode === "grid" ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100" : "text-slate-400 hover:text-slate-600"
+                  'p-1.5 rounded-md transition-colors',
+                  viewMode === 'grid' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100' : 'text-slate-400 hover:text-slate-600'
                 )}
               >
                 <LayoutGrid className="size-4" />
@@ -219,21 +219,21 @@ export function ModernDashboard({
 
       {/* Content Grid/List */}
       <div className={cx(
-        "flex-1",
-        viewMode === "grid" 
-          ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" 
-          : "flex flex-col gap-3"
+        'flex-1',
+        viewMode === 'grid' 
+          ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' 
+          : 'flex flex-col gap-3'
       )}>
         {pagedProjects.map((p) => (
           <div
             key={p.id}
             className={cx(
-              "group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden hover:shadow-md transition-all duration-200",
-              viewMode === "list" ? "flex items-center p-4 gap-6" : "p-5 flex flex-col"
+              'group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden hover:shadow-md transition-all duration-200',
+              viewMode === 'list' ? 'flex items-center p-4 gap-6' : 'p-5 flex flex-col'
             )}
           >
             {/* Header */}
-            <div className={cx("flex justify-between items-start", viewMode === "list" && "w-64 shrink-0")}>
+            <div className={cx('flex justify-between items-start', viewMode === 'list' && 'w-64 shrink-0')}>
               <div>
                 <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate pr-4" title={p.name}>
                   {p.name}
@@ -243,7 +243,7 @@ export function ModernDashboard({
             </div>
 
             {/* Progress */}
-            <div className={cx("flex-1", viewMode === "grid" && "mt-6 mb-4")}>
+            <div className={cx('flex-1', viewMode === 'grid' && 'mt-6 mb-4')}>
               <div className="flex justify-between text-xs mb-2">
                 <span className="text-slate-500 dark:text-slate-400">{t('visibility')}</span>
                 <span className="font-medium text-slate-700 dark:text-slate-300">{p.progress}{t('percentPublic')}</span>
@@ -258,15 +258,15 @@ export function ModernDashboard({
 
             {/* Footer */}
             <div className={cx(
-              "flex items-center justify-between",
-              viewMode === "grid" ? "mt-auto pt-4 border-t border-slate-100 dark:border-slate-800" : "w-48 justify-end gap-4"
+              'flex items-center justify-between',
+              viewMode === 'grid' ? 'mt-auto pt-4 border-t border-slate-100 dark:border-slate-800' : 'w-48 justify-end gap-4'
             )}>
               <div className="flex items-center gap-2">
                 <span className={cx(
-                  "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
+                  'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
                   p.status === 'completed' 
-                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
-                    : "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
+                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                    : 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
                 )}>
                   {p.status === 'completed' ? t('allPublic') : t('hiddenItems')}
                 </span>
@@ -311,5 +311,5 @@ export function ModernDashboard({
         </div>
       )}
     </div>
-  );
+  )
 }

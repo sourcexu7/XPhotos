@@ -23,7 +23,7 @@ import { useState } from 'react'
 import { ExpandIcon } from '~/components/icons/expand'
 import { useTranslations } from 'next-intl'
 import ProgressiveImage from '~/components/album/progressive-image.tsx'
-import { Row, Col, Space, Typography, Tag } from 'antd'
+import { Row, Col, Space, Typography, Tag, Tooltip } from 'antd'
 
 const { Title, Text } = Typography
 
@@ -134,8 +134,8 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
           <div className="relative select-none flex items-center justify-center" style={{ width: '100%', minHeight: '300px' }}>
             {props.data.type === 1 ?
               <ProgressiveImage
-                imageUrl={props.data.url}
-                previewUrl={props.data.preview_url}
+                imageUrl={props.data.preview_url || props.data.url}
+                previewUrl={props.data.preview_url || props.data.url}
                 alt={props.data.title}
                 height={props.data.height}
                 width={props.data.width}
@@ -263,74 +263,72 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
 
             {/* 操作按钮区域 */}
             <div style={{ marginTop: '16px', paddingLeft: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <CopyIcon
-                className={actionIconClass}
-                size={18}
-                onClick={async () => {
-                  try {
-                    const url = props.data?.url
-                    if (!url) {
-                      toast.error('图片链接不存在！', { duration: 500 })
-                      return
+              <Tooltip title="复制图片直链">
+                <CopyIcon
+                  className={actionIconClass}
+                  size={18}
+                  onClick={async () => {
+                    try {
+                      const url = props.data?.url
+                      if (!url) {
+                        toast.error('图片链接不存在！', { duration: 500 })
+                        return
+                      }
+                      if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(url)
+                      } else {
+                        const textarea = document.createElement('textarea')
+                        textarea.value = url
+                        textarea.style.position = 'fixed'
+                        textarea.style.opacity = '0'
+                        document.body.appendChild(textarea)
+                        textarea.select()
+                        document.execCommand('copy')
+                        document.body.removeChild(textarea)
+                      }
+                      let msg = t('Tips.copyImageSuccess')
+                      if (props.data?.album_license != null) {
+                        msg = t('Tips.downloadLicense', { license: props.data?.album_license })
+                      }
+                      toast.success(msg, { duration: 1500 })
+                    } catch (error) {
+                      console.error('复制失败:', error)
+                      toast.error(t('Tips.copyImageFailed'), { duration: 1000 })
                     }
-
-                    // 降级方案：使用传统方法复制
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                      await navigator.clipboard.writeText(url)
-                    } else {
-                      const textarea = document.createElement('textarea')
-                      textarea.value = url
-                      textarea.style.position = 'fixed'
-                      textarea.style.opacity = '0'
-                      document.body.appendChild(textarea)
-                      textarea.select()
-                      document.execCommand('copy')
-                      document.body.removeChild(textarea)
+                  }}
+                />
+              </Tooltip>
+              <Tooltip title="复制分享链接">
+                <LinkIcon
+                  className={actionIconClass}
+                  size={18}
+                  onClick={async () => {
+                    try {
+                      const url = window.location.origin + '/preview/' + props.id
+                      if (!props.id) {
+                        toast.error('图片ID不存在！', { duration: 500 })
+                        return
+                      }
+                      if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(url)
+                      } else {
+                        const textarea = document.createElement('textarea')
+                        textarea.value = url
+                        textarea.style.position = 'fixed'
+                        textarea.style.opacity = '0'
+                        document.body.appendChild(textarea)
+                        textarea.select()
+                        document.execCommand('copy')
+                        document.body.removeChild(textarea)
+                      }
+                      toast.success(t('Tips.copyShareSuccess'), { duration: 500 })
+                    } catch (error) {
+                      console.error('复制失败:', error)
+                      toast.error(t('Tips.copyShareFailed'), { duration: 1000 })
                     }
-
-                    let msg = t('Tips.copyImageSuccess')
-                    if (props.data?.album_license != null) {
-                      msg = t('Tips.downloadLicense', { license: props.data?.album_license })
-                    }
-                    toast.success(msg, { duration: 1500 })
-                  } catch (error) {
-                    console.error('复制失败:', error)
-                    toast.error(t('Tips.copyImageFailed'), { duration: 1000 })
-                  }
-                }}
-              />
-              <LinkIcon
-                className={actionIconClass}
-                size={18}
-                onClick={async () => {
-                  try {
-                    const url = window.location.origin + '/preview/' + props.id
-                    if (!props.id) {
-                      toast.error('图片ID不存在！', { duration: 500 })
-                      return
-                    }
-
-                    // 降级方案：使用传统方法复制
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                      await navigator.clipboard.writeText(url)
-                    } else {
-                      const textarea = document.createElement('textarea')
-                      textarea.value = url
-                      textarea.style.position = 'fixed'
-                      textarea.style.opacity = '0'
-                      document.body.appendChild(textarea)
-                      textarea.select()
-                      document.execCommand('copy')
-                      document.body.removeChild(textarea)
-                    }
-
-                    toast.success(t('Tips.copyShareSuccess'), { duration: 500 })
-                  } catch (error) {
-                    console.error('复制失败:', error)
-                    toast.error(t('Tips.copyShareFailed'), { duration: 1000 })
-                  }
-                }}
-              />
+                  }}
+                />
+              </Tooltip>
               {configData?.find((item: any) => item.config_key === 'custom_index_download_enable')?.config_value.toString() === 'true'
                 && <>
                   {download ?
@@ -346,13 +344,15 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
                   }
                 </>
               }
-              <ExpandIcon
-                className={actionIconClass}
-                size={18}
-                onClick={() => {
-                  setLightboxPhoto(true)
-                }}
-              />
+              <Tooltip title="全屏查看">
+                <ExpandIcon
+                  className={actionIconClass}
+                  size={18}
+                  onClick={() => {
+                    setLightboxPhoto(true)
+                  }}
+                />
+              </Tooltip>
             </div>
 
             {/* 标签区域 */}
@@ -362,9 +362,9 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
                   {props.data.labels.map((tag: string) => (
                     <Tag
                       key={tag}
-                      className="cursor-pointer select-none"
+                      className="cursor-pointer select-none border border-white/20 bg-white/10 text-white hover:bg-white/20 dark:bg-white/10 dark:text-white dark:border-white/20 !bg-white/10 !text-white !border-white/20"
                       onClick={() => router.push(`/tag/${tag}`)}
-                      style={{ margin: 0, fontSize: 12 }}
+                      style={{ margin: 0, fontSize: 12, background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
                     >
                       {tag}
                     </Tag>
@@ -380,8 +380,8 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
           <div className="relative select-none flex items-center justify-center" style={{ width: '100%', height: '100%', minHeight: '400px' }}>
             {props.data.type === 1 ?
               <ProgressiveImage
-                imageUrl={props.data.url}
-                previewUrl={props.data.preview_url}
+                imageUrl={props.data.preview_url || props.data.url}
+                previewUrl={props.data.preview_url || props.data.url}
                 alt={props.data.title}
                 height={props.data.height}
                 width={props.data.width}

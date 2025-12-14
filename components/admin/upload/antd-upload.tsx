@@ -2,11 +2,18 @@
 
 import React from 'react'
 import { Upload, Button, Select as AntSelect } from 'antd'
+import type { UploadProps } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
 
 const { Dragger } = Upload
 
-export default function AntdUpload(props: any) {
+interface AntdUploadProps extends UploadProps {
+  presetTags?: string[]
+  onTagChange?: (tags: { primary: string | null, secondary: string[] }) => void
+  showTagSelectors?: boolean
+}
+
+export default function AntdUpload(props: AntdUploadProps) {
   const [primary, setPrimary] = React.useState<string | null>(null)
   const [secondary, setSecondary] = React.useState<string[]>([])
 

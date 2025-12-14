@@ -1,12 +1,12 @@
-"use client"
+'use client'
 
-import * as React from "react"
-import { useState } from "react"
+import * as React from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
-import { Lock, Mail, ArrowLeft, Loader2, Fingerprint } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
+import { Lock, Mail, ArrowLeft, Loader2, Fingerprint } from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { authClient } from '~/lib/auth-client'
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '~/components/ui/input-otp'
 import { useTranslations } from 'next-intl'
@@ -14,16 +14,16 @@ import { useTranslations } from 'next-intl'
 const CleanMinimalSignIn = () => {
   const router = useRouter()
   const t = useTranslations()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [isPasskeyLoading, setIsPasskeyLoading] = useState(false)
   const [logoError, setLogoError] = useState(false)
   
   // 2FA State
   const [otp, setOtp] = useState(false)
-  const [otpCode, setOtpCode] = useState("")
+  const [otpCode, setOtpCode] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,7 +32,7 @@ const CleanMinimalSignIn = () => {
       return
     }
     
-    setError("")
+    setError('')
     setLoading(true)
 
     try {
@@ -138,10 +138,10 @@ const CleanMinimalSignIn = () => {
         </div>
         
         <h2 className="text-2xl font-semibold mb-3 text-center text-[#2A4365]">
-          {otp ? t('Login.otp') : "XPhotos"}
+          {otp ? t('Login.otp') : 'XPhotos'}
         </h2>
         <p className="text-gray-500 text-sm mb-10 text-center">
-          {otp ? t('Login.otpRequired') : "专业风光摄影作品集管理系统"}
+          {otp ? t('Login.otpRequired') : '专业风光摄影作品集管理系统'}
         </p>
         
         <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6 mb-6">
@@ -237,7 +237,7 @@ const CleanMinimalSignIn = () => {
         
         {otp && (
            <button 
-             onClick={() => { setOtp(false); setOtpCode(""); setError("") }}
+             onClick={() => { setOtp(false); setOtpCode(''); setError('') }}
              className="mt-4 text-sm text-gray-500 hover:text-[#2A4365]"
            >
              {t('Login.backToLogin')}
@@ -245,7 +245,7 @@ const CleanMinimalSignIn = () => {
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export { CleanMinimalSignIn };
+export { CleanMinimalSignIn }

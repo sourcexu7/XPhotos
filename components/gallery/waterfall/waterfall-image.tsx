@@ -147,4 +147,3 @@ export default function WaterfallImage({ photo, index }: { photo: ImageType, ind
     </motion.div>
   )
 }
-
