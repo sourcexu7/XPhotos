@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import { cn } from '~/lib/utils' // Your utility for merging class names
-import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 // Define the props for the DestinationCard component
@@ -23,7 +22,7 @@ function rgbToHsl(r: number, g: number, b: number) {
   b /= 255
   const max = Math.max(r, g, b)
   const min = Math.min(r, g, b)
-  let h = 0, s;
+  let h = 0, s
   const l = (max + min) / 2
 
   if (max === min) {
@@ -111,7 +110,6 @@ const DestinationCard = React.forwardRef<HTMLDivElement, DestinationCardProps>(
       <div
         ref={ref}
         style={{
-          // @ts-expect-error - CSS custom properties are valid
           '--theme-color': themeColor,
         } as React.CSSProperties}
         className={cn('group w-full h-full', className)}

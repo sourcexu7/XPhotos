@@ -248,7 +248,7 @@ export async function fetchClientImagesListByAlbum(pageNum: number, album: strin
   if (albumData && albumData.image_sorting && ALBUM_IMAGE_SORTING_ORDER[albumData.image_sorting]) {
     orderBy = Prisma.sql([`image.sort DESC, ${ALBUM_IMAGE_SORTING_ORDER[albumData.image_sorting]}`])
   }
-  const dataList: any[] = await db.$queryRaw`
+  const dataList: ImageType[] = await db.$queryRaw`
     SELECT 
         image.*,
         albums.name AS album_name,
@@ -472,7 +472,7 @@ export async function fetchClientImagesPageTotalByTag(tag: string): Promise<numb
 
 /**
  * 获取图片分析数据
- * @returns {Promise<{ total: number, showTotal: number, crTotal: number, tagsTotal: number, cameraStats: any[], result: any[] }>} 图片分析数据
+ * @returns {Promise<{ total: number, showTotal: number, crTotal: number, tagsTotal: number, cameraStats: { count: number; camera: string }[], result: { name: string; value: string; created_at: Date; updated_at: Date; total: number; show_total: number; }[] }>} 图片分析数据
  */
 export async function fetchImagesAnalysis():
   Promise<{
@@ -480,8 +480,15 @@ export async function fetchImagesAnalysis():
     showTotal: number,
     crTotal: number,
     tagsTotal: number,
-    cameraStats: any[],
-    result: any[]
+    cameraStats: { count: number; camera: string }[],
+    result: {
+      name: string;
+      value: string;
+      created_at: Date;
+      updated_at: Date;
+      total: number;
+      show_total: number;
+    }[]
   }> {
   const counts = await db.$queryRaw<[{ images_total: number, images_show: number, cr_total: number, tags_total: number }]>`
     SELECT 
@@ -497,7 +504,7 @@ export async function fetchImagesAnalysis():
     WHERE del = 0
     GROUP BY camera
     ORDER BY count DESC
-  ` as any[]
+  ` as { count: number; camera: string }[]
 
   const result = await db.$queryRaw`
     SELECT
@@ -519,7 +526,14 @@ export async function fetchImagesAnalysis():
         albums.del = 0
     GROUP BY albums.name, albums.album_value, albums.created_at, albums.updated_at
     ORDER BY total DESC
-  ` as any[]
+  ` as {
+    name: string;
+    value: string;
+    created_at: Date;
+    updated_at: Date;
+    total: number;
+    show_total: number;
+  }[]
 
   // @ts-ignore
   // @ts-expect-error

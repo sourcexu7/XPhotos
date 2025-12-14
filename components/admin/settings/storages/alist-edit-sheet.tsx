@@ -51,7 +51,7 @@ export default function AlistEditSheet() {
       }}
       modal={false}
     >
-      <SheetContent side="left" className="w-full overflow-y-auto scrollbar-hide p-2" onInteractOutside={(event: any) => event.preventDefault()}>
+      <SheetContent side="left" className="w-full overflow-y-auto scrollbar-hide p-2" onInteractOutside={(event: Event) => event.preventDefault()}>
         <SheetHeader>
           <SheetTitle>{t('Config.editAlist')}</SheetTitle>
         </SheetHeader>

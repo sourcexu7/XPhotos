@@ -18,21 +18,21 @@ export type AlbumType = {
 }
 
 export type ExifType = {
-  make: any;
-  model: any;
-  bits: any;
-  date_time: any;
-  exposure_time: any;
-  f_number: any;
-  exposure_program: any;
-  iso_speed_rating: any;
-  focal_length: any;
-  lens_specification: any;
-  lens_model: any;
-  exposure_mode: any;
-  cfa_pattern: any;
-  color_space: any;
-  white_balance: any;
+  make: string | null;
+  model: string | null;
+  bits: number | null;
+  date_time: string | null;
+  exposure_time: string | null;
+  f_number: number | null;
+  exposure_program: string | null;
+  iso_speed_rating: number | null;
+  focal_length: number | null;
+  lens_specification: string | null;
+  lens_model: string | null;
+  exposure_mode: string | null;
+  cfa_pattern: string | null;
+  color_space: string | null;
+  white_balance: string | null;
 }
 
 export type ImageType = {
@@ -44,7 +44,7 @@ export type ImageType = {
   video_url: string;
   blurhash: string;
   exif: ExifType;
-  labels: any;
+  labels: string[];
   width: number;
   height: number;
   lon: string;

@@ -14,7 +14,8 @@ const COLLAPSED_WIDTH_PX = 35
 const GAP_PX = 2
 const MARGIN_PX = 2
 
-function Thumbnails({ index, setIndex, items }: { index: number, setIndex: (i: number) => void, items: any[] }) {
+import type { ImageType } from '~/types'
+function Thumbnails({ index, setIndex, items }: { index: number, setIndex: (i: number) => void, items: ImageType[] }) {
   const thumbnailsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {

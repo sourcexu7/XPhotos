@@ -3,7 +3,7 @@ import { SignJWT, jwtVerify } from 'jose'
 const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key-should-be-long-and-random'
 const key = new TextEncoder().encode(SECRET_KEY)
 
-export async function signJWT(payload: any) {
+export async function signJWT(payload: Record<string, unknown>) {
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()

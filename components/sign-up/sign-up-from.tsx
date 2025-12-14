@@ -52,7 +52,7 @@ export const SignUpForm = ({
       }
     }
 
-  function zHandle(): SafeParseReturnType<string | any, string | any> {
+  function zHandle(): SafeParseReturnType<string | unknown, string | unknown> {
     const parsedCredentials = z
       .object({ email: z.string().email(), password: z.string().min(8) })
       .safeParse({ email, password })

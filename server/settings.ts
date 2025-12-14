@@ -169,7 +169,7 @@ app.get('/validate-s3', async (c) => {
     try {
       await client.send(new HeadBucketCommand({ Bucket: bucket }))
       checks.headBucket = 'ok'
-    } catch (e: any) {
+    } catch (e: unknown) {
       checks.headBucket = `error: ${e?.name || e?.message || 'unknown'}`
     }
 
@@ -179,7 +179,7 @@ app.get('/validate-s3', async (c) => {
     try {
       await client.send(new PutObjectCommand({ Bucket: bucket, Key: testKey, Body: 'picimpact-validation', ContentType: 'text/plain' }))
       checks.putObject = 'ok'
-    } catch (e: any) {
+    } catch (e: unknown) {
       checks.putObject = `error: ${e?.name || e?.message || 'unknown'}`
     }
 
@@ -187,7 +187,7 @@ app.get('/validate-s3', async (c) => {
     try {
       await client.send(new GetObjectCommand({ Bucket: bucket, Key: testKey }))
       checks.getObject = 'ok'
-    } catch (e: any) {
+    } catch (e: unknown) {
       checks.getObject = `error: ${e?.name || e?.message || 'unknown'}`
     }
 
@@ -195,12 +195,12 @@ app.get('/validate-s3', async (c) => {
     try {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: testKey }))
       checks.deleteObject = 'ok'
-    } catch (e: any) {
+    } catch (e: unknown) {
       checks.deleteObject = `error: ${e?.name || e?.message || 'unknown'}`
     }
 
     return c.json({ code: 200, data: { bucket, endpoint, testKey, checks } })
-  } catch (e: any) {
+  } catch (e: unknown) {
     const msg = e?.message || 'S3 配置验证失败'
     throw new HTTPException(e?.status || 500, { message: msg, cause: e })
   }

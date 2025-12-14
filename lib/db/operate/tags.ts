@@ -80,14 +80,15 @@ export async function deleteTagAndChildren(id: string) {
 /**
  * 确保一组标签存在（upsert），返回 tags 对象数组
  */
-export async function upsertTagsByName(names: string[], categoryMap?: Record<string, string>) {
+import type { PrismaClient } from '@prisma/client'
+export async function upsertTagsByName(tx: PrismaClient, names: string[], categoryMap?: Record<string, string>) {
   const results = []
   const parentIdMap: Record<string, string> = {}
   if (categoryMap) {
     // ensure parents exist
     const parentNames = Array.from(new Set(Object.values(categoryMap).filter(Boolean)))
     for (const pn of parentNames) {
-      const p = await db.tags.upsert({ where: { name: pn }, update: {}, create: { name: pn, category: '' } })
+      const p = await tx.tags.upsert({ where: { name: pn }, update: {}, create: { name: pn, category: '' } })
       parentIdMap[pn] = p.id
     }
   }
@@ -97,7 +98,7 @@ export async function upsertTagsByName(names: string[], categoryMap?: Record<str
       createData.category = categoryMap[name]
       if (parentIdMap[categoryMap[name]]) createData.parentId = parentIdMap[categoryMap[name]]
     }
-    const tag = await db.tags.upsert({
+    const tag = await tx.tags.upsert({
       where: { name },
       update: {},
       create: createData

@@ -276,7 +276,7 @@ export default function SimpleFileUpload() {
         const map: Record<string, string> = {}
         secondarySelect.forEach(s => { map[s] = primarySelect })
         // @ts-expect-error - attach stable key on File
-        ;(data as any).tagCategoryMap = map
+        ;(data as { tagCategoryMap?: Record<string, string> }).tagCategoryMap = map
       }
 
       // 提交前进行重复检测（优先 blurhash，其次 url）

@@ -1,10 +1,9 @@
 'use client'
 
-import React from 'react'
-import { useBlurImageDataUrl } from '~/hooks/use-blurhash.ts'
+import type { ImageType } from '~/types'
+import { useBlurImageDataUrl } from '~/hooks/use-blurhash'
 import { MotionImage } from '~/components/album/motion-image'
-
-export default function ListImage({ image }: { image: any }) {
+export default function ListImage({ image }: { image: ImageType }) {
 
   const dataURL = useBlurImageDataUrl(image.blurhash)
   

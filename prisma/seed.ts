@@ -40,15 +40,41 @@ const INITIAL_CONFIGS = [
   { config_key: 'admin_images_per_page', config_value: '8', detail: '管理界面每页显示的图片数量' },
 ]
 
+// 由 tags_rows.json 导出的真实标签体系
 const PRESET_TAGS = [
-  // 省略：这里放入你给出的“风光摄影标签体系”的条目
-  // 示例结构（category 可作为一级/二级分类）
-  { name: '自然景观/山地/雪山', category: '风光题材/自然景观', detail: '' },
-  { name: '自然景观/山地/丘陵', category: '风光题材/自然景观', detail: '' },
-  { name: '自然景观/水域/湖泊', category: '风光题材/自然景观', detail: '' },
-  { name: '自然现象/天文/星空', category: '风光题材/自然现象', detail: '' },
-  { name: '人文风光/城市/天际线', category: '风光题材/人文风光', detail: '' },
-  // ...推荐把你提供的标签体系逐条转换为 name/category 项...
+  {"id":"cmir3ih650001l40460t2zuyb","name":"自然景观","detail":"","created_at":"2025-12-04 07:09:39.821","updated_at":"2025-12-04 07:09:39.821","category":"自然景观","parentId":null},
+  {"id":"cmir3iq8u0003l404t9nklwob","name":"自然现象","detail":"","created_at":"2025-12-04 07:09:51.367","updated_at":"2025-12-04 07:09:51.367","category":"自然现象","parentId":null},
+  {"id":"cmir3itv70005l404pewnowfj","name":"拍摄时刻","detail":"","created_at":"2025-12-04 07:09:56.275","updated_at":"2025-12-04 07:10:06.728","category":"拍摄时刻","parentId":null},
+  {"id":"cmir3j7dj0007l404081nvsqn","name":"人文摄影","detail":"","created_at":"2025-12-04 07:10:13.783","updated_at":"2025-12-04 07:10:13.783","category":"人文摄影","parentId":null},
+  {"id":"cmir3jf9q0009l404px8y45d0","name":"演唱会","detail":"","created_at":"2025-12-04 07:10:23.8","updated_at":"2025-12-04 07:10:23.8","category":"演唱会","parentId":"cmir3j7dj0007l404081nvsqn"},
+  {"id":"cmir3jijc000bl404iokrsv5y","name":"扫街","detail":"","created_at":"2025-12-04 07:10:28.249","updated_at":"2025-12-04 07:10:28.249","category":"扫街","parentId":"cmir3j7dj0007l404081nvsqn"},
+  {"id":"cmir3jn5x000dl404yw4if4n8","name":"日出","detail":"","created_at":"2025-12-04 07:10:34.245","updated_at":"2025-12-04 07:10:34.245","category":"日出","parentId":"cmir3itv70005l404pewnowfj"},
+  {"id":"cmir3jqnz000fl404v0js88ke","name":"日落","detail":"","created_at":"2025-12-04 07:10:38.783","updated_at":"2025-12-04 07:10:38.783","category":"日落","parentId":"cmir3itv70005l404pewnowfj"},
+  {"id":"cmir3jtzc000hl40428f354zu","name":"蓝调","detail":"","created_at":"2025-12-04 07:10:43.081","updated_at":"2025-12-04 07:10:43.081","category":"蓝调","parentId":"cmir3itv70005l404pewnowfj"},
+  {"id":"cmir3qams000ll4043u7xarl8","name":"城市风光","detail":"","created_at":"2025-12-04 07:15:43.229","updated_at":"2025-12-04 07:15:43.229","category":"城市风光","parentId":null},
+  {"id":"cmir3qpkk000nl4045jbiolki","name":"星空摄影","detail":"","created_at":"2025-12-04 07:16:03.735","updated_at":"2025-12-04 07:16:03.735","category":"星空摄影","parentId":null},
+  {"id":"cmir3r3ht000pl404xba5c5q3","name":"车轨","detail":"","created_at":"2025-12-04 07:16:21.78","updated_at":"2025-12-04 07:16:21.78","category":"车轨","parentId":"cmir3qams000ll4043u7xarl8"},
+  {"id":"cmir3r7ck000rl404f9tjfyui","name":"夜景","detail":"","created_at":"2025-12-04 07:16:26.996","updated_at":"2025-12-04 07:16:26.996","category":"夜景","parentId":"cmir3qams000ll4043u7xarl8"},
+  {"id":"cmir3rhku000tl4044gnnx6b4","name":"银河","detail":"","created_at":"2025-12-04 07:16:40.033","updated_at":"2025-12-04 07:16:40.033","category":"银河","parentId":"cmir3qpkk000nl4045jbiolki"},
+  {"id":"cmir3rp9p000vl404an8mqvjd","name":"极光","detail":"","created_at":"2025-12-04 07:16:50.221","updated_at":"2025-12-04 07:16:50.221","category":"极光","parentId":"cmir3qpkk000nl4045jbiolki"},
+  {"id":"cmir3s6qw000xl4041dhvhs9q","name":"风暴","detail":"","created_at":"2025-12-04 07:17:12.651","updated_at":"2025-12-04 07:17:12.651","category":"风暴","parentId":"cmir3iq8u0003l404t9nklwob"},
+  {"id":"cmir3skr3000zl404amj55crb","name":"草原","detail":"","created_at":"2025-12-04 07:17:30.802","updated_at":"2025-12-04 07:17:30.802","category":"草原","parentId":"cmir3ih650001l40460t2zuyb"},
+  {"id":"cmir3snws0011l4043wglgug1","name":"湖泊","detail":"","created_at":"2025-12-04 07:17:35.116","updated_at":"2025-12-04 07:17:35.116","category":"湖泊","parentId":"cmir3ih650001l40460t2zuyb"},
+  {"id":"cmir3sqpf0013l404wva0ymr8","name":"沙漠","detail":"","created_at":"2025-12-04 07:17:38.739","updated_at":"2025-12-04 07:17:38.739","category":"沙漠","parentId":"cmir3ih650001l40460t2zuyb"},
+  {"id":"cmir3stht0015l4049kgjw8e6","name":"雪山","detail":"","created_at":"2025-12-04 07:17:42.354","updated_at":"2025-12-04 07:17:42.354","category":"雪山","parentId":"cmir3ih650001l40460t2zuyb"},
+  {"id":"cmir3t82r0017l404fx6lzwpr","name":"海洋","detail":"","created_at":"2025-12-04 07:18:01.028","updated_at":"2025-12-04 07:18:01.028","category":"海洋","parentId":"cmir3ih650001l40460t2zuyb"},
+  {"id":"cmisyweni000aic043zfvi6r5","name":"建筑类型","detail":"","created_at":"2025-12-05 14:36:03.795","updated_at":"2025-12-05 14:36:03.795","category":"建筑类型","parentId":null},
+  {"id":"cmisywir9000cic04894exoiy","name":"古建筑","detail":"","created_at":"2025-12-05 14:36:09.334","updated_at":"2025-12-05 14:36:09.334","category":"古建筑","parentId":"cmisyweni000aic043zfvi6r5"},
+  {"id":"cmisywoyy000eic049qenogkl","name":"晚霞","detail":"","created_at":"2025-12-05 14:36:17.387","updated_at":"2025-12-05 14:36:17.387","category":"晚霞","parentId":"cmir3iq8u0003l404t9nklwob"},
+  {"id":"cmiwlpf7x0005tpnopg5kco2i","name":"火山","detail":"","created_at":"2025-12-08 03:37:47.853","updated_at":"2025-12-08 03:37:47.853","category":"火山","parentId":"cmir3ih650001l40460t2zuyb"},
+  {"id":"cmiwlpidm0007tpno2m9n8roa","name":"瀑布","detail":"","created_at":"2025-12-08 03:37:51.946","updated_at":"2025-12-08 03:37:51.946","category":"瀑布","parentId":"cmir3ih650001l40460t2zuyb"},
+  {"id":"cmiwlq3kq0009tpnoea6554bt","name":"植物花卉","detail":"","created_at":"2025-12-08 03:38:19.341","updated_at":"2025-12-08 03:38:19.341","category":"植物花卉","parentId":null},
+  {"id":"cmiwlqb4w000btpnoyd6hnazf","name":"樱花","detail":"","created_at":"2025-12-08 03:38:29.216","updated_at":"2025-12-08 03:38:29.216","category":"樱花","parentId":"cmiwlq3kq0009tpnoea6554bt"},
+  {"id":"cmiwlqdwi000dtpno7q7fb5pm","name":"树林","detail":"","created_at":"2025-12-08 03:38:32.802","updated_at":"2025-12-08 03:38:32.802","category":"树林","parentId":"cmiwlq3kq0009tpnoea6554bt"},
+  {"id":"cmiwlqjq7000ftpnohre1vd7l","name":"小镇","detail":"","created_at":"2025-12-08 03:38:40.351","updated_at":"2025-12-08 03:38:40.351","category":"小镇","parentId":"cmisyweni000aic043zfvi6r5"},
+  {"id":"cmiwlqt4q000htpno6st4jn9c","name":"雪景","detail":"","created_at":"2025-12-08 03:38:52.461","updated_at":"2025-12-08 03:38:52.461","category":"雪景","parentId":"cmir3ih650001l40460t2zuyb"},
+  {"id":"cmj5ttsad0003jr049ee6siwx","name":"海浪","detail":"","created_at":"2025-12-14 14:35:03.926","updated_at":"2025-12-14 14:35:03.926","category":"海浪","parentId":"cmir3ih650001l40460t2zuyb"},
+  {"id":"cmj5tu0gc0005jr041fxi3ren","name":"悬崖","detail":"","created_at":"2025-12-14 14:35:14.293","updated_at":"2025-12-14 14:35:14.293","category":"悬崖","parentId":"cmir3ih650001l40460t2zuyb"}
 ]
 
 export async function main() {
@@ -70,12 +96,6 @@ export async function main() {
   // insert preset tags if not exists
   for (const tag of PRESET_TAGS) {
     try {
-      // Ensure parent (category) exists, then create child with parentId
-      let parentId: string | undefined = undefined
-      if (tag.category) {
-        const parent = await prisma.tags.upsert({ where: { name: tag.category }, update: {}, create: { name: tag.category, category: '' } })
-        parentId = parent.id
-      }
       await prisma.tags.upsert({
         where: { name: tag.name },
         update: {},
@@ -83,7 +103,7 @@ export async function main() {
           name: tag.name,
           category: tag.category,
           detail: tag.detail || '',
-          parentId: parentId ?? null,
+          parentId: tag.parentId ?? null,
         }
       })
     } catch (e) {

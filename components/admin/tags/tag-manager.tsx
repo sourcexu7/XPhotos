@@ -225,7 +225,7 @@ export default function TagManager() {
                                 <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); startEditPrimary(node) }}>编辑</Button>
                                 <Popconfirm
                                   title={node.children && node.children.length > 0 ? '删除该一级标签会同时删除其所有二级标签，确定吗？' : '确认删除该一级标签吗？'}
-                                  onConfirm={async (e: any) => {
+                                  onConfirm={async (e: React.MouseEvent) => {
                                     e?.stopPropagation?.()
                                     try {
                                       if (node.id) {

@@ -22,5 +22,5 @@ export async function generatePresignedUrl(
       ContentType: contentType || undefined
     })
 
-  return await getSignedUrl(s3Client as any, command as any, { expiresIn })
+  return await getSignedUrl(s3Client, command, { expiresIn })
 }

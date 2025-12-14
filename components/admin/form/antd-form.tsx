@@ -5,7 +5,7 @@ import { Form, Input, Select, Switch, Button } from 'antd'
 
 const { TextArea } = Input
 
-export default function AntdForm({ onFinish, initialValues }: { onFinish?: (v: any) => void; initialValues?: any }) {
+export default function AntdForm<T = unknown>({ onFinish, initialValues }: { onFinish?: (v: T) => void; initialValues?: T }) {
   return (
     <Form layout="vertical" onFinish={onFinish} initialValues={initialValues}>
       <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}> 

@@ -4,7 +4,8 @@ import { useRouter } from 'next-nprogress-bar'
 import { useBlurImageDataUrl } from '~/hooks/use-blurhash'
 import { MotionImage } from '~/components/album/motion-image'
 
-export default function BlurImage({ photo, dataList }: { photo: any, dataList: any }) {
+import type { ImageType } from '~/types'
+export default function BlurImage({ photo, dataList }: { photo: ImageType, dataList: ImageType[] }) {
   const router = useRouter()
 
   const dataURL = useBlurImageDataUrl(photo.blurhash)

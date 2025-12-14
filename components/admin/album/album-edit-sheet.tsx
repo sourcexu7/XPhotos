@@ -152,7 +152,7 @@ export default function AlbumEditSheet(props : Readonly<HandleProps>) {
               <div className="mb-4">
                 <span className="text-xs font-medium text-gray-700 block mb-2">封面预览</span>
                 <div className="relative w-full aspect-video rounded-md overflow-hidden border border-gray-200 group">
-                  <img src={data.cover} alt="Cover" className="w-full h-full object-cover" />
+                  <img src={data.cover} alt={data.title ? `${data.title} 封面` : '封面预览'} className="w-full h-full object-cover" decoding="async" draggable={false} />
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button 
                       variant="destructive" 

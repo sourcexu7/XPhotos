@@ -23,7 +23,7 @@ import { Row, Col, Space, Typography, Tag, Grid } from 'antd'
 
 const { Title, Text } = Typography
 
-export default function GalleryImage({ photo, configData }: { photo: ImageType, configData: any }) {
+export default function GalleryImage({ photo, configData }: { photo: ImageType, configData: { config_key: string; config_value: string }[] }) {
   const router = useRouter()
   const { useBreakpoint } = Grid
   const screens = useBreakpoint()
@@ -37,7 +37,7 @@ export default function GalleryImage({ photo, configData }: { photo: ImageType, 
 
   const dataURL = useBlurImageDataUrl(photo.blurhash)
   
-  const customIndexOriginEnable = configData?.find((item: any) => item.config_key === 'custom_index_origin_enable')?.config_value.toString() === 'true'
+  const customIndexOriginEnable = configData?.find((item: { config_key: string; config_value: any }) => item.config_key === 'custom_index_origin_enable')?.config_value.toString() === 'true'
 
   async function downloadImg() {
     setDownload(true)

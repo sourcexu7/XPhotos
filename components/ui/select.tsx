@@ -47,7 +47,7 @@ function SelectTrigger({
     // Radix-generated id mismatches between server and client.
     // This fallback looks like the trigger but has no Radix attributes.
     return (
-      <button type="button" className={triggerClass} {...(props as any)}>
+      <button type="button" className={triggerClass} {...(props as unknown)}>
         {children}
         <ChevronDownIcon className="size-4 opacity-50" />
       </button>

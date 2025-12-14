@@ -100,7 +100,7 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
     },
   ]
 
-  const onClick: any = ({ key }: { key: string }) => {
+  const onClick = ({ key }: { key: string }) => {
     if (key !== 'settings-group') {
       router.push(key)
     }

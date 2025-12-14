@@ -7,7 +7,7 @@ export interface AlbumDataProps {
 }
 
 export interface HandleProps {
-  handle: () => any
+  handle: () => unknown
   args: string
 }
 
@@ -23,7 +23,7 @@ export interface ImageServerHandleProps {
     iso?: string,
     labels?: string[],
     labelsOperator?: 'and' | 'or'
-  ) => any
+  ) => unknown
   args: string
   totalHandle: (
     tag: string,
@@ -35,22 +35,22 @@ export interface ImageServerHandleProps {
     iso?: string,
     labels?: string[],
     labelsOperator?: 'and' | 'or'
-  ) => any
+  ) => unknown
 }
 
 export interface ImageHandleProps {
-  handle: (pageNum: number, tag: string) => any
+  handle: (pageNum: number, tag: string) => unknown
   args: string
   album: string
-  totalHandle: (tag: string) => any
-  configHandle: () => any
+  totalHandle: (tag: string) => unknown
+  configHandle: () => unknown
 }
 
 export interface PreviewImageHandleProps {
   data: ImageType
   args: string
   id: string
-  configHandle: () => any
+  configHandle: () => unknown
 }
 
 export interface ProgressiveImageProps {
@@ -65,9 +65,9 @@ export interface ProgressiveImageProps {
 }
 
 export interface LinkProps {
-  handle: () => any
+  handle: () => unknown
   args: string
-  data: any
+  data: unknown
 }
 
 export interface AlbumListProps {

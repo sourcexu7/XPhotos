@@ -196,7 +196,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
         const res = await fetch('/api/v1/settings/tags/get')
         if (res.ok) {
           const json = await res.json()
-          if (json?.data) setTagsList(json.data.map((t:any)=>t.name))
+          if (json?.data) setTagsList(json.data.map((t: { name: string }) => t.name))
         }
       } catch (e) {
         console.error('Failed to fetch tags list', e)
@@ -216,7 +216,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
 
   useEffect(() => {
     if (adminConfig && adminConfig.length > 0) {
-      const pageSizeConfig = adminConfig.find((config: any) => config.config_key === 'admin_images_per_page')
+      const pageSizeConfig = adminConfig.find((config: { config_key: string; config_value: string }) => config.config_key === 'admin_images_per_page')
       if (pageSizeConfig) {
         const newPageSize = parseInt(pageSizeConfig.config_value, 10) || 8
         setPageSize(newPageSize)
@@ -567,9 +567,11 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
             <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
               <img 
                 src={image.preview_url || image.url} 
-                alt={image.title}
+                alt={image.title || '图片'}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 loading="lazy"
+                decoding="async"
+                draggable={false}
               />
               
               {/* 遮罩 */}

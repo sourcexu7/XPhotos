@@ -11,7 +11,7 @@ import { Config } from '~/types'
  * @param mountPath 挂载路径
  * @return {Promise<string>} 返回文件路径
  */
-export async function alistUpload(file: any, type: any, mountPath: any): Promise<string | undefined> {
+export async function alistUpload(file: File | Blob, type: string, mountPath: string): Promise<string | undefined> {
   const findConfig = await fetchConfigsByKeys([
     'alist_url',
     'alist_token'

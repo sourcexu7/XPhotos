@@ -4,12 +4,14 @@
 
 import { db } from '~/lib/db'
 import type { ImageType } from '~/types'
+import type { Prisma, Tag } from '@prisma/client'
 import { upsertTagsByName } from '~/lib/db/operate/tags'
 
 /**
  * 恢复已删除的图片
  */
-async function reviveDeletedImage(tx: any, imageId: string, image: ImageType) {
+import type { PrismaClient } from '@prisma/client'
+async function reviveDeletedImage(tx: PrismaClient, imageId: string, image: ImageType) {
   const revived = await tx.images.update({
     where: { id: imageId },
     data: {
@@ -17,9 +19,9 @@ async function reviveDeletedImage(tx: any, imageId: string, image: ImageType) {
       title: image.title,
       preview_url: image.preview_url,
       video_url: image.video_url,
-      original_key: (image as any).original_key ?? null,
-      preview_key: (image as any).preview_key ?? null,
-      video_key: (image as any).video_key ?? null,
+      original_key: (image as ImageType & { original_key?: string | null }).original_key ?? null,
+      preview_key: (image as ImageType & { preview_key?: string | null }).preview_key ?? null,
+      video_key: (image as ImageType & { video_key?: string | null }).video_key ?? null,
       blurhash: image.blurhash,
       exif: image.exif,
       labels: image.labels,
@@ -47,7 +49,7 @@ async function reviveDeletedImage(tx: any, imageId: string, image: ImageType) {
 /**
  * 同步图片标签
  */
-async function syncImageTags(tx: any, imageId: string, image: ImageType) {
+async function syncImageTags(tx: PrismaClient, imageId: string, image: ImageType) {
   if (!image.labels || !Array.isArray(image.labels) || image.labels.length === 0) {
     return
   }
@@ -55,28 +57,25 @@ async function syncImageTags(tx: any, imageId: string, image: ImageType) {
   // 去重，防止输入中包含重复标签
   const uniqueLabels = Array.from(new Set(image.labels))
 
-  const categoryMap = (image as any).tagCategoryMap as Record<string, string> | undefined
+  const categoryMap = (image as ImageType & { tagCategoryMap?: Record<string, string> }).tagCategoryMap as Record<string, string> | undefined
 
+  let tags: Tag[] = []
   if (categoryMap && typeof categoryMap === 'object') {
-    const tags = await upsertTagsByName(uniqueLabels, categoryMap)
-    const relations = tags.map((tag) => ({ imageId, tagId: tag.id }))
-    if (relations.length > 0) {
-      await tx.imagesTagsRelation.createMany({ data: relations, skipDuplicates: true })
-    }
+    tags = await upsertTagsByName(tx, uniqueLabels, categoryMap)
   } else {
-    const tags = await Promise.all(
-      uniqueLabels.map(async (label) => {
-        return await tx.tags.upsert({
-          where: { name: label },
-          update: {},
-          create: { name: label },
-        })
+    // 顺序 upsert，避免事务丢失
+    for (const label of uniqueLabels) {
+      const tag = await tx.tags.upsert({
+        where: { name: label },
+        update: {},
+        create: { name: label },
       })
-    )
-    const relations = tags.map((tag: any) => ({ imageId, tagId: tag.id }))
-    if (relations.length > 0) {
-      await tx.imagesTagsRelation.createMany({ data: relations, skipDuplicates: true })
+      tags.push(tag)
     }
+  }
+  const relations = tags.map((tag: Tag) => ({ imageId, tagId: tag.id }))
+  if (relations.length > 0) {
+    await tx.imagesTagsRelation.createMany({ data: relations, skipDuplicates: true })
   }
 }
 
@@ -98,7 +97,7 @@ export async function insertImage(image: ImageType) {
         : null
 
     // 如果存在且被逻辑删除, 恢复并更新元数据
-    if (existingImage && (existingImage as any).del === 1) {
+    if (existingImage && (existingImage as ImageType & { del?: number }).del === 1) {
       return await reviveDeletedImage(tx, existingImage.id, image)
     }
 
@@ -117,9 +116,9 @@ export async function insertImage(image: ImageType) {
         blurhash: image.blurhash,
         preview_url: image.preview_url,
         video_url: image.video_url,
-        original_key: (image as any).original_key ?? null,
-        preview_key: (image as any).preview_key ?? null,
-        video_key: (image as any).video_key ?? null,
+        original_key: (image as ImageType & { original_key?: string | null }).original_key ?? null,
+        preview_key: (image as ImageType & { preview_key?: string | null }).preview_key ?? null,
+        video_key: (image as ImageType & { video_key?: string | null }).video_key ?? null,
         exif: image.exif,
         labels: image.labels,
         width: image.width,
@@ -169,16 +168,16 @@ export async function deleteImage(id: string) {
     // 尝试删除存储对象（尽力而为，失败不阻断）
     try {
       const img = await tx.images.findUnique({ where: { id } })
-      const originalKey = (img as any)?.original_key as string | undefined
-      const previewKey = (img as any)?.preview_key as string | undefined
-      const videoKey = (img as any)?.video_key as string | undefined
+      const originalKey = (img as ImageType & { original_key?: string | null })?.original_key as string | undefined
+      const previewKey = (img as ImageType & { preview_key?: string | null })?.preview_key as string | undefined
+      const videoKey = (img as ImageType & { video_key?: string | null })?.video_key as string | undefined
       const keys = [originalKey, previewKey, videoKey].filter(Boolean) as string[]
       if (keys.length) {
         // 删除 S3
         try {
           const { fetchConfigsByKeys } = await import('~/lib/db/query/configs')
           const s3Configs = await fetchConfigsByKeys(['accesskey_id','accesskey_secret','region','endpoint','bucket'])
-          const s3Bucket = s3Configs.find((i: any) => i.config_key === 'bucket')?.config_value || ''
+          const s3Bucket = s3Configs.find((i: { config_key: string; config_value: string }) => i.config_key === 'bucket')?.config_value || ''
           if (s3Bucket) {
             const { getClient } = await import('~/lib/s3')
             const client = getClient(s3Configs)
@@ -193,7 +192,7 @@ export async function deleteImage(id: string) {
           const { fetchConfigsByKeys } = await import('~/lib/db/query/configs')
           const r2Configs = await fetchConfigsByKeys(['r2_account_id','r2_accesskey_id','r2_accesskey_secret','r2_bucket'])
           const { getR2Client } = await import('~/lib/r2')
-          const r2Bucket = r2Configs.find((i: any) => i.config_key === 'r2_bucket')?.config_value || ''
+          const r2Bucket = r2Configs.find((i: { config_key: string; config_value: string }) => i.config_key === 'r2_bucket')?.config_value || ''
           if (r2Bucket) {
             const r2Client = getR2Client(r2Configs)
             const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')

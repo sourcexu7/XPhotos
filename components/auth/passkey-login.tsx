@@ -53,7 +53,7 @@ export const PasskeyLogin: React.FC<PasskeyLoginProps> = ({
           router.push('/admin')
         }, 1000)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // 捕获可能的网络或其他错误
       if (error.name === 'NotAllowedError') {
         toast.error(t('loginRejected'))

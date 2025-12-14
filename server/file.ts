@@ -91,7 +91,7 @@ app.post('/presigned-url', async (c) => {
         const filePath = prefix ? `${prefix}/${filename}` : `${filename}`
 
         const client = getClient(configs)
-        const presignedUrl = await generatePresignedUrl(client as any, bucket, filePath, contentType, 'put')
+        const presignedUrl = await generatePresignedUrl(client as unknown as Record<string, unknown>, bucket, filePath, contentType, 'put')
 
         return c.json({
           code: 200,
@@ -105,7 +105,7 @@ app.post('/presigned-url', async (c) => {
       default:
         throw new HTTPException(400, { message: 'Unsupported storage type' })
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     const msg = (e && e.message) ? e.message : 'Failed to generate presigned URL'
     throw new HTTPException(500, { message: msg, cause: e })
   }
@@ -239,7 +239,7 @@ app.post('/getObjectUrl', async (c) => {
         // 返回预签名 GET 链接，适用于私有桶
         try {
           const client = getClient(configs)
-          const signed = await generatePresignedUrl(client as any, bucket, key, '', 'get')
+          const signed = await generatePresignedUrl(client as unknown as Record<string, unknown>, bucket, key, '', 'get')
           return Response.json({ code: 200, data: signed })
         } catch (e) {
           throw new HTTPException(500, { message: 'Failed to sign S3 GET URL', cause: e })

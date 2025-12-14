@@ -13,7 +13,8 @@ import dayjs from 'dayjs'
 
 const app = new Hono()
 
-function validateImageData(data: any) {
+import type { ImageType } from '~/types/index'
+function validateImageData(data: Partial<ImageType>) {
   if (!data.url) {
     throw new HTTPException(400, { message: 'Image link cannot be empty' })
   }

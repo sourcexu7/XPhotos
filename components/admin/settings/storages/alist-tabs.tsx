@@ -33,7 +33,7 @@ export default function AlistTabs() {
     {
       title: 'Value',
       key: 'value',
-      render: (_: any, record: any) => record.renderValue(),
+      render: (_: unknown, record: { renderValue: () => unknown }) => record.renderValue(),
     },
   ]
 
