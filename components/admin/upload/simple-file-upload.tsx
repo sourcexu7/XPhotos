@@ -96,7 +96,6 @@ export default function SimpleFileUpload() {
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false)
   const [editingPresetsText, setEditingPresetsText] = useState({ cameraModels: '', shutterSpeeds: '', isos: '', apertures: '' })
 
-
   // 拉取后端预设标签 + 树形结构
   useEffect(() => {
     fetcher('/api/v1/settings/tags/get')

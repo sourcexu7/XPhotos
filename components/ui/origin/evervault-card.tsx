@@ -62,7 +62,15 @@ export const EvervaultCard = ({
   )
 }
 
-export function CardPattern({ mouseX, mouseY, randomString }: any) {
+export function CardPattern({
+  mouseX,
+  mouseY,
+  randomString,
+}: {
+  mouseX: any
+  mouseY: any
+  randomString: string
+}) {
   const maskImage = useMotionTemplate`radial-gradient(250px at ${mouseX}px ${mouseY}px, white, transparent)`
   const style = { maskImage, WebkitMaskImage: maskImage }
 
@@ -95,7 +103,10 @@ export const generateRandomString = (length: number) => {
   return result
 }
 
-export const Icon = ({ className, ...rest }: any) => {
+export const Icon = ({
+  className,
+  ...rest
+}: React.SVGProps<SVGSVGElement>) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

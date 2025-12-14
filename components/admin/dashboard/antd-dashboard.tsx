@@ -59,7 +59,7 @@ export default function AntdDashboard({ data }: { data: AnalysisDataProps['data'
               dataSource={data?.result ?? []} 
               columns={albumColumns} 
               pagination={false} 
-              rowKey={(r: any) => r.name}
+              rowKey={(r: { name: string }) => r.name}
               scroll={{ x: true }}
             />
           </Card>

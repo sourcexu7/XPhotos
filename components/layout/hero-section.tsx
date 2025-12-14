@@ -29,7 +29,7 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
             className="w-full"
           >
             <ImageAutoSlider images={images} />
@@ -40,7 +40,7 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
             className="text-[32px] md:text-[48px] font-bold tracking-tight mb-[20px]"
           >
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#9d4edd] to-[#ff9505]">
@@ -51,7 +51,7 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+            transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
             className="text-[16px] md:text-[20px] text-[#f0f0f0] font-normal tracking-wide leading-relaxed"
           >
             往事的光圈每一瞬间都很绝
@@ -69,7 +69,7 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
         <div className="w-[30px] h-[50px] rounded-full border-2 border-white/20 flex justify-center p-2">
           <motion.div 
             animate={{ y: [0, 12, 0] }}
-            transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+            transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
             className="w-1.5 h-1.5 rounded-full bg-white/50"
           />
         </div>

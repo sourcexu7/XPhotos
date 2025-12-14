@@ -6,10 +6,9 @@ import { useInView } from 'framer-motion'
 import { AspectRatio } from '~/components/ui/aspect-ratio'
 import type { ImageType } from '~/types'
 import { useRouter } from 'next-nprogress-bar'
-import { useBlurImageDataUrl } from '~/hooks/use-blurhash'
 
 interface ImageGalleryProps {
-  images: ImageType[];
+  images: ImageType[]
 }
 
 export function ImageGallery({ images }: ImageGalleryProps) {
@@ -28,7 +27,8 @@ export function ImageGallery({ images }: ImageGalleryProps) {
         {columns.map((columnImages, colIndex) => (
           <div key={colIndex} className="grid gap-6 h-fit">
             {columnImages.map((image) => {
-              const ratio = image.width && image.height ? image.width / image.height : 16 / 9
+              const ratio =
+                image.width && image.height ? image.width / image.height : 16 / 9
               return (
                 <AnimatedImage
                   key={image.id}
@@ -45,19 +45,19 @@ export function ImageGallery({ images }: ImageGalleryProps) {
 }
 
 interface AnimatedImageProps {
-  image: ImageType;
-  className?: string;
-  ratio: number;
+  image: ImageType
+  className?: string
+  ratio: number
 }
 
 function AnimatedImage({ image, ratio }: AnimatedImageProps) {
-  const ref = React.useRef(null)
+  const ref = React.useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true })
   const [isLoading, setIsLoading] = React.useState(true)
   const router = useRouter()
 
   return (
-    <div 
+    <div
       ref={ref}
       className="group relative cursor-pointer"
       onClick={() => router.push(`/preview/${image.id}`)}

@@ -8,7 +8,7 @@ import { db } from '~/lib/db'
  * 更新 S3 配置
  * @param configs 配置信息
  */
-export async function updateS3Config(configs: any) {
+export async function updateS3Config(configs: Record<string, unknown>) {
   return await db.$executeRaw`
     UPDATE "public"."configs"
     SET config_value = CASE
@@ -34,7 +34,7 @@ export async function updateS3Config(configs: any) {
  * 更新 R2 配置
  * @param configs 配置信息
  */
-export async function updateR2Config(configs: any) {
+export async function updateR2Config(configs: Record<string, unknown>) {
   return await db.$executeRaw`
     UPDATE "public"."configs"
     SET config_value = CASE
@@ -56,7 +56,7 @@ export async function updateR2Config(configs: any) {
  * 更新 AList 配置
  * @param configs 配置信息
  */
-export async function updateAListConfig(configs: any) {
+export async function updateAListConfig(configs: Record<string, unknown>) {
   return await db.$executeRaw`
     UPDATE "public"."configs"
     SET config_value = CASE

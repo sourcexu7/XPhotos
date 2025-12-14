@@ -1,11 +1,11 @@
-import { rgbaToThumbHash, thumbHashToDataURL} from 'thumbhash'
+import { rgbaToThumbHash, thumbHashToDataURL } from 'thumbhash'
 
 /**
  * https://github.com/evanw/thumbhash/blob/main/examples/browser/index.html
  * 图片转换为 blurhash，返回 base64 字符串
  * @param image 图片
  */
-export const encodeBrowserThumbHash = async (image: any): Promise<string> => {
+export const encodeBrowserThumbHash = async (image: File | Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.crossOrigin = 'anonymous'

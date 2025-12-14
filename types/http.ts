@@ -1,5 +1,5 @@
-export type Response = {
+export type Response<T = unknown> = {
   code: number,
   message: string,
-  data?: any
+  data?: T
 }
