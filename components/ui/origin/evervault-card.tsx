@@ -23,7 +23,15 @@ export const EvervaultCard = ({
     setRandomString(str)
   }, [])
 
-  function onMouseMove({ currentTarget, clientX, clientY }: any) {
+  function onMouseMove({
+    currentTarget,
+    clientX,
+    clientY,
+  }: {
+    currentTarget: HTMLElement
+    clientX: number
+    clientY: number
+  }) {
     const { left, top } = currentTarget.getBoundingClientRect()
     mouseX.set(clientX - left)
     mouseY.set(clientY - top)
@@ -67,8 +75,8 @@ export function CardPattern({
   mouseY,
   randomString,
 }: {
-  mouseX: any
-  mouseY: any
+  mouseX: ReturnType<typeof useMotionValue>
+  mouseY: ReturnType<typeof useMotionValue>
   randomString: string
 }) {
   const maskImage = useMotionTemplate`radial-gradient(250px at ${mouseX}px ${mouseY}px, white, transparent)`
@@ -103,10 +111,7 @@ export const generateRandomString = (length: number) => {
   return result
 }
 
-export const Icon = ({
-  className,
-  ...rest
-}: React.SVGProps<SVGSVGElement>) => {
+export const Icon = ({ className, ..._rest }: React.SVGProps<SVGSVGElement>) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -115,7 +120,7 @@ export const Icon = ({
       strokeWidth="1.5"
       stroke="currentColor"
       className={className}
-      {...rest}
+      {..._rest}
     >
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
     </svg>

@@ -310,7 +310,7 @@ export async function fetchClientImagesPageTotalByAlbum(album: string): Promise<
             albums.show = 0
     ) AS unique_images;
   `
-    // @ts-ignore
+    // @ts-expect-error
     return Number(pageTotal[0].total) > 0 ? Math.ceil(Number(pageTotal[0].total) / 16) : 0
   }
   const pageTotal = await db.$queryRaw`
@@ -336,7 +336,7 @@ export async function fetchClientImagesPageTotalByAlbum(album: string): Promise<
             albums.album_value = ${album}
     ) AS unique_images;
   `
-  // @ts-ignore
+  // @ts-expect-error
   return Number(pageTotal[0].total) > 0 ? Math.ceil(Number(pageTotal[0].total) / 16) : 0
 }
 
@@ -370,7 +370,7 @@ export async function fetchClientImagesCountByAlbum(album: string): Promise<numb
             albums.show = 0
     ) AS unique_images;
   `
-    // @ts-ignore
+    // @ts-expect-error
     return Number(pageTotal[0].total)
   }
   const pageTotal = await db.$queryRaw`
@@ -396,7 +396,7 @@ export async function fetchClientImagesCountByAlbum(album: string): Promise<numb
             albums.album_value = ${album}
     ) AS unique_images;
   `
-  // @ts-ignore
+  // @ts-expect-error
   return Number(pageTotal[0].total)
 }
 
@@ -466,7 +466,7 @@ export async function fetchClientImagesPageTotalByTag(tag: string): Promise<numb
             image.labels::jsonb @> ${JSON.stringify([tag])}::jsonb
     ) AS unique_images;
   `
-  // @ts-ignore
+  // @ts-expect-error
   return Number(pageTotal[0].total) > 0 ? Math.ceil(Number(pageTotal[0].total) / 16) : 0
 }
 
@@ -522,8 +522,10 @@ export async function fetchImagesAnalysis():
   ` as any[]
 
   // @ts-ignore
+  // @ts-expect-error
   result.total = Number(result.total)
   // @ts-ignore
+  // @ts-expect-error
   result.show_total = Number(result.show_total)
 
   return {
