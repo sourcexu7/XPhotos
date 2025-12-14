@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { cn } from '~/lib/utils'
 import { useInView } from 'framer-motion'
 import { AspectRatio } from '~/components/ui/aspect-ratio'
@@ -27,7 +27,7 @@ export function ImageGallery({ images }: ImageGalleryProps) {
       <div className="mx-auto grid w-full max-w-7xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {columns.map((columnImages, colIndex) => (
           <div key={colIndex} className="grid gap-6 h-fit">
-            {columnImages.map((image, index) => {
+            {columnImages.map((image) => {
               const ratio = image.width && image.height ? image.width / image.height : 16 / 9
               return (
                 <AnimatedImage
@@ -55,7 +55,6 @@ function AnimatedImage({ image, ratio }: AnimatedImageProps) {
   const isInView = useInView(ref, { once: true })
   const [isLoading, setIsLoading] = React.useState(true)
   const router = useRouter()
-  const blurDataURL = useBlurImageDataUrl(image.blurhash)
 
   return (
     <div 
@@ -67,6 +66,7 @@ function AnimatedImage({ image, ratio }: AnimatedImageProps) {
         ratio={ratio}
         className="bg-muted relative size-full rounded-xl overflow-hidden"
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           alt={image.detail || 'Image'}
           src={image.preview_url || image.url}
