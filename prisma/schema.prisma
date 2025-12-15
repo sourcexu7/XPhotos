@@ -1,0 +1,210 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 业务表部分
+// 图片表
+// type 1->普通图片；2->livephoto
+model Images {
+  id                   String                 @id @default(cuid()) @db.VarChar(50)
+  image_name           String?                @db.Text
+  url                  String?                @db.Text
+  preview_url          String?                @db.Text
+  video_url            String?                @db.Text
+  original_key         String?                @db.Text
+  preview_key          String?                @db.Text
+  video_key            String?                @db.Text
+  blurhash             String?                @db.Text
+  exif                 Json?                  @db.Json
+  labels               Json?                  @db.Json
+  width                Int                    @default(0)
+  height               Int                    @default(0)
+  lon                  String?
+  lat                  String?
+  title                String?                @db.VarChar(200)
+  detail               String?                @db.Text
+  type                 Int                    @default(1) @db.SmallInt
+  show                 Int                    @default(1) @db.SmallInt
+  show_on_mainpage     Int                    @default(1) @db.SmallInt
+  featured             Int                    @default(0) @db.SmallInt
+  sort                 Int                    @default(0) @db.SmallInt
+  createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamp
+  updatedAt            DateTime?              @updatedAt @map("updated_at") @db.Timestamp
+  del                  Int                    @default(0) @db.SmallInt
+  imagesAlbumsRelation ImagesAlbumsRelation[]
+  imagesTagsRelation   ImagesTagsRelation[]
+
+  @@map("images")
+}
+
+// 配置表
+model Configs {
+  id           String    @id @default(cuid()) @db.VarChar(50)
+  config_key   String    @unique @db.VarChar(200)
+  config_value String?   @db.Text
+  detail       String?   @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp
+  updatedAt    DateTime? @updatedAt @map("updated_at") @db.Timestamp
+
+  @@map("configs")
+}
+
+// 相册表
+model Albums {
+  id                   String                 @id @default(cuid()) @db.VarChar(50)
+  name                 String                 @db.VarChar(200)
+  album_value          String                 @unique @db.Text
+  detail               String?                @db.Text
+  theme                String                 @default("0") @db.Text
+  show                 Int                    @default(1) @db.SmallInt
+  sort                 Int                    @default(0) @db.SmallInt
+  random_show          Int                    @default(1) @db.SmallInt
+  license              String?                @db.Text
+  createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamp
+  updatedAt            DateTime?              @updatedAt @map("updated_at") @db.Timestamp
+  del                  Int                    @default(0) @db.SmallInt
+  imagesAlbumsRelation ImagesAlbumsRelation[]
+  image_sorting        Int                    @default(1) @db.SmallInt
+  cover                String?                @db.Text
+
+  @@map("albums")
+}
+
+// 图片相册关联表
+model ImagesAlbumsRelation {
+  albums      Albums @relation(fields: [album_value], references: [album_value])
+  album_value String @db.Text
+  images      Images @relation(fields: [imageId], references: [id])
+  imageId     String @db.VarChar(50)
+
+  @@id([imageId, album_value])
+  @@map("images_albums_relation")
+}
+
+// better-auth
+model User {
+  id               String      @id
+  name             String      @unique @db.VarChar(50)
+  email            String      @db.VarChar(200)
+  emailVerified    Boolean
+  image            String?
+  twoFactorEnabled Boolean?
+  createdAt        DateTime    @db.Timestamp()
+  updatedAt        DateTime    @db.Timestamp()
+  sessions         Session[]
+  accounts         Account[]
+  TwoFactor        TwoFactor[]
+  passkeys         Passkey[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model TwoFactor {
+  id          String @id @default(cuid())
+  secret      String
+  backupCodes String
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("two_factor")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime @db.Timestamp()
+  token     String
+  createdAt DateTime @db.Timestamp()
+  updatedAt DateTime @db.Timestamp()
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime? @db.Timestamp()
+  refreshTokenExpiresAt DateTime? @db.Timestamp()
+  scope                 String?
+  password              String?   @db.VarChar(200)
+  createdAt             DateTime  @db.Timestamp()
+  updatedAt             DateTime  @db.Timestamp()
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime  @db.Timestamp()
+  createdAt  DateTime? @db.Timestamp()
+  updatedAt  DateTime? @db.Timestamp()
+
+  @@map("verification")
+}
+
+// Passkey 表 (符合 better-auth passkey 插件要求)
+model Passkey {
+  id           String   @id @default(cuid())
+  name         String?
+  publicKey    String
+  userId       String
+  credentialID String   @unique
+  counter      Int      @default(0)
+  deviceType   String
+  backedUp     Boolean
+  transports   String?
+  createdAt    DateTime @db.Timestamp()
+  aaguid       String?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("passkey")
+}
+
+// 新增标签表
+model Tags {
+  id        String                @id @default(cuid()) @db.VarChar(50)
+  name      String                @unique @db.VarChar(200)
+  category  String?               @db.VarChar(200)
+  parentId  String?               @db.VarChar(50)
+  parent    Tags?                 @relation("TagChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Tags[]                @relation("TagChildren")
+  detail    String?               @db.Text
+  createdAt DateTime              @default(now()) @map("created_at") @db.Timestamp
+  updatedAt DateTime?            @updatedAt @map("updated_at") @db.Timestamp
+  images    ImagesTagsRelation[]
+
+  @@map("tags")
+}
+
+// 图片与标签多对多关系
+model ImagesTagsRelation {
+  id        String @id @default(cuid()) @db.VarChar(50)
+  imageId   String @db.VarChar(50)
+  tagId     String @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp
+
+  image Images @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  tag   Tags   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@map("images_tags_relation")
+  @@unique([imageId, tagId])
+}
