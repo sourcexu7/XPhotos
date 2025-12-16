@@ -6,6 +6,7 @@ export const useSwrInfiniteServerHook = (
   pageNum: number,
   tag: string,
   showStatus: number = -1,
+  featured: number = -1,
   camera: string = '',
   lens: string = '',
   exposure: string = '',
@@ -15,9 +16,9 @@ export const useSwrInfiniteServerHook = (
   labelsOperator: 'and' | 'or' = 'and'
 ) => {
   const { data, error, isLoading, isValidating, mutate } = useSWR(
-    [args, pageNum, tag, showStatus, camera, lens, exposure, f_number, iso, labels, labelsOperator],
+    [args, pageNum, tag, showStatus, featured, camera, lens, exposure, f_number, iso, labels, labelsOperator],
     () => {
-      return handle(pageNum, tag, showStatus, camera, lens, exposure, f_number, iso, labels, labelsOperator)
+      return handle(pageNum, tag, showStatus, featured, camera, lens, exposure, f_number, iso, labels, labelsOperator)
     },
     {
       revalidateOnFocus: false,

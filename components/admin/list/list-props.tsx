@@ -1,3 +1,4 @@
+
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -65,6 +66,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
   // staged filters (apply when user clicks 查询)
   const [stagedAlbum, setStagedAlbum] = useState('')
   const [stagedShowStatus, setStagedShowStatus] = useState('')
+  const [stagedFeatured, setStagedFeatured] = useState('')
   const [stagedSelectedCamera, setStagedSelectedCamera] = useState('')
   const [stagedSelectedLens, setStagedSelectedLens] = useState('')
   const [stagedSelectedExposure, setStagedSelectedExposure] = useState('')
@@ -74,6 +76,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
   const [stagedLabelsOperator, setStagedLabelsOperator] = useState<'and' | 'or'>('and')
   const [imageAlbum, setImageAlbum] = useState('')
   const [selectedCamera, setSelectedCamera] = useState('')
+  const [selectedFeatured, setSelectedFeatured] = useState('')
   const [selectedLens, setSelectedLens] = useState('')
   const [selectedExposure, setSelectedExposure] = useState('')
   const [selectedAperture, setSelectedAperture] = useState('')
@@ -97,6 +100,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
     pageNum,
     album,
     showStatus === 'all' || showStatus === '' ? -1 : Number(showStatus),
+    selectedFeatured === 'all' || selectedFeatured === '' ? -1 : Number(selectedFeatured),
     selectedCamera === 'all' ? '' : selectedCamera,
     selectedLens === 'all' ? '' : selectedLens,
     selectedExposure === 'all' ? '' : selectedExposure,
@@ -109,6 +113,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
     props,
     album,
     showStatus === 'all' || showStatus === '' ? -1 : Number(showStatus),
+    selectedFeatured === 'all' || selectedFeatured === '' ? -1 : Number(selectedFeatured),
     selectedCamera === 'all' ? '' : selectedCamera,
     selectedLens === 'all' ? '' : selectedLens,
     selectedExposure === 'all' ? '' : selectedExposure,
@@ -190,96 +195,20 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       }
     }
 
-    fetchCameraAndLensList()
+    fetchCameraAndLensList();
     // fetch tags for multi-select
-    ;(async () => {
+    (async () => {
       try {
-        const res = await fetch('/api/v1/settings/tags/get')
+        const res = await fetch('/api/v1/settings/tags/get');
         if (res.ok) {
-          const json = await res.json()
-          if (json?.data) setTagsList(json.data.map((t: { name: string }) => t.name))
+          const data = await res.json();
+          setTagsList(data.tags || []);
         }
-      } catch (e) {
-        console.error('Failed to fetch tags list', e)
+      } catch (error) {
+        console.error('Failed to fetch tags:', error);
       }
-    })()
-    // load exif presets from localStorage
-    try {
-      const raw = localStorage.getItem('picimpact_exif_presets')
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        if (parsed) {
-          setExifPresets(parsed)
-        }
-      }
-    } catch (e) {}
-  }, [])
-
-  useEffect(() => {
-    if (adminConfig && adminConfig.length > 0) {
-      const pageSizeConfig = adminConfig.find((config: { config_key: string; config_value: string }) => config.config_key === 'admin_images_per_page')
-      if (pageSizeConfig) {
-        const newPageSize = parseInt(pageSizeConfig.config_value, 10) || 8
-        setPageSize(newPageSize)
-      }
-    }
-  }, [adminConfig])
-
-  async function updateImageShow(id: string, show: number) {
-    try {
-      setUpdateShowLoading(true)
-      setUpdateShowId(id)
-      const res = await fetch('/api/v1/images/update-show', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id,
-          show
-        }),
-      })
-      if (res.status === 200) {
-        toast.success('更新成功！')
-        await mutate()
-      } else {
-        toast.error('更新失败！')
-      }
-    } catch {
-      toast.error('更新失败！')
-    } finally {
-      setUpdateShowId('')
-      setUpdateShowLoading(false)
-    }
-  }
-
-  async function updateImageFeatured(id: string, featured: number) {
-    try {
-      setUpdateFeaturedLoading(true)
-      setUpdateFeaturedId(id)
-      const res = await fetch('/api/v1/images/update-featured', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id,
-          featured
-        }),
-      })
-      if (res.status === 200) {
-        toast.success('更新成功！')
-        await mutate()
-      } else {
-        toast.error('更新失败！')
-      }
-    } catch {
-      toast.error('更新失败！')
-    } finally {
-      setUpdateFeaturedId('')
-      setUpdateFeaturedLoading(false)
-    }
-  }
+    })();
+  }, []);
 
   async function updateImageAlbum() {
     if (!imageAlbum) {
@@ -312,6 +241,30 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       setUpdateImageAlbumLoading(false)
     }
   }
+  
+  // 手动设置图片精选状态
+  async function updateImageFeatured(imageId: string, featured: number) {
+    try {
+      setUpdateFeaturedLoading(true)
+      setUpdateFeaturedId(imageId)
+      const res = await fetch('/api/v1/images/update-featured', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageId, featured })
+      })
+      if (res.ok) {
+        toast.success(featured === 1 ? '已设为精选' : '已取消精选')
+        await mutate()
+      } else {
+        toast.error('操作失败')
+      }
+    } catch (e) {
+      toast.error('操作失败')
+    } finally {
+      setUpdateFeaturedLoading(false)
+      setUpdateFeaturedId('')
+    }
+  }
 
   const FilterContent = () => (
     <div className="flex flex-col md:flex-row gap-3 flex-wrap items-start md:items-center">
@@ -322,6 +275,16 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       <Select value={stagedShowStatus} onValueChange={setStagedShowStatus}>
         <SelectTrigger className="w-full md:w-[140px] h-9 bg-white text-gray-900 border-gray-200 whitespace-nowrap truncate"><SelectValue placeholder={t('List.selectShowStatus')} /></SelectTrigger>
         <SelectContent><SelectGroup><SelectItem value="all">{t('Words.all')}</SelectItem><SelectItem value="0">{t('Words.public')}</SelectItem><SelectItem value="1">{t('Words.private')}</SelectItem></SelectGroup></SelectContent>
+      </Select>
+      <Select value={stagedFeatured} onValueChange={setStagedFeatured}>
+        <SelectTrigger className="w-full md:w-[120px] h-9 bg-white text-gray-900 border-gray-200 whitespace-nowrap truncate"><SelectValue placeholder="是否精选" /></SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value="all">全部</SelectItem>
+            <SelectItem value="1">已精选</SelectItem>
+            <SelectItem value="0">未精选</SelectItem>
+          </SelectGroup>
+        </SelectContent>
       </Select>
       <Select value={stagedSelectedCamera} onValueChange={setStagedSelectedCamera}>
         <SelectTrigger className="w-full md:w-[120px] h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder={t('List.selectCamera')} /></SelectTrigger>
@@ -375,7 +338,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       <div className="flex items-center gap-2 ml-auto md:ml-0 w-full md:w-auto mt-2 md:mt-0">
         <Tooltip title="应用筛选条件">
           <AntButton type="primary" className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 border-none shadow-sm transition-all text-white" onClick={async () => {
-            setAlbum(stagedAlbum); setShowStatus(stagedShowStatus); setSelectedCamera(stagedSelectedCamera); setSelectedLens(stagedSelectedLens)
+            setAlbum(stagedAlbum); setShowStatus(stagedShowStatus); setSelectedFeatured(stagedFeatured); setSelectedCamera(stagedSelectedCamera); setSelectedLens(stagedSelectedLens)
             setSelectedExposure(stagedSelectedExposure); setSelectedAperture(stagedSelectedAperture); setSelectedISO(stagedSelectedISO)
             setSelectedTags(stagedSelectedTags); setLabelsOperator(stagedLabelsOperator)
             await totalMutate(); await mutate()
@@ -383,10 +346,10 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
         </Tooltip>
         <Tooltip title="重置所有筛选条件">
           <AntButton className="flex-1 md:flex-none hover:text-blue-600 hover:border-blue-600 transition-all" onClick={async () => {
-            setStagedAlbum(''); setStagedShowStatus(''); setStagedSelectedCamera(''); setStagedSelectedLens('')
+            setStagedAlbum(''); setStagedShowStatus(''); setStagedFeatured(''); setStagedSelectedCamera(''); setStagedSelectedLens('')
             setStagedSelectedExposure(''); setStagedSelectedAperture(''); setStagedSelectedISO(''); setStagedSelectedTags([]); setStagedLabelsOperator('and')
             // Also reset active filters
-            setAlbum(''); setShowStatus(''); setSelectedCamera(''); setSelectedLens('')
+            setAlbum(''); setShowStatus(''); setSelectedFeatured(''); setSelectedCamera(''); setSelectedLens('')
             setSelectedExposure(''); setSelectedAperture(''); setSelectedISO(''); setSelectedTags([]); setLabelsOperator('and')
             await totalMutate(); await mutate()
           }}>{t('Button.reset') || '清空'}</AntButton>
@@ -426,97 +389,6 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
           </Sheet>
         </div>
 
-        {/* 已应用的筛选条件徽章 */}
-        {(album || (showStatus && showStatus !== 'all') || (selectedCamera && selectedCamera !== 'all') || (selectedLens && selectedLens !== 'all') || (selectedExposure && selectedExposure !== 'all') || (selectedAperture && selectedAperture !== 'all') || (selectedISO && selectedISO !== 'all') || (selectedTags && selectedTags.length > 0)) && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {album && album !== 'all' && (
-              <FilterBadge
-                label="相册"
-                value={(Array.isArray(albums) ? (albums as AlbumType[]).find(a => a.album_value === album)?.name : undefined) || album}
-                onRemove={async () => {
-                  setStagedAlbum(''); setAlbum(''); await totalMutate(); await mutate()
-                }}
-              />
-            )}
-            {showStatus && showStatus !== 'all' && (
-              <FilterBadge
-                label="状态"
-                value={showStatus === '0' ? '公开' : '私密'}
-                onRemove={async () => {
-                  setStagedShowStatus(''); setShowStatus(''); await totalMutate(); await mutate()
-                }}
-              />
-            )}
-            {selectedCamera && selectedCamera !== 'all' && (
-              <FilterBadge
-                label="相机"
-                value={selectedCamera}
-                onRemove={async () => {
-                  setStagedSelectedCamera(''); setSelectedCamera(''); await totalMutate(); await mutate()
-                }}
-              />
-            )}
-            {selectedLens && selectedLens !== 'all' && (
-              <FilterBadge
-                label="镜头"
-                value={selectedLens}
-                onRemove={async () => {
-                  setStagedSelectedLens(''); setSelectedLens(''); await totalMutate(); await mutate()
-                }}
-              />
-            )}
-            {selectedExposure && selectedExposure !== 'all' && (
-              <FilterBadge
-                label="快门"
-                value={selectedExposure}
-                onRemove={async () => {
-                  setStagedSelectedExposure(''); setSelectedExposure(''); await totalMutate(); await mutate()
-                }}
-              />
-            )}
-            {selectedAperture && selectedAperture !== 'all' && (
-              <FilterBadge
-                label="光圈"
-                value={selectedAperture}
-                onRemove={async () => {
-                  setStagedSelectedAperture(''); setSelectedAperture(''); await totalMutate(); await mutate()
-                }}
-              />
-            )}
-            {selectedISO && selectedISO !== 'all' && (
-              <FilterBadge
-                label="ISO"
-                value={selectedISO}
-                onRemove={async () => {
-                  setStagedSelectedISO(''); setSelectedISO(''); await totalMutate(); await mutate()
-                }}
-              />
-            )}
-            {selectedTags && selectedTags.length > 0 && (
-              <>
-                {selectedTags.map(tag => (
-                  <FilterBadge
-                    key={tag}
-                    label="标签"
-                    value={tag}
-                    onRemove={async () => {
-                      const next = selectedTags.filter(t => t !== tag)
-                      setSelectedTags(next); setStagedSelectedTags(next); await totalMutate(); await mutate()
-                    }}
-                  />
-                ))}
-                <FilterBadge
-                  variant="pill"
-                  label="标签逻辑"
-                  value={labelsOperator.toUpperCase()}
-                  onRemove={async () => {
-                    setSelectedTags([]); setStagedSelectedTags([]); await totalMutate(); await mutate()
-                  }}
-                />
-              </>
-            )}
-          </div>
-        )}
       </div>
 
       {/* 2. 批量操作栏 (吸顶) */}

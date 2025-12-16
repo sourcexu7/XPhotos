@@ -5,6 +5,7 @@ import {
   insertImage,
   updateImage,
   updateImageShow,
+  updateImageFeatured,
   updateImageAlbum,
 } from '~/lib/db/operate/images'
 import { Hono } from 'hono'
@@ -105,6 +106,16 @@ app.put('/update-show', async (c) => {
     return c.json(data)
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed to update image show status', cause: e })
+  }
+})
+
+app.put('/update-featured', async (c) => {
+  try {
+    const image = await c.req.json()
+    const data = await updateImageFeatured(image.imageId || image.id, image.featured)
+    return c.json({ code: 200, data })
+  } catch (e) {
+    throw new HTTPException(500, { message: 'Failed to update image featured status', cause: e })
   }
 })
 

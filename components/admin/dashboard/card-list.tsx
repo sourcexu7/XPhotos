@@ -68,7 +68,7 @@ export default function CardList({ data }: Readonly<AnalysisDataProps>) {
             }}
             title={t('Dashboard.picData')}
           >
-            <Space vertical style={{ width: '100%' }}>
+            <Space orientation="vertical" style={{ width: '100%' }}>
               <div>
                 <Text type="secondary">{t('Dashboard.albumData')}</Text>
                 <div style={{ fontSize: 20, fontWeight: 600, marginTop: token.marginXS }}>
@@ -127,7 +127,7 @@ export default function CardList({ data }: Readonly<AnalysisDataProps>) {
             }}
             title={t('Dashboard.how')}
           >
-            <Space vertical style={{ width: '100%' }} size={token.marginSM}>
+            <Space orientation="vertical" style={{ width: '100%' }} size={token.marginSM}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <Text type="secondary" style={{ paddingRight: token.paddingSM }}>
                   {t('Dashboard.starTip')}

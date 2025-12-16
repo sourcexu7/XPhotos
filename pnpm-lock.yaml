@@ -186,6 +186,9 @@ importers:
       lucide-react:
         specifier: 0.541.0
         version: 0.541.0(react@19.1.2)
+      motion:
+        specifier: ^12.23.26
+        version: 12.23.26(react-dom@19.1.2(react@19.1.2))(react@19.1.2)
       next:
         specifier: 15.5.7
         version: 15.5.7(@babel/core@7.27.1)(react-dom@19.1.2(react@19.1.2))(react@19.1.2)
@@ -4992,6 +4995,20 @@ packages:
 
   motion-utils@12.23.6:
     resolution: {integrity: sha512-eAWoPgr4eFEOFfg2WjIsMoqJTW6Z8MTUCgn/GZ3VRpClWBdnbjryiA3ZSNLyxCTmCQx4RmYX6jX1iWHbenUPNQ==}
+
+  motion@12.23.26:
+    resolution: {integrity: sha512-Ll8XhVxY8LXMVYTCfme27WH2GjBrCIzY4+ndr5QKxsK+YwCtOi2B/oBi5jcIbik5doXuWT/4KKDOVAZJkeY5VQ==}
+    peerDependencies:
+      '@emotion/is-prop-valid': '*'
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@emotion/is-prop-valid':
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
 
   mrmime@2.0.1:
     resolution: {integrity: sha512-Y3wQdFg2Va6etvQ5I82yUhGdsKrcYox6p7FfL1LbK2J4V01F9TGlepTIhnK24t7koZibmg82KGglhA1XK5IsLQ==}
@@ -11848,6 +11865,14 @@ snapshots:
       motion-utils: 12.23.6
 
   motion-utils@12.23.6: {}
+
+  motion@12.23.26(react-dom@19.1.2(react@19.1.2))(react@19.1.2):
+    dependencies:
+      framer-motion: 12.23.26(react-dom@19.1.2(react@19.1.2))(react@19.1.2)
+      tslib: 2.8.1
+    optionalDependencies:
+      react: 19.1.2
+      react-dom: 19.1.2(react@19.1.2)
 
   mrmime@2.0.1: {}
 

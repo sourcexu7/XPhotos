@@ -40,7 +40,7 @@ export default function AlistTabs() {
   const tableData = data ? TabsTableCell({ data }) : []
 
   return (
-    <Space vertical size={token.marginLG} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={token.marginLG} style={{ width: '100%' }}>
       <Card
         title={<Typography.Title level={5} style={{ margin: 0 }}>{t('Config.alistTitle')}</Typography.Title>}
         extra={

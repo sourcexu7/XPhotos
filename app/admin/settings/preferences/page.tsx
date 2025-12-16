@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
 import { toast } from 'sonner'
@@ -27,6 +27,7 @@ export default function Preferences() {
   const [aboutPreviewUrl, setAboutPreviewUrl] = useState('')
   const { token } = theme.useToken()
   const t = useTranslations()
+  const aboutInputRef = useRef<HTMLInputElement | null>(null)
 
   const { data, isValidating, isLoading } = useSWR<{ config_key: string, config_value: string }[]>('/api/v1/settings/get-custom-info', fetcher)
 
@@ -126,7 +127,7 @@ export default function Preferences() {
     }
   }, [data, form])
 
-  // 新增：「关于我」个人照片上传逻辑（限制 JPG/PNG + 粗略校验 9:16 比例）
+  // 新增：「关于我」个人照片上传逻辑（限制 JPG/PNG + 粗略校验 16:9 比例）
   const handleAboutPhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -134,11 +135,7 @@ export default function Preferences() {
       toast.error('仅支持 JPG / PNG 格式的图片')
       return
     }
-    // Bug修复：上传体积限制 5MB
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('图片大小需小于 5MB')
-      return
-    }
+    // 取消上传体积限制，允许较大图片上传（后端存储限制仍适用）
 
     setAboutUploading(true)
 
@@ -158,10 +155,11 @@ export default function Preferences() {
       })
 
       const ratio = dimensions.width / dimensions.height
-      const target = 9 / 16
+      // 要求横屏 16:9（宽/高）
+      const target = 16 / 9
       const diff = Math.abs(ratio - target)
-      if (diff > 0.1) {
-        toast.warning('建议上传接近 9:16 比例的竖图，以获得最佳展示效果')
+      if (diff > 0.15) {
+        toast.warning('建议上传接近 16:9 比例的横图，以获得最佳展示效果')
       }
 
       // 上传原图
@@ -234,7 +232,7 @@ export default function Preferences() {
           <Row gutter={[token.marginLG, token.marginLG]}>
             {/* 第一列：基本信息 */}
             <Col xs={24} lg={6}>
-              <Space vertical size={token.margin} style={{ width: '100%' }}>
+              <Space orientation="vertical" size={token.margin} style={{ width: '100%' }}>
                 <Form.Item
                   label={t('Preferences.webSiteTitle')}
                   name="title"
@@ -260,7 +258,7 @@ export default function Preferences() {
 
             {/* 第二列：RSS 和分析 */}
             <Col xs={24} lg={6}>
-              <Space vertical size={token.margin} style={{ width: '100%' }}>
+              <Space orientation="vertical" size={token.margin} style={{ width: '100%' }}>
                 <Form.Item
                   label="RSS feedId"
                   name="feedId"
@@ -314,7 +312,7 @@ export default function Preferences() {
 
             {/* 第三列：显示设置 */}
             <Col xs={24} lg={6}>
-              <Space vertical size={token.margin} style={{ width: '100%' }}>
+              <Space orientation="vertical" size={token.margin} style={{ width: '100%' }}>
                 <Form.Item
                   label={t('Preferences.indexThemeSelect')}
                 >
@@ -364,7 +362,7 @@ export default function Preferences() {
 
             {/* 第四列：开关设置 */}
             <Col xs={24} lg={6}>
-              <Space vertical size={token.margin} style={{ width: '100%' }}>
+              <Space orientation="vertical" size={token.margin} style={{ width: '100%' }}>
                 <Card
                   size="small"
                   style={{
@@ -372,7 +370,7 @@ export default function Preferences() {
                     borderColor: token.colorBorder
                   }}
                 >
-                  <Space vertical size={token.marginXS} style={{ width: '100%' }}>
+                  <Space orientation="vertical" size={token.marginXS} style={{ width: '100%' }}>
                     <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
                       {t('Preferences.customIndexDownloadEnable')}
                     </Typography.Text>
@@ -393,7 +391,7 @@ export default function Preferences() {
                     borderColor: token.colorBorder
                   }}
                 >
-                  <Space vertical size={token.marginXS} style={{ width: '100%' }}>
+                  <Space orientation="vertical" size={token.marginXS} style={{ width: '100%' }}>
                     <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
                       {t('Preferences.enableMaxWidthLimit')}
                     </Typography.Text>
@@ -414,7 +412,7 @@ export default function Preferences() {
                     borderColor: token.colorBorder
                   }}
                 >
-                  <Space vertical size={token.marginXS} style={{ width: '100%' }}>
+                  <Space orientation="vertical" size={token.marginXS} style={{ width: '100%' }}>
                     <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
                       {t('Preferences.customIndexOriginEnable')}
                     </Typography.Text>
@@ -442,16 +440,16 @@ export default function Preferences() {
                 }}
                 title="前台『关于我』配置"
               >
-                <Space direction="vertical" size={token.margin} style={{ width: '100%' }}>
+                <Space orientation="vertical" size={token.margin} style={{ width: '100%' }}>
                   <Row gutter={[token.marginLG, token.marginLG]}>
-                    <Col xs={24} md={12}>
-                      <Space direction="vertical" size={token.margin} style={{ width: '100%' }}>
+                    <Col xs={24} md={12} className="flex flex-col justify-center">
+                      <Space orientation="vertical" size={token.margin} style={{ width: '100%' }}>
                         <Form.Item
                           label="个人介绍"
                           name="aboutIntro"
                         >
                           <Input.TextArea
-                            rows={4}
+                            rows={6}
                             placeholder="例如：偏爱自然光人像与城市夜景，记录每一束真实的光。"
                           />
                         </Form.Item>
@@ -490,10 +488,10 @@ export default function Preferences() {
                       </Space>
                     </Col>
 
-                    <Col xs={24} md={12}>
-                      <Space direction="vertical" size={token.margin} style={{ width: '100%' }}>
+                    <Col xs={24} md={12} className="flex flex-col items-center justify-center">
+                      <Space orientation="vertical" size={token.margin} style={{ width: '100%', alignItems: 'center' }}>
                         <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                          个人照片（建议 9:16 竖图，JPG / PNG）
+                          个人照片（建议 16:9 横图，JPG / PNG）
                         </Typography.Text>
                         <Form.Item
                           label="原图地址"
@@ -509,16 +507,19 @@ export default function Preferences() {
                         </Form.Item>
                         <div className="flex items-center gap-3">
                           <input
+                            ref={el => (aboutInputRef.current = el)}
                             type="file"
                             accept="image/jpeg,image/png"
                             onChange={handleAboutPhotoChange}
                             disabled={aboutUploading}
+                            style={{ display: 'none' }}
                           />
                           <Button
+                            onClick={() => aboutInputRef.current?.click()}
                             loading={aboutUploading}
                             disabled={aboutUploading}
                           >
-                            上传个人照片
+                            上传个人照片（16:9 横图）
                           </Button>
                         </div>
                         {aboutPreviewUrl && (
@@ -529,8 +530,9 @@ export default function Preferences() {
                             <div
                               style={{
                                 marginTop: 8,
-                                width: '180px',
-                                aspectRatio: '9 / 16',
+                                maxWidth: '480px',
+                                width: '100%',
+                                aspectRatio: '16 / 9',
                                 borderRadius: 12,
                                 overflow: 'hidden',
                                 border: `1px solid ${token.colorBorder}`,

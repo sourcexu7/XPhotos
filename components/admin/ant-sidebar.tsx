@@ -227,7 +227,7 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
               A
             </Avatar>
             {!collapsed && (
-              <Space vertical size={0} style={{ marginLeft: token.marginXS }}>
+              <Space orientation="vertical" size={0} style={{ marginLeft: token.marginXS }}>
                 <Text strong style={{ fontSize: 13 }}>
                   Admin
                 </Text>

@@ -114,10 +114,6 @@ export default function ImageEditSheet(props : Readonly<ImageServerHandleProps &
               <span className="text-sm text-gray-900">显示状态</span>
               <Switch className="data-[state=checked]:bg-gray-900 data-[state=unchecked]:bg-gray-200 [&_span]:bg-white border-transparent" checked={image?.show === 0} onCheckedChange={(value) => setImageEditData({...image, show: value ? 0 : 1})} />
             </div>
-            <div className="flex items-center justify-between flex-1 p-3 border rounded-lg bg-gray-50">
-              <span className="text-sm text-gray-900">首页精选</span>
-              <Switch className="data-[state=checked]:bg-gray-900 data-[state=unchecked]:bg-gray-200 [&_span]:bg-white border-transparent" checked={image?.show_on_mainpage === 0} onCheckedChange={(value) => setImageEditData({...image, show_on_mainpage: value ? 0 : 1})} />
-            </div>
           </div>
 
           <InputField label="排序权重 (越大越靠前)" id="sort" type="number" value={image?.sort ?? 0} onChange={(e:any) => setImageEditData({...image, sort: Number(e.target.value)})} />

@@ -5,6 +5,7 @@ export const useSwrPageTotalServerHook = (
   { args, totalHandle }: ImageServerHandleProps,
   tag: string,
   showStatus: number = -1,
+  featured: number = -1,
   camera: string = '',
   lens: string = '',
   exposure: string = '',
@@ -14,9 +15,9 @@ export const useSwrPageTotalServerHook = (
   labelsOperator: 'and' | 'or' = 'and'
 ) => {
   const { data, error, isLoading, isValidating, mutate } = useSWR(
-    [args, tag, showStatus, camera, lens, exposure, f_number, iso, labels, labelsOperator],
+    [args, tag, showStatus, featured, camera, lens, exposure, f_number, iso, labels, labelsOperator],
     () => {
-      return totalHandle(tag, showStatus, camera, lens, exposure, f_number, iso, labels, labelsOperator)
+      return totalHandle(tag, showStatus, featured, camera, lens, exposure, f_number, iso, labels, labelsOperator)
     }
   )
 

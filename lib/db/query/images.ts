@@ -29,6 +29,7 @@ export async function fetchServerImagesListByAlbum(
   pageNum: number,
   album: string,
   showStatus: number = -1,
+  featured: number = -1,
   camera?: string,
   lens?: string,
   exposure?: string,
@@ -50,6 +51,8 @@ export async function fetchServerImagesListByAlbum(
   const offset = (normalizedPageNum - 1) * pageSize
   const showStatusFilter =
     showStatus !== -1 ? Prisma.sql`AND image.show = ${showStatus}` : Prisma.empty
+  const featuredFilter =
+    featured !== -1 ? Prisma.sql`AND image.featured = ${featured}` : Prisma.empty
   const cameraFilter = camera
     ? Prisma.sql`AND COALESCE(image.exif->>'model', 'Unknown') = ${camera}`
     : Prisma.empty
@@ -65,11 +68,13 @@ export async function fetchServerImagesListByAlbum(
   const isoFilter = iso
     ? Prisma.sql`AND COALESCE(image.exif->>'iso_speed_rating', '') = ${iso}`
     : Prisma.empty
+  // Ensure labels is an array before using array operations
+  const labelsArray = Array.isArray(labels) ? labels : (labels ? [String(labels)] : [])
   const labelsFilter =
-    labels && labels.length
+    labelsArray && labelsArray.length
       ? labelsOperator === 'and'
-        ? Prisma.sql`AND image.labels::jsonb @> ${JSON.stringify(labels)}::jsonb`
-        : Prisma.sql`AND (${Prisma.join(labels.map((l) => Prisma.sql`image.labels::jsonb @> ${JSON.stringify([l])}::jsonb`), Prisma.sql` OR `)})`
+        ? Prisma.sql`AND image.labels::jsonb @> ${JSON.stringify(labelsArray)}::jsonb`
+        : Prisma.sql`AND (${Prisma.join(labelsArray.map((l) => Prisma.sql`image.labels::jsonb @> ${JSON.stringify([l])}::jsonb`), Prisma.sql` OR `)})`
       : Prisma.empty
 
   if (normalizedAlbum) {
@@ -91,6 +96,7 @@ export async function fetchServerImagesListByAlbum(
       AND
           albums.album_value = ${normalizedAlbum}
           ${showStatusFilter}
+          ${featuredFilter}
           ${cameraFilter}
           ${lensFilter}
           ${exposureFilter}
@@ -115,8 +121,9 @@ export async function fetchServerImagesListByAlbum(
         ON relation.album_value = albums.album_value
     WHERE 
         image.del = 0
-        ${showStatusFilter}
-        ${cameraFilter}
+      ${showStatusFilter}
+      ${featuredFilter}
+      ${cameraFilter}
         ${lensFilter}
         ${exposureFilter}
         ${fNumberFilter}
@@ -138,6 +145,7 @@ export async function fetchServerImagesListByAlbum(
 export async function fetchServerImagesPageTotalByAlbum(
   album: string,
   showStatus: number = -1,
+  featured: number = -1,
   camera?: string,
   lens?: string,
   exposure?: string,
@@ -146,6 +154,7 @@ export async function fetchServerImagesPageTotalByAlbum(
   labels?: string[],
   labelsOperator: 'and' | 'or' = 'and'
 ): Promise<number> {
+  const labelsArray = Array.isArray(labels) ? labels : (labels ? [String(labels)] : [])
   if (album === 'all') {
     album = ''
   }
@@ -168,12 +177,13 @@ export async function fetchServerImagesPageTotalByAlbum(
         AND
             albums.album_value = ${album}
             ${showStatus !== -1 ? Prisma.sql`AND image.show = ${showStatus}` : Prisma.empty}
+            ${featured !== -1 ? Prisma.sql`AND image.featured = ${featured}` : Prisma.empty}
             ${camera ? Prisma.sql`AND COALESCE(image.exif->>'model', 'Unknown') = ${camera}` : Prisma.empty}
             ${lens ? Prisma.sql`AND COALESCE(image.exif->>'lens_model', 'Unknown') = ${lens}` : Prisma.empty}
             ${exposure ? Prisma.sql`AND COALESCE(image.exif->>'exposure_time', '') = ${exposure}` : Prisma.empty}
             ${f_number ? Prisma.sql`AND COALESCE(image.exif->>'f_number', '') = ${f_number}` : Prisma.empty}
             ${iso ? Prisma.sql`AND COALESCE(image.exif->>'iso_speed_rating', '') = ${iso}` : Prisma.empty}
-            ${labels && labels.length ? (labelsOperator === 'and' ? Prisma.sql`AND image.labels::jsonb @> ${JSON.stringify(labels)}::jsonb` : Prisma.sql`AND (${Prisma.join(labels.map(l => Prisma.sql`image.labels::jsonb @> ${JSON.stringify([l])}::jsonb`), Prisma.sql` OR `)})`) : Prisma.empty}
+            ${labelsArray && labelsArray.length ? (labelsOperator === 'and' ? Prisma.sql`AND image.labels::jsonb @> ${JSON.stringify(labelsArray)}::jsonb` : Prisma.sql`AND (${Prisma.join(labelsArray.map(l => Prisma.sql`image.labels::jsonb @> ${JSON.stringify([l])}::jsonb`), Prisma.sql` OR `)})`) : Prisma.empty}
       ) AS unique_images;
     `
     // @ts-expect-error - The query result is guaranteed to have a total field
@@ -193,12 +203,13 @@ export async function fetchServerImagesPageTotalByAlbum(
         WHERE
             image.del = 0
             ${showStatus !== -1 ? Prisma.sql`AND image.show = ${showStatus}` : Prisma.empty}
+            ${featured !== -1 ? Prisma.sql`AND image.featured = ${featured}` : Prisma.empty}
             ${camera ? Prisma.sql`AND COALESCE(image.exif->>'model', 'Unknown') = ${camera}` : Prisma.empty}
             ${lens ? Prisma.sql`AND COALESCE(image.exif->>'lens_model', 'Unknown') = ${lens}` : Prisma.empty}
             ${exposure ? Prisma.sql`AND COALESCE(image.exif->>'exposure_time', '') = ${exposure}` : Prisma.empty}
             ${f_number ? Prisma.sql`AND COALESCE(image.exif->>'f_number', '') = ${f_number}` : Prisma.empty}
             ${iso ? Prisma.sql`AND COALESCE(image.exif->>'iso_speed_rating', '') = ${iso}` : Prisma.empty}
-            ${labels && labels.length ? (labelsOperator === 'and' ? Prisma.sql`AND image.labels::jsonb @> ${JSON.stringify(labels)}::jsonb` : Prisma.sql`AND (${Prisma.join(labels.map(l => Prisma.sql`image.labels::jsonb @> ${JSON.stringify([l])}::jsonb`), Prisma.sql` OR `)})`) : Prisma.empty}
+            ${labelsArray && labelsArray.length ? (labelsOperator === 'and' ? Prisma.sql`AND image.labels::jsonb @> ${JSON.stringify(labelsArray)}::jsonb` : Prisma.sql`AND (${Prisma.join(labelsArray.map(l => Prisma.sql`image.labels::jsonb @> ${JSON.stringify([l])}::jsonb`), Prisma.sql` OR `)})`) : Prisma.empty}
      ) AS unique_images;
   `
   // @ts-expect-error - The query result is guaranteed to have a total field

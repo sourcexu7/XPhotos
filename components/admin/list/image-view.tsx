@@ -101,10 +101,6 @@ export default function ImageView() {
               <span className="text-sm text-gray-700">显示状态</span>
               <Switch className="data-[state=checked]:bg-gray-900 data-[state=unchecked]:bg-gray-200 [&_span]:bg-white border-transparent" checked={imageViewData?.show === 0} disabled />
             </div>
-            <div className="flex items-center justify-between flex-1 p-3 border rounded-lg bg-white">
-              <span className="text-sm text-gray-700">首页精选</span>
-              <Switch className="data-[state=checked]:bg-gray-900 data-[state=unchecked]:bg-gray-200 [&_span]:bg-white border-transparent" checked={imageViewData?.show_on_mainpage === 0} disabled />
-            </div>
           </div>
         </div>
       </SheetContent>

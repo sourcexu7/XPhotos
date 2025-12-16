@@ -86,7 +86,7 @@ export default function Account() {
         title={t('Link.account')}
         style={{ height: '100%', borderRadius: token.borderRadiusLG }}
       >
-        <Space vertical size={token.marginLG} style={{ width: '100%', maxWidth: 600 }}>
+        <Space orientation="vertical" size={token.marginLG} style={{ width: '100%', maxWidth: 600 }}>
           {/* 头像设置 */}
           <Form
             form={avatarForm}

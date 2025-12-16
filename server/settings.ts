@@ -101,7 +101,8 @@ app.get('/get-custom-info', async (c) => {
       'about_ins_url',
       'about_xhs_url',
       'about_weibo_url',
-      'about_github_url',
+         'about_github_url',
+         'about_gallery_images',
     ])
     return c.json(data)
   } catch (error) {
@@ -295,6 +296,7 @@ app.put('/update-custom-info', async (c) => {
     aboutXhsUrl?: string
     aboutWeiboUrl?: string
     aboutGithubUrl?: string
+     aboutGalleryImages?: string[]
   }
   try {
     await updateCustomInfo(query)

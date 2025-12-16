@@ -97,6 +97,8 @@ export async function updateCustomInfo(payload: {
   aboutXhsUrl?: string
   aboutWeiboUrl?: string
   aboutGithubUrl?: string
+  // 新增：关于我画廊图片数组（数组字符串）
+  aboutGalleryImages?: string[]
 }) {
   const configUpdates: { key: string; value: string }[] = [
     { key: 'custom_title', value: payload.title },
@@ -182,6 +184,16 @@ export async function updateCustomInfo(payload: {
       key: 'about_github_url',
       value: payload.aboutGithubUrl,
     })
+  }
+
+  // 新增：关于我画廊图片数组（以 JSON 存储）
+  if (payload.aboutGalleryImages && Array.isArray(payload.aboutGalleryImages)) {
+    try {
+      const json = JSON.stringify(payload.aboutGalleryImages)
+      configUpdates.push({ key: 'about_gallery_images', value: json })
+    } catch (e) {
+      // ignore serialization errors
+    }
   }
 
   // 优化点：使用 upsert，确保新配置项不存在时自动创建，避免 update 抛错

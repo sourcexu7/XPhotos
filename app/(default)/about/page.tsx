@@ -41,7 +41,7 @@ export default function AboutPage() {
           {/* 左侧：文字介绍 + 社交链接 */}
           <section className="md:flex-1 flex flex-col justify-center space-y-6">
             <header>
-              <h1 className="text-2xl md:text-3xl font-semibold tracking-[0.16em] text-[#e0e0e0] mb-3">
+              <h1 className="text-2xl md:text-3xl font-semibold tracking-[0.16em] text-[#e0e0e0] mb-3 whitespace-nowrap">
                 ABOUT ME
               </h1>
               <p className="text-sm md:text-base text-[#999999] leading-relaxed max-w-xl">
@@ -68,15 +68,15 @@ export default function AboutPage() {
             )}
           </section>
 
-          {/* 右侧：个人 9:16 照片（移动端置顶） */}
+          {/* 右侧：个人横向 16:9 照片，保持原高度，桌面端增宽 */}
           <section className="md:flex-1 order-first md:order-last">
-            <div className="relative max-w-[360px] mx-auto w-full aspect-[9/16] rounded-2xl overflow-hidden border border-white/10 bg-black/40">
+            <div className="relative h-[420px] w-full md:w-[760px] mx-auto md:flex-shrink-0 rounded-2xl overflow-hidden border border-white/10 bg-black/40">
               {photoPreview ? (
                 <Image
                   src={photoPreview}
                   alt="关于我"
                   fill
-                  sizes="(max-width: 768px) 80vw, 360px"
+                  sizes="(max-width: 768px) 100vw, 760px"
                   className="object-cover"
                   priority={false}
                 />

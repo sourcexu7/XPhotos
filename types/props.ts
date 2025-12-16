@@ -16,6 +16,7 @@ export interface ImageServerHandleProps {
     pageNum: number,
     tag: string,
     showStatus?: number,
+    featured?: number,
     camera?: string,
     lens?: string,
     exposure?: string,
@@ -28,6 +29,7 @@ export interface ImageServerHandleProps {
   totalHandle: (
     tag: string,
     showStatus?: number,
+    featured?: number,
     camera?: string,
     lens?: string,
     exposure?: string,

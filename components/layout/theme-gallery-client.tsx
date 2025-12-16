@@ -73,6 +73,22 @@ export default function ThemeGalleryClient({
     return () => window.removeEventListener('scroll', onScroll)
   }, [enableFilters, filtersOpen])
 
+  // 点击页面任意处自动收起筛选（除了筛选面板本身或切换按钮）
+  useEffect(() => {
+    if (!enableFilters) return
+    const onPointerDown = (e: PointerEvent) => {
+      if (!filtersOpen) return
+      const target = e.target as Element | null
+      // 点击在筛选面板内则忽略
+      if (filterSectionRef.current && target && filterSectionRef.current.contains(target)) return
+      // 点击在切换按钮（带有 aria-controls="gallery-filter-panel"）上则忽略
+      if (target && target.closest('[aria-controls="gallery-filter-panel"]')) return
+      setFiltersOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [enableFilters, filtersOpen])
+
 
   const filters: ImageFilters | undefined = enableFilters
     ? {
