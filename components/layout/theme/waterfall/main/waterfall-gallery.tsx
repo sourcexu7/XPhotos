@@ -1,6 +1,6 @@
 'use client'
 
-import type { ImageHandleProps } from '~/types/props.ts'
+import type { ImageFilters, ImageHandleProps } from '~/types/props.ts'
 import { useSwrPageTotalHook } from '~/hooks/use-swr-page-total-hook.ts'
 import useSWRInfinite from 'swr/infinite'
 import { useTranslations } from 'next-intl'
@@ -25,9 +25,34 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
       revalidateOnReconnect: false,
     }
   )
-  const dataList = data ? [].concat(...data) : []
+  const dataList: ImageType[] = data ? ([] as ImageType[]).concat(...data) : []
   const t = useTranslations()
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // 新增：根据前端筛选条件过滤已加载的数据（不额外请求接口）
+  const appliedFilters: ImageFilters | undefined = props.filters
+  const filteredList: ImageType[] = appliedFilters
+    ? dataList.filter((img) => {
+        // Bug修复：移除作品名称筛选，保留 EXIF/标签过滤
+        if (appliedFilters.cameras?.length) {
+          const camera = (img.exif?.model ?? '') as string
+          const hit = appliedFilters.cameras.some(c => camera.includes(c))
+          if (!hit) return false
+        }
+        if (appliedFilters.lenses?.length) {
+          const lens = (img.exif?.lens_model ?? '') as string
+          const hit = appliedFilters.lenses.some(l => lens.includes(l))
+          if (!hit) return false
+        }
+        // 标签 AND 逻辑（多选全部命中）
+        if (appliedFilters.tags?.length) {
+          const labels: string[] = Array.isArray(img.labels) ? (img.labels as string[]) : []
+          const allMatched = appliedFilters.tags.every(tag => labels.includes(tag))
+          if (!allMatched) return false
+        }
+        return true
+      })
+    : dataList
 
   // 自动加载更多（当滚动到底部附近时）
   useEffect(() => {
@@ -51,7 +76,7 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
   return (
     <div className="w-full min-h-screen bg-[#0f172a] dark:bg-[#0f172a]" ref={containerRef}>
       {/* 瀑布流容器 - 使用新的 ImageGallery 组件 */}
-      <ImageGallery images={dataList} />
+      <ImageGallery images={filteredList} />
 
       {/* 加载更多按钮 */}
       <div className="flex items-center justify-center pb-8 pt-4">
@@ -60,7 +85,7 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
             <ReloadIcon className="h-5 w-5 animate-spin" />
             <span className="text-sm">{t('Button.loading')}</span>
           </div>
-        ) : dataList.length > 0 ? (
+        ) : filteredList.length > 0 ? (
           size < pageTotal && (
             <Button
               disabled={isLoading}

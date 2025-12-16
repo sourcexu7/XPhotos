@@ -15,7 +15,8 @@ import useSWR from 'swr'
 import ImageBatchDeleteSheet from '~/components/admin/list/image-batch-delete-sheet'
 import { Button } from '~/components/ui/button'
 import { Card, CardFooter } from '~/components/ui/card'
-import { Button as AntButton, Checkbox as AntCheckbox, Pagination, Tooltip } from 'antd'
+import { Button as AntButton, Pagination, Tooltip } from 'antd'
+import { Checkbox } from '~/components/ui/checkbox'
 import { DeleteOutlined, ReloadOutlined, StarFilled, StarOutlined, EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons'
 import { ReloadIcon } from '@radix-ui/react-icons'
 import { Switch } from '~/components/ui/switch'
@@ -319,7 +320,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
         <SelectContent><SelectGroup><SelectItem value="all">{t('Words.all')}</SelectItem>{albums?.map((a: AlbumType) => <SelectItem key={a.album_value} value={a.album_value}>{a.name}</SelectItem>)}</SelectGroup></SelectContent>
       </Select>
       <Select value={stagedShowStatus} onValueChange={setStagedShowStatus}>
-        <SelectTrigger className="w-full md:w-[100px] h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder={t('List.selectShowStatus')} /></SelectTrigger>
+        <SelectTrigger className="w-full md:w-[140px] h-9 bg-white text-gray-900 border-gray-200 whitespace-nowrap truncate"><SelectValue placeholder={t('List.selectShowStatus')} /></SelectTrigger>
         <SelectContent><SelectGroup><SelectItem value="all">{t('Words.all')}</SelectItem><SelectItem value="0">{t('Words.public')}</SelectItem><SelectItem value="1">{t('Words.private')}</SelectItem></SelectGroup></SelectContent>
       </Select>
       <Select value={stagedSelectedCamera} onValueChange={setStagedSelectedCamera}>
@@ -360,9 +361,9 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
           <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto my-2">
             {tagsList.map(tag => (
               <label key={tag} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
-                <AntCheckbox checked={stagedSelectedTags.includes(tag)} onChange={(e)=>{ const next = e.target.checked ? [...stagedSelectedTags, tag] : stagedSelectedTags.filter(t=>t!==tag); setStagedSelectedTags(next) }} />
-                <span className="text-xs truncate" title={tag}>{tag}</span>
-              </label>
+                  <Checkbox checked={stagedSelectedTags.includes(tag)} onCheckedChange={(v)=>{ const next = v ? [...stagedSelectedTags, tag] : stagedSelectedTags.filter(t=>t!==tag); setStagedSelectedTags(next) }} />
+                  <span className="text-xs truncate" title={tag}>{tag}</span>
+                </label>
             ))}
           </div>
           <div className="flex justify-end pt-2 border-t">
@@ -522,10 +523,13 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       {selectedIds.length > 0 && (
         <div className="sticky top-0 z-20 bg-white text-gray-900 border border-gray-200 px-4 py-3 rounded-lg shadow-lg flex justify-between items-center animate-in slide-in-from-top-2 duration-300">
           <div className="flex items-center gap-3">
-            <AntCheckbox 
-              checked={true}
-              indeterminate={selectedIds.length > 0 && selectedIds.length < (Array.isArray(data) ? data.length : 0)}
-              onChange={() => toggleSelectAll(false)}
+            <Checkbox
+              checked={
+                selectedIds.length === 0
+                  ? false
+                  : (selectedIds.length < (Array.isArray(data) ? data.length : 0) ? 'indeterminate' : true)
+              }
+              onCheckedChange={(v) => toggleSelectAll(!!v)}
               className="text-gray-900"
             />
             <span className="text-sm font-medium">已选择 {selectedIds.length} 张照片</span>
@@ -579,9 +583,9 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
               
               {/* 左上角：复选框 & 相册标签 */}
               <div className={`absolute top-2 left-2 flex flex-col gap-2 transition-opacity duration-200 z-10 ${selectedIds.includes(image.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                <AntCheckbox 
-                  checked={selectedIds.includes(image.id)} 
-                  onChange={(e) => toggleSelectOne(image.id, e.target.checked)}
+                <Checkbox
+                  checked={selectedIds.includes(image.id)}
+                  onCheckedChange={(v) => toggleSelectOne(image.id, !!v)}
                   className="bg-white rounded-sm shadow-sm"
                 />
                 <span className="px-2 py-0.5 bg-black/50 backdrop-blur-sm text-white text-[10px] rounded shadow-sm truncate max-w-[120px]">

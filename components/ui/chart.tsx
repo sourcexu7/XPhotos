@@ -46,8 +46,8 @@ function ChartContainer({
     typeof RechartsPrimitive.ResponsiveContainer
   >['children']
 }) {
-  const uniqueId = React.useId()
-  const chartId = `chart-${id || uniqueId.replace(/:/g, '')}`
+  const reactId = React.useId()
+  const chartId = `chart-${(id ?? reactId).toString().replace(/:/g, '')}`
 
   return (
     <ChartContext.Provider value={{ config }}>

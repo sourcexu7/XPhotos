@@ -38,12 +38,21 @@ export interface ImageServerHandleProps {
   ) => unknown
 }
 
+export interface ImageFilters {
+  // 新增：前台作品画廊筛选条件（多选）
+  cameras?: string[]
+  lenses?: string[]
+  tags?: string[]
+}
+
 export interface ImageHandleProps {
   handle: (pageNum: number, tag: string) => unknown
   args: string
   album: string
   totalHandle: (tag: string) => unknown
   configHandle: () => unknown
+  // 新增：前端筛选条件（仅在前端对已加载数据过滤，不影响后端接口）
+  filters?: ImageFilters
 }
 
 export interface PreviewImageHandleProps {

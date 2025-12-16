@@ -48,7 +48,7 @@ export default async function CoversPage() {
                   imageUrl={album.cover!}
                   location={album.name}
                   stats={`${album.count} PHOTOS`}
-                  href={album.album_value}
+                  href={`${album.album_value}?style=${album.count > 10 ? '2' : '1'}`}
                   themeColor={getThemeColor(album.name)}
                   exploreText={t('explore_now')}
                 />

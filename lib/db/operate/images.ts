@@ -48,6 +48,7 @@ async function reviveDeletedImage(tx: PrismaClient, imageId: string, image: Imag
 
 /**
  * 同步图片标签
+ * 优化：使用批量查询减少数据库往返，避免事务超时
  */
 async function syncImageTags(tx: PrismaClient, imageId: string, image: ImageType) {
   if (!image.labels || !Array.isArray(image.labels) || image.labels.length === 0) {
@@ -63,16 +64,31 @@ async function syncImageTags(tx: PrismaClient, imageId: string, image: ImageType
   if (categoryMap && typeof categoryMap === 'object') {
     tags = await upsertTagsByName(tx, uniqueLabels, categoryMap)
   } else {
-    // 顺序 upsert，避免事务丢失
-    for (const label of uniqueLabels) {
-      const tag = await tx.tags.upsert({
-        where: { name: label },
-        update: {},
-        create: { name: label },
+    // 批量查询已存在的标签
+    const existingTags = await tx.tags.findMany({
+      where: { name: { in: uniqueLabels } }
+    })
+    const existingTagMap = new Map(existingTags.map(tag => [tag.name, tag]))
+    
+    // 找出需要创建的标签
+    const tagsToCreate = uniqueLabels.filter(label => !existingTagMap.has(label))
+    
+    // 批量创建新标签
+    if (tagsToCreate.length > 0) {
+      await tx.tags.createMany({
+        data: tagsToCreate.map(name => ({ name })),
+        skipDuplicates: true
       })
-      tags.push(tag)
+      // 重新查询获取所有标签（包括刚创建的）
+      const allTags = await tx.tags.findMany({
+        where: { name: { in: uniqueLabels } }
+      })
+      tags = allTags
+    } else {
+      tags = existingTags
     }
   }
+  
   const relations = tags.map((tag: Tag) => ({ imageId, tagId: tag.id }))
   if (relations.length > 0) {
     await tx.imagesTagsRelation.createMany({ data: relations, skipDuplicates: true })
@@ -156,6 +172,9 @@ export async function insertImage(image: ImageType) {
     await syncImageTags(tx, resultRow.id, image)
 
     return resultRow
+  }, {
+    maxWait: 10000, // 等待事务锁的最大时间（10秒）
+    timeout: 30000, // 事务超时时间（30秒）
   })
 }
 
@@ -270,6 +289,9 @@ export async function updateImage(image: ImageType) {
     })
 
     await syncImageTags(tx, image.id, image)
+  }, {
+    maxWait: 10000, // 等待事务锁的最大时间（10秒）
+    timeout: 30000, // 事务超时时间（30秒）
   })
 }
 

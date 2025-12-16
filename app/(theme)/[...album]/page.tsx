@@ -9,11 +9,20 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
 export default async function Page({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ album: string }>
+  searchParams: Promise<{ style?: string }>
 }) {
   const { album } = await params
+  const { style } = await searchParams
+
+  const preferredStyle = style === '1'
+    ? 'single'
+    : style === '2'
+      ? 'waterfall'
+      : undefined
 
   const getData = async (pageNum: number, album: string) => {
     'use server'
@@ -54,7 +63,7 @@ export default async function Page({
           </Button>
         </Link>
       </div>
-      <ThemeGalleryClient systemStyle={systemStyle} {...props} />
+      <ThemeGalleryClient systemStyle={systemStyle} preferredStyle={preferredStyle} {...props} />
     </div>
   )
 }

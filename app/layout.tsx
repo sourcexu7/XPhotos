@@ -88,6 +88,10 @@ export default async function RootLayout({
                   <ProgressBarProviders>
                     {children}
                     {modal}
+                    {/* 新增：全局底部版权标注 */}
+                    <footer className="w-full border-t border-white/10 bg-background/70 backdrop-blur-md text-center text-[12px] md:text-[13px] text-muted-foreground py-4">
+                      © 2025 Source 禁止商用
+                    </footer>
                   </ProgressBarProviders>
                 </AntdConfigProvider>
               </ThemeProvider>

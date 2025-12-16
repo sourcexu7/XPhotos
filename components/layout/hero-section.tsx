@@ -4,12 +4,24 @@
 import { motion } from 'framer-motion'
 import { ImageAutoSlider } from '~/components/ui/image-auto-slider'
 import type { ImageType } from '~/types'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 interface HeroSectionProps {
   images?: ImageType[]
 }
 
 export default function HeroSection({ images = [] }: HeroSectionProps) {
+  const router = useRouter()
+  useEffect(() => {
+    // Bug修复：预取作品画廊路由，减少跳转闪屏
+    router.prefetch('/albums')
+  }, [router])
+  // Bug修复：Start 按钮改为路由跳转到作品画廊，确保导航选中状态正确
+  const handleStartClick = () => {
+    router.push('/albums', { scroll: true })
+  }
+
   return (
     <div className="relative w-full h-[80vh] md:h-[100vh] flex flex-col items-center pt-[25vh] overflow-hidden bg-background">
       {/* Dynamic Background */}
@@ -36,7 +48,7 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
           </motion.div>
         )}
 
-        <div className="mt-16 md:mt-24">
+        <div className="mt-16 md:mt-24 flex flex-col items-center gap-6">
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -47,7 +59,7 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
               你所热爱的就是你的生活
             </span>
           </motion.h1>
-          
+
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -56,24 +68,38 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
           >
             往事的光圈每一瞬间都很绝
           </motion.p>
+
+          {/* 新增：玻璃磨砂 Start 按钮 */}
+          <motion.button
+            type="button"
+            onClick={handleStartClick}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
+            className="
+              group
+              mt-4
+              inline-flex items-center justify-center
+              min-h-[48px] px-8
+              rounded-full
+              border border-white/20
+              bg-white/10
+              text-white/90 text-sm md:text-base font-medium tracking-wide
+              shadow-[0_18px_45px_rgba(0,0,0,0.35)]
+              backdrop-blur-[8px]
+              transition-all duration-300
+              hover:bg-gradient-to-r hover:from-[#9d4edd]/70 hover:to-[#ff9505]/70
+              hover:text-white
+              hover:border-white/40
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60
+              active:scale-[0.97]
+            "
+            aria-label="Start"
+          >
+            Start
+          </motion.button>
         </div>
       </div>
-
-      {/* Scroll Indicator */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 1 }}
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
-      >
-        <div className="w-[30px] h-[50px] rounded-full border-2 border-white/20 flex justify-center p-2">
-          <motion.div 
-            animate={{ y: [0, 12, 0] }}
-            transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-            className="w-1.5 h-1.5 rounded-full bg-white/50"
-          />
-        </div>
-      </motion.div>
     </div>
   )
 }

@@ -15,11 +15,28 @@ const DEFAULT_ORDER_BY = [
  * 获取所有相册列表
  * @returns {Promise<AlbumType[]>} 相册列表
  */
+// 优化点: 为后台 & 封面页的相册列表增加 60s 进程内缓存
+let albumsListCache:
+  | { data: AlbumType[]; expiresAt: number }
+  | null = null
+const ALBUMS_TTL = 60_000
+
 export async function fetchAlbumsList(): Promise<AlbumType[]> {
-  return await db.albums.findMany({
+  const now = Date.now()
+  if (albumsListCache && albumsListCache.expiresAt > now) {
+    return albumsListCache.data
+  }
+
+  const data = await db.albums.findMany({
     where: { del: 0 },
     orderBy: DEFAULT_ORDER_BY,
   })
+
+  albumsListCache = {
+    data,
+    expiresAt: now + ALBUMS_TTL,
+  }
+  return data
 }
 
 /**

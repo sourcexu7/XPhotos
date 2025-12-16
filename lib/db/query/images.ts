@@ -611,8 +611,19 @@ export async function getRSSImages(): Promise<ImageType[]> {
  * 获取精选图片列表
  * @returns {Promise<ImageType[]>} 图片列表
  */
+// 优化点: 为精选图增加 60s 进程内缓存，减轻首页高频请求对 DB 的压力
+let featuredCache:
+  | { data: ImageType[]; expiresAt: number }
+  | null = null
+const FEATURED_TTL = 60_000
+
 export async function fetchFeaturedImages(): Promise<ImageType[]> {
-  return await db.$queryRaw`
+  const now = Date.now()
+  if (featuredCache && featuredCache.expiresAt > now) {
+    return featuredCache.data
+  }
+
+  const data = await db.$queryRaw<ImageType[]>`
     SELECT
         image.*,
         albums.name AS album_name,
@@ -631,6 +642,12 @@ export async function fetchFeaturedImages(): Promise<ImageType[]> {
         image.featured = 1
     ORDER BY image.sort DESC, image.created_at DESC
   `
+
+  featuredCache = {
+    data,
+    expiresAt: now + FEATURED_TTL,
+  }
+  return data
 }
 
 /**

@@ -6,7 +6,15 @@ import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
 import type { ExifType, AlbumType, ImageType } from '~/types'
 import Compressor from 'compressorjs'
-import { Select as AntSelect, Upload as AntUpload, Form as AntForm, Input as AntInput, Button as AntButton, Modal as AntModal, message as AntMessage, AutoComplete as AntAutoComplete, Tag as AntTag, Card as AntCard, Space as AntSpace, InputNumber as AntInputNumber, DatePicker as AntDatePicker } from 'antd'
+import { Upload as AntUpload, Form as AntForm, Input as AntInput, Button as AntButton, Modal as AntModal, message as AntMessage, AutoComplete as AntAutoComplete, Tag as AntTag, Card as AntCard, Space as AntSpace, InputNumber as AntInputNumber, DatePicker as AntDatePicker } from 'antd'
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from '~/components/ui/select'
+import MultipleSelector, { Option as MSOption } from '~/components/ui/origin/multiselect'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import zhCN from 'antd/es/date-picker/locale/zh_CN'
@@ -249,56 +257,57 @@ export default function LivephotoFileUpload() {
         <div className="flex flex-1 w-full space-x-1">
           <div className="flex flex-col" style={{ minWidth: 140 }}>
             <div className="text-xs text-gray-600 mb-1">{t('Upload.selectStorage')}</div>
-            <AntSelect size="middle" value={storage} placeholder={t('Upload.selectStorage')} style={{ minWidth: 140 }} onChange={async (value: string) => { setStorage(value); if (value === 'alist') await getAlistStorage(); else setStorageSelect(false); if (value === 's3') { try { toast.info('已切换到 Amazon S3：无需选择目录，请先选择相册再上传') } catch {} } }}>
-              {/* storage options */}
-              {storages?.map((s: { label: string, value: string }) => (<AntSelect.Option key={s.value} value={s.value}>{s.label}</AntSelect.Option>))}
-            </AntSelect>
+            <Select value={storage} onValueChange={(value: string) => { setStorage(value); if (value === 'alist') { getAlistStorage() } else { setStorageSelect(false) } if (value === 's3') { try { toast.info('已切换到 Amazon S3：无需选择目录，请先选择相册再上传') } catch {} } }}>
+              <SelectTrigger className="w-full h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder={t('Upload.selectStorage')} /></SelectTrigger>
+              <SelectContent>
+                {storages?.map((s: { label: string, value: string }) => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col min-w-0">
             <div className="text-xs text-gray-600 mb-1">{t('Upload.selectAlbum')}</div>
-            <AntSelect size="middle" disabled={isLoading} value={album} placeholder={t('Upload.selectAlbum')} style={{ minWidth: 240, flex: 1 }} onChange={(value: string) => setAlbum(value)}>
-              {data?.map((a: AlbumType) => (<AntSelect.Option key={a.album_value} value={a.album_value}>{a.name}</AntSelect.Option>))}
-            </AntSelect>
+            <Select value={album ?? undefined} onValueChange={(value: string) => setAlbum(value)}>
+              <SelectTrigger className="w-full h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder={t('Upload.selectAlbum')} /></SelectTrigger>
+              <SelectContent>
+                {data?.map((a: AlbumType) => (<SelectItem key={a.album_value} value={a.album_value}>{a.name}</SelectItem>))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex flex-col" style={{ minWidth: 240 }}>
             <div className="text-xs text-gray-600 mb-1">一级标签（Primary）</div>
-            <AntSelect
-              disabled={isLoading}
-              value={primarySelect}
-              placeholder="选择一级标签（可选）"
-              style={{ minWidth: 240 }}
-              onChange={(value: string) => setPrimarySelect(value)}
-            >
-              {presetTags?.map((s: string) => (
-                <AntSelect.Option key={s} value={s}>{s}</AntSelect.Option>
-              ))}
-            </AntSelect>
+            <Select value={primarySelect ?? undefined} onValueChange={(value: string) => setPrimarySelect(value)}>
+              <SelectTrigger className="w-full md:w-[240px] h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder="选择一级标签（可选）" /></SelectTrigger>
+              <SelectContent>
+                {presetTags?.map((s: string) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex flex-col" style={{ minWidth: 240 }}>
             <div className="text-xs text-gray-600 mb-1">二级标签（Secondary，多选）</div>
-            <AntSelect
-              disabled={isLoading}
-              mode="multiple"
-              value={secondarySelect}
-              placeholder="选择二级标签（可多选）"
-              style={{ minWidth: 240 }}
-              onChange={(value: string[]) => setSecondarySelect(value)}
-            >
-              {presetTags?.map((s: string) => (
-                <AntSelect.Option key={s} value={s}>{s}</AntSelect.Option>
-              ))}
-            </AntSelect>
+            <div>
+              <MultipleSelector
+                value={(secondarySelect || []).map(s => ({ value: s, label: s }))}
+                options={(presetTags || []).map(s => ({ value: s, label: s }))}
+                placeholder="选择二级标签（可多选）"
+                onChange={(opts?: MSOption[]) => setSecondarySelect((opts || []).map(o => o.value))}
+              />
+            </div>
           </div>
 
           {storage === 'alist' && storageSelect && alistStorage?.length > 0 && (
             <div style={{ minWidth: 220 }}>
               <div className="text-xs text-gray-600 mb-1">{t('Upload.selectAlistDirectory')}</div>
-              <AntSelect size="middle" disabled={isLoading} value={alistMountPath} placeholder={t('Upload.selectAlistDirectory')} onChange={(value: string)=>setAlistMountPath(value)} style={{ minWidth: 220 }}>
-                {alistStorage?.map((s: { mount_path: string })=>(<AntSelect.Option key={s?.mount_path} value={s?.mount_path}>{s?.mount_path}</AntSelect.Option>))}
-              </AntSelect>
+              <Select value={alistMountPath ?? undefined} onValueChange={(value: string) => setAlistMountPath(value)}>
+                <SelectTrigger className="w-full h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder={t('Upload.selectAlistDirectory')} /></SelectTrigger>
+                <SelectContent>
+                  {alistStorage?.map((s: { mount_path: string })=>(<SelectItem key={s?.mount_path} value={s?.mount_path}>{s?.mount_path}</SelectItem>))}
+                </SelectContent>
+              </Select>
             </div>
           )}
         </div>
@@ -328,7 +337,7 @@ export default function LivephotoFileUpload() {
         </AntModal>
 
         <div>
-          <AntButton size="middle" type="primary" loading={isUploading} onClick={async ()=>{ try { if (images.length>0) await onImageUpload(images,{onSuccess:()=>{},onError:()=>{}}); if (videos.length>0) await onVideoUpload(videos,{onSuccess:()=>{},onError:()=>{}}); await submit() } catch{ } }} disabled={(images.length===0 && videos.length===0) || album==='' || storage==='' || (storage==='alist' && alistMountPath==='')}>{t('Button.submit')}</AntButton>
+          <AntButton className="h-9 flex items-center justify-center" size="middle" type="primary" loading={isUploading} onClick={async ()=>{ try { if (images.length>0) await onImageUpload(images,{onSuccess:()=>{},onError:()=>{}}); if (videos.length>0) await onVideoUpload(videos,{onSuccess:()=>{},onError:()=>{}}); await submit() } catch{ } }} disabled={(images.length===0 && videos.length===0) || album==='' || storage==='' || (storage==='alist' && alistMountPath==='')}>{t('Button.submit')}</AntButton>
         </div>
       </div>
 
@@ -475,24 +484,44 @@ export default function LivephotoFileUpload() {
               <div>
                 <div className="text-sm font-medium mb-1">EXIF 信息（若缺失可选择下拉或手动输入）</div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  <AntForm.Item label="相机品牌 / 型号" extra={<a onClick={()=>{ setEditingPresetsText({ cameraModels: exifPresets.cameraModels.join(', '), shutterSpeeds: exifPresets.shutterSpeeds.join(', '), isos: exifPresets.isos.join(', '), apertures: exifPresets.apertures.join(', ') }); setIsPresetModalOpen(true) }}>管理常用选项</a>}>
-                    <AntSelect showSearch placeholder="常用机型" style={{ width: '100%' }} value={exif?.model || undefined} onChange={(v)=>setExif({...exif, model: v})} allowClear options={exifPresets.cameraModels.map((m: string)=>({label:m,value:m}))} />
+                    <AntForm.Item label="相机品牌 / 型号" extra={<a onClick={()=>{ setEditingPresetsText({ cameraModels: exifPresets.cameraModels.join(', '), shutterSpeeds: exifPresets.shutterSpeeds.join(', '), isos: exifPresets.isos.join(', '), apertures: exifPresets.apertures.join(', ') }); setIsPresetModalOpen(true) }}>管理常用选项</a>}>
+                    <Select value={exif?.model || undefined} onValueChange={(v)=>setExif({...exif, model: v})}>
+                      <SelectTrigger className="w-full h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder="常用机型" /></SelectTrigger>
+                      <SelectContent>
+                        {exifPresets.cameraModels.map((m: string)=> (<SelectItem key={m} value={m}>{m}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
                   </AntForm.Item>
                   <AntForm.Item label="快门 (exposure time)">
                     <div style={{ display:'flex', gap:8 }}>
-                      <AntSelect style={{ minWidth:140 }} placeholder="常用快门" value={exif?.exposure_time || undefined} onChange={(v)=>setExif({...exif, exposure_time: v})} allowClear options={exifPresets.shutterSpeeds.map((s: string)=>({label:s,value:s}))} />
+                      <Select value={exif?.exposure_time || undefined} onValueChange={(v)=>setExif({...exif, exposure_time: v})}>
+                        <SelectTrigger className="min-w-[140px] h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder="常用快门" /></SelectTrigger>
+                        <SelectContent>
+                          {exifPresets.shutterSpeeds.map((s: string)=> (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
                       <AntInput value={exif?.exposure_time || ''} onChange={(e)=>setExif({...exif, exposure_time: e.target.value})} placeholder="或者手动输入" />
                     </div>
                   </AntForm.Item>
                   <AntForm.Item label="ISO">
                     <div style={{ display:'flex', gap:8 }}>
-                      <AntSelect style={{ minWidth:140 }} placeholder="常用 ISO" value={exif?.iso_speed_rating || undefined} onChange={(v)=>setExif({...exif, iso_speed_rating: v})} allowClear options={exifPresets.isos.map((i: string)=>({label:i,value:i}))} />
+                      <Select value={exif?.iso_speed_rating || undefined} onValueChange={(v)=>setExif({...exif, iso_speed_rating: v})}>
+                        <SelectTrigger className="min-w-[140px] h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder="常用 ISO" /></SelectTrigger>
+                        <SelectContent>
+                          {exifPresets.isos.map((i: string)=> (<SelectItem key={i} value={i}>{i}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
                       <AntInput value={exif?.iso_speed_rating || ''} onChange={(e)=>setExif({...exif, iso_speed_rating: e.target.value})} placeholder="或者手动输入" />
                     </div>
                   </AntForm.Item>
                   <AntForm.Item label="光圈 (f/)">
                     <div style={{ display:'flex', gap:8 }}>
-                      <AntSelect style={{ minWidth:140 }} placeholder="常用光圈" value={exif?.f_number || undefined} onChange={(v)=>setExif({...exif, f_number: v})} allowClear options={exifPresets.apertures.map((a: string)=>({label:a,value:a}))} />
+                      <Select value={exif?.f_number || undefined} onValueChange={(v)=>setExif({...exif, f_number: v})}>
+                        <SelectTrigger className="min-w-[140px] h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder="常用光圈" /></SelectTrigger>
+                        <SelectContent>
+                          {exifPresets.apertures.map((a: string)=> (<SelectItem key={a} value={a}>{a}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
                       <AntInput value={exif?.f_number || ''} onChange={(e)=>setExif({...exif, f_number: e.target.value})} placeholder="或者手动输入" />
                     </div>
                   </AntForm.Item>
@@ -515,7 +544,13 @@ export default function LivephotoFileUpload() {
               </div>
 
             <div>
-              <AntSelect mode="tags" size="middle" style={{ width: '100%' }} placeholder={t('Upload.indexTag')} value={imageLabels} onChange={(vals)=>setImageLabels(vals as string[])} tokenSeparators={[',']} />
+              <MultipleSelector
+                value={(imageLabels || []).map((s: string) => ({ value: s, label: s }))}
+                options={(presetTags || []).map((s: string) => ({ value: s, label: s }))}
+                creatable
+                placeholder={t('Upload.indexTag')}
+                onChange={(opts?: MSOption[]) => setImageLabels((opts || []).map(o => o.value))}
+              />
             </div>
 
             </AntSpace>
@@ -546,14 +581,19 @@ export default function LivephotoFileUpload() {
           <AntForm layout="vertical">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <AntForm.Item label="相机品牌 / 型号" extra={<a onClick={()=>{ setEditingPresetsText({ cameraModels: exifPresets.cameraModels.join(', '), shutterSpeeds: exifPresets.shutterSpeeds.join(', '), isos: exifPresets.isos.join(', '), apertures: exifPresets.apertures.join(', ') }); setIsPresetModalOpen(true) }}>管理常用选项</a>}>
-                <AntAutoComplete
-                  options={exifPresets.cameraModels.map((m: string) => ({ value: m }))}
-                  style={{ width: '100%' }}
-                  placeholder="可从建议中选择或直接输入相机型号"
-                  value={exif?.model || undefined}
-                  onChange={(val) => setExif({ ...(exif || {}), model: val })}
-                  allowClear
-                />
+                <div>
+                  <MultipleSelector
+                    value={exif?.model ? [{ value: String(exif.model), label: String(exif.model) }] : []}
+                    options={exifPresets.cameraModels.map((m: string) => ({ value: m, label: m }))}
+                    placeholder="可从建议中选择或直接输入相机型号"
+                    creatable
+                    maxSelected={1}
+                    onChange={(opts?: any) => {
+                      const v = (opts && opts[0] && opts[0].value) || ''
+                      setExif({ ...(exif || {}), model: v })
+                    }}
+                  />
+                </div>
               </AntForm.Item>
               <AntForm.Item label="光圈 (f/)">
                 <AntInput value={exif?.f_number || ''} onChange={(e)=>setExif({...exif, f_number: e.target.value})} />

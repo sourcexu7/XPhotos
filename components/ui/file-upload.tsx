@@ -296,6 +296,7 @@ interface FileUploadRootProps
     React.ComponentPropsWithoutRef<'div'>,
     'defaultValue' | 'onChange'
   > {
+  idPrefix?: string;
   value?: File[];
   defaultValue?: File[];
   onValueChange?: (files: File[]) => void;
@@ -351,10 +352,14 @@ const FileUploadRoot = React.forwardRef<HTMLDivElement, FileUploadRootProps>(
       ...rootProps
     } = props
 
-    const inputId = React.useId()
-    const dropzoneId = React.useId()
-    const listId = React.useId()
-    const labelId = React.useId()
+    const { id: providedId } = props as { id?: string }
+
+    const reactId = React.useId()
+    const baseId = (props as any).idPrefix ?? (providedId ? String(providedId) : `file-upload-${reactId.replace(/:/g, '')}`)
+    const inputId = `${baseId}-input`
+    const dropzoneId = `${baseId}-dropzone`
+    const listId = `${baseId}-list`
+    const labelId = `${baseId}-label`
 
     const dir = useDirection(dirProp)
     const propsRef = useAsRef(props)
@@ -586,6 +591,7 @@ const FileUploadRoot = React.forwardRef<HTMLDivElement, FileUploadRootProps>(
               data-disabled={disabled ? '' : undefined}
               data-slot="file-upload"
               dir={dir}
+              id={providedId}
               {...rootProps}
               ref={forwardedRef}
               className={cn('relative flex flex-col gap-2', className)}

@@ -49,7 +49,7 @@ export default function FileUpload() {
       </div>
       {
         mode === 'multiple' ?
-          <MultipleFileUpload />
+          <MultipleFileUpload idPrefix="admin-multiple-upload" />
           : mode === 'livephoto' ?
           <LivephotoFileUpload />
           :

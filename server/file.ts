@@ -14,6 +14,43 @@ import { createId } from '@paralleldrive/cuid2'
 
 const app = new Hono()
 
+// ========================= 通用工具函数 =========================
+// 优化点: 将 Config[] 转为简单的 key->value 映射，避免多次 configs.find(...)
+function toConfigMap(configs: Config[]): Record<string, string> {
+  const map: Record<string, string> = {}
+  for (const c of configs) {
+    if (c.config_key) {
+      map[c.config_key] = c.config_value || ''
+    }
+  }
+  return map
+}
+
+// 优化点: 统一规范化 storage_folder，避免重复 if 逻辑
+function normalizeStorageFolder(raw?: string | null): string {
+  if (!raw) return ''
+  if (raw === '/') return ''
+  return raw.endsWith('/') ? raw.slice(0, -1) : raw
+}
+
+// 优化点: 复用 S3 公开 URL 拼接逻辑
+function buildS3PublicUrl(cfg: Record<string, string>, key: string): string {
+  const bucket = cfg['bucket'] || ''
+  const endpoint = (cfg['endpoint'] || '').replace(/\/$/, '')
+  const useCdn = cfg['s3_cdn'] === 'true'
+  const cdnUrl = (cfg['s3_cdn_url'] || '').replace(/\/$/, '')
+  const forcePathStyle = cfg['force_path_style'] === 'true'
+
+  const base = useCdn && cdnUrl ? cdnUrl : endpoint
+  if (useCdn && cdnUrl) {
+    return `${base}/${key}`
+  }
+  if (forcePathStyle) {
+    return `${base}/${bucket}/${key}`
+  }
+  return `${base.replace('https://', 'https://' + bucket + '.')}/${key}`
+}
+
 // 生成预签名 URL
 app.post('/presigned-url', async (c) => {
   try {
@@ -36,14 +73,14 @@ app.post('/presigned-url', async (c) => {
           'r2_storage_folder',
           'r2_public_domain',
         ])
+        const cfg = toConfigMap(configs) // 优化点: 统一转为 map，减少重复 find
 
-        const bucket = configs.find((item: Config) => item.config_key === 'r2_bucket')?.config_value || ''
-        const storageFolder = configs.find((item: Config) => item.config_key === 'r2_storage_folder')?.config_value || ''
-
-        // 构建文件路径
-        const filePath = storageFolder && storageFolder !== '/'
-          ? type && type !== '/' ? `${storageFolder}${type}/${filename}` : `${storageFolder}/${filename}`
-          : type && type !== '/' ? `${type.slice(1)}/${filename}` : `${filename}`
+        const bucket = cfg['r2_bucket'] || ''
+        const storageFolder = normalizeStorageFolder(cfg['r2_storage_folder'])
+        const typeSegment = type && type !== '/' ? String(type).slice(1) : ''
+        const parts = [storageFolder, typeSegment].filter(Boolean)
+        const prefix = parts.length ? parts.join('/') : ''
+        const filePath = prefix ? `${prefix}/${filename}` : filename
 
         const client = getR2Client(configs)
         const presignedUrl = await generatePresignedUrl(client, bucket, filePath, contentType, 'put')
@@ -52,8 +89,8 @@ app.post('/presigned-url', async (c) => {
           code: 200,
           data: {
             presignedUrl,
-            key: filePath
-          }
+            key: filePath,
+          },
         })
       }
 
@@ -68,37 +105,41 @@ app.post('/presigned-url', async (c) => {
           'force_path_style',
           's3_force_server_upload',
         ])
-        const forceServer = (configs.find((i: Config) => i.config_key === 's3_force_server_upload')?.config_value || '') === 'true'
+        const cfg = toConfigMap(configs)
+        const forceServer = cfg['s3_force_server_upload'] === 'true'
         if (forceServer) {
           return c.json({ code: 286, data: { serverUpload: true } })
         }
-        const requiredKeys = ['accesskey_id','accesskey_secret','region','endpoint','bucket']
+
+        const requiredKeys = ['accesskey_id', 'accesskey_secret', 'region', 'endpoint', 'bucket']
         for (const k of requiredKeys) {
-          const v = configs.find((item: Config) => item.config_key === k)?.config_value || ''
-          if (!v) {
+          if (!cfg[k]) {
             throw new HTTPException(400, { message: `S3 config ${k} is required` })
           }
         }
-        const bucket = configs.find((item: Config) => item.config_key === 'bucket')?.config_value || ''
-        let storageFolder = configs.find((item: Config) => item.config_key === 'storage_folder')?.config_value || ''
-        // normalize storageFolder to avoid trailing slash issues
-        if (storageFolder === '/') storageFolder = ''
-        if (storageFolder.endsWith('/')) storageFolder = storageFolder.slice(0, -1)
 
-        const typeSegment = (type && type !== '/') ? `${type.replace(/^\//,'')}` : ''
+        const bucket = cfg['bucket']
+        const storageFolder = normalizeStorageFolder(cfg['storage_folder'])
+        const typeSegment = type && type !== '/' ? type.replace(/^\//, '') : ''
         const parts = [storageFolder, typeSegment].filter(Boolean)
         const prefix = parts.length ? parts.join('/') : ''
-        const filePath = prefix ? `${prefix}/${filename}` : `${filename}`
+        const filePath = prefix ? `${prefix}/${filename}` : filename
 
         const client = getClient(configs)
-        const presignedUrl = await generatePresignedUrl(client as unknown as Record<string, unknown>, bucket, filePath, contentType, 'put')
+        const presignedUrl = await generatePresignedUrl(
+          client as unknown as Record<string, unknown>,
+          bucket,
+          filePath,
+          contentType,
+          'put',
+        )
 
         return c.json({
           code: 200,
           data: {
             presignedUrl,
-            key: filePath
-          }
+            key: filePath,
+          },
         })
       }
 
@@ -119,96 +160,87 @@ app.post('/upload', async (c) => {
   const type = formData.get('type')
   const mountPath = formData.get('mountPath') || ''
 
-  if (storage) {
-    switch (storage.toString()) {
-      case 'alist':
-        return await alistUpload(file, type, mountPath)
-          .then((result: string | undefined) => {
-            return Response.json({
-              code: 200, data: result
-            })
-          })
-          .catch(e => {
-            throw new HTTPException(500, { message: 'Failed', cause: e })
-          })
-      case 's3': {
-        try {
-          if (!(file instanceof File)) {
-            throw new HTTPException(400, { message: 'File missing for S3 upload' })
+  if (!storage) {
+    throw new HTTPException(400, { message: 'Storage type is required' })
+  }
+
+  switch (storage.toString()) {
+    case 'alist':
+      try {
+        const result = await alistUpload(file as Blob, type as string, mountPath as string)
+        return Response.json({ code: 200, data: result })
+      } catch (e) {
+        throw new HTTPException(500, { message: 'Failed', cause: e })
+      }
+
+    case 's3': {
+      try {
+        if (!file) {
+          throw new HTTPException(400, { message: 'File missing for S3 upload' })
+        }
+
+        const blob = file as Blob
+        const configs = await fetchConfigsByKeys([
+          'accesskey_id',
+          'accesskey_secret',
+          'region',
+          'endpoint',
+          'bucket',
+          'storage_folder',
+          'force_path_style',
+          's3_cdn',
+          's3_cdn_url',
+        ])
+        const cfg = toConfigMap(configs)
+
+        const requiredKeys = ['accesskey_id', 'accesskey_secret', 'region', 'endpoint', 'bucket']
+        for (const k of requiredKeys) {
+          if (!cfg[k]) {
+            throw new HTTPException(400, { message: `S3 config ${k} is required` })
           }
-          const configs = await fetchConfigsByKeys([
-            'accesskey_id',
-            'accesskey_secret',
-            'region',
-            'endpoint',
-            'bucket',
-            'storage_folder',
-            'force_path_style',
-            's3_cdn',
-            's3_cdn_url',
-          ])
+        }
 
-          const requiredKeys = ['accesskey_id','accesskey_secret','region','endpoint','bucket']
-          for (const k of requiredKeys) {
-            const v = configs.find((item: Config) => item.config_key === k)?.config_value || ''
-            if (!v) {
-              throw new HTTPException(400, { message: `S3 config ${k} is required` })
-            }
-          }
+        const bucket = cfg['bucket']
+        const storageFolder = normalizeStorageFolder(cfg['storage_folder'])
+        const typeSegment = type && type !== '/' ? String(type).replace(/^\//, '') : ''
+        const parts = [storageFolder, typeSegment].filter(Boolean)
+        const prefix = parts.length ? parts.join('/') : ''
 
-          const bucket = configs.find((item: Config) => item.config_key === 'bucket')?.config_value || ''
-          let storageFolder = configs.find((item: Config) => item.config_key === 'storage_folder')?.config_value || ''
-          if (storageFolder === '/') storageFolder = ''
-          if (storageFolder.endsWith('/')) storageFolder = storageFolder.slice(0, -1)
+        const imageId = createId()
+        const rawName = (blob as any).name || 'upload.bin'
+        const ext = rawName.includes('.') ? rawName.split('.').pop() : 'bin'
+        const newFileName = `${imageId}.${ext}`
+        const key = prefix ? `${prefix}/${newFileName}` : newFileName
 
-          const typeSegment = (type && type !== '/') ? `${String(type).replace(/^\//,'')}` : ''
-          const parts = [storageFolder, typeSegment].filter(Boolean)
-          const prefix = parts.length ? parts.join('/') : ''
-
-          const imageId = createId()
-          const name = (file as File).name || 'upload.bin'
-          const ext = name.includes('.') ? name.split('.').pop() : 'bin'
-          const newFileName = `${imageId}.${ext}`
-          const key = prefix ? `${prefix}/${newFileName}` : `${newFileName}`
-
-          const client = getClient(configs)
-          const buf = Buffer.from(await (file as File).arrayBuffer())
-          await client.send(new PutObjectCommand({
+        const client = getClient(configs)
+        const buf = Buffer.from(await blob.arrayBuffer())
+        await client.send(
+          new PutObjectCommand({
             Bucket: bucket,
             Key: key,
             Body: buf,
-            ContentType: (file as File).type || undefined,
-          }))
+            ContentType: (blob as any).type || undefined,
+          }),
+        )
 
-          // 构造可访问 URL（与 getObjectUrl 逻辑一致）
-          const endpoint = configs.find((item: Config) => item.config_key === 'endpoint')?.config_value || ''
-          const forcePathStyle = (configs.find((item: Config) => item.config_key === 'force_path_style')?.config_value || '') === 'true'
-          const useCdn = (configs.find((item: Config) => item.config_key === 's3_cdn')?.config_value || '') === 'true'
-          const cdnUrl = configs.find((item: Config) => item.config_key === 's3_cdn_url')?.config_value || ''
+        const url = buildS3PublicUrl(cfg, key) // 优化点: 复用统一的 URL 拼接逻辑
 
-          const base = useCdn && cdnUrl ? cdnUrl.replace(/\/$/, '') : endpoint.replace(/\/$/, '')
-          const url = useCdn && cdnUrl
-            ? `${base}/${key}`
-            : forcePathStyle
-              ? `${base}/${bucket}/${key}`
-              : `${base.replace('https://', 'https://'+bucket+'.')}/${key}`
-
-          return Response.json({
-            code: 200,
-            data: {
-              url,
-              imageId,
-              fileName: newFileName,
-              key,
-            }
-          })
-        } catch (e) {
-          throw new HTTPException(500, { message: 'S3 server upload failed', cause: e })
-        }
+        return Response.json({
+          code: 200,
+          data: {
+            url,
+            imageId,
+            fileName: newFileName,
+            key,
+          },
+        })
+      } catch (e) {
+        throw new HTTPException(500, { message: 'S3 server upload failed', cause: e })
       }
-      default:
-        throw new HTTPException(500, { message: 'storage not support' })
     }
+
+    default:
+      throw new HTTPException(500, { message: 'storage not support' })
   }
 })
 
@@ -228,18 +260,21 @@ app.post('/getObjectUrl', async (c) => {
         's3_cdn_url',
         's3_direct_download',
       ])
-      const bucket = configs.find((item: Config) => item.config_key === 'bucket')?.config_value || ''
-      const endpoint = configs.find((item: Config) => item.config_key === 'endpoint')?.config_value || ''
-      const forcePathStyle = (configs.find((item: Config) => item.config_key === 'force_path_style')?.config_value || '') === 'true'
-      const useCdn = (configs.find((item: Config) => item.config_key === 's3_cdn')?.config_value || '') === 'true'
-      const cdnUrl = configs.find((item: Config) => item.config_key === 's3_cdn_url')?.config_value || ''
-      const direct = (configs.find((item: Config) => item.config_key === 's3_direct_download')?.config_value || '') === 'true'
+      const cfg = toConfigMap(configs)
+      const bucket = cfg['bucket'] || ''
+      const direct = cfg['s3_direct_download'] === 'true'
 
       if (!direct) {
         // 返回预签名 GET 链接，适用于私有桶
         try {
           const client = getClient(configs)
-          const signed = await generatePresignedUrl(client as unknown as Record<string, unknown>, bucket, key, '', 'get')
+          const signed = await generatePresignedUrl(
+            client as unknown as Record<string, unknown>,
+            bucket,
+            key,
+            '',
+            'get',
+          )
           return Response.json({ code: 200, data: signed })
         } catch (e) {
           throw new HTTPException(500, { message: 'Failed to sign S3 GET URL', cause: e })
@@ -247,13 +282,7 @@ app.post('/getObjectUrl', async (c) => {
       }
 
       // 直接拼接公开访问 URL（需要对象对公网可读或经 CDN 暴露）
-      const base = useCdn && cdnUrl ? cdnUrl.replace(/\/$/, '') : endpoint.replace(/\/$/, '')
-      const url = useCdn && cdnUrl
-        ? `${base}/${key}`
-        : forcePathStyle
-          ? `${base}/${bucket}/${key}`
-          : `${base.replace('https://', 'https://'+bucket+'.')}/${key}`
-
+      const url = buildS3PublicUrl(cfg, key)
       return Response.json({ code: 200, data: url })
     }
 

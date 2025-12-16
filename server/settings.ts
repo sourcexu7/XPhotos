@@ -93,7 +93,15 @@ app.get('/get-custom-info', async (c) => {
       'umami_analytics',
       'max_upload_files',
       'custom_index_origin_enable',
-      'admin_images_per_page'
+      'admin_images_per_page',
+      // 新增：「关于我」前台展示配置
+      'about_intro',
+      'about_photo_original_url',
+      'about_photo_preview_url',
+      'about_ins_url',
+      'about_xhs_url',
+      'about_weibo_url',
+      'about_github_url',
     ])
     return c.json(data)
   } catch (error) {
@@ -269,7 +277,7 @@ app.put('/update-custom-info', async (c) => {
     customAuthor: string
     feedId: string
     userId: string
-    customIndexStyle: number
+    customIndexStyle?: number
     customIndexDownloadEnable: boolean
     enablePreviewImageMaxWidthLimit: boolean
     previewImageMaxWidth: number
@@ -279,6 +287,14 @@ app.put('/update-custom-info', async (c) => {
     maxUploadFiles: number
     customIndexOriginEnable: boolean
     adminImagesPerPage: number
+    // 新增：「关于我」前台展示配置
+    aboutIntro?: string
+    aboutPhotoOriginalUrl?: string
+    aboutPhotoPreviewUrl?: string
+    aboutInsUrl?: string
+    aboutXhsUrl?: string
+    aboutWeiboUrl?: string
+    aboutGithubUrl?: string
   }
   try {
     await updateCustomInfo(query)

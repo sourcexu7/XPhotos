@@ -59,9 +59,10 @@ export default function UnifiedNav({
     setMobileMenuOpen(false)
   }, [pathname])
 
+  // Bug修复：导航顺序要求「相册分类」之后再放「关于我」，且倒数第二
   const navLinks = [
     { name: '首页', href: '/', icon: <HomeIcon className="w-4 h-4" /> },
-    { name: '作品合集', href: '/albums', icon: <ImageIcon className="w-4 h-4" /> },
+    { name: '作品画廊', href: '/albums', icon: <ImageIcon className="w-4 h-4" /> },
   ]
 
   // Filter albums for the dropdown/list
@@ -120,38 +121,51 @@ export default function UnifiedNav({
                 </Link>
               ))}
 
-              {/* Albums Dropdown */}
-              <div className="relative group py-2 cursor-pointer">
-                 <Link href="/covers" className="relative block">
-                    <span className={cn(
-                      'text-[16px] transition-all duration-300 block select-none',
-                      isActive('/covers') 
-                        ? 'bg-clip-text text-transparent bg-gradient-to-r from-[#9d4edd] to-[#ff9505] font-medium'
-                        : 'text-[#e0e0e0] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#9d4edd] group-hover:to-[#ff9505] group-hover:translate-x-[5px]'
-                    )}>
-                      相册分类
-                    </span>
-                    {isActive('/covers') && (
-                      <motion.div
-                        layoutId="underline"
-                        className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#9d4edd] to-[#ff9505]"
-                      />
-                    )}
-                 </Link>
-                 <div className="absolute top-full left-0 mt-2 w-48 bg-[#1a1a1a]/90 backdrop-blur-md border border-white/10 rounded-md shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
-                    <div className="py-2">
-                      {visibleAlbums.map(album => (
-                        <Link 
-                          key={album.id} 
-                          href={album.album_value}
-                          className="block px-4 py-2 text-sm text-white hover:bg-white/10 transition-colors"
-                        >
-                          {album.name}
-                        </Link>
-                      ))}
-                    </div>
-                 </div>
-              </div>
+              {/* Albums Button (click to covers) */}
+              <Link
+                href="/covers"
+                className="relative group py-2"
+              >
+                <span
+                  className={cn(
+                    'text-[16px] transition-all duration-300 block select-none',
+                    isActive('/covers')
+                      ? 'bg-clip-text text-transparent bg-gradient-to-r from-[#9d4edd] to-[#ff9505] font-medium'
+                      : 'text-[#e0e0e0] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#9d4edd] group-hover:to-[#ff9505] group-hover:translate-x-[5px]',
+                  )}
+                >
+                  相册分类
+                </span>
+                {isActive('/covers') && (
+                  <motion.div
+                    layoutId="underline"
+                    className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#9d4edd] to-[#ff9505]"
+                  />
+                )}
+              </Link>
+
+              {/* 关于我：放在相册分类之后、倒数第二 */}
+              <Link
+                href="/about"
+                className="relative group py-2"
+              >
+                <span
+                  className={cn(
+                    'text-[16px] transition-all duration-300 block select-none',
+                    isActive('/about')
+                      ? 'bg-clip-text text-transparent bg-gradient-to-r from-[#9d4edd] to-[#ff9505] font-medium'
+                      : 'text-[#e0e0e0] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#9d4edd] group-hover:to-[#ff9505] group-hover:translate-x-[5px]',
+                  )}
+                >
+                  关于我
+                </span>
+                {isActive('/about') && (
+                  <motion.div
+                    layoutId="underline"
+                    className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#9d4edd] to-[#ff9505]"
+                  />
+                )}
+              </Link>
 
               {/* Console / Login */}
               <Link
@@ -192,7 +206,7 @@ export default function UnifiedNav({
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-40 bg-[#0f172a]/95 backdrop-blur-xl pt-[80px] px-6 md:hidden overflow-y-auto"
           >
-            <div className="flex flex-col space-y-6 pb-10">
+              <div className="flex flex-col space-y-6 pb-10">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -203,6 +217,20 @@ export default function UnifiedNav({
                   {link.name}
                 </Link>
               ))}
+              <Link
+                href="/covers"
+                className="text-2xl font-medium text-gray-200 hover:text-white"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                相册分类
+              </Link>
+              <Link
+                href="/about"
+                className="text-2xl font-medium text-gray-200 hover:text-white"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                关于我
+              </Link>
               
               <div className="text-sm text-gray-500 uppercase tracking-wider mt-4">相册</div>
               <div className="grid grid-cols-2 gap-4">

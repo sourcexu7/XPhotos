@@ -79,7 +79,7 @@ export async function updateCustomInfo(payload: {
   customAuthor: string
   feedId: string
   userId: string
-  customIndexStyle: number
+  customIndexStyle?: number
   customIndexDownloadEnable: boolean
   enablePreviewImageMaxWidthLimit: boolean
   previewImageMaxWidth: number
@@ -89,8 +89,16 @@ export async function updateCustomInfo(payload: {
   maxUploadFiles: number
   customIndexOriginEnable: boolean
   adminImagesPerPage: number
+  // 新增：前台「关于我」配置
+  aboutIntro?: string
+  aboutPhotoOriginalUrl?: string
+  aboutPhotoPreviewUrl?: string
+  aboutInsUrl?: string
+  aboutXhsUrl?: string
+  aboutWeiboUrl?: string
+  aboutGithubUrl?: string
 }) {
-  const configUpdates = [
+  const configUpdates: { key: string; value: string }[] = [
     { key: 'custom_title', value: payload.title },
     { key: 'custom_favicon_url', value: payload.customFaviconUrl },
     { key: 'custom_author', value: payload.customAuthor },
@@ -98,7 +106,7 @@ export async function updateCustomInfo(payload: {
     { key: 'rss_user_id', value: payload.userId },
     { key: 'umami_host', value: payload.umamiHost },
     { key: 'umami_analytics', value: payload.umamiAnalytics },
-    { key: 'custom_index_style', value: payload.customIndexStyle.toString() },
+    { key: 'custom_index_style', value: (payload.customIndexStyle ?? 2).toString() },
     {
       key: 'custom_index_download_enable',
       value: payload.customIndexDownloadEnable ? 'true' : 'false',
@@ -132,11 +140,60 @@ export async function updateCustomInfo(payload: {
     })
   }
 
+  // 新增：「关于我」相关配置（仅在有值时写入）
+  if (payload.aboutIntro) {
+    configUpdates.push({
+      key: 'about_intro',
+      value: payload.aboutIntro,
+    })
+  }
+  if (payload.aboutPhotoOriginalUrl) {
+    configUpdates.push({
+      key: 'about_photo_original_url',
+      value: payload.aboutPhotoOriginalUrl,
+    })
+  }
+  if (payload.aboutPhotoPreviewUrl) {
+    configUpdates.push({
+      key: 'about_photo_preview_url',
+      value: payload.aboutPhotoPreviewUrl,
+    })
+  }
+  if (payload.aboutInsUrl) {
+    configUpdates.push({
+      key: 'about_ins_url',
+      value: payload.aboutInsUrl,
+    })
+  }
+  if (payload.aboutXhsUrl) {
+    configUpdates.push({
+      key: 'about_xhs_url',
+      value: payload.aboutXhsUrl,
+    })
+  }
+  if (payload.aboutWeiboUrl) {
+    configUpdates.push({
+      key: 'about_weibo_url',
+      value: payload.aboutWeiboUrl,
+    })
+  }
+  if (payload.aboutGithubUrl) {
+    configUpdates.push({
+      key: 'about_github_url',
+      value: payload.aboutGithubUrl,
+    })
+  }
+
+  // 优化点：使用 upsert，确保新配置项不存在时自动创建，避免 update 抛错
   await db.$transaction(
     configUpdates.map((config) =>
-      db.configs.update({
+      db.configs.upsert({
         where: { config_key: config.key },
-        data: {
+        create: {
+          config_key: config.key,
+          config_value: config.value,
+        },
+        update: {
           config_value: config.value,
           updatedAt: new Date(),
         },
