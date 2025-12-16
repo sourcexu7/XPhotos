@@ -536,7 +536,6 @@ export default function Preferences() {
                                 border: `1px solid ${token.colorBorder}`,
                               }}
                             >
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={aboutPreviewUrl}
                                 alt="关于我预览图"

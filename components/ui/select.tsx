@@ -20,7 +20,6 @@ const SelectTrigger = React.forwardRef<
     onPointerDown={(e) => {
       try {
         // Prevent pointer-driven default scrolling/focus behavior for mouse/touch.
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         const pt = e.pointerType
         if (!pt || pt === 'mouse' || pt === 'touch') e.preventDefault()

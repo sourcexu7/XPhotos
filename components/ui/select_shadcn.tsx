@@ -2,6 +2,7 @@
 
 import * as SelectPrimitive from "@radix-ui/react-select"
 import * as React from "react"
+import { ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "~/lib/utils"
 // minimal design: no icons
@@ -38,7 +39,7 @@ const SelectScrollUpButton = React.forwardRef<
     className={cn("flex cursor-default items-center justify-center py-1", className)}
     {...props}
   >
-    <ChevronUpIcon size={16} strokeWidth={2} />
+    <ChevronUp size={16} strokeWidth={2} />
   </SelectPrimitive.ScrollUpButton>
 ))
 SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName
@@ -52,7 +53,7 @@ const SelectScrollDownButton = React.forwardRef<
     className={cn("flex cursor-default items-center justify-center py-1", className)}
     {...props}
   >
-    <ChevronDownIcon size={16} strokeWidth={2} />
+    <ChevronDown size={16} strokeWidth={2} />
   </SelectPrimitive.ScrollDownButton>
 ))
 SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayName

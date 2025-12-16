@@ -86,7 +86,8 @@ export default function MultipleFileUpload({ idPrefix: propIdPrefix }: MultipleF
   const [secondarySelect, setSecondarySelect] = React.useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const t = useTranslations()
-  const idPrefix = propIdPrefix ?? React.useId()
+  const generatedIdPrefix = React.useId()
+  const idPrefix = propIdPrefix ?? generatedIdPrefix
 
   const { data, isLoading } = useSWR('/api/v1/albums/get', fetcher)
   const { data: configs } = useSWR<{ config_key: string, config_value: string }[]>('/api/v1/settings/get-custom-info', fetcher)
