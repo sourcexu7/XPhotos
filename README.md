@@ -22,13 +22,13 @@ XPhotos
 ## 视觉预览
 
 - 首页：
-  - ![首页预览](public/screenshots/home-desktop.png)
+   ![首页预览](public/screenshots/home-desktop.png)
 - 瀑布流展示：
-  - ![瀑布流预览](public/screenshots/waterfall.png)
+   ![瀑布流预览](public/screenshots/waterfall.png)
 - 单列展示：
-  - ![单列预览](public/screenshots/detail.png)
+   ![单列预览](public/screenshots/detail.png)
 - 相册：
-  - ![相册预览](public/screenshots/album.png)
+   ![相册预览](public/screenshots/album.png)
 - 在线 Demo(科学)： ✨ 在线体验：https://x-photos.vercel.app/
 
 ### 默认账号密码
