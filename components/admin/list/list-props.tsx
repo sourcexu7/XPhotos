@@ -182,22 +182,22 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
   }
 
   useEffect(() => {
-    const fetchCameraAndLensList = async () => {
+    // Fetch camera and lens list
+    const loadCameraAndLensList = async () => {
       try {
         const response = await fetch('/api/v1/images/camera-lens-list')
         if (response.ok) {
           const data = await response.json()
-          setCameras(data.cameras)
-          setLenses(data.lenses)
+          setCameras(data.cameras || [])
+          setLenses(data.lenses || [])
         }
       } catch (error) {
         console.error('Failed to fetch camera and lens list:', error)
       }
     }
 
-    fetchCameraAndLensList()
-    // fetch tags for multi-select
-    (async () => {
+    // Fetch tags for multi-select
+    const loadTags = async () => {
       try {
         const res = await fetch('/api/v1/settings/tags/get')
         if (res.ok) {
@@ -207,7 +207,10 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       } catch (error) {
         console.error('Failed to fetch tags:', error)
       }
-    })()
+    }
+
+    loadCameraAndLensList()
+    loadTags()
   }, [])
 
   async function updateImageAlbum() {

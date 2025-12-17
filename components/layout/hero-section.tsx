@@ -56,7 +56,7 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
             className="text-[32px] md:text-[48px] font-bold tracking-tight mb-[20px]"
           >
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#9d4edd] to-[#ff9505]">
-              你所热爱的就是你的生活
+              到最深处 纵然那只是瞬间
             </span>
           </motion.h1>
 

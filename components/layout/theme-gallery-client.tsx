@@ -73,16 +73,50 @@ export default function ThemeGalleryClient({
     return () => window.removeEventListener('scroll', onScroll)
   }, [enableFilters, filtersOpen])
 
-  // 点击页面任意处自动收起筛选（除了筛选面板本身或切换按钮）
+  // 点击页面任意处自动收起筛选（除了筛选面板本身、切换按钮或 Popover 内容）
   useEffect(() => {
     if (!enableFilters) return
     const onPointerDown = (e: PointerEvent) => {
       if (!filtersOpen) return
       const target = e.target as Element | null
+      if (!target) return
+      
       // 点击在筛选面板内则忽略
-      if (filterSectionRef.current && target && filterSectionRef.current.contains(target)) return
+      if (filterSectionRef.current && filterSectionRef.current.contains(target)) return
+      
       // 点击在切换按钮（带有 aria-controls="gallery-filter-panel"）上则忽略
-      if (target && target.closest('[aria-controls="gallery-filter-panel"]')) return
+      if (target.closest('[aria-controls="gallery-filter-panel"]')) return
+      
+      // 点击在 Popover 内容内则忽略（MultiSelect 的 Popover 通过 Portal 渲染到 body）
+      // 检查多种可能的 Popover 和 Command 相关选择器
+      const popoverSelectors = [
+        '[data-slot="popover-content"]',
+        '[data-slot="popover"]',
+        '[role="dialog"]',
+        '[data-radix-popper-content-wrapper]',
+        '[data-slot="command"]',
+        '[data-slot="command-input"]',
+        '[data-slot="command-list"]',
+        '[data-slot="command-item"]',
+        '[data-slot="command-group"]',
+        '[cmdk-root]',
+        '[cmdk-input]',
+        '[cmdk-list]',
+        '[cmdk-item]',
+        '[cmdk-group]',
+      ]
+      
+      // 检查点击的元素是否在任何 Popover 或 Command 相关元素内
+      const isInPopover = popoverSelectors.some(selector => {
+        try {
+          return target.closest(selector) !== null
+        } catch {
+          return false
+        }
+      })
+      
+      if (isInPopover) return
+      
       setFiltersOpen(false)
     }
     document.addEventListener('pointerdown', onPointerDown)

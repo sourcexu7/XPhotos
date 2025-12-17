@@ -254,7 +254,7 @@ export default function ScrollMorphHero({ images }: ScrollMorphHeroProps) {
                         className="text-2xl font-medium tracking-tight text-foreground md:text-4xl"
                     >
                         <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#9d4edd] to-[#ff9505]">
-                            你所热爱的就是你的生活
+                            到最深处纵然那只是瞬间
                         </span>
                     </motion.h1>
                     <motion.p
@@ -274,7 +274,7 @@ export default function ScrollMorphHero({ images }: ScrollMorphHeroProps) {
                 >
                     <h2 className="text-3xl md:text-5xl font-semibold text-foreground tracking-tight mb-4">
                         <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#9d4edd] to-[#ff9505]">
-                            你所热爱的就是你的生活
+                            到最深处纵然那只是瞬间
                         </span>
                     </h2>
                     <p className="text-sm md:text-base text-muted-foreground max-w-lg leading-relaxed">
