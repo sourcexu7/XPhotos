@@ -43,16 +43,36 @@ export function FramerCarousel({
   // 更新容器宽度
   const updateContainerWidth = useCallback(() => {
     if (containerRef.current) {
-      setContainerWidth(containerRef.current.offsetWidth)
+      const width = containerRef.current.offsetWidth
+      setContainerWidth(width)
+      // 立即更新 x 位置，避免初始位置不正确
+      if (width > 0) {
+        x.set(-index * width)
+      }
     }
-  }, [])
+  }, [index, x])
 
   // 监听窗口变化
   useEffect(() => {
-    updateContainerWidth()
+    // 使用 requestAnimationFrame 确保 DOM 已渲染
+    requestAnimationFrame(() => {
+      updateContainerWidth()
+    })
     const handleResize = () => updateContainerWidth()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
+  }, [updateContainerWidth])
+
+  // 使用 ResizeObserver 监听容器尺寸变化
+  useEffect(() => {
+    if (!containerRef.current) return
+    
+    const resizeObserver = new ResizeObserver(() => {
+      updateContainerWidth()
+    })
+    
+    resizeObserver.observe(containerRef.current)
+    return () => resizeObserver.disconnect()
   }, [updateContainerWidth])
 
   // 预加载相邻图片
@@ -76,12 +96,17 @@ export function FramerCarousel({
   useEffect(() => {
     if (containerWidth > 0 && items.length > 0) {
       const targetX = -index * containerWidth
-      animate(x, targetX, {
-        type: 'spring',
-        stiffness: 200,  // 降低刚度，更平滑
-        damping: 25,     // 适中阻尼
-        mass: 0.8,       // 添加质量感
-      })
+      // 如果是初始加载且 x 为 0，直接设置位置而不使用动画
+      if (x.get() === 0 && index === 0) {
+        x.set(targetX)
+      } else {
+        animate(x, targetX, {
+          type: 'spring',
+          stiffness: 200,  // 降低刚度，更平滑
+          damping: 25,     // 适中阻尼
+          mass: 0.8,       // 添加质量感
+        })
+      }
     }
   }, [index, containerWidth, x, items.length])
 
@@ -170,10 +195,11 @@ export function FramerCarousel({
             {items.map((item, i) => (
               <div
                 key={item.id}
-                className="shrink-0 w-full h-full relative"
+                className="shrink-0 h-full relative"
                 style={{ 
-                  width: containerWidth || '100%',
+                  width: containerWidth > 0 ? containerWidth : '100%',
                   willChange: 'transform',
+                  flexShrink: 0,
                 }}
               >
                 {/* 加载占位符 */}

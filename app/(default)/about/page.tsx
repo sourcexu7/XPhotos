@@ -72,7 +72,7 @@ export default function AboutPage() {
                 <div className="mt-2 h-0.5 w-12 bg-gradient-to-r from-white/80 to-transparent" />
               </div>
               
-              <p className="text-sm md:text-base lg:text-lg text-[#a0a0a0] leading-relaxed max-w-md">
+              <p className="text-sm md:text-base lg:text-lg text-[#a0a0a0] leading-relaxed max-w-md whitespace-pre-line">
                 {intro}
               </p>
             </header>
