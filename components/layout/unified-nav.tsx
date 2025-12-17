@@ -61,8 +61,8 @@ export default function UnifiedNav({
 
   // Bug修复：导航顺序要求「相册分类」之后再放「关于我」，且倒数第二
   const navLinks = [
-    { name: '首页', href: '/', icon: <HomeIcon className="w-4 h-4" /> },
-    { name: '作品画廊', href: '/albums', icon: <ImageIcon className="w-4 h-4" /> },
+    { name: '序章', href: '/', icon: <HomeIcon className="w-4 h-4" /> },
+    { name: '景行集', href: '/albums', icon: <ImageIcon className="w-4 h-4" /> },
   ]
 
   // Filter albums for the dropdown/list
@@ -134,7 +134,7 @@ export default function UnifiedNav({
                       : 'text-[#e0e0e0] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#9d4edd] group-hover:to-[#ff9505] group-hover:translate-x-[5px]',
                   )}
                 >
-                  相册分类
+                  城隅寻迹
                 </span>
                 {isActive('/covers') && (
                   <motion.div
@@ -222,7 +222,7 @@ export default function UnifiedNav({
                 className="text-2xl font-medium text-gray-200 hover:text-white"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                相册分类
+                城隅寻迹
               </Link>
               <Link
                 href="/about"

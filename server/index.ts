@@ -6,6 +6,7 @@ import images from './images'
 import albums from './albums'
 import alist from './storage/alist'
 import auth from './auth'
+import publicApi from './public'
 import { jwtAuth } from './middleware/auth'
 import { HTTPException } from 'hono/http-exception'
 
@@ -20,8 +21,9 @@ route.onError((err, c) => {
   return c.json({ message: 'Internal Server Error' }, 500)
 })
 
-// Auth routes (public)
+// Public routes (no authentication required)
 route.route('/auth', auth)
+route.route('/public', publicApi)
 
 // Protected routes middleware
 route.use('/settings/*', jwtAuth)

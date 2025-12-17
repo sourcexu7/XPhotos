@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import { Button, Input, Form, Switch, Card, Space, Row, Col, Typography, theme } from 'antd'
-import { SaveOutlined, CopyOutlined } from '@ant-design/icons'
+import { SaveOutlined, CopyOutlined, DeleteOutlined, PlusOutlined, HolderOutlined } from '@ant-design/icons'
 import {
   Select,
   SelectTrigger,
@@ -14,20 +14,34 @@ import {
   SelectItem,
   SelectValue,
 } from '~/components/ui/select'
-// 新增：「关于我」头像上传使用现有上传工具 & 压缩
+// 「关于我」头像上传使用现有上传工具 & 压缩
 import Compressor from 'compressorjs'
 import { uploadFile } from '~/lib/utils/file'
 
 const { Compact } = Space
+
+// 拖拽排序相关类型
+interface DragItem {
+  index: number
+  url: string
+}
 
 export default function Preferences() {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [aboutUploading, setAboutUploading] = useState(false)
   const [aboutPreviewUrl, setAboutPreviewUrl] = useState('')
+  // 多图画廊状态
+  const [galleryImages, setGalleryImages] = useState<string[]>([])
+  const [galleryUploading, setGalleryUploading] = useState(false)
+  // 拖拽排序状态
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  
   const { token } = theme.useToken()
   const t = useTranslations()
   const aboutInputRef = useRef<HTMLInputElement | null>(null)
+  const galleryInputRef = useRef<HTMLInputElement | null>(null)
 
   const { data, isValidating, isLoading } = useSWR<{ config_key: string, config_value: string }[]>('/api/v1/settings/get-custom-info', fetcher)
 
@@ -76,7 +90,7 @@ export default function Preferences() {
           maxUploadFiles: maxFiles,
           customIndexOriginEnable: values.customIndexOriginEnable,
           adminImagesPerPage: imagesPerPage,
-          // 新增：「关于我」前台展示配置
+          // 「关于我」前台展示配置
           aboutIntro: values.aboutIntro,
           aboutPhotoOriginalUrl: values.aboutPhotoOriginalUrl,
           aboutPhotoPreviewUrl: values.aboutPhotoPreviewUrl,
@@ -84,6 +98,8 @@ export default function Preferences() {
           aboutXhsUrl: values.aboutXhsUrl,
           aboutWeiboUrl: values.aboutWeiboUrl,
           aboutGithubUrl: values.aboutGithubUrl,
+          // 多图画廊
+          aboutGalleryImages: galleryImages,
         }),
       }).then(res => res.json())
       toast.success('修改成功！')
@@ -113,7 +129,7 @@ export default function Preferences() {
         maxUploadFiles: data?.find((item) => item.config_key === 'max_upload_files')?.config_value || '5',
         customIndexOriginEnable: data?.find((item) => item.config_key === 'custom_index_origin_enable')?.config_value.toString() === 'true' || false,
         adminImagesPerPage: data?.find((item) => item.config_key === 'admin_images_per_page')?.config_value || '8',
-        // 新增：「关于我」前台展示配置
+        // 「关于我」前台展示配置
         aboutIntro: data?.find((item) => item.config_key === 'about_intro')?.config_value || '',
         aboutPhotoOriginalUrl: data?.find((item) => item.config_key === 'about_photo_original_url')?.config_value || '',
         aboutPhotoPreviewUrl: data?.find((item) => item.config_key === 'about_photo_preview_url')?.config_value || '',
@@ -124,10 +140,23 @@ export default function Preferences() {
       })
       const preview = data?.find((item) => item.config_key === 'about_photo_preview_url')?.config_value
       if (preview) setAboutPreviewUrl(preview)
+
+      // 解析多图画廊数据
+      const galleryJson = data?.find((item) => item.config_key === 'about_gallery_images')?.config_value
+      if (galleryJson) {
+        try {
+          const parsed = JSON.parse(galleryJson)
+          if (Array.isArray(parsed)) {
+            setGalleryImages(parsed)
+          }
+        } catch {
+          // 解析失败，使用空数组
+        }
+      }
     }
   }, [data, form])
 
-  // 新增：「关于我」个人照片上传逻辑（限制 JPG/PNG + 粗略校验 16:9 比例）
+  // 「关于我」个人照片上传逻辑（限制 JPG/PNG + 粗略校验 16:9 比例）
   const handleAboutPhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -135,7 +164,6 @@ export default function Preferences() {
       toast.error('仅支持 JPG / PNG 格式的图片')
       return
     }
-    // 取消上传体积限制，允许较大图片上传（后端存储限制仍适用）
 
     setAboutUploading(true)
 
@@ -206,6 +234,100 @@ export default function Preferences() {
       event.target.value = ''
     }
   }
+
+  // 多图画廊上传逻辑
+  const handleGalleryUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+
+    // 限制最多上传 10 张
+    if (galleryImages.length + files.length > 10) {
+      toast.error('画廊最多支持 10 张图片')
+      return
+    }
+
+    setGalleryUploading(true)
+    const newUrls: string[] = []
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type)) {
+          toast.warning(`跳过不支持的格式: ${file.name}`)
+          continue
+        }
+
+        // 压缩图片
+        const compressedFile: File = await new Promise((resolve, reject) => {
+          // @ts-expect-error - compressorjs constructor typing
+          new Compressor(file, {
+            quality: 0.85,
+            maxWidth: 1920,
+            maxHeight: 1920,
+            success(result: Blob | File) {
+              const f = result instanceof File ? result : new File([result], file.name, { type: file.type })
+              resolve(f)
+            },
+            error(err: Error) {
+              reject(err)
+            },
+          })
+        })
+
+        // 上传到画廊目录
+        const resp = await uploadFile(compressedFile, '/about/gallery', 's3', '')
+        if (resp.code === 200 && resp.data?.url) {
+          newUrls.push(resp.data.url)
+          toast.success(`上传成功: ${file.name}`)
+        } else {
+          toast.error(`上传失败: ${file.name}`)
+        }
+      }
+
+      if (newUrls.length > 0) {
+        setGalleryImages(prev => [...prev, ...newUrls])
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error('画廊图片上传失败')
+    } finally {
+      setGalleryUploading(false)
+      event.target.value = ''
+    }
+  }
+
+  // 删除画廊图片
+  const handleDeleteGalleryImage = useCallback((index: number) => {
+    setGalleryImages(prev => prev.filter((_, i) => i !== index))
+    toast.success('已删除')
+  }, [])
+
+  // 拖拽排序 - 开始拖拽
+  const handleDragStart = useCallback((index: number) => {
+    setDraggedIndex(index)
+  }, [])
+
+  // 拖拽排序 - 拖拽经过
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index)
+    }
+  }, [draggedIndex])
+
+  // 拖拽排序 - 拖拽结束
+  const handleDragEnd = useCallback(() => {
+    if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
+      setGalleryImages(prev => {
+        const newImages = [...prev]
+        const [removed] = newImages.splice(draggedIndex, 1)
+        newImages.splice(dragOverIndex, 0, removed)
+        return newImages
+      })
+    }
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+  }, [draggedIndex, dragOverIndex])
 
   return (
     <div style={{ height: '100%' }}>
@@ -429,7 +551,7 @@ export default function Preferences() {
             </Col>
           </Row>
 
-          {/* 新增：「关于我」前台配置模块 */}
+          {/* 「关于我」前台配置模块 */}
           <Row gutter={[token.marginLG, token.marginLG]} style={{ marginTop: token.marginLG }}>
             <Col xs={24} lg={24}>
               <Card
@@ -442,7 +564,8 @@ export default function Preferences() {
               >
                 <Space orientation="vertical" size={token.margin} style={{ width: '100%' }}>
                   <Row gutter={[token.marginLG, token.marginLG]}>
-                    <Col xs={24} md={12} className="flex flex-col justify-center">
+                    {/* 左侧：个人介绍 + 社交链接 */}
+                    <Col xs={24} md={8} className="flex flex-col justify-start">
                       <Space orientation="vertical" size={token.margin} style={{ width: '100%' }}>
                         <Form.Item
                           label="个人介绍"
@@ -488,20 +611,23 @@ export default function Preferences() {
                       </Space>
                     </Col>
 
-                    <Col xs={24} md={12} className="flex flex-col items-center justify-center">
+                    {/* 中间：单张主图上传 */}
+                    <Col xs={24} md={8} className="flex flex-col items-center justify-start">
                       <Space orientation="vertical" size={token.margin} style={{ width: '100%', alignItems: 'center' }}>
                         <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                          个人照片（建议 16:9 横图，JPG / PNG）
+                          封面照片（建议 16:9 横图，JPG / PNG）
                         </Typography.Text>
                         <Form.Item
                           label="原图地址"
                           name="aboutPhotoOriginalUrl"
+                          style={{ width: '100%' }}
                         >
                           <Input placeholder="上传后自动填充，也可粘贴已有图片地址" />
                         </Form.Item>
                         <Form.Item
                           label="预览图地址"
                           name="aboutPhotoPreviewUrl"
+                          style={{ width: '100%' }}
                         >
                           <Input placeholder="上传后自动填充，用于前台展示" />
                         </Form.Item>
@@ -519,18 +645,18 @@ export default function Preferences() {
                             loading={aboutUploading}
                             disabled={aboutUploading}
                           >
-                            上传个人照片（16:9 横图）
+                            上传封面照片
                           </Button>
                         </div>
                         {aboutPreviewUrl && (
-                          <div className="mt-3">
+                          <div className="mt-3 w-full">
                             <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
                               预览：
                             </Typography.Text>
                             <div
                               style={{
                                 marginTop: 8,
-                                maxWidth: '480px',
+                                maxWidth: '320px',
                                 width: '100%',
                                 aspectRatio: '16 / 9',
                                 borderRadius: 12,
@@ -540,12 +666,102 @@ export default function Preferences() {
                             >
                               <img
                                 src={aboutPreviewUrl}
-                                alt="关于我预览图"
+                                alt="封面预览图"
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               />
                             </div>
                           </div>
                         )}
+                      </Space>
+                    </Col>
+
+                    {/* 右侧：多图画廊管理 */}
+                    <Col xs={24} md={8} className="flex flex-col items-start justify-start">
+                      <Space orientation="vertical" size={token.margin} style={{ width: '100%' }}>
+                        <div className="flex items-center justify-between w-full">
+                          <Typography.Text strong>
+                            画廊图片（最多 10 张，可拖拽排序）
+                          </Typography.Text>
+                          <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+                            {galleryImages.length} / 10
+                          </Typography.Text>
+                        </div>
+
+                        {/* 上传按钮 */}
+                        <div className="flex items-center gap-2">
+                          <input
+                            ref={el => (galleryInputRef.current = el)}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            multiple
+                            onChange={handleGalleryUpload}
+                            disabled={galleryUploading || galleryImages.length >= 10}
+                            style={{ display: 'none' }}
+                          />
+                          <Button
+                            icon={<PlusOutlined />}
+                            onClick={() => galleryInputRef.current?.click()}
+                            loading={galleryUploading}
+                            disabled={galleryUploading || galleryImages.length >= 10}
+                          >
+                            添加图片
+                          </Button>
+                        </div>
+
+                        {/* 画廊图片预览列表 */}
+                        <div className="grid grid-cols-2 gap-2 w-full mt-2">
+                          {galleryImages.map((url, idx) => (
+                            <div
+                              key={`${url}-${idx}`}
+                              draggable
+                              onDragStart={() => handleDragStart(idx)}
+                              onDragOver={(e) => handleDragOver(e, idx)}
+                              onDragEnd={handleDragEnd}
+                              className={`relative group rounded-lg overflow-hidden border transition-all cursor-move
+                                ${draggedIndex === idx ? 'opacity-50 scale-95' : ''}
+                                ${dragOverIndex === idx ? 'border-blue-500 border-2' : 'border-gray-200'}
+                              `}
+                              style={{ aspectRatio: '16/9' }}
+                            >
+                              <img
+                                src={url}
+                                alt={`画廊图片 ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                                draggable={false}
+                              />
+                              {/* 拖拽手柄 */}
+                              <div className="absolute top-1 left-1 p-1 bg-black/50 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                <HolderOutlined className="text-xs" />
+                              </div>
+                              {/* 序号标签 */}
+                              <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-black/60 rounded text-white text-xs">
+                                {idx + 1}
+                              </div>
+                              {/* 删除按钮 */}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteGalleryImage(idx)}
+                                className="absolute bottom-1 right-1 p-1.5 bg-red-500 hover:bg-red-600 rounded text-white opacity-0 group-hover:opacity-100 transition-all"
+                              >
+                                <DeleteOutlined className="text-xs" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        {galleryImages.length === 0 && (
+                          <div 
+                            className="w-full py-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:border-gray-400 transition-colors"
+                            onClick={() => galleryInputRef.current?.click()}
+                          >
+                            <PlusOutlined className="text-2xl mb-2" />
+                            <span className="text-sm">点击添加画廊图片</span>
+                          </div>
+                        )}
+
+                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                          提示：画廊图片将在前台「关于我」页面以轮播形式展示
+                        </Typography.Text>
                       </Space>
                     </Col>
                   </Row>

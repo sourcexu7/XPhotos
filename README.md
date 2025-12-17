@@ -1,32 +1,40 @@
 <h1 align="center">
-
+<img width="28" src="./public/maskable-icon.png">
 XPhotos
 </h1>
 
-<p align="center">
-  <a href="https://github.com/sourcexu7/XPhotos/blob/main/LICENSE"><img src="https://img.shields.io/github/license/sourcexu7/XPhotos?style=flat-square" alt="许可证"></a>
-  <img src="https://img.shields.io/github/repo-size/sourcexu7/XPhotos?style=flat-square&color=328657" alt="存储库大小">
-</p>
+基于 Next.js 的响应式个人摄影网页与管理后台。
 
-XPhotos 是一个支持自部署的摄影作品展示网站，基于 Next.js + Hono.js 开发。
+基于开发的响应式个人摄影网页，支持摄影作品多图轮播展示、分类筛选、后台作品上传/管理，适配移动端/桌面端，优化图片加载性能。
 
-### 功能特性
+---
 
-- 瀑布流相册展示图片，支持[实况照片(Live Photos)](https://support.apple.com/zh-cn/104966)，基于 [LivePhotosKit JS](https://developer.apple.com/documentation/livephotoskitjs) 开发。
-- 点击图片查看原图，浏览图片信息和 EXIF 信息，支持直链或预签名访问（S3/R2/CDN）。
-- 响应式设计，在 PC 和移动端都有不错的体验，支持暗黑模式。
-- 图片存储兼容 S3 API、Cloudflare R2、AList API；支持浏览器预签名直传与服务器端回退上传，局域网/无公网环境可启用强制服务器端上传。
-- 图片支持绑定标签（含分类标签），并可通过标签筛选图片。
-- 支持输出 RSS，可以使用 [Follow](https://github.com/RSSNext/Follow) 订阅，并支持订阅源所有权验证。
-- 支持批量自动化上传，上传图片时会生成约 0.3 倍率的压缩预览图，以优化加载。
-- 后台有图片数据统计、图片上传、图片维护、相册管理、系统设置和存储配置功能。
-- 双因素认证功能，基于 TOTP 算法 [RFC 6238](https://www.rfc-editor.org/rfc/rfc6238)，支持 Google Authenticator、Microsoft Authenticator 和 1Password 等。
-- Passkey 无密码登录功能，基于 WebAuthn 标准，支持生物识别（指纹、面容等）和硬件安全密钥登录。
-- 基于 SSR 的混合渲染，采用状态机制，提供良好的使用体验。
-- 基于 Prisma 的自动初始化数据库和数据迁移，简化部署流程。
-- 支持 Vercel 部署、Node.js 部署、Docker 等容器化部署，当然 k8s 也支持。
+## 技术栈
 
-### 如何部署
+- Node: `>=20`
+- Next.js: `15`
+- License: `MIT`
+- Database: PostgreSQL（Prisma）
+  笔者基于vercel+supabase+S3+Cloudfare进行搭建
+
+---
+
+## 视觉预览
+
+- 首页：
+  - `docs/screenshots/home-desktop.png`
+- 瀑布流展示：
+  - `docs/screenshots/waterfall.png`
+- 单列展示：
+  - `docs/screenshots/detail.png` 
+- 相册：
+  - `docs/screenshots/album.png` 
+- 在线 Demo(科学)： ✨ 在线体验：https://x-photos.vercel.app/
+
+
+---
+
+## vercel部署
 
 你可以点击下面的按钮来一键部署到 Vercel，**然后将 `Build Command` 设置为 `pnpm run build:vercel`**，也可以 Fork 项目后手动部署到任何支持的平台。
 
@@ -39,94 +47,144 @@ XPhotos 是一个支持自部署的摄影作品展示网站，基于 Next.js + H
 | DATABASE_URL | `postgres://postgres.[your-supabase-project]:[password]@aws-0-[aws-region].pooler.supabase.com:6543/postgres?pgbouncer=true`，`?pgbouncer=true` 用于使用 supabase 的连接池。 |
 | DIRECT_URL | `postgres://postgres.[your-supabase-project]:[password]@aws-0-[aws-region].pooler.supabase.com:5432/postgres`，用于 `prisma migrate`，如果使用非 serverless 数据库，与 `DATABASE_URL` 保持一致即可。                            |
 | BETTER_AUTH_SECRET  | 权限机密，你可以执行 `npx auth secret` 生成一个，随机字符串即可。                                                                                                                        |
-| BETTER_AUTH_URL  | 如果您使用 Nginx 进行反向代理，需要填写访问地址，如：`https://example.com`                                                                                                               |
-| BETTER_AUTH_PASSKEY_RP_ID  | Passkey 依赖方标识符，通常填写您的域名，如：`example.com`。本地开发可填写 `localhost`                                                                                                     |
-| BETTER_AUTH_PASSKEY_RP_NAME  | Passkey 依赖方名称，显示给用户的应用名称，如：`XPhotos` 或您的应用名称                                                                                                                  |
-
 > 请根据您的数据库供应商来填写正确的数据库 `connect url`，表格中的示例为 `supabase` 供应商。
->
-> **关于 Passkey 配置：**
-> - `BETTER_AUTH_PASSKEY_RP_ID` 必须与您的域名匹配
-> - `BETTER_AUTH_PASSKEY_RP_NAME` 会在 Passkey 注册时展示
-> - Passkey 功能依赖 HTTPS 环境（本地开发除外）
-> - 如果不配置这两个环境变量，Passkey 功能将使用默认值但可能影响用户体验
->
-> 如果是 Vercel 部署，直接将 `Build Command` 设置为 `pnpm run build:vercel` 即可。
->
-> 如果您自行使用 Node 部署，请使用 `pnpm run build:node` 命令来构建。
 
-更多详细配置请查阅文档。
+## 本地部署
 
-### 存储与访问说明
+以下步骤已基于仓库的 `package.json` 与 `.env.example` 精确整理，优先使用 `pnpm`（项目使用 pnpm 管理器）。
 
-- S3/R2：支持浏览器直传（预签名 PUT）与服务端回退上传；在局域网/无公网环境可启用“强制服务器端上传”提升稳定性。
-- 对象访问：
-  - 私有桶：后端返回预签名 GET 链接（`s3_direct_download=false`）即可访问。
-  - 直链/CDN：开启 `s3_direct_download=true`，并配置 `s3_cdn=true` + `s3_cdn_url` 或设置合理的桶策略/CloudFront OAC。
-- 删除清理：取消上传或后台删除图片时会尽力清理对应存储对象，避免空间浪费。
+### 前置条件
 
-### 本地开发
+- Node.js >= 20
+- pnpm >= 9
+- 数据库：PostgreSQL（用于 Prisma）；可使用本地或云端实例
+- 可选：Docker（用于生产部署或数据库便捷运行）
 
-克隆到本地开发:
+### 克隆仓库
 
-```shell
-git clone https://github.com/sourcexu7/XPhotos.git
+```bash
+git clone https://github.com/sourcexu7/xphotos.git
+cd xphotos
+```
 
-pnpm i
+### 环境配置
 
+- 在项目根目录复制示例：
+
+```bash
+cp .env.example .env
+```
+
+- 关键环境变量（示例，详见 `.env.example`）：
+
+| 变量 | 说明 | 示例 |
+|---|---|---|
+| `DATABASE_URL` | Prisma / PostgreSQL 连接字符串 | postgres://postgres:postgres@localhost:5432/postgres |
+| `DIRECT_URL` | Prisma 备用直连 URL（可与 DATABASE_URL 相同） | 同上 |
+| `BETTER_AUTH_SECRET` | 用于 auth 的随机密钥（请生成） | LVm22IOrx... |
+| 其它 | 如需要可参阅 `.env.example` | |
+
+（注意：项目内并未使用 MongoDB；当前后端基于 Prisma + PostgreSQL。）
+
+### 安装依赖
+
+```bash
+pnpm install
+```
+
+### 初始化数据库（Prisma）与开发启动
+
+项目在开发脚本中包含 Prisma 的 migrate / seed 步骤，推荐直接运行：
+
+```bash
 pnpm run dev
 ```
 
-首次或变更数据库结构后执行：
+该命令按 package.json 流程会运行 Prisma migrate/generate、执行 `prisma db seed`（若配置）并启动 Next.js 开发服务器。
 
-```shell
-pnpm prisma:generate
-pnpm prisma:dev
+### 或 单独命令（可选）
+
+```bash
+pnpm run prisma:dev       # 本地迁移（交互式）
+pnpm run prisma:generate # 生成 Prisma 客户端
+pnpm run prisma:seed     # 运行 seed 脚本（如果存在）
+pnpm run dev             # 启动 Next.js 开发服务（含上面步骤的组合）
 ```
 
-如果您有任何建议，欢迎反馈！
+### 构建与生产运行
 
+```bash
+pnpm build
+pnpm start
+```
 
-### 代码贡献
+或按 package.json 的 vercel / netlify 流程执行对应预置脚本。
 
-[提出新想法 & 提交 Bug](https://github.com/sourcexu7/XPhotos/issues/new) | [Fork & Pull Request](https://github.com/sourcexu7/XPhotos/fork)
+---
 
-XPhotos 欢迎各种贡献，包括但不限于改进、新功能、文档和代码改进、问题和错误报告。
+## 核心特性
 
-`v1` 版本目前停止维护，代码归档在 `v1` 分支。
+- ✨ 视觉展示：支持首页大图轮播（Hero）、渐进式图片加载、Lightbox 全屏查看，聚焦摄影作品的视觉冲击力。
+- 📸 作品管理：后台支持多图上传、Live Photo 支持、相册/标签管理与排序，适合批量管理摄影作品。
+- 📱 响应式布局：桌面端提供瀑布流与单列两种画廊视图，移动端自动切换为单列以保证无畸变展示。
+- ⚡ 性能优化：基于 Next.js 的 App Router + server actions，Server-side 渲染（SSR）结合静态生成（SSG）策略，与图片压缩策略提升加载效率。
+- 🔧 易扩展：组件化 UI（shadcn/ui / Ant Design / Radix + Zustand）便于新增模块与自定义主题。
+- 🚀 便捷部署：前端可一键部署至 Vercel；后端（Prisma + Hono/Next API）可部署至支持 Node.js 的主机或容器环境。
 
-目前正在开发 v2 版本，同时接受 `PR`！
+---
 
-> 有需求和建议都可以提，有空的话我会处理，但受限于 Next/SSR 的局限性，以及照顾移动端使用体验，很多功能的设计上可能会有取舍。
+## 项目结构（精简版）
 
-### 隐私安全
+按 Next.js App Router 规范组织，下面为核心目录与作用（只列出重点）：
 
-您使用本程序时，需要自己维护各平台的配置信息，以及对象存储的读写权限、访问控制、防盗链、跨域设置、缓存策略和 CDN 等配置，以最大程度避免不必要的费用。
+```
+XPhotos-master/
+├─ app/                  # Next.js App Router 页面与布局
+│  ├─ layout.tsx         # 全局 RootLayout（providers、metadata）
+│  ├─ (default)/         # 默认主题页面：首页、albums、preview
+│  ├─ (theme)/           # 可切换主题的相册路由
+│  ├─ admin/             # 后台管理页面（dashboard、albums、upload、settings）
+│  └─ api/               # Next API 路由（部分公共接口）
+├─ components/           # 可复用组件（layout、album、admin、ui 等）
+├─ lib/                  # 核心业务逻辑（db query、auth client、upload helper）
+├─ server/               # 独立 Hono 服务的路由实现（可选部署）
+├─ prisma/               # Prisma schema、seed 与迁移
+├─ public/               # 静态资源（icons、fonts、占位图片）
+└─ docs/                 # 文档与截图
+```
 
-如您有更多疑问，可以提交 Issue。
+核心文件：
+- `app/layout.tsx`：全站 RootLayout，加载 providers、动态 metadata、umami script。
+- `components/layout/theme-gallery-client.tsx`：画廊入口，切换瀑布/单列、前端筛选面板。
+- `components/album/preview-image.tsx`：图片预览、EXIF、复制/下载逻辑。
+- `lib/db/query/*`：数据库查询层（images、albums、configs、tags）。
 
-### 浏览器支持
+---
 
-- Last 2 versions of Chrome, Firefox, Safari and Edge
-- Firefox ESR
+## 部署建议
 
-> 事实上不是过于老旧的浏览器，一般都是能用的。
+- 前端（Next.js）：推荐部署到 Vercel（自动识别 Next.js）；使用 `vercel` 或 GitHub Actions 自动化部署。
+- 后端（Prisma + Hono / Next API）：可与前端合并部署（Vercel/Netlify Edge/Node）或独立部署到自托管服务器/云服务（需配置 `DATABASE_URL` 与环境变量）。
 
-### 无障碍支持
+示例（Vercel）：
 
-主要基于 [WAI-ARIA 规范](https://developer.mozilla.org/zh-CN/docs/Learn/Accessibility/WAI-ARIA_basics)，持续改进。
+1. 在 Vercel 项目设置中添加环境变量（`DATABASE_URL`、`BETTER_AUTH_SECRET` 等）
+2. 连接 GitHub 仓库并启用自动部署
 
-### 技术栈
+---
 
-- Web 框架：
-  - [Next.js](https://github.com/vercel/next.js)
-  - [Hono.js](https://github.com/honojs/hono)
-- UI 框架：
-  - [Radix](https://www.radix-ui.com/)
-  - [shadcn/ui](https://ui.shadcn.com/)
-- 更多组件参见 package.json
+## 常见问题（FAQ）
+
+- Q：项目使用哪种数据库？
+  - A：当前使用 Prisma 与 PostgreSQL（请参阅 `.env.example` 中 `DATABASE_URL`）。
+
+- Q：如何添加第三方存储（S3 / Cloudflare R2 / AList）？
+  - A：项目已内置多种存储支持（参见 `components/admin/settings/storages` 与 `lib/s3.ts`, `lib/r2.ts`, `server/storage`）。在设置页中配置对应凭证并测试连接,笔者本地测试了S3和Alist可以用，Cloudflare R2不详后期测试。
+
 
 ### 感谢
+
+感谢 https://github.com/besscroft/PicImpact 项目的优秀经验！！
 
 本项目使用 JetBrains 的开源许可证，基于 IntelliJ IDEA 开发，感谢！
 
