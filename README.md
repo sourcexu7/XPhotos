@@ -7,7 +7,7 @@ XPhotos
 
 基于开发的响应式个人摄影网页，支持摄影作品多图轮播展示、分类筛选、后台作品上传/管理，适配移动端/桌面端，优化图片加载性能。
 
----
+
 
 ## 技术栈
 
@@ -17,22 +17,35 @@ XPhotos
 - Database: PostgreSQL（Prisma）
   笔者基于vercel+supabase+S3+Cloudfare进行搭建
 
----
+
 
 ## 视觉预览
 
 - 首页：
-  - `docs/screenshots/home-desktop.png`
+  - ![首页预览](public/screenshots/home-desktop.png)
 - 瀑布流展示：
-  - `docs/screenshots/waterfall.png`
+  - ![瀑布流预览](public/screenshots/waterfall.png)
 - 单列展示：
-  - `docs/screenshots/detail.png` 
+  - ![单列预览](public/screenshots/detail.png)
 - 相册：
-  - `docs/screenshots/album.png` 
+  - ![相册预览](public/screenshots/album.png)
 - 在线 Demo(科学)： ✨ 在线体验：https://x-photos.vercel.app/
 
+### 默认账号密码
+```bash
+# 方式1：在 .env 文件中设置
+ADMIN_EMAIL=your-email@example.com
+ADMIN_PASSWORD=YourSecurePassword123
+ADMIN_NAME=your-username
 
----
+# 方式2：在命令行中设置
+ADMIN_EMAIL=your-email@example.com ADMIN_PASSWORD=YourSecurePassword123 ADMIN_NAME=your-username npx prisma db seed
+
+如果不设置环境变量，将使用默认值(进入后台务必修改)：
+邮箱：admin@xphotos.com
+密码：Xphotos@123
+用户名：admin
+```
 
 ## vercel部署
 
@@ -49,6 +62,7 @@ XPhotos
 | BETTER_AUTH_SECRET  | 权限机密，你可以执行 `npx auth secret` 生成一个，随机字符串即可。                                                                                                                        |
 > 请根据您的数据库供应商来填写正确的数据库 `connect url`，表格中的示例为 `supabase` 供应商。
 
+
 ## 本地部署
 
 以下步骤已基于仓库的 `package.json` 与 `.env.example` 精确整理，优先使用 `pnpm`（项目使用 pnpm 管理器）。
@@ -59,6 +73,7 @@ XPhotos
 - pnpm >= 9
 - 数据库：PostgreSQL（用于 Prisma）；可使用本地或云端实例
 - 可选：Docker（用于生产部署或数据库便捷运行）
+
 
 ### 克隆仓库
 
@@ -133,7 +148,7 @@ pnpm start
 
 ---
 
-## 项目结构（精简版）
+## 项目结构
 
 按 Next.js App Router 规范组织，下面为核心目录与作用（只列出重点）：
 

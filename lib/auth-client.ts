@@ -52,6 +52,38 @@ export const authClient = {
       if (fetchOptions?.onSuccess) fetchOptions.onSuccess()
       window.location.href = '/login'
   },
+  changePassword: async ({ currentPassword, newPassword, revokeOtherSessions }: any) => {
+    try {
+      const res = await fetch('/api/v1/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword, revokeOtherSessions })
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        return { error: { message: data.message || 'Password change failed' } }
+      }
+      return { data: await res.json() }
+    } catch (e) {
+      return { error: { message: 'Network error' } }
+    }
+  },
+  updateUser: async ({ image }: any) => {
+    try {
+      const res = await fetch('/api/v1/auth/update-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image })
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        return { error: { message: data.message || 'Update failed' } }
+      }
+      return { data: await res.json() }
+    } catch (e) {
+      return { error: { message: 'Network error' } }
+    }
+  },
   twoFactor: {
       verifyTotp: async () => {
           return { error: { message: '2FA not implemented yet' } }

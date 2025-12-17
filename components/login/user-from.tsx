@@ -14,7 +14,7 @@ import { useTranslations } from 'next-intl'
 export const UserFrom = () => {
   const router = useRouter()
   const t = useTranslations()
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -26,14 +26,14 @@ export const UserFrom = () => {
   const [otpCode, setOtpCode] = useState('')
 
   useEffect(() => {
-    // 自动聚焦邮箱字段
-    const emailField = document.querySelector('input[type="email"]') as HTMLInputElement | null
-    emailField?.focus()
+    // 自动聚焦用户名/邮箱字段
+    const usernameField = document.querySelector('input[type="text"]') as HTMLInputElement | null
+    usernameField?.focus()
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !password) {
+    if (!username || !password) {
       setError(t('Login.invalidFormat'))
       return
     }
@@ -62,7 +62,7 @@ export const UserFrom = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ username, password, email: username }) // 同时发送username和email，后端会处理
       })
 
       if (!res.ok) {
@@ -157,11 +157,11 @@ export const UserFrom = () => {
                   <Mail className="w-4 h-4" />
                 </span>
                 <input
-                  placeholder={t('Login.email')}
-                  type="email"
-                  value={email}
+                  placeholder={t('Login.usernameOrEmail')}
+                  type="text"
+                  value={username}
                   className="w-full pl-10 pr-3 py-4 rounded-xl border border-transparent bg-[#F7FAFC] focus:bg-white focus:border-[#2A4365]/30 focus:outline-none focus:ring-4 focus:ring-[#2A4365]/5 text-sm transition-all text-gray-900 placeholder:text-gray-400"
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
               <div className="relative group">

@@ -18,6 +18,7 @@
     "title": "登录",
     "signUp": "注册",
     "email": "邮箱",
+    "usernameOrEmail": "用户名/邮箱",
     "password": "密码",
     "name": "昵称",
     "nameRequired": "请输入昵称",

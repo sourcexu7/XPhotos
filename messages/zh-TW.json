@@ -17,6 +17,7 @@
   "Login": {
     "title": "歡迎登入",
     "email": "電子郵件",
+    "usernameOrEmail": "用戶名/電子郵件",
     "password": "密碼",
     "forget": "忘記密碼了？",
     "otp": "雙因素口令",

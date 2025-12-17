@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -93,6 +94,68 @@ export async function main() {
   } catch (e) {
     console.error('Initialization failed. Please try to troubleshoot the issue first. If you cannot resolve it, please carry the logs and submit feedback at: https://github.com/besscroft/XPhotos/issues.', e)
   }
+  
+  // 初始化管理员账号（如果不存在）
+  // 支持通过环境变量配置：ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@xphotos.com'
+    const adminPassword = process.env.ADMIN_PASSWORD || 'Xphotos@123'
+    const adminName = process.env.ADMIN_NAME || 'admin'
+
+    if (!adminEmail || !adminPassword || !adminName) {
+      console.error('Admin credentials are required. Please set ADMIN_EMAIL, ADMIN_PASSWORD, and ADMIN_NAME environment variables.')
+      return
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email: adminEmail }
+    })
+
+    if (!existingUser) {
+      // 检查用户名是否已存在
+      const existingUserByName = await prisma.user.findUnique({
+        where: { name: adminName }
+      })
+
+      if (existingUserByName) {
+        console.error(`Admin user with name "${adminName}" already exists. Please use a different ADMIN_NAME.`)
+        return
+      }
+
+      const hashedPassword = await bcrypt.hash(adminPassword, 10)
+      const userId = crypto.randomUUID()
+      
+      await prisma.user.create({
+        data: {
+          id: userId,
+          email: adminEmail,
+          name: adminName,
+          emailVerified: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          accounts: {
+            create: {
+              id: crypto.randomUUID(),
+              accountId: adminEmail,
+              providerId: 'credential',
+              password: hashedPassword,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            }
+          }
+        }
+      })
+      console.log(`Admin user created successfully:`)
+      console.log(`  Email: ${adminEmail}`)
+      console.log(`  Username: ${adminName}`)
+      console.log(`  Password: ${adminPassword}`)
+    } else {
+      console.log(`Admin user already exists: ${adminEmail}`)
+    }
+  } catch (e) {
+    console.error('Failed to initialize admin user:', e)
+  }
+
   // insert preset tags if not exists
   for (const tag of PRESET_TAGS) {
     try {

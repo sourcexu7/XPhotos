@@ -18,6 +18,7 @@
     "title": "Login",
     "signUp": "Sign Up",
     "email": "Email",
+    "usernameOrEmail": "Username/Email",
     "password": "Password",
     "name": "Name",
     "nameRequired": "Please enter your name",

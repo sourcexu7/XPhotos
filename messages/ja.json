@@ -17,6 +17,7 @@
   "Login": {
     "title": "歓迎ログイン",
     "email": "メール",
+    "usernameOrEmail": "ユーザー名/メール",
     "password": "パスワード",
     "forget": "パスワードをお忘れですか？",
     "otp": "二要素認証コード",
