@@ -195,20 +195,20 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       }
     }
 
-    fetchCameraAndLensList();
+    fetchCameraAndLensList()
     // fetch tags for multi-select
     (async () => {
       try {
-        const res = await fetch('/api/v1/settings/tags/get');
+        const res = await fetch('/api/v1/settings/tags/get')
         if (res.ok) {
-          const data = await res.json();
-          setTagsList(data.tags || []);
+          const data = await res.json()
+          setTagsList(data.tags || [])
         }
       } catch (error) {
-        console.error('Failed to fetch tags:', error);
+        console.error('Failed to fetch tags:', error)
       }
-    })();
-  }, []);
+    })()
+  }, [])
 
   async function updateImageAlbum() {
     if (!imageAlbum) {
