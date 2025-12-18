@@ -6,8 +6,7 @@ import useSWRInfinite from 'swr/infinite'
 import { useTranslations } from 'next-intl'
 import type { ImageType } from '~/types'
 import { ReloadIcon } from '@radix-ui/react-icons'
-import { Button } from '~/components/ui/button.tsx'
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { MasonryPhotoAlbum, RenderImageContext, RenderImageProps } from 'react-photo-album'
 import BlurImage from '~/components/album/blur-image.tsx'
 
@@ -21,23 +20,49 @@ function renderNextImage(
   )
 }
 
-export default function DefaultGallery(props : Readonly<ImageHandleProps>) {
+export default function DefaultGallery(props: Readonly<ImageHandleProps>) {
   const { data: pageTotal } = useSwrPageTotalHook(props)
-  const { data, isLoading, isValidating, size, setSize } = useSWRInfinite((index) => {
+  const { data, error, isLoading, isValidating, size, setSize } = useSWRInfinite(
+    (index) => {
       return [`client-${props.args}-${index}-${props.album}`, index]
     },
     ([_, index]) => {
       return props.handle(index + 1, props.album)
-    }, {
+    },
+    {
       revalidateOnFocus: false,
       revalidateIfStale: false,
       revalidateOnReconnect: false,
-    })
-  const dataList = data ? [].concat(...data) : []
+    }
+  )
+  const dataList = data ? ([] as ImageType[]).concat(...data) : []
   const t = useTranslations()
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // 自动触底加载更多（替换底部按钮）
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!containerRef.current || isValidating || size >= pageTotal) return
+
+      const scrollTop = window.scrollY
+      const windowHeight = window.innerHeight
+      const documentHeight = document.documentElement.scrollHeight
+
+      // 距离底部 100px 内触发加载
+      if (scrollTop + windowHeight >= documentHeight - 100) {
+        setSize(size + 1)
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [isValidating, pageTotal, setSize, size])
 
   return (
-    <div className="w-full mx-auto max-w-[1400px] px-3 py-4 space-y-4 sm:px-4 sm:py-6 md:px-6">
+    <div
+      ref={containerRef}
+      className="w-full mx-auto max-w-[1400px] px-3 py-4 space-y-4 sm:px-4 sm:py-6 md:px-6"
+    >
       <div className="flex flex-col lg:flex-row w-full items-start justify-between lg:relative overflow-x-clip">
         {/* 左侧边栏 - 桌面端显示，移动端隐藏 */}
         <div className="hidden lg:flex lg:flex-1 flex-col px-2 lg:sticky top-4 self-start">
@@ -68,25 +93,29 @@ export default function DefaultGallery(props : Readonly<ImageHandleProps>) {
         </div>
       </div>
       
-      {/* 加载更多按钮 */}
-      <div className="flex items-center justify-center my-4 pb-4">
-        {
-          isValidating ?
-            <ReloadIcon className="mr-2 h-4 w-4 animate-spin"/>
-            : dataList.length > 0 ?
-              size < pageTotal &&
-              <Button
-                disabled={isLoading}
-                onClick={() => {
-                  setSize(size + 1)
-                }}
-                className="select-none cursor-pointer"
-                aria-label={t('Button.loadMore')}
-              >
-                {t('Button.loadMore')}
-              </Button>
-              : t('Tips.noImg')
-        }
+      {/* 加载状态 & 错误提示（无按钮） */}
+      <div className="flex items-center justify-center my-4 pb-4 text-sm text-gray-400">
+        {isValidating && (
+          <span className="inline-flex items-center gap-2">
+            <ReloadIcon className="h-4 w-4 animate-spin" />
+            {t('Button.loading')}
+          </span>
+        )}
+
+        {!isValidating && error && (
+          <button
+            type="button"
+            onClick={() => setSize(size)} // 触发当前页重试
+            className="inline-flex items-center gap-2 text-xs text-red-400 hover:text-red-300"
+          >
+            <span className="inline-block h-2 w-2 rounded-full bg-red-400" />
+            {t('Tips.loadFail') ?? '加载失败，点击重试'}
+          </button>
+        )}
+
+        {!isValidating && !error && dataList.length === 0 && (
+          <span>{t('Tips.noImg')}</span>
+        )}
       </div>
     </div>
   )

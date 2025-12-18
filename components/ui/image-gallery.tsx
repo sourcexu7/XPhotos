@@ -6,26 +6,31 @@ import { useInView } from 'framer-motion'
 import { AspectRatio } from '~/components/ui/aspect-ratio'
 import type { ImageType } from '~/types'
 import { useRouter } from 'next-nprogress-bar'
+import { useIsMobile } from '~/hooks/use-mobile'
 
 interface ImageGalleryProps {
   images: ImageType[]
 }
 
 export function ImageGallery({ images }: ImageGalleryProps) {
-  // Distribute images into 3 columns for the masonry layout
+  const isMobile = useIsMobile()
+
+  // 瀑布流列数：移动端 2 列，桌面端 3 列
   const columns = React.useMemo(() => {
-    const newColumns: ImageType[][] = [[], [], []]
+    const columnCount = isMobile ? 2 : 3
+    const newColumns: ImageType[][] = Array.from({ length: columnCount }, () => [])
     images.forEach((image, index) => {
-      newColumns[index % 3].push(image)
+      newColumns[index % columnCount].push(image)
     })
     return newColumns
-  }, [images])
+  }, [images, isMobile])
 
   return (
     <div className="relative flex w-full flex-col items-center justify-center py-10 px-4">
-      <div className="mx-auto grid w-full max-w-7xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {/* 手机端到小平板：两列；大屏：三列 */}
+      <div className="mx-auto grid w-full max-w-7xl gap-6 grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
         {columns.map((columnImages, colIndex) => (
-          <div key={colIndex} className="grid gap-6 h-fit">
+          <div key={colIndex} className="grid h-fit gap-6">
             {columnImages.map((image) => {
               const ratio =
                 image.width && image.height ? image.width / image.height : 16 / 9

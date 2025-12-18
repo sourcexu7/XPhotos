@@ -2,7 +2,7 @@
 
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
-import { Github, Instagram, Book, MessagesSquare } from 'lucide-react'
+import { Github, Instagram, Book, MessagesSquare, AlertCircle, RefreshCw } from 'lucide-react'
 import { FramerCarousel, CarouselItem } from '~/components/ui/framer-carousel'
 
 interface AboutConfig {
@@ -12,14 +12,79 @@ interface AboutConfig {
 
 export default function AboutPage() {
   // 使用公开 API 获取配置（无需登录）
-  const { data } = useSWR<AboutConfig[]>('/api/v1/public/about-info', fetcher)
+  const { data, error, isLoading, mutate } = useSWR<AboutConfig[]>(
+    '/api/v1/public/about-info',
+    fetcher
+  )
+
+  // 加载中的骨架屏，占位但不展示默认文案/图片
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#121212] text-[#e0e0e0] flex items-center justify-center">
+        <div className="w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-8">
+          <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-20 animate-pulse">
+            <section className="w-full lg:w-[30%] space-y-4">
+              <div className="h-8 w-40 rounded bg-white/10" />
+              <div className="space-y-2">
+                <div className="h-3 w-full rounded bg-white/5" />
+                <div className="h-3 w-5/6 rounded bg-white/5" />
+                <div className="h-3 w-4/6 rounded bg-white/5" />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <div className="h-9 w-20 rounded-full bg-white/5" />
+                <div className="h-9 w-20 rounded-full bg-white/5" />
+              </div>
+            </section>
+
+            <section className="w-full lg:w-[65%]">
+              <div
+                className="w-full rounded-2xl border border-white/10 bg-black/40"
+                style={{ aspectRatio: '16/9' }}
+              >
+                <div className="h-full w-full flex items-center justify-center">
+                  <div className="h-10 w-10 rounded-full border-2 border-white/10 border-t-white/60 animate-spin" />
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // 加载失败：不展示默认内容，给出清晰提示 + 重试按钮
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#121212] text-[#e0e0e0] flex items-center justify-center">
+        <div className="w-full max-w-md mx-auto px-6 py-10 text-center space-y-6">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+            <AlertCircle className="h-7 w-7 text-red-400" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-lg font-semibold tracking-wide">关于信息加载失败</h1>
+            <p className="text-sm text-[#a0a0a0]">
+              网络波动或服务器暂时不可用，请检查网络后重试。
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => mutate()}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-white text-black px-5 py-2.5 text-sm font-medium hover:bg-white/90 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            重新加载
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const map = (data || []).reduce<Record<string, string>>((acc, cur) => {
     if (cur.config_key) acc[cur.config_key] = cur.config_value || ''
     return acc
   }, {})
 
-  const intro = map['about_intro'] || '偏爱自然光人像与城市夜景，在每一次快门中寻找情绪与秩序的平衡。'
+  const intro = map['about_intro'] || ''
   const photoPreview = map['about_photo_preview_url'] || ''
   const insUrl = map['about_ins_url'] || ''
   const xhsUrl = map['about_xhs_url'] || ''
@@ -53,7 +118,7 @@ export default function AboutPage() {
     { key: 'xhs', label: '小红书', href: xhsUrl, icon: <Book className="h-4 w-4" /> },
     { key: 'weibo', label: '微博', href: weiboUrl, icon: <MessagesSquare className="h-4 w-4" /> },
     { key: 'github', label: 'GitHub', href: githubUrl, icon: <Github className="h-4 w-4" /> },
-  ].filter(item => !!item.href)
+  ].filter((item) => !!item.href)
 
   return (
     <div className="min-h-screen bg-[#121212] text-[#e0e0e0] flex items-center justify-center">
@@ -72,9 +137,11 @@ export default function AboutPage() {
                 <div className="mt-2 h-0.5 w-12 bg-gradient-to-r from-white/80 to-transparent" />
               </div>
               
-              <p className="text-sm md:text-base lg:text-lg text-[#a0a0a0] leading-relaxed max-w-md whitespace-pre-line">
-                {intro}
-              </p>
+              {intro && (
+                <p className="text-sm md:text-base lg:text-lg text-[#a0a0a0] leading-relaxed max-w-md whitespace-pre-line">
+                  {intro}
+                </p>
+              )}
             </header>
 
             {/* 社交媒体链接 */}
