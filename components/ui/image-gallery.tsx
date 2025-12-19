@@ -7,7 +7,7 @@ import { AspectRatio } from '~/components/ui/aspect-ratio'
 import type { ImageType } from '~/types'
 import { useRouter } from 'next-nprogress-bar'
 import { useIsMobile } from '~/hooks/use-mobile'
-import { ImgWithLoading } from '~/components/ui/img-with-loading'
+import { OptimizedImage } from '~/components/ui/optimized-image'
 
 interface ImageGalleryProps {
   images: ImageType[]
@@ -72,18 +72,24 @@ function AnimatedImage({ image, ratio }: AnimatedImageProps) {
         ratio={ratio}
         className="bg-muted relative size-full rounded-xl overflow-hidden"
       >
-        <ImgWithLoading
+        {/* 性能优化：使用优化的图片组件，支持 WebP/AVIF 格式、自动优化 */}
+        <OptimizedImage
+          src={image.preview_url || image.url || ''}
           alt={image.detail || 'Image'}
-          src={image.preview_url || image.url}
+          width={image.width || 800}
+          height={image.height || 600}
           className={cn(
             'size-full object-cover transition-all duration-700 ease-in-out',
             isLoading ? 'scale-110 blur-lg' : 'scale-100 blur-0',
             !isInView && 'opacity-0'
           )}
-          onLoad={() => setIsLoading(false)}
-          loading="lazy"
-          loadingSize="small"
           containerClassName="size-full"
+          priority={false} // 懒加载
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          quality={85}
+          // 如果没有 blurDataURL，组件会自动使用 placeholder='empty'
+          onLoad={() => setIsLoading(false)}
+          onClick={() => router.push(`/preview/${image.id}`)}
         />
         {/* Hover Title with bottom gradient (no rounded box) */}
         {image.title && (

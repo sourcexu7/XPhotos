@@ -35,6 +35,9 @@ export default function Preferences() {
   // 拖拽排序状态
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  // 「关于我」个人照片上传状态
+  const [aboutUploading, setAboutUploading] = useState(false)
+  const [aboutPreviewUrl, setAboutPreviewUrl] = useState<string>('')
   
   const { token } = theme.useToken()
   const t = useTranslations()

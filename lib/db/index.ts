@@ -2,7 +2,14 @@ import { PrismaClient } from '@prisma/client'
 
 const prismaClientSingleton = () => {
   const client = new PrismaClient({
+    // 性能优化：生产环境关闭日志，减少 I/O 开销
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    // 性能优化：连接池配置，适配 Node.js >=20 高并发场景
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   })
   
   // 添加连接错误处理

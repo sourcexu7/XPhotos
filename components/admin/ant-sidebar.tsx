@@ -64,12 +64,6 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
       icon: <PictureOutlined />,
       label: t('Link.album'),
     },
-    {
-      key: '/admin/analytics',
-      icon: <BarChartOutlined />,
-      // 直接使用中文文案，避免未配置多语言 key 导致控制台报错
-      label: '访问统计',
-    },
   ]
 
   const settingsMenuItems = [
@@ -244,3 +238,4 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
     </div>
   )
 }
+

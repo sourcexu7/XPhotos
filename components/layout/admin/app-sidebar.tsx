@@ -62,11 +62,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: GalleryThumbnailsIcon,
       },
       {
-        title: '访问统计',
-        url: '/admin/analytics',
-        icon: ChartIcon,
-      },
-      {
         title: t('Link.about'),
         url: '/admin/about',
         icon: GithubIcon,

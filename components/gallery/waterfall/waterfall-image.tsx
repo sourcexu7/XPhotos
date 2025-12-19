@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next-nprogress-bar'
 import { useBlurImageDataUrl } from '~/hooks/use-blurhash'
-import { MotionImage } from '~/components/album/motion-image'
+import { OptimizedImage } from '~/components/ui/optimized-image'
 import { ImageLoadingAnimation } from '~/components/ui/image-loading-animation'
 import { useState } from 'react'
 import type { ImageType } from '~/types'
@@ -58,19 +58,21 @@ export default function WaterfallImage({ photo, index }: { photo: ImageType, ind
             className="absolute inset-0 z-10"
           />
         )}
-        <MotionImage
-          style={{ width: '100%', height: 'auto', display: 'block' }}
-          src={photo.preview_url || photo.url}
-          overrideSrc={photo.preview_url || photo.url}
+        {/* 性能优化：使用优化的图片组件，支持 WebP/AVIF 格式、自动优化 */}
+        <OptimizedImage
+          src={photo.preview_url || photo.url || ''}
           alt={photo.detail || 'image'}
-          width={photo.width}
-          height={photo.height}
-          unoptimized
-          loading="lazy"
+          width={photo.width || 800}
+          height={photo.height || 600}
+          className={isLoading ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}
+          containerClassName="w-full"
+          priority={index !== undefined && index < 6} // 前 6 张图片优先加载
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          quality={85}
           placeholder="blur"
           blurDataURL={dataURL}
-          className={isLoading ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}
           onLoad={() => setIsLoading(false)}
+          onClick={() => router.push(`/preview/${photo?.id}`)}
         />
       </div>
       
