@@ -326,6 +326,28 @@ export async function updateImageFeatured(id: string, featured: number) {
 }
 
 /**
+ * 批量更新图片排序（单一维度，全局 image.sort）
+ * @param orders 包含图片 ID 和对应排序权重的数组
+ */
+export async function updateImagesSort(
+  orders: { id: string; sort: number }[],
+) {
+  if (!Array.isArray(orders) || orders.length === 0) return
+
+  await Promise.all(
+    orders.map((item) =>
+      db.images.update({
+        where: { id: item.id },
+        data: {
+          sort: item.sort,
+          updatedAt: new Date(),
+        },
+      }),
+    ),
+  )
+}
+
+/**
  * 更新图片的相册
  * @param imageId 图片 ID
  * @param albumId 相册 ID

@@ -6,8 +6,13 @@ import { useSwrPageTotalHook } from '~/hooks/use-swr-page-total-hook'
 import SimpleGallery from '~/components/layout/theme/simple/main/simple-gallery'
 import WaterfallGallery from '~/components/layout/theme/waterfall/main/waterfall-gallery'
 import { Button } from '~/components/ui/button'
-import { Filter, LayoutGrid, Rows } from 'lucide-react'
+import { Filter, LayoutGrid, Rows, ArrowUpDown } from 'lucide-react'
 import { MultiSelect } from '~/components/ui/multi-select'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '~/components/ui/popover'
 import { cn } from '~/lib/utils'
 
 interface ThemeGalleryClientProps extends ImageHandleProps {
@@ -57,6 +62,9 @@ export default function ThemeGalleryClient({
   const [cameraFilter, setCameraFilter] = useState<string[]>([])
   const [lensFilter, setLensFilter] = useState<string[]>([])
   const [tagsFilter, setTagsFilter] = useState<string[]>([])
+  const [tagsOperator, setTagsOperator] = useState<'and' | 'or'>('and')
+  // 新增：排序状态（默认倒序，最新的在最上面）
+  const [sortByShootTime, setSortByShootTime] = useState<'desc' | 'asc' | undefined>('desc')
   const filterSectionRef = useRef<HTMLDivElement | null>(null)
   // 滚动时自动收起筛选，避免遮挡图片
   useEffect(() => {
@@ -124,11 +132,12 @@ export default function ThemeGalleryClient({
   }, [enableFilters, filtersOpen])
 
 
-  const filters: ImageFilters | undefined = enableFilters
+  const filters: ImageFilters & { tagsOperator?: 'and' | 'or' } | undefined = enableFilters
     ? {
         cameras: cameraFilter.length ? cameraFilter : undefined,
         lenses: lensFilter.length ? lensFilter : undefined,
         tags: tagsFilter.length ? tagsFilter : undefined,
+        tagsOperator,
       }
     : undefined
 
@@ -147,8 +156,9 @@ export default function ThemeGalleryClient({
   const getGalleryComponent = () => {
     const galleryProps = {
       ...props,
-      // 改造点：向主题组件传入前端筛选条件
+      // 改造点：向主题组件传入前端筛选条件和排序
       filters,
+      sortByShootTime: enableFilters && props.album === '/' ? sortByShootTime : undefined,
     }
     return currentStyle === 'waterfall'
       ? <WaterfallGallery {...galleryProps} />
@@ -167,17 +177,72 @@ export default function ThemeGalleryClient({
       {/* Theme & Filter Toggle Buttons */}
       <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-3">
         {enableFilters && (
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-12 w-12 rounded-full bg-background/85 backdrop-blur-sm shadow-lg border-border hover:bg-accent"
-            onClick={() => setFiltersOpen(o => !o)}
-            title={filtersOpen ? '收起筛选' : '展开筛选'}
-            aria-expanded={filtersOpen}
-            aria-controls="gallery-filter-panel"
-          >
-            <Filter className="h-5 w-5" />
-          </Button>
+          <>
+            {/* 排序选择悬浮窗（仅在 /albums 页面显示） */}
+            {props.album === '/' && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-12 w-12 rounded-full bg-background/85 backdrop-blur-sm shadow-lg border-border hover:bg-accent"
+                    title={sortByShootTime === 'desc' ? '拍摄时间：从新到旧' : sortByShootTime === 'asc' ? '拍摄时间：从旧到新' : '默认排序'}
+                  >
+                    <ArrowUpDown className="h-5 w-5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent 
+                  className="w-[--trigger-width] p-1 bg-popover/95 backdrop-blur-md border border-border/50 shadow-lg rounded-md" 
+                  align="end"
+                  sideOffset={8}
+                >
+                  <div className="max-h-[inherit] overflow-auto outline-none">
+                    <button
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        sortByShootTime === 'desc'
+                          ? 'bg-accent text-accent-foreground font-medium'
+                          : 'text-foreground hover:bg-accent/50 hover:text-accent-foreground'
+                      }`}
+                      onClick={() => setSortByShootTime('desc')}
+                    >
+                      从新到旧
+                    </button>
+                    <button
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        sortByShootTime === 'asc'
+                          ? 'bg-accent text-accent-foreground font-medium'
+                          : 'text-foreground hover:bg-accent/50 hover:text-accent-foreground'
+                      }`}
+                      onClick={() => setSortByShootTime('asc')}
+                    >
+                      从旧到新
+                    </button>
+                    <button
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        sortByShootTime === undefined
+                          ? 'bg-accent text-accent-foreground font-medium'
+                          : 'text-foreground hover:bg-accent/50 hover:text-accent-foreground'
+                      }`}
+                      onClick={() => setSortByShootTime(undefined)}
+                    >
+                      默认排序
+                    </button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-12 w-12 rounded-full bg-background/85 backdrop-blur-sm shadow-lg border-border hover:bg-accent"
+              onClick={() => setFiltersOpen(o => !o)}
+              title={filtersOpen ? '收起筛选' : '展开筛选'}
+              aria-expanded={filtersOpen}
+              aria-controls="gallery-filter-panel"
+            >
+              <Filter className="h-5 w-5" />
+            </Button>
+          </>
         )}
         <Button
           variant="outline"
@@ -215,14 +280,43 @@ export default function ThemeGalleryClient({
                 onChange={setLensFilter}
                 className="bg-background/70 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.35)]"
               />
-              <MultiSelect
-                label="标签"
-                placeholder="选择标签"
-                options={(tagOptions || []).map(v => ({ label: v, value: v }))}
-                selected={tagsFilter}
-                onChange={setTagsFilter}
-                className="bg-background/70 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.35)]"
-              />
+              <div className="space-y-2">
+                <MultiSelect
+                  label="标签"
+                  placeholder="选择标签"
+                  options={(tagOptions || []).map(v => ({ label: v, value: v }))}
+                  selected={tagsFilter}
+                  onChange={setTagsFilter}
+                  className="bg-background/70 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.35)]"
+                />
+                {tagsFilter.length > 0 && (
+                  <div className="flex items-center gap-2 px-1">
+                    <span className="text-xs text-foreground/60">标签逻辑：</span>
+                    <button
+                      type="button"
+                      onClick={() => setTagsOperator('and')}
+                      className={`px-2 py-0.5 text-xs border rounded transition-colors ${
+                        tagsOperator === 'and'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'hover:bg-accent'
+                      }`}
+                    >
+                      AND
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTagsOperator('or')}
+                      className={`px-2 py-0.5 text-xs border rounded transition-colors ${
+                        tagsOperator === 'or'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'hover:bg-accent'
+                      }`}
+                    >
+                      OR
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

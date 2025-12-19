@@ -15,6 +15,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { ConfigStoreProvider } from '~/app/providers/config-store-providers'
 import { AntdConfigProvider } from '~/app/providers/antd-config-provider'
+import { VisitTracker } from '~/components/analytics/visit-tracker'
 import Script from 'next/script'
 
 type ConfigItem = {
@@ -86,6 +87,7 @@ export default async function RootLayout({
                 <AntdConfigProvider>
                   <ToasterProviders />
                   <ProgressBarProviders>
+                    <VisitTracker />
                     {children}
                     {modal}
                     {/* 新增：全局底部版权标注 */}

@@ -16,6 +16,7 @@ import {
   TagsOutlined,
   LogoutOutlined,
   HomeOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons'
 import { authClient } from '~/lib/auth-client'
 import { clearAllAuthData } from '~/lib/utils/auth-utils'
@@ -52,6 +53,12 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
       key: '/admin/list',
       icon: <AppstoreOutlined />,
       label: t('Link.list'),
+    },
+    {
+      key: '/admin/analytics',
+      icon: <BarChartOutlined />,
+      // 直接使用中文文案，避免未配置多语言 key 导致控制台报错
+      label: '访问统计',
     },
     {
       key: '/admin/album',

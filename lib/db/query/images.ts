@@ -103,7 +103,7 @@ export async function fetchServerImagesListByAlbum(
           ${fNumberFilter}
           ${isoFilter}
           ${labelsFilter}
-      ORDER BY image.sort DESC, image.created_at DESC, image.updated_at DESC
+      ORDER BY image.sort ASC, image.created_at DESC, image.updated_at DESC
       LIMIT ${pageSize} OFFSET ${offset}
     `
   }
@@ -129,7 +129,7 @@ export async function fetchServerImagesListByAlbum(
         ${fNumberFilter}
         ${isoFilter}
         ${labelsFilter}
-    ORDER BY image.sort DESC, image.created_at DESC, image.updated_at DESC 
+    ORDER BY image.sort ASC, image.created_at DESC, image.updated_at DESC 
     LIMIT ${pageSize} OFFSET ${offset}
   `
 }
@@ -220,13 +220,113 @@ export async function fetchServerImagesPageTotalByAlbum(
  * 根据相册获取图片分页列表（客户端）
  * @param pageNum 页码
  * @param album 相册
+ * @param cameras 相机型号数组（多选）
+ * @param lenses 镜头型号数组（多选）
+ * @param tags 标签数组（多选）
+ * @param tagsOperator 标签操作符（'and' | 'or'）
+ * @param sortByShootTime 按拍摄时间排序（'desc' | 'asc' | undefined），undefined 表示使用默认排序
  * @returns {Promise<ImageType[]>} 图片列表
  */
-export async function fetchClientImagesListByAlbum(pageNum: number, album: string): Promise<ImageType[]> {
+export async function fetchClientImagesListByAlbum(
+  pageNum: number,
+  album: string,
+  cameras?: string[],
+  lenses?: string[],
+  tags?: string[],
+  tagsOperator: 'and' | 'or' = 'and',
+  sortByShootTime?: 'desc' | 'asc'
+): Promise<ImageType[]> {
   if (pageNum < 1) {
     pageNum = 1
   }
+
+  // 构建筛选条件
+  const camerasArray = Array.isArray(cameras) && cameras.length > 0 ? cameras : []
+  const lensesArray = Array.isArray(lenses) && lenses.length > 0 ? lenses : []
+  const tagsArray = Array.isArray(tags) && tags.length > 0 ? tags : []
+
+  const cameraFilter = camerasArray.length > 0
+    ? Prisma.sql`AND (${Prisma.join(camerasArray.map(c => Prisma.sql`COALESCE(image.exif->>'model', 'Unknown') = ${c}`), Prisma.sql` OR `)})`
+    : Prisma.empty
+
+  const lensFilter = lensesArray.length > 0
+    ? Prisma.sql`AND (${Prisma.join(lensesArray.map(l => Prisma.sql`COALESCE(image.exif->>'lens_model', 'Unknown') = ${l}`), Prisma.sql` OR `)})`
+    : Prisma.empty
+
+  const tagsFilter = tagsArray.length > 0
+    ? tagsOperator === 'and'
+      ? Prisma.sql`AND image.labels::jsonb @> ${JSON.stringify(tagsArray)}::jsonb`
+      : Prisma.sql`AND (${Prisma.join(tagsArray.map(t => Prisma.sql`image.labels::jsonb @> ${JSON.stringify([t])}::jsonb`), Prisma.sql` OR `)})`
+    : Prisma.empty
+
   if (album === '/') {
+    // 如果指定了按拍摄时间排序，使用拍摄时间排序
+    if (sortByShootTime === 'desc') {
+      return await db.$queryRaw`
+      SELECT 
+          image.*
+      FROM 
+          "public"."images" AS image
+      INNER JOIN "public"."images_albums_relation" AS relation
+          ON image.id = relation."imageId"
+      INNER JOIN "public"."albums" AS albums
+          ON relation.album_value = albums.album_value
+      WHERE
+          image.del = 0
+      AND
+          image.show = 0
+      AND
+          image.show_on_mainpage = 0
+      AND
+          albums.del = 0
+      AND
+          albums.show = 0
+          ${cameraFilter}
+          ${lensFilter}
+          ${tagsFilter}
+      ORDER BY 
+        COALESCE(
+          TO_TIMESTAMP(image.exif->>'data_time', 'YYYY:MM:DD HH24:MI:SS'),
+          '1970-01-01 00:00:00'::timestamp
+        ) DESC,
+        image.created_at DESC,
+        image.updated_at DESC
+      LIMIT 16 OFFSET ${(pageNum - 1) * 16}
+    `
+    } else if (sortByShootTime === 'asc') {
+      return await db.$queryRaw`
+      SELECT 
+          image.*
+      FROM 
+          "public"."images" AS image
+      INNER JOIN "public"."images_albums_relation" AS relation
+          ON image.id = relation."imageId"
+      INNER JOIN "public"."albums" AS albums
+          ON relation.album_value = albums.album_value
+      WHERE
+          image.del = 0
+      AND
+          image.show = 0
+      AND
+          image.show_on_mainpage = 0
+      AND
+          albums.del = 0
+      AND
+          albums.show = 0
+          ${cameraFilter}
+          ${lensFilter}
+          ${tagsFilter}
+      ORDER BY 
+        COALESCE(
+          TO_TIMESTAMP(image.exif->>'data_time', 'YYYY:MM:DD HH24:MI:SS'),
+          '1970-01-01 00:00:00'::timestamp
+        ) ASC,
+        image.created_at ASC,
+        image.updated_at ASC
+      LIMIT 16 OFFSET ${(pageNum - 1) * 16}
+    `
+    }
+    // 默认排序
     return await db.$queryRaw`
     SELECT 
         image.*
@@ -246,7 +346,10 @@ export async function fetchClientImagesListByAlbum(pageNum: number, album: strin
         albums.del = 0
     AND
         albums.show = 0
-    ORDER BY image.sort DESC, image.created_at DESC, image.updated_at DESC
+        ${cameraFilter}
+        ${lensFilter}
+        ${tagsFilter}
+    ORDER BY image.sort ASC, image.created_at DESC, image.updated_at DESC
     LIMIT 16 OFFSET ${(pageNum - 1) * 16}
   `
   }
@@ -255,9 +358,9 @@ export async function fetchClientImagesListByAlbum(pageNum: number, album: strin
       album_value: album
     }
   })
-  let orderBy = Prisma.sql(['image.sort DESC, image.created_at DESC, image.updated_at DESC'])
+  let orderBy = Prisma.sql(['image.sort ASC, image.created_at DESC, image.updated_at DESC'])
   if (albumData && albumData.image_sorting && ALBUM_IMAGE_SORTING_ORDER[albumData.image_sorting]) {
-    orderBy = Prisma.sql([`image.sort DESC, ${ALBUM_IMAGE_SORTING_ORDER[albumData.image_sorting]}`])
+    orderBy = Prisma.sql([`image.sort ASC, ${ALBUM_IMAGE_SORTING_ORDER[albumData.image_sorting]}`])
   }
   const dataList: ImageType[] = await db.$queryRaw`
     SELECT 
@@ -282,6 +385,9 @@ export async function fetchClientImagesListByAlbum(pageNum: number, album: strin
         albums.show = 0
     AND
         albums.album_value = ${album}
+        ${cameraFilter}
+        ${lensFilter}
+        ${tagsFilter}
     ORDER BY ${orderBy}
     LIMIT 16 OFFSET ${(pageNum - 1) * 16}
   `
@@ -294,9 +400,38 @@ export async function fetchClientImagesListByAlbum(pageNum: number, album: strin
 /**
  * 根据相册获取图片分页总数（客户端）
  * @param album 相册
+ * @param cameras 相机型号数组（多选）
+ * @param lenses 镜头型号数组（多选）
+ * @param tags 标签数组（多选）
+ * @param tagsOperator 标签操作符（'and' | 'or'）
  * @returns {Promise<number>} 图片总数
  */
-export async function fetchClientImagesPageTotalByAlbum(album: string): Promise<number> {
+export async function fetchClientImagesPageTotalByAlbum(
+  album: string,
+  cameras?: string[],
+  lenses?: string[],
+  tags?: string[],
+  tagsOperator: 'and' | 'or' = 'and'
+): Promise<number> {
+  // 构建筛选条件
+  const camerasArray = Array.isArray(cameras) && cameras.length > 0 ? cameras : []
+  const lensesArray = Array.isArray(lenses) && lenses.length > 0 ? lenses : []
+  const tagsArray = Array.isArray(tags) && tags.length > 0 ? tags : []
+
+  const cameraFilter = camerasArray.length > 0
+    ? Prisma.sql`AND (${Prisma.join(camerasArray.map(c => Prisma.sql`COALESCE(image.exif->>'model', 'Unknown') = ${c}`), Prisma.sql` OR `)})`
+    : Prisma.empty
+
+  const lensFilter = lensesArray.length > 0
+    ? Prisma.sql`AND (${Prisma.join(lensesArray.map(l => Prisma.sql`COALESCE(image.exif->>'lens_model', 'Unknown') = ${l}`), Prisma.sql` OR `)})`
+    : Prisma.empty
+
+  const tagsFilter = tagsArray.length > 0
+    ? tagsOperator === 'and'
+      ? Prisma.sql`AND image.labels::jsonb @> ${JSON.stringify(tagsArray)}::jsonb`
+      : Prisma.sql`AND (${Prisma.join(tagsArray.map(t => Prisma.sql`image.labels::jsonb @> ${JSON.stringify([t])}::jsonb`), Prisma.sql` OR `)})`
+    : Prisma.empty
+
   if (album === '/') {
     const pageTotal = await db.$queryRaw`
     SELECT COALESCE(COUNT(1),0) AS total
@@ -319,6 +454,9 @@ export async function fetchClientImagesPageTotalByAlbum(album: string): Promise<
             albums.del = 0
         AND
             albums.show = 0
+            ${cameraFilter}
+            ${lensFilter}
+            ${tagsFilter}
     ) AS unique_images;
   `
     // @ts-expect-error -- $queryRaw returns an untyped row object from SQL
@@ -345,6 +483,9 @@ export async function fetchClientImagesPageTotalByAlbum(album: string): Promise<
             albums.show = 0
         AND
             albums.album_value = ${album}
+            ${cameraFilter}
+            ${lensFilter}
+            ${tagsFilter}
     ) AS unique_images;
   `
   // @ts-expect-error -- $queryRaw returns an untyped row object from SQL; page total

@@ -24,14 +24,27 @@ export default async function Page({
       ? 'waterfall'
       : undefined
 
-  const getData = async (pageNum: number, album: string) => {
+  const getData = async (
+    pageNum: number,
+    album: string,
+    cameras?: string[],
+    lenses?: string[],
+    tags?: string[],
+    tagsOperator: 'and' | 'or' = 'and'
+  ) => {
     'use server'
-    return await fetchClientImagesListByAlbum(pageNum, album)
+    return await fetchClientImagesListByAlbum(pageNum, album, cameras, lenses, tags, tagsOperator)
   }
 
-  const getPageTotal = async (album: string) => {
+  const getPageTotal = async (
+    album: string,
+    cameras?: string[],
+    lenses?: string[],
+    tags?: string[],
+    tagsOperator: 'and' | 'or' = 'and'
+  ) => {
     'use server'
-    return await fetchClientImagesPageTotalByAlbum(album)
+    return await fetchClientImagesPageTotalByAlbum(album, cameras, lenses, tags, tagsOperator)
   }
 
   const getConfig = async () => {

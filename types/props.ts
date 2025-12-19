@@ -48,13 +48,30 @@ export interface ImageFilters {
 }
 
 export interface ImageHandleProps {
-  handle: (pageNum: number, tag: string) => unknown
+  handle: (
+    pageNum: number,
+    tag: string,
+    cameras?: string[],
+    lenses?: string[],
+    tags?: string[],
+    tagsOperator?: 'and' | 'or',
+    sortByShootTime?: 'desc' | 'asc'
+  ) => unknown
   args: string
   album: string
-  totalHandle: (tag: string) => unknown
+  totalHandle: (
+    tag: string,
+    cameras?: string[],
+    lenses?: string[],
+    tags?: string[],
+    tagsOperator?: 'and' | 'or',
+    sortByShootTime?: 'desc' | 'asc'
+  ) => unknown
   configHandle: () => unknown
-  // 新增：前端筛选条件（仅在前端对已加载数据过滤，不影响后端接口）
-  filters?: ImageFilters
+  // 新增：筛选条件（传递给后端进行数据库查询）
+  filters?: ImageFilters & { tagsOperator?: 'and' | 'or' }
+  // 新增：排序方式（按拍摄时间）
+  sortByShootTime?: 'desc' | 'asc'
 }
 
 export interface PreviewImageHandleProps {

@@ -30,6 +30,7 @@ import { CogIcon } from '~/components/icons/cog'
 import { FingerprintIcon } from '~/components/icons/fingerprint'
 import { LoaderPinwheelIcon } from '~/components/icons/loader-pinwheel'
 import { KeySquareIcon } from '~/components/icons/key-square'
+import { FrameIcon as ChartIcon } from '~/components/icons/frame'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter()
@@ -41,6 +42,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: t('Link.dashboard'),
         url: '/admin',
         icon: SquareTerminalIcon,
+      },
+      {
+        title: '访问统计',
+        url: '/admin/analytics',
+        icon: ChartIcon,
       },
       {
         title: t('Link.upload'),

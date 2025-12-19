@@ -1,6 +1,6 @@
 import 'server-only'
 import { fetchAlbumsList } from '~/lib/db/query/albums'
-import { deleteAlbum, insertAlbums, updateAlbum, updateAlbumShow } from '~/lib/db/operate/albums'
+import { deleteAlbum, insertAlbums, updateAlbum, updateAlbumShow, updateAlbumsSort } from '~/lib/db/operate/albums'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 
@@ -62,6 +62,23 @@ app.put('/update-show', async (c) => {
     return c.json(data)
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed to update album show status', cause: e })
+  }
+})
+
+app.put('/update-sort', async (c) => {
+  try {
+    const body = await c.req.json()
+    const orderedIds: unknown = body?.orderedIds
+
+    if (!Array.isArray(orderedIds) || !orderedIds.every((id) => typeof id === 'string')) {
+      throw new HTTPException(400, { message: 'Invalid payload for update-sort' })
+    }
+
+    await updateAlbumsSort(orderedIds as string[])
+    return c.json({ code: 200, message: 'Success' })
+  } catch (e) {
+    if (e instanceof HTTPException) throw e
+    throw new HTTPException(500, { message: 'Failed to update album sort', cause: e })
   }
 })
 

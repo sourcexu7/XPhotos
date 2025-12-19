@@ -4,6 +4,7 @@
 
 import { db } from '~/lib/db'
 import type { AlbumType } from '~/types'
+import { invalidateAlbumsListCache } from '~/lib/db/query/albums'
 
 function normalizeSortValue(sort: number | undefined): number {
   return !sort || sort < 0 ? 0 : sort
@@ -99,4 +100,31 @@ export async function updateAlbumShow(id: string, show: number) {
       updatedAt: new Date(),
     },
   })
+}
+
+/**
+ * 批量更新相册排序（权重）
+ * @param orderedIds 相册 ID 按新顺序排列的数组
+ * 规则：索引越小 sort 越小，保证 sort 唯一且连续
+ */
+export async function updateAlbumsSort(orderedIds: string[]) {
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+    return
+  }
+
+  // 这里不使用交互式事务，避免在部分环境下出现事务超时问题
+  const updates = orderedIds.map((id, index) =>
+    db.albums.update({
+      where: { id },
+      data: {
+        sort: index,
+        updatedAt: new Date(),
+      },
+    }),
+  )
+
+  await Promise.all(updates)
+
+  // 排序更新后，失效后台列表缓存
+  invalidateAlbumsListCache()
 }

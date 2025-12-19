@@ -134,7 +134,11 @@ export default function GalleryImage({ photo, configData }: { photo: ImageType, 
             const cam = photo?.exif?.make ? `${photo?.exif?.make} ${photo?.exif?.model ?? ''}`.trim() : (photo?.exif?.model ?? '')
             return cam && cam.length > 0 ? <span>相机：{cam}</span> : null
           })()}
-          {photo?.exif?.f_number && <span>光圈：f/{photo.exif.f_number}</span>}
+          {photo?.exif?.f_number && (() => {
+            const fNumber = photo.exif.f_number.toString()
+            const displayValue = fNumber.startsWith('f/') ? fNumber : `f/${fNumber}`
+            return <span>光圈：{displayValue}</span>
+          })()}
           {photo?.exif?.exposure_time && <span>快门：{photo.exif.exposure_time}</span>}
           {photo?.exif?.iso_speed_rating && <span>ISO：{photo.exif.iso_speed_rating}</span>}
           {photo?.exif?.focal_length && <span>焦距：{photo.exif.focal_length}</span>}
