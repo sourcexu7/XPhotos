@@ -85,32 +85,43 @@ export default function AboutPage() {
   }, {})
 
   const intro = map['about_intro'] || ''
-  const photoPreview = map['about_photo_preview_url'] || ''
   const insUrl = map['about_ins_url'] || ''
   const xhsUrl = map['about_xhs_url'] || ''
   const weiboUrl = map['about_weibo_url'] || ''
   const githubUrl = map['about_github_url'] || ''
 
-  // 解析多图画廊数据（JSON 数组格式）
+  // 解析多图画廊数据 - 优先使用完整数据（包含原图和预览图）
   let galleryImages: CarouselItem[] = []
   try {
-    const galleryJson = map['about_gallery_images']
-    if (galleryJson) {
-      const parsed = JSON.parse(galleryJson)
-      if (Array.isArray(parsed)) {
-        galleryImages = parsed.map((url: string, idx: number) => ({
+    // 优先使用完整数据
+    const galleryFullJson = map['about_gallery_images_full']
+    if (galleryFullJson) {
+      const parsed = JSON.parse(galleryFullJson)
+      if (Array.isArray(parsed) && parsed.every((item: any) => item.original && item.preview)) {
+        galleryImages = parsed.map((item: { original: string; preview: string }, idx: number) => ({
           id: `gallery-${idx}`,
-          url,
+          url: item.preview, // 优先使用预览图
+          originalUrl: item.original, // 保存原图URL，用于点击查看
         }))
+      }
+    }
+    
+    // 向后兼容：如果没有完整数据，使用旧格式
+    if (galleryImages.length === 0) {
+      const galleryJson = map['about_gallery_images']
+      if (galleryJson) {
+        const parsed = JSON.parse(galleryJson)
+        if (Array.isArray(parsed)) {
+          galleryImages = parsed.map((url: string, idx: number) => ({
+            id: `gallery-${idx}`,
+            url, // 旧格式直接使用URL
+            originalUrl: url, // 向后兼容，原图=预览图
+          }))
+        }
       }
     }
   } catch {
     // JSON 解析失败，使用空数组
-  }
-
-  // 若没有多图数据，回退到单张个人照片
-  if (galleryImages.length === 0 && photoPreview) {
-    galleryImages = [{ id: 'single', url: photoPreview, title: '' }]
   }
 
   const socialLinks = [

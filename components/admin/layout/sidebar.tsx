@@ -17,7 +17,6 @@ import {
   Settings,
   User,
   Cloud,
-  Key,
   Tag,
   Home,
   LogOut,
@@ -80,10 +79,8 @@ export function AdminSidebar({ collapsed: controlledCollapsed, onCollapse }: Adm
   const settingsItems: SidebarItem[] = [
     { key: '/admin/settings/preferences', label: t('Link.preferences'), icon: Settings },
     { key: '/admin/settings/account', label: t('Link.account'), icon: User },
-    { key: '/admin/settings/storages', label: t('Link.storages'), icon: Cloud },
-    { key: '/admin/settings/authenticator', label: t('Link.authenticator'), icon: Key },
-    { key: '/admin/settings/passkey', label: t('Link.passkey'), icon: Key },
     { key: '/admin/settings/tag', label: t('Link.tags') || '标签管理', icon: Tag },
+    { key: '/admin/settings/storages', label: t('Link.storages'), icon: Cloud },
   ]
   
   const handleItemClick = (key: string) => {

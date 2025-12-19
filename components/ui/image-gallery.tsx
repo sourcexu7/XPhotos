@@ -7,6 +7,7 @@ import { AspectRatio } from '~/components/ui/aspect-ratio'
 import type { ImageType } from '~/types'
 import { useRouter } from 'next-nprogress-bar'
 import { useIsMobile } from '~/hooks/use-mobile'
+import { ImgWithLoading } from '~/components/ui/img-with-loading'
 
 interface ImageGalleryProps {
   images: ImageType[]
@@ -71,7 +72,7 @@ function AnimatedImage({ image, ratio }: AnimatedImageProps) {
         ratio={ratio}
         className="bg-muted relative size-full rounded-xl overflow-hidden"
       >
-        <img
+        <ImgWithLoading
           alt={image.detail || 'Image'}
           src={image.preview_url || image.url}
           className={cn(
@@ -81,6 +82,8 @@ function AnimatedImage({ image, ratio }: AnimatedImageProps) {
           )}
           onLoad={() => setIsLoading(false)}
           loading="lazy"
+          loadingSize="small"
+          containerClassName="size-full"
         />
         {/* Hover Title with bottom gradient (no rounded box) */}
         {image.title && (

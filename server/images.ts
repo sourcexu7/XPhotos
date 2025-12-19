@@ -7,6 +7,7 @@ import {
   updateImageShow,
   updateImageFeatured,
   updateImageAlbum,
+  updateImagesSort,
 } from '~/lib/db/operate/images'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
@@ -126,6 +127,32 @@ app.put('/update-Album', async (c) => {
     return c.json({ code: 200, message: 'Success' })
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed to update image album', cause: e })
+  }
+})
+
+app.put('/update-sort', async (c) => {
+  try {
+    const body = await c.req.json()
+    const orders: unknown = body?.orders
+
+    if (
+      !Array.isArray(orders) ||
+      !orders.every(
+        (o) =>
+          o &&
+          typeof o === 'object' &&
+          typeof (o as any).id === 'string' &&
+          typeof (o as any).sort === 'number',
+      )
+    ) {
+      throw new HTTPException(400, { message: 'Invalid payload for update-sort' })
+    }
+
+    await updateImagesSort(orders as { id: string; sort: number }[])
+    return c.json({ code: 200, message: 'Success' })
+  } catch (e) {
+    if (e instanceof HTTPException) throw e
+    throw new HTTPException(500, { message: 'Failed to update image sort', cause: e })
   }
 })
 

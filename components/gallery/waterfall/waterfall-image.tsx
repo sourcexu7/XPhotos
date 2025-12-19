@@ -3,6 +3,7 @@
 import { useRouter } from 'next-nprogress-bar'
 import { useBlurImageDataUrl } from '~/hooks/use-blurhash'
 import { MotionImage } from '~/components/album/motion-image'
+import { ImageLoadingAnimation } from '~/components/ui/image-loading-animation'
 import { useState } from 'react'
 import type { ImageType } from '~/types'
 import { motion } from 'framer-motion'
@@ -10,6 +11,7 @@ import { motion } from 'framer-motion'
 export default function WaterfallImage({ photo, index }: { photo: ImageType, index?: number }) {
   const router = useRouter()
   const [isHovered, setIsHovered] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const dataURL = useBlurImageDataUrl(photo.blurhash)
 
   return (
@@ -48,18 +50,29 @@ export default function WaterfallImage({ photo, index }: { photo: ImageType, ind
         }}
       />
 
-      <MotionImage
-        style={{ width: '100%', height: 'auto', display: 'block' }}
-        src={photo.preview_url || photo.url}
-        overrideSrc={photo.preview_url || photo.url}
-        alt={photo.detail || 'image'}
-        width={photo.width}
-        height={photo.height}
-        unoptimized
-        loading="lazy"
-        placeholder="blur"
-        blurDataURL={dataURL}
-      />
+      <div className="relative w-full">
+        {isLoading && (
+          <ImageLoadingAnimation
+            visible={isLoading}
+            size="small"
+            className="absolute inset-0 z-10"
+          />
+        )}
+        <MotionImage
+          style={{ width: '100%', height: 'auto', display: 'block' }}
+          src={photo.preview_url || photo.url}
+          overrideSrc={photo.preview_url || photo.url}
+          alt={photo.detail || 'image'}
+          width={photo.width}
+          height={photo.height}
+          unoptimized
+          loading="lazy"
+          placeholder="blur"
+          blurDataURL={dataURL}
+          className={isLoading ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}
+          onLoad={() => setIsLoading(false)}
+        />
+      </div>
       
       {/* LivePhoto 标识 */}
       {photo.type === 2 && (

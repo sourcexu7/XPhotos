@@ -42,19 +42,77 @@ export async function createTag(payload: { name: string; category?: string; pare
 
 /**
  * 更新标签
+ * 支持标签移动，并自动同步图片标签关联
  */
-export async function updateTag(id: string, payload: { name?: string; category?: string; parentName?: string; detail?: string }) {
-  const data: any = { ...(payload as any) }
-  if (payload.parentName) {
-    // resolve parentName to parentId
-    const parent = await db.tags.upsert({ where: { name: payload.parentName }, update: {}, create: { name: payload.parentName, category: '' } })
-    data.parentId = parent.id
-    data.category = payload.parentName
+export async function updateTag(id: string, payload: { name?: string; category?: string; parentName?: string; parentId?: string | null; detail?: string }) {
+  // 如果涉及标签移动（parentId变化），需要先获取原父标签ID
+  let oldParentId: string | null = null
+  let shouldSyncImages = false
+
+  if ('parentId' in payload && payload.parentId !== undefined) {
+    const currentTag = await db.tags.findUnique({
+      where: { id },
+      select: { parentId: true }
+    })
+    
+    if (currentTag) {
+      oldParentId = currentTag.parentId
+      // 如果父标签ID发生变化，需要同步图片标签
+      if (oldParentId !== payload.parentId) {
+        shouldSyncImages = true
+      }
+    }
   }
-  return await db.tags.update({
+
+  const updateData: { name?: string; category?: string; parentId?: string | null; detail?: string } = {}
+  
+  // 复制其他字段
+  if (payload.name !== undefined) updateData.name = payload.name
+  if (payload.detail !== undefined) updateData.detail = payload.detail
+  
+  // 优先使用 parentId（直接指定父标签 ID）
+  if ('parentId' in payload && payload.parentId !== undefined) {
+    updateData.parentId = payload.parentId
+    // 如果指定了 parentId，需要更新 category 为父标签的 name
+    if (payload.parentId) {
+      const parent = await db.tags.findUnique({ where: { id: payload.parentId } })
+      if (parent) {
+        updateData.category = parent.name
+      }
+    } else {
+      // parentId 为 null，表示移动到顶级，category 设为标签自己的 name
+      const tag = await db.tags.findUnique({ where: { id } })
+      if (tag) {
+        updateData.category = tag.name
+      }
+    }
+  } else if (payload.parentName) {
+    // 向后兼容：使用 parentName 解析 parentId
+    const parent = await db.tags.upsert({ where: { name: payload.parentName }, update: {}, create: { name: payload.parentName, category: '' } })
+    updateData.parentId = parent.id
+    updateData.category = payload.parentName
+  } else if (payload.category !== undefined) {
+    // 如果只更新 category（不改变 parentId）
+    updateData.category = payload.category
+  }
+  
+  const updatedTag = await db.tags.update({
     where: { id },
-    data
+    data: updateData
   })
+
+  // 如果标签移动了，同步图片标签关联
+  if (shouldSyncImages && 'parentId' in payload && payload.parentId !== undefined) {
+    try {
+      const { syncImageTagsAfterTagMove } = await import('~/lib/services/image-tag-sync-service')
+      await syncImageTagsAfterTagMove(id, oldParentId, payload.parentId)
+    } catch (error) {
+      console.error('同步图片标签关联失败:', error)
+      // 不抛出错误，因为标签移动已经成功，图片标签同步失败可以后续修复
+    }
+  }
+  
+  return updatedTag
 }
 
 /**

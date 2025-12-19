@@ -7,14 +7,30 @@ import ThemeGalleryClient from '~/components/layout/theme-gallery-client'
 import { fetchTagsList } from '~/lib/db/query/tags'
 
 export default async function AlbumsPage() {
-  const getData = async (pageNum: number, album: string) => {
+  const getData = async (
+    pageNum: number,
+    album: string,
+    cameras?: string[],
+    lenses?: string[],
+    tags?: string[],
+    tagsOperator: 'and' | 'or' = 'and',
+    sortByShootTime?: 'desc' | 'asc'
+  ) => {
     'use server'
-    return await fetchClientImagesListByAlbum(pageNum, album)
+    return await fetchClientImagesListByAlbum(pageNum, album, cameras, lenses, tags, tagsOperator, sortByShootTime)
   }
 
-  const getPageTotal = async (album: string) => {
+  const getPageTotal = async (
+    album: string,
+    cameras?: string[],
+    lenses?: string[],
+    tags?: string[],
+    tagsOperator: 'and' | 'or' = 'and',
+    sortByShootTime?: 'desc' | 'asc'
+  ) => {
     'use server'
-    return await fetchClientImagesPageTotalByAlbum(album)
+    // 总数查询不需要排序参数，但为了保持接口一致性，接收但不使用
+    return await fetchClientImagesPageTotalByAlbum(album, cameras, lenses, tags, tagsOperator)
   }
 
   const getConfig = async () => {

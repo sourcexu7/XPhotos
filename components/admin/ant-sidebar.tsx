@@ -12,10 +12,10 @@ import {
   SettingOutlined,
   UserOutlined,
   CloudOutlined,
-  KeyOutlined,
   TagsOutlined,
   LogoutOutlined,
   HomeOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons'
 import { authClient } from '~/lib/auth-client'
 import { clearAllAuthData } from '~/lib/utils/auth-utils'
@@ -58,6 +58,12 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
       icon: <PictureOutlined />,
       label: t('Link.album'),
     },
+    {
+      key: '/admin/analytics',
+      icon: <BarChartOutlined />,
+      // 直接使用中文文案，避免未配置多语言 key 导致控制台报错
+      label: '访问统计',
+    },
   ]
 
   const settingsMenuItems = [
@@ -77,24 +83,14 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
           label: t('Link.account'),
         },
         {
-          key: '/admin/settings/storages',
-          icon: <CloudOutlined />,
-          label: t('Link.storages'),
-        },
-        {
-          key: '/admin/settings/authenticator',
-          icon: <KeyOutlined />,
-          label: t('Link.authenticator'),
-        },
-        {
-          key: '/admin/settings/passkey',
-          icon: <KeyOutlined />,
-          label: t('Link.passkey'),
-        },
-        {
           key: '/admin/settings/tag',
           icon: <TagsOutlined />,
           label: t('Link.tags') || '标签管理',
+        },
+        {
+          key: '/admin/settings/storages',
+          icon: <CloudOutlined />,
+          label: t('Link.storages'),
         },
       ],
     },

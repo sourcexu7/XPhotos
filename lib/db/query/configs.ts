@@ -36,6 +36,11 @@ export async function fetchConfigsByKeys(keys: string[]): Promise<Config[]> {
 
   const promise = (async () => {
     try {
+      // 确保数据库连接正常
+      await db.$connect().catch(() => {
+        // 如果连接已存在，忽略错误
+      })
+      
       const data = await db.configs.findMany({
         where: {
           config_key: {
@@ -54,6 +59,10 @@ export async function fetchConfigsByKeys(keys: string[]): Promise<Config[]> {
       return data
     } catch (error) {
       console.error('Failed to fetch configs:', error)
+      // 如果是连接错误，清理缓存，下次重试
+      if (error instanceof Error && error.message.includes('connection')) {
+        CONFIG_CACHE.delete(cacheKey)
+      }
       return []
     } finally {
       INFLIGHT_QUERIES.delete(cacheKey)

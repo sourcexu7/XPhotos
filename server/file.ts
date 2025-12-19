@@ -26,12 +26,8 @@ function toConfigMap(configs: Config[]): Record<string, string> {
   return map
 }
 
-// 优化点: 统一规范化 storage_folder，避免重复 if 逻辑
-function normalizeStorageFolder(raw?: string | null): string {
-  if (!raw) return ''
-  if (raw === '/') return ''
-  return raw.endsWith('/') ? raw.slice(0, -1) : raw
-}
+// 优化：使用公共工具函数，消除重复代码
+import { normalizeStorageFolder } from '~/lib/utils/storage'
 
 // 优化点: 复用 S3 公开 URL 拼接逻辑
 function buildS3PublicUrl(cfg: Record<string, string>, key: string): string {

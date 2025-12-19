@@ -5,7 +5,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export interface CarouselItem {
   id: string | number
-  url: string
+  url: string // 预览图URL（优先使用）
+  originalUrl?: string // 原图URL（可选，用于点击查看）
   title?: string
 }
 

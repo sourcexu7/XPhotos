@@ -29,10 +29,8 @@ interface DragItem {
 export default function Preferences() {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
-  const [aboutUploading, setAboutUploading] = useState(false)
-  const [aboutPreviewUrl, setAboutPreviewUrl] = useState('')
-  // 多图画廊状态
-  const [galleryImages, setGalleryImages] = useState<string[]>([])
+  // 多图画廊状态 - 存储原图和预览图
+  const [galleryImages, setGalleryImages] = useState<Array<{ original: string; preview: string }>>([])
   const [galleryUploading, setGalleryUploading] = useState(false)
   // 拖拽排序状态
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
@@ -40,7 +38,6 @@ export default function Preferences() {
   
   const { token } = theme.useToken()
   const t = useTranslations()
-  const aboutInputRef = useRef<HTMLInputElement | null>(null)
   const galleryInputRef = useRef<HTMLInputElement | null>(null)
 
   const { data, isValidating, isLoading } = useSWR<{ config_key: string, config_value: string }[]>('/api/v1/settings/get-custom-info', fetcher)
@@ -92,14 +89,13 @@ export default function Preferences() {
           adminImagesPerPage: imagesPerPage,
           // 「关于我」前台展示配置
           aboutIntro: values.aboutIntro,
-          aboutPhotoOriginalUrl: values.aboutPhotoOriginalUrl,
-          aboutPhotoPreviewUrl: values.aboutPhotoPreviewUrl,
           aboutInsUrl: values.aboutInsUrl,
           aboutXhsUrl: values.aboutXhsUrl,
           aboutWeiboUrl: values.aboutWeiboUrl,
           aboutGithubUrl: values.aboutGithubUrl,
-          // 多图画廊
-          aboutGalleryImages: galleryImages,
+          // 多图画廊 - 存储原图和预览图URL数组
+          aboutGalleryImages: galleryImages.map(img => img.preview), // 向后兼容，存储预览图URL数组
+          aboutGalleryImagesFull: galleryImages, // 完整数据，包含原图和预览图
         }),
       }).then(res => res.json())
       toast.success('修改成功！')
@@ -131,23 +127,34 @@ export default function Preferences() {
         adminImagesPerPage: data?.find((item) => item.config_key === 'admin_images_per_page')?.config_value || '8',
         // 「关于我」前台展示配置
         aboutIntro: data?.find((item) => item.config_key === 'about_intro')?.config_value || '',
-        aboutPhotoOriginalUrl: data?.find((item) => item.config_key === 'about_photo_original_url')?.config_value || '',
-        aboutPhotoPreviewUrl: data?.find((item) => item.config_key === 'about_photo_preview_url')?.config_value || '',
         aboutInsUrl: data?.find((item) => item.config_key === 'about_ins_url')?.config_value || '',
         aboutXhsUrl: data?.find((item) => item.config_key === 'about_xhs_url')?.config_value || '',
         aboutWeiboUrl: data?.find((item) => item.config_key === 'about_weibo_url')?.config_value || '',
         aboutGithubUrl: data?.find((item) => item.config_key === 'about_github_url')?.config_value || '',
       })
-      const preview = data?.find((item) => item.config_key === 'about_photo_preview_url')?.config_value
-      if (preview) setAboutPreviewUrl(preview)
 
-      // 解析多图画廊数据
+      // 解析多图画廊数据 - 优先使用完整数据（包含原图和预览图）
+      const galleryFullJson = data?.find((item) => item.config_key === 'about_gallery_images_full')?.config_value
       const galleryJson = data?.find((item) => item.config_key === 'about_gallery_images')?.config_value
-      if (galleryJson) {
+      
+      if (galleryFullJson) {
+        try {
+          const parsed = JSON.parse(galleryFullJson)
+          if (Array.isArray(parsed) && parsed.every(item => item.original && item.preview)) {
+            setGalleryImages(parsed)
+          }
+        } catch {
+          // 解析失败，尝试使用旧格式
+        }
+      }
+      
+      // 向后兼容：如果没有完整数据，尝试从旧格式迁移
+      if (galleryImages.length === 0 && galleryJson) {
         try {
           const parsed = JSON.parse(galleryJson)
           if (Array.isArray(parsed)) {
-            setGalleryImages(parsed)
+            // 旧格式是字符串数组，转换为新格式（预览图=原图）
+            setGalleryImages(parsed.map((url: string) => ({ original: url, preview: url })))
           }
         } catch {
           // 解析失败，使用空数组
@@ -611,72 +618,8 @@ export default function Preferences() {
                       </Space>
                     </Col>
 
-                    {/* 中间：单张主图上传 */}
-                    <Col xs={24} md={8} className="flex flex-col items-center justify-start">
-                      <Space orientation="vertical" size={token.margin} style={{ width: '100%', alignItems: 'center' }}>
-                        <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                          封面照片（建议 16:9 横图，JPG / PNG）
-                        </Typography.Text>
-                        <Form.Item
-                          label="原图地址"
-                          name="aboutPhotoOriginalUrl"
-                          style={{ width: '100%' }}
-                        >
-                          <Input placeholder="上传后自动填充，也可粘贴已有图片地址" />
-                        </Form.Item>
-                        <Form.Item
-                          label="预览图地址"
-                          name="aboutPhotoPreviewUrl"
-                          style={{ width: '100%' }}
-                        >
-                          <Input placeholder="上传后自动填充，用于前台展示" />
-                        </Form.Item>
-                        <div className="flex items-center gap-3">
-                          <input
-                            ref={el => (aboutInputRef.current = el)}
-                            type="file"
-                            accept="image/jpeg,image/png"
-                            onChange={handleAboutPhotoChange}
-                            disabled={aboutUploading}
-                            style={{ display: 'none' }}
-                          />
-                          <Button
-                            onClick={() => aboutInputRef.current?.click()}
-                            loading={aboutUploading}
-                            disabled={aboutUploading}
-                          >
-                            上传封面照片
-                          </Button>
-                        </div>
-                        {aboutPreviewUrl && (
-                          <div className="mt-3 w-full">
-                            <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-                              预览：
-                            </Typography.Text>
-                            <div
-                              style={{
-                                marginTop: 8,
-                                maxWidth: '320px',
-                                width: '100%',
-                                aspectRatio: '16 / 9',
-                                borderRadius: 12,
-                                overflow: 'hidden',
-                                border: `1px solid ${token.colorBorder}`,
-                              }}
-                            >
-                              <img
-                                src={aboutPreviewUrl}
-                                alt="封面预览图"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </Space>
-                    </Col>
-
                     {/* 右侧：多图画廊管理 */}
-                    <Col xs={24} md={8} className="flex flex-col items-start justify-start">
+                    <Col xs={24} md={12} className="flex flex-col items-start justify-start">
                       <Space orientation="vertical" size={token.margin} style={{ width: '100%' }}>
                         <div className="flex items-center justify-between w-full">
                           <Typography.Text strong>
@@ -710,9 +653,9 @@ export default function Preferences() {
 
                         {/* 画廊图片预览列表 */}
                         <div className="grid grid-cols-2 gap-2 w-full mt-2">
-                          {galleryImages.map((url, idx) => (
+                          {galleryImages.map((img, idx) => (
                             <div
-                              key={`${url}-${idx}`}
+                              key={`${img.preview}-${idx}`}
                               draggable
                               onDragStart={() => handleDragStart(idx)}
                               onDragOver={(e) => handleDragOver(e, idx)}
@@ -724,7 +667,7 @@ export default function Preferences() {
                               style={{ aspectRatio: '16/9' }}
                             >
                               <img
-                                src={url}
+                                src={img.preview}
                                 alt={`画廊图片 ${idx + 1}`}
                                 className="w-full h-full object-cover"
                                 draggable={false}

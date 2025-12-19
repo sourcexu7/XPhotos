@@ -8,6 +8,8 @@ import { updateAListConfig, updateCustomInfo, updateR2Config, updateS3Config } f
 
 import { fetchTagsList, fetchTagsTree, fetchTagsByCategory } from '~/lib/db/query/tags'
 import { createTag, updateTag, deleteTag, deleteTagAndChildren } from '~/lib/db/operate/tags'
+import { moveTag, validateTagMove } from '~/lib/services/tag-move-service'
+import { checkAndFixImageTagCompleteness } from '~/lib/services/image-tag-sync-service'
 import { getClient } from '~/lib/s3'
 import { HeadBucketCommand, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 
@@ -55,6 +57,45 @@ app.put('/tags/update/:id', async (c) => {
   }
 })
 
+// 标签移动接口（带验证和图片标签同步）
+app.post('/tags/move', async (c) => {
+  try {
+    const { tagId, targetParentId } = await c.req.json()
+    
+    if (!tagId) {
+      throw new HTTPException(400, { message: '标签ID不能为空' })
+    }
+
+    // 验证移动操作
+    const validation = await validateTagMove(tagId, targetParentId ?? null)
+    if (!validation.valid) {
+      return c.json({ code: 400, message: validation.error })
+    }
+
+    // 执行移动
+    const result = await moveTag(tagId, targetParentId ?? null)
+    
+    if (!result.success) {
+      return c.json({ code: 400, message: result.error })
+    }
+
+    return c.json({ code: 200, data: result.tag, message: '移动成功' })
+  } catch (e) {
+    throw new HTTPException(500, { message: 'Failed', cause: e })
+  }
+})
+
+// 历史图片标签补全检查接口
+app.post('/tags/check-completeness', async (c) => {
+  try {
+    const { batchSize } = await c.req.json()
+    const result = await checkAndFixImageTagCompleteness(batchSize ?? 100)
+    return c.json({ code: 200, data: result })
+  } catch (e) {
+    throw new HTTPException(500, { message: 'Failed', cause: e })
+  }
+})
+
 app.delete('/tags/delete/:id', async (c) => {
   try {
     const id = c.req.param('id')
@@ -96,8 +137,7 @@ app.get('/get-custom-info', async (c) => {
       'admin_images_per_page',
       // 新增：「关于我」前台展示配置
       'about_intro',
-      'about_photo_original_url',
-      'about_photo_preview_url',
+      'about_gallery_images_full',
       'about_ins_url',
       'about_xhs_url',
       'about_weibo_url',
@@ -290,13 +330,14 @@ app.put('/update-custom-info', async (c) => {
     adminImagesPerPage: number
     // 新增：「关于我」前台展示配置
     aboutIntro?: string
-    aboutPhotoOriginalUrl?: string
-    aboutPhotoPreviewUrl?: string
     aboutInsUrl?: string
     aboutXhsUrl?: string
     aboutWeiboUrl?: string
     aboutGithubUrl?: string
-     aboutGalleryImages?: string[]
+    // 新增：关于我画廊图片数组（数组字符串）- 向后兼容，存储预览图URL数组
+    aboutGalleryImages?: string[]
+    // 新增：关于我画廊图片完整数据（包含原图和预览图）
+    aboutGalleryImagesFull?: Array<{ original: string; preview: string }>
   }
   try {
     await updateCustomInfo(query)

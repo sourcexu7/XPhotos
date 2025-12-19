@@ -5,8 +5,9 @@
 import { db } from '~/lib/db'
 import type { AlbumType } from '~/types'
 
+// 后台相册管理默认按 sort 升序（权重越小越靠前），其后再按创建/更新时间倒序
 const DEFAULT_ORDER_BY = [
-  { sort: 'desc' as const },
+  { sort: 'asc' as const },
   { createdAt: 'desc' as const },
   { updatedAt: 'desc' as const },
 ]
@@ -20,6 +21,10 @@ let albumsListCache:
   | { data: AlbumType[]; expiresAt: number }
   | null = null
 const ALBUMS_TTL = 60_000
+
+export async function invalidateAlbumsListCache(): Promise<void> {
+  albumsListCache = null
+}
 
 export async function fetchAlbumsList(): Promise<AlbumType[]> {
   const now = Date.now()
@@ -50,7 +55,8 @@ export async function fetchAlbumsShow(): Promise<AlbumType[]> {
       show: 0,
       album_value: { not: '/' },
     },
-    orderBy: [{ sort: 'desc' }],
+    // 封面路由 & covers 页：按排序权重升序（越小越靠前）
+    orderBy: [{ sort: 'asc' }],
   })
 }
 

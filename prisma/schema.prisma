@@ -208,3 +208,19 @@ model ImagesTagsRelation {
   @@map("images_tags_relation")
   @@unique([imageId, tagId])
 }
+
+// 访问日志表：用于后台访问统计
+model VisitLog {
+  id        String   @id @default(cuid()) @db.VarChar(50)
+  path      String   @db.Text
+  pageType  String   @db.VarChar(50)   // home / gallery / album / admin / other
+  ip        String?  @db.VarChar(100)
+  userAgent String?  @db.Text
+  referrer  String?  @db.Text
+  source    String?  @db.VarChar(50)   // direct / referer / search
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp
+
+  @@index([createdAt])
+  @@index([path])
+  @@map("visit_log")
+}

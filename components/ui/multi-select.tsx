@@ -78,18 +78,21 @@ export function MultiSelect({
         <PopoverContent
           align="start"
           sideOffset={8}
-          className="w-[min(420px,var(--radix-popover-trigger-width))] p-2 bg-popover text-popover-foreground border border-border/60 shadow-lg rounded-md max-h-[320px] overflow-y-auto supports-[backdrop-filter]:backdrop-blur-md"
+          className="w-[min(420px,var(--radix-popover-trigger-width))] p-1 bg-popover/95 backdrop-blur-md border border-border/50 shadow-lg rounded-md max-h-[320px] overflow-hidden"
         >
           <Command>
-            <CommandInput placeholder={placeholder || '搜索...'} />
-            <CommandList>
+            <CommandInput 
+              placeholder={placeholder || '搜索...'} 
+              className="h-9 border-0 focus:ring-0"
+            />
+            <CommandList className="max-h-[280px] overflow-y-auto">
               <CommandEmpty>无结果</CommandEmpty>
               <CommandGroup>
                 {options.map((option) => (
                   <CommandItem
                     key={option.value}
                     onSelect={() => toggle(option.value)}
-                    className="flex items-center justify-between"
+                    className="flex items-center justify-between px-3 py-2 rounded-md text-sm cursor-pointer data-[selected]:bg-accent data-[selected]:text-accent-foreground hover:bg-accent/50 hover:text-accent-foreground"
                   >
                     <span>{option.label}</span>
                     {selectedSet.has(option.value) && <Check className="h-4 w-4" />}
