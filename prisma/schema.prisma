@@ -46,7 +46,7 @@ model Images {
   @@index([createdAt]) // 时间排序索引
   @@index([show, show_on_mainpage]) // 首页展示筛选索引
   @@index([del, show, featured]) // 多条件筛选联合索引
-  @@index([labels], type: Gin) // GIN 索引：用于 JSONB 标签查询（PostgreSQL 专用）
+  // 注意：JSONB 字段的 GIN 索引需要在迁移文件中手动创建，Prisma schema 不支持
   @@map("images")
 }
 

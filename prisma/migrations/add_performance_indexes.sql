@@ -9,6 +9,8 @@ CREATE INDEX IF NOT EXISTS "images_show_mainpage_idx" ON "images"("show", "show_
 CREATE INDEX IF NOT EXISTS "images_del_show_featured_idx" ON "images"("del", "show", "featured");
 
 -- Images 表 JSONB 字段 GIN 索引（PostgreSQL 专用）
+-- 注意：Prisma schema 不支持 GIN 索引，需要在迁移文件中手动创建
+-- 使用默认的 jsonb_ops 操作符类，支持 @> 和 ? 等 JSONB 操作符
 CREATE INDEX IF NOT EXISTS "images_labels_gin_idx" ON "images" USING GIN ("labels");
 
 -- ImagesAlbumsRelation 表索引
