@@ -114,10 +114,23 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
     return () => clearTimeout(timer)
   }, [renderedCount, dataList.length, isFiltering])
 
+  // 初始加载状态：首次加载且没有数据时显示加载动画
+  const isInitialLoading = isLoading && dataList.length === 0
+
   return (
     <div className="w-full min-h-screen bg-[#0f172a] dark:bg-[#0f172a]" ref={containerRef}>
+      {/* 初始加载态：首次加载时显示 */}
+      {isInitialLoading && (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+            <span className="text-sm text-gray-400">正在加载图片...</span>
+          </div>
+        </div>
+      )}
+
       {/* 筛选加载态：筛选触发时显示 */}
-      {isFiltering && (
+      {isFiltering && !isInitialLoading && (
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
@@ -127,7 +140,7 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
       )}
       
       {/* 图片列表：仅在非筛选加载态时显示 */}
-      {!isFiltering && (
+      {!isFiltering && !isInitialLoading && (
         <>
           <ImageGallery images={renderedImages} />
           
