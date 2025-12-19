@@ -54,6 +54,12 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
       label: t('Link.list'),
     },
     {
+      key: '/admin/analytics',
+      icon: <BarChartOutlined />,
+      // 直接使用中文文案，避免未配置多语言 key 导致控制台报错
+      label: '访问统计',
+    },
+    {
       key: '/admin/album',
       icon: <PictureOutlined />,
       label: t('Link.album'),

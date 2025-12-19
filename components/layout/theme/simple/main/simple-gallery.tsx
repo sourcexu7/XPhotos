@@ -21,8 +21,7 @@ const SimpleGallery = React.memo(function SimpleGallery(props: Readonly<ImageHan
   
   const { data: pageTotal } = useSwrPageTotalHook(props)
   
-  // 优化：使用公共 Hook 提取筛选逻辑，消除重复代码
-  // 先计算 filterKey 用于 SWR key
+  // 优化：使用稳定的筛选键生成函数，避免 JSON.stringify 开销
   const filterKey = useMemo(
     () => [
       cameras.join(','),

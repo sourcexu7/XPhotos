@@ -42,6 +42,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: SquareTerminalIcon,
       },
       {
+        title: '访问统计',
+        url: '/admin/analytics',
+        icon: ChartIcon,
+      },
+      {
         title: t('Link.upload'),
         url: '/admin/upload',
         icon: UploadIcon,
