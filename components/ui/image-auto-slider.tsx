@@ -18,7 +18,8 @@ export const ImageAutoSlider = ({ images }: ImageAutoSliderProps) => {
     if (images.length > 0 && typeof window !== 'undefined') {
       const firstImageUrl = images[0].preview_url || images[0].url
       if (firstImageUrl) {
-        const img = new Image()
+        // 使用 window.Image 来避免与 Next.js Image 组件冲突
+        const img = new window.Image()
         img.src = firstImageUrl
         img.onload = () => {
           setFirstImageLoaded(true)
