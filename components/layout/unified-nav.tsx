@@ -60,9 +60,10 @@ export default function UnifiedNav({
   }, [pathname])
 
   // Bug修复：导航顺序要求「相册分类」之后再放「关于我」，且倒数第二
+  // 需求修改：将「景行集」与「城隅寻迹」的位置互换
   const navLinks = [
     { name: '序章', href: '/', icon: <HomeIcon className="w-4 h-4" /> },
-    { name: '景行集', href: '/albums', icon: <ImageIcon className="w-4 h-4" /> },
+    { name: '城隅寻迹', href: '/covers', icon: <ImageIcon className="w-4 h-4" /> },
   ]
 
   // Filter albums for the dropdown/list
@@ -121,22 +122,22 @@ export default function UnifiedNav({
                 </Link>
               ))}
 
-              {/* Albums Button (click to covers) */}
+              {/* 需求修改：将「景行集」放在「城隅寻迹」之后 */}
               <Link
-                href="/covers"
+                href="/albums"
                 className="relative group py-2"
               >
                 <span
                   className={cn(
                     'text-[16px] transition-all duration-300 block select-none',
-                    isActive('/covers')
+                    isActive('/albums')
                       ? 'bg-clip-text text-transparent bg-gradient-to-r from-[#9d4edd] to-[#ff9505] font-medium'
                       : 'text-[#e0e0e0] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#9d4edd] group-hover:to-[#ff9505] group-hover:translate-x-[5px]',
                   )}
                 >
-                  城隅寻迹
+                  景行集
                 </span>
-                {isActive('/covers') && (
+                {isActive('/albums') && (
                   <motion.div
                     layoutId="underline"
                     className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#9d4edd] to-[#ff9505]"
@@ -217,12 +218,13 @@ export default function UnifiedNav({
                   {link.name}
                 </Link>
               ))}
+              {/* 需求修改：将「景行集」放在「城隅寻迹」之后 */}
               <Link
-                href="/covers"
+                href="/albums"
                 className="text-2xl font-medium text-gray-200 hover:text-white"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                城隅寻迹
+                景行集
               </Link>
               <Link
                 href="/about"

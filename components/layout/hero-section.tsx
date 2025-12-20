@@ -14,12 +14,12 @@ interface HeroSectionProps {
 export default function HeroSection({ images = [] }: HeroSectionProps) {
   const router = useRouter()
   useEffect(() => {
-    // Bug修复：预取作品画廊路由，减少跳转闪屏
-    router.prefetch('/albums')
+    // 需求修改：预取「城隅寻迹」路由，减少跳转闪屏
+    router.prefetch('/covers')
   }, [router])
-  // Bug修复：Start 按钮改为路由跳转到作品画廊，确保导航选中状态正确
+  // 需求修改：Start 按钮改为路由跳转到「城隅寻迹」页面
   const handleStartClick = () => {
-    router.push('/albums', { scroll: true })
+    router.push('/covers', { scroll: true })
   }
 
   return (
