@@ -42,7 +42,8 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
         cameras.length > 0 ? cameras : undefined,
         lenses.length > 0 ? lenses : undefined,
         tags.length > 0 ? tags : undefined,
-        tagsOperator,
+        // Bug修复：只有当 tags 有值时才传递 tagsOperator，避免后端查询错误
+        tags.length > 0 ? tagsOperator : 'and',
         sortByShootTime
       )
     },

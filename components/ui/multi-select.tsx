@@ -41,19 +41,22 @@ export function MultiSelect({
   className,
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false)
-  const selectedSet = new Set(selected)
+  // Bug修复：使用 useMemo 确保 selectedSet 在 selected 变化时正确更新
+  const selectedSet = React.useMemo(() => new Set(selected), [selected])
 
-  const toggle = (value: string) => {
-    const next = new Set(selectedSet)
+  const toggle = React.useCallback((value: string) => {
+    const next = new Set(selected)
     if (next.has(value)) {
       next.delete(value)
     } else {
       next.add(value)
     }
     onChange(Array.from(next))
-  }
+  }, [selected, onChange])
 
-  const clearAll = () => onChange([])
+  const clearAll = React.useCallback(() => {
+    onChange([])
+  }, [onChange])
 
   return (
     <div className={cn('w-full space-y-1.5', className)}>
@@ -101,30 +104,67 @@ export function MultiSelect({
               </CommandGroup>
             </CommandList>
           </Command>
-          {selected.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {selected.map((val) => (
-                <Badge
-                  key={val}
-                  variant="secondary"
-                  className="flex items-center gap-1"
-                >
-                  <span className="max-w-[120px] truncate">{val}</span>
-                  <X
-                    className="h-3 w-3 cursor-pointer"
-                    onClick={() => toggle(val)}
-                  />
-                </Badge>
-              ))}
-            </div>
-          )}
           <div className="mt-2 flex justify-end">
-            <Button size="sm" variant="ghost" onClick={clearAll}>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={(e) => {
+                // Bug修复：阻止事件冒泡，避免触发 Popover 的关闭事件
+                e.preventDefault()
+                e.stopPropagation()
+                clearAll()
+              }}
+              onMouseDown={(e) => {
+                // Bug修复：阻止 mousedown 事件冒泡
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+            >
               清空
             </Button>
           </div>
         </PopoverContent>
       </Popover>
+      {/* Bug修复：在 Popover 外部显示已选标签，即使 Popover 关闭也能看到并移除 */}
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-1.5">
+          {selected.map((val) => (
+            <Badge
+              key={val}
+              variant="secondary"
+              className="flex items-center gap-1.5 pr-1 [&>svg.lucide-x]:pointer-events-auto"
+            >
+              <span className="max-w-[120px] truncate text-xs">{val}</span>
+              <X
+                className="lucide-x h-3 w-3 cursor-pointer hover:text-destructive transition-colors shrink-0"
+                style={{ pointerEvents: 'auto' }}
+                onClick={(e) => {
+                  // Bug修复：阻止事件冒泡，避免触发其他事件
+                  e.preventDefault()
+                  e.stopPropagation()
+                  toggle(val)
+                }}
+                onMouseDown={(e) => {
+                  // Bug修复：阻止 mousedown 事件冒泡，确保点击事件能正确触发
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={`移除 ${val}`}
+                onKeyDown={(e) => {
+                  // 支持键盘操作
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    toggle(val)
+                  }
+                }}
+              />
+            </Badge>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
