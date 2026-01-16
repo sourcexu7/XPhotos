@@ -4,11 +4,11 @@ import type { ImageHandleProps } from '~/types/props.ts'
 import { useSwrPageTotalHook } from '~/hooks/use-swr-page-total-hook.ts'
 import useSWRInfinite from 'swr/infinite'
 import { useTranslations } from 'next-intl'
-import type { ImageType } from '~/types'
 import { ReloadIcon } from '@radix-ui/react-icons'
 import { Button } from '~/components/ui/button.tsx'
-import React, { useEffect, useRef, useState, useMemo } from 'react'
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { ImageGallery } from '~/components/ui/image-gallery'
+import { useGalleryFilters } from '~/hooks/use-gallery-filters'
 
 export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
   const cameras = props.filters?.cameras || []
@@ -19,8 +19,17 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
   
   const { data: pageTotal } = useSwrPageTotalHook(props)
   
-  // 使用筛选条件和排序作为 key，筛选条件或排序变更时会自动重新请求
-  const filterKey = JSON.stringify({ cameras, lenses, tags, tagsOperator, sortByShootTime })
+  // 优化：使用稳定的筛选键生成函数，避免 JSON.stringify 开销
+  const filterKey = useMemo(
+    () => [
+      cameras.join(','),
+      lenses.join(','),
+      tags.join(','),
+      tagsOperator,
+      sortByShootTime || '',
+    ].join('|'),
+    [cameras, lenses, tags, tagsOperator, sortByShootTime]
+  )
   
   const { data, error, isLoading, isValidating, size, setSize, mutate } = useSWRInfinite(
     (index) => {
@@ -33,7 +42,8 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
         cameras.length > 0 ? cameras : undefined,
         lenses.length > 0 ? lenses : undefined,
         tags.length > 0 ? tags : undefined,
-        tagsOperator,
+        // Bug修复：只有当 tags 有值时才传递 tagsOperator，避免后端查询错误
+        tags.length > 0 ? tagsOperator : 'and',
         sortByShootTime
       )
     },
@@ -44,75 +54,55 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
     }
   )
   
-  const dataList: ImageType[] = data ? ([] as ImageType[]).concat(...data) : []
+  // 优化：使用公共 Hook 提取筛选逻辑，消除重复代码
+  const { dataList, isFiltering } = useGalleryFilters({
+    cameras,
+    lenses,
+    tags,
+    tagsOperator,
+    sortByShootTime,
+    data,
+    isValidating,
+    setSize,
+    mutate,
+  })
+  
   const t = useTranslations()
   const containerRef = useRef<HTMLDivElement>(null)
-  
-  // 筛选状态：是否有筛选条件
-  const hasFilters = (cameras.length > 0 || lenses.length > 0 || tags.length > 0)
-  
-  // 跟踪上一次的筛选条件，用于检测筛选条件变更
-  const prevFilterKeyRef = useRef<string>(filterKey)
-  const [isFiltering, setIsFiltering] = useState(false)
-  
-  // 检测筛选条件变更，立即显示加载态（仅在有筛选条件时）
-  useEffect(() => {
-    if (prevFilterKeyRef.current !== filterKey) {
-      if (hasFilters) {
-        setIsFiltering(true)
-      } else {
-        setIsFiltering(false)
-      }
-      prevFilterKeyRef.current = filterKey
-    }
-  }, [filterKey, hasFilters])
-  
-  // 数据加载完成后，关闭筛选加载态
-  useEffect(() => {
-    if (isFiltering && !isValidating && dataList.length > 0) {
-      setIsFiltering(false)
-    }
-    // 如果筛选后无数据，也要关闭加载态
-    if (isFiltering && !isValidating && dataList.length === 0) {
-      setIsFiltering(false)
-    }
-  }, [isFiltering, isValidating, dataList.length])
   
   // 分批渲染：每次渲染 20 张图片
   const BATCH_SIZE = 20
   const [renderedCount, setRenderedCount] = useState(BATCH_SIZE)
   
-  // 筛选条件变更时，重置渲染数量、size 并清空数据
+  // 筛选条件变更时，重置渲染数量
   useEffect(() => {
     setRenderedCount(BATCH_SIZE)
-    setSize(1) // 重置到第一页
-    // 清空数据，触发重新请求
-    mutate()
-  }, [filterKey, mutate, setSize])
+  }, [filterKey])
   
   // 逐步渲染：只渲染前 renderedCount 张图片
   const renderedImages = useMemo(() => {
     return dataList.slice(0, renderedCount)
   }, [dataList, renderedCount])
   
+  // 优化：使用 useCallback 缓存滚动处理函数，避免每次渲染都创建新函数
+  const handleScroll = useCallback(() => {
+    if (!containerRef.current || isValidating || size >= pageTotal) return
+
+    const scrollTop = window.scrollY
+    const windowHeight = window.innerHeight
+    const documentHeight = document.documentElement.scrollHeight
+
+    // 当距离底部还有 800px 时开始加载
+    if (scrollTop + windowHeight >= documentHeight - 800) {
+      setSize(size + 1)
+    }
+  }, [isValidating, size, pageTotal, setSize])
+
   // 自动加载更多（当滚动到底部附近时）
   useEffect(() => {
-    const handleScroll = () => {
-      if (!containerRef.current || isValidating || size >= pageTotal) return
-
-      const scrollTop = window.scrollY
-      const windowHeight = window.innerHeight
-      const documentHeight = document.documentElement.scrollHeight
-
-      // 当距离底部还有 800px 时开始加载
-      if (scrollTop + windowHeight >= documentHeight - 800) {
-        setSize(size + 1)
-      }
-    }
-
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [size, isValidating, pageTotal, setSize])
+  }, [handleScroll])
   
   // 逐步渲染：当已渲染的图片数量小于总数量时，继续渲染下一批
   useEffect(() => {
@@ -125,10 +115,23 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
     return () => clearTimeout(timer)
   }, [renderedCount, dataList.length, isFiltering])
 
+  // 初始加载状态：首次加载且没有数据时显示加载动画
+  const isInitialLoading = isLoading && dataList.length === 0
+
   return (
     <div className="w-full min-h-screen bg-[#0f172a] dark:bg-[#0f172a]" ref={containerRef}>
+      {/* 初始加载态：首次加载时显示 */}
+      {isInitialLoading && (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+            <span className="text-sm text-gray-400">正在加载图片...</span>
+          </div>
+        </div>
+      )}
+
       {/* 筛选加载态：筛选触发时显示 */}
-      {isFiltering && (
+      {isFiltering && !isInitialLoading && (
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
@@ -138,7 +141,7 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
       )}
       
       {/* 图片列表：仅在非筛选加载态时显示 */}
-      {!isFiltering && (
+      {!isFiltering && !isInitialLoading && (
         <>
           <ImageGallery images={renderedImages} />
           

@@ -37,13 +37,18 @@ export async function insertAlbums(album: AlbumType) {
  * @param id 相册 ID
  */
 export async function deleteAlbum(id: string) {
-  return await db.albums.update({
+  const result = await db.albums.update({
     where: { id },
     data: {
       del: 1,
       updatedAt: new Date(),
     },
-  })
+  });
+
+  // 删除相册后，立即失效缓存
+  invalidateAlbumsListCache();
+
+  return result;
 }
 
 /**

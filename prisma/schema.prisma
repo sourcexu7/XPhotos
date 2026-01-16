@@ -40,6 +40,13 @@ model Images {
   imagesAlbumsRelation ImagesAlbumsRelation[]
   imagesTagsRelation   ImagesTagsRelation[]
 
+  // 性能优化：添加高频查询字段索引
+  @@index([del, show]) // 联合索引：用于筛选未删除且公开的图片
+  @@index([featured]) // 精选图片查询索引
+  @@index([createdAt]) // 时间排序索引
+  @@index([show, show_on_mainpage]) // 首页展示筛选索引
+  @@index([del, show, featured]) // 多条件筛选联合索引
+  // 注意：JSONB 字段的 GIN 索引需要在迁移文件中手动创建，Prisma schema 不支持
   @@map("images")
 }
 
@@ -73,6 +80,9 @@ model Albums {
   image_sorting        Int                    @default(1) @db.SmallInt
   cover                String?                @db.Text
 
+  // 性能优化：添加高频查询字段索引
+  @@index([del, show]) // 相册筛选联合索引
+  @@index([album_value]) // 相册值查询索引（已有 unique，但显式声明提升可读性）
   @@map("albums")
 }
 
@@ -84,6 +94,10 @@ model ImagesAlbumsRelation {
   imageId     String @db.VarChar(50)
 
   @@id([imageId, album_value])
+  // 性能优化：添加关联查询索引
+  @@index([imageId]) // 图片关联查询索引
+  @@index([album_value]) // 相册关联查询索引
+  @@index([imageId, album_value]) // 联合查询索引
   @@map("images_albums_relation")
 }
 
@@ -207,6 +221,9 @@ model ImagesTagsRelation {
 
   @@map("images_tags_relation")
   @@unique([imageId, tagId])
+  // 性能优化：添加关联查询索引
+  @@index([imageId]) // 图片标签关联查询索引
+  @@index([tagId]) // 标签图片关联查询索引
 }
 
 // 访问日志表：用于后台访问统计

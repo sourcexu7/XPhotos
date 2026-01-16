@@ -10,6 +10,7 @@ import { ReloadIcon } from '@radix-ui/react-icons'
 import { Button } from '~/components/ui/button'
 import { useTranslations } from 'next-intl'
 import { Switch } from '~/components/ui/switch'
+import { normalizeStorageFolder } from '~/lib/utils/storage'
 
 export default function S3EditSheet() {
   const [loading, setLoading] = useState(false)
@@ -44,10 +45,8 @@ export default function S3EditSheet() {
       next = setVal(next, 'endpoint', `https://${endpoint.replace(/^https?:\/\//i,'')}`)
     }
 
-    // storage_folder cleanup
-    let storageFolder = getVal(next, 'storage_folder')
-    if (storageFolder === '/') storageFolder = ''
-    if (storageFolder.endsWith('/')) storageFolder = storageFolder.slice(0,-1)
+    // 优化：使用公共工具函数规范化 storage_folder
+    const storageFolder = normalizeStorageFolder(getVal(next, 'storage_folder'))
     next = setVal(next, 'storage_folder', storageFolder)
 
     // Force path style suggestion for AWS

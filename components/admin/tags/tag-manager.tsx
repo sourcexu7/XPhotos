@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState, useMemo } from 'react'
 import { fetcher } from '~/lib/utils/fetcher'
-import { Input, Button, Tag, Popconfirm, App, Spin, Row, Col, Card, Space, Typography, theme, Empty, Badge, Tooltip } from 'antd'
-import { PlusOutlined, EditOutlined } from '@ant-design/icons'
+import { Input, Button, Tag, Popconfirm, App, Spin, Row, Col, Card, Space, Typography, theme, Empty, Badge, Tooltip, Modal, Select } from 'antd'
+import { PlusOutlined, EditOutlined, SwapOutlined } from '@ant-design/icons'
 
 type TagItem = { id: string; name: string }
 type TagTreeNode = { id?: string | null; category: string | null; children: TagItem[] }
@@ -28,6 +28,12 @@ export default function TagManager() {
   const [editingPrimaryValue, setEditingPrimaryValue] = useState<string>('')
   const [editingSecondaryId, setEditingSecondaryId] = useState<string | null>(null)
   const [editingSecondaryValue, setEditingSecondaryValue] = useState<string>('')
+  
+  // move tag states
+  const [movingTagId, setMovingTagId] = useState<string | null>(null)
+  const [movingTagName, setMovingTagName] = useState<string>('')
+  const [targetParentId, setTargetParentId] = useState<string | null>(null)
+  const [moving, setMoving] = useState(false)
 
   const loadTree = React.useCallback(async () => {
     setLoading(true)
@@ -152,10 +158,109 @@ export default function TagManager() {
 
   const cancelSecondaryEdit = () => { setEditingSecondaryId(null); setEditingSecondaryValue('') }
 
+  // 打开移动对话框（支持一级标签和二级标签）
+  const openMoveModal = (node: TagTreeNode, secondaryTagId?: string, secondaryTagName?: string) => {
+    if (secondaryTagId && secondaryTagName) {
+      // 二级标签移动
+      setMovingTagId(secondaryTagId)
+      setMovingTagName(secondaryTagName)
+      setTargetParentId(null)
+    } else if (node.id) {
+      // 一级标签移动
+      setMovingTagId(node.id)
+      setMovingTagName(node.category ?? '')
+      setTargetParentId(null)
+    } else {
+      message.warning('无法移动：无对应标签记录')
+    }
+  }
+
+  // 确认移动（使用新的API接口，包含验证和图片标签同步）
+  const confirmMove = async () => {
+    if (!movingTagId) return
+    
+    setMoving(true)
+    try {
+      const res = await fetch('/api/v1/settings/tags/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          tagId: movingTagId,
+          targetParentId: targetParentId || null
+        })
+      }).then(r => r.json())
+      
+      if (res?.code === 200) {
+        message.success('移动成功，图片标签关联已自动同步')
+        setMovingTagId(null)
+        setMovingTagName('')
+        setTargetParentId(null)
+        await loadTree()
+        // 如果移动后标签变成了二级标签，自动选中其父标签
+        if (targetParentId) {
+          setSelectedPrimary(targetParentId)
+        } else {
+          setSelectedPrimary(null)
+        }
+      } else {
+        message.error(res?.message || '移动失败')
+      }
+    } catch (_e) {
+      message.error('移动失败')
+    } finally {
+      setMoving(false)
+    }
+  }
+
+  // 取消移动
+  const cancelMove = () => {
+    setMovingTagId(null)
+    setMovingTagName('')
+    setTargetParentId(null)
+  }
+
+  // 历史图片标签补全检查
+  const [checkingCompleteness, setCheckingCompleteness] = useState(false)
+  const checkTagCompleteness = async () => {
+    setCheckingCompleteness(true)
+    try {
+      const res = await fetch('/api/v1/settings/tags/check-completeness', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchSize: 100 })
+      }).then(r => r.json())
+      
+      if (res?.code === 200) {
+        const data = res.data
+        message.success(
+          `检查完成：共检查 ${data.totalImages} 张图片，修复 ${data.fixedImages} 张，发现 ${data.invalidRelations} 个无效关联`
+        )
+        if (data.errors && data.errors.length > 0) {
+          console.warn('部分图片处理失败:', data.errors)
+        }
+      } else {
+        message.error(res?.message || '检查失败')
+      }
+    } catch (_e) {
+      message.error('检查失败')
+    } finally {
+      setCheckingCompleteness(false)
+    }
+  }
+
   return (
     <div style={{ padding: token.paddingMD }}>
       <Space orientation="vertical" size={token.marginLG} style={{ width: '100%' }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>标签管理</Typography.Title>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography.Title level={4} style={{ margin: 0 }}>标签管理</Typography.Title>
+          <Button 
+            type="default" 
+            onClick={checkTagCompleteness}
+            loading={checkingCompleteness}
+          >
+            历史图片标签补全检查
+          </Button>
+        </div>
         <Row gutter={token.margin}>
           <Col xs={24} md={8} lg={7} xl={6}>
             <Card
@@ -223,6 +328,7 @@ export default function TagManager() {
                               </Space>
                               <Space size={6}>
                                 <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); startEditPrimary(node) }}>编辑</Button>
+                                <Button type="link" size="small" icon={<SwapOutlined />} onClick={(e) => { e.stopPropagation(); openMoveModal(node) }}>移动</Button>
                                 <Popconfirm
                                   title={node.children && node.children.length > 0 ? '删除该一级标签会同时删除其所有二级标签，确定吗？' : '确认删除该一级标签吗？'}
                                   onConfirm={async (e: React.MouseEvent) => {
@@ -306,6 +412,14 @@ export default function TagManager() {
                                 <Space size={6}>
                                   <Button type="link" size="small" onClick={() => copy(t.name)}>复制</Button>
                                   <Button type="link" size="small" onClick={() => startEditSecondary(t)}>编辑</Button>
+                                  <Button 
+                                    type="link" 
+                                    size="small" 
+                                    icon={<SwapOutlined />}
+                                    onClick={() => openMoveModal({ id: null, category: null, children: [] }, t.id, t.name)}
+                                  >
+                                    移动
+                                  </Button>
                                   <Popconfirm title="确认删除该标签吗？" onConfirm={() => removeTag(t.id)} okText="确定" cancelText="取消">
                                     <Button danger type="link" size="small">删除</Button>
                                   </Popconfirm>
@@ -323,6 +437,70 @@ export default function TagManager() {
           </Col>
         </Row>
       </Space>
+      
+      {/* 移动标签对话框 */}
+      <Modal
+        title="移动标签"
+        open={!!movingTagId}
+        onOk={confirmMove}
+        onCancel={cancelMove}
+        confirmLoading={moving}
+        okText="确定"
+        cancelText="取消"
+      >
+        <Space orientation="vertical" style={{ width: '100%' }} size="middle">
+          <div>
+            <Typography.Text>将标签 <Typography.Text strong>"{movingTagName}"</Typography.Text> 移动到：</Typography.Text>
+            {(() => {
+              const movingNode = tree.find(n => n.id === movingTagId)
+              const childCount = movingNode?.children.length ?? 0
+              const isSecondaryTag = movingNode ? false : tree.some(n => n.children.some(c => c.id === movingTagId))
+              
+              if (childCount > 0) {
+                return (
+                  <div style={{ marginTop: 8 }}>
+                    <Typography.Text type="warning" style={{ fontSize: 12 }}>
+                      注意：该标签有 {childCount} 个子标签，移动后子标签将一起移动
+                    </Typography.Text>
+                  </div>
+                )
+              }
+              
+              if (isSecondaryTag) {
+                return (
+                  <div style={{ marginTop: 8 }}>
+                    <Typography.Text type="info" style={{ fontSize: 12 }}>
+                      提示：这是二级标签，可以升级为一级标签或移动到其他一级标签下
+                    </Typography.Text>
+                  </div>
+                )
+              }
+              
+              return null
+            })()}
+          </div>
+          <Select
+            style={{ width: '100%' }}
+            placeholder="选择目标一级标签（留空表示升级为一级标签）"
+            value={targetParentId}
+            onChange={setTargetParentId}
+            allowClear
+            showSearch
+            filterOption={(input, option) =>
+              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+            }
+            options={filteredTree
+              .filter(node => node.id && node.id !== movingTagId) // 排除自身
+              .map(node => ({
+                label: `${node.category ?? '未分类'} (${node.children.length} 个子标签)`,
+                value: node.id!,
+              }))}
+          />
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            提示：留空表示升级为一级标签；选择目标一级标签表示移动到该一级标签下作为二级标签。移动后图片标签关联将自动同步。
+          </Typography.Text>
+        </Space>
+      </Modal>
     </div>
   )
 }

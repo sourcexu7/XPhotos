@@ -16,13 +16,12 @@ app.get('/about-info', async (c) => {
     const data = await fetchConfigsByKeys([
       // 「关于我」前台展示配置
       'about_intro',
-      'about_photo_original_url',
-      'about_photo_preview_url',
       'about_ins_url',
       'about_xhs_url',
       'about_weibo_url',
       'about_github_url',
-      'about_gallery_images',
+      'about_gallery_images', // 向后兼容
+      'about_gallery_images_full', // 完整数据（包含原图和预览图）
     ])
     return c.json(data)
   } catch (error) {

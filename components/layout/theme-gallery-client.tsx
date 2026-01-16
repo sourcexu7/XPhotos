@@ -66,6 +66,13 @@ export default function ThemeGalleryClient({
   // 新增：排序状态（默认倒序，最新的在最上面）
   const [sortByShootTime, setSortByShootTime] = useState<'desc' | 'asc' | undefined>('desc')
   const filterSectionRef = useRef<HTMLDivElement | null>(null)
+  
+  // Bug修复：当筛选面板关闭时，如果所有筛选条件都为空，重置 tagsOperator 为默认值
+  useEffect(() => {
+    if (!filtersOpen && tagsFilter.length === 0) {
+      setTagsOperator('and')
+    }
+  }, [filtersOpen, tagsFilter.length])
   // 滚动时自动收起筛选，避免遮挡图片
   useEffect(() => {
     if (!enableFilters) return
@@ -132,12 +139,14 @@ export default function ThemeGalleryClient({
   }, [enableFilters, filtersOpen])
 
 
+  // Bug修复：确保当 tags 为空时，不传递 tagsOperator，避免后端查询错误
   const filters: ImageFilters & { tagsOperator?: 'and' | 'or' } | undefined = enableFilters
     ? {
         cameras: cameraFilter.length ? cameraFilter : undefined,
         lenses: lensFilter.length ? lensFilter : undefined,
         tags: tagsFilter.length ? tagsFilter : undefined,
-        tagsOperator,
+        // 只有当 tags 有值时才传递 tagsOperator
+        tagsOperator: tagsFilter.length > 0 ? tagsOperator : undefined,
       }
     : undefined
 

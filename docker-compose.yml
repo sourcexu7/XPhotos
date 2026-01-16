@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  app:
+    image: hackxu/xphotos:latest
+    container_name: xphotos-app
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    env_file:
+      - .env
+    networks:
+      - xphotos-net
+
+  db:
+    image: postgres:16-alpine
+    container_name: xphotos-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # 仅在需要从外部直接访问数据库时才取消注释下一行
+       - "5432:5432"
+    networks:
+      - xphotos-net
+
+volumes:
+  postgres_data:
+
+networks:
+  xphotos-net:
+    driver: bridge

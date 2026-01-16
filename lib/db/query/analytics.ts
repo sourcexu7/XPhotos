@@ -30,22 +30,43 @@ export type VisitSummary = {
   }[]
 }
 
-function startOfDay(date: Date) {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  return d
+/**
+ * 获取本地时区的当天开始时间（用于数据库查询的 UTC Date 对象）
+ * 因为数据库存储的是 UTC 时间，所以需要将本地时区的开始时间转换为 UTC
+ */
+function startOfDayLocal(date: Date): Date {
+  const localDate = new Date(date)
+  const year = localDate.getFullYear()
+  const month = localDate.getMonth()
+  const day = localDate.getDate()
+  // 创建本地时区的当天 00:00:00（这个 Date 对象内部存储的是 UTC 时间戳）
+  // 当用于 Prisma 查询时，Prisma 会将其作为 UTC 时间处理
+  const localStart = new Date(year, month, day, 0, 0, 0, 0)
+  return localStart
 }
 
-function formatDateLocal(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
+/**
+ * 将 UTC 时间转换为本地时区的日期字符串
+ */
+function formatDateLocal(utcDate: Date): string {
+  const localDate = new Date(utcDate)
+  const year = localDate.getFullYear()
+  const month = String(localDate.getMonth() + 1).padStart(2, '0')
+  const day = String(localDate.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+/**
+ * 获取本地时区的小时（0-23）
+ */
+function getLocalHour(utcDate: Date): number {
+  return new Date(utcDate).getHours()
 }
 
 export async function getVisitAnalytics(): Promise<VisitSummary> {
   const now = new Date()
-  const todayStart = startOfDay(now)
+  // 获取本地时区的今天开始时间（UTC 表示）
+  const todayStart = startOfDayLocal(now)
   const yesterdayStart = new Date(todayStart)
   yesterdayStart.setDate(yesterdayStart.getDate() - 1)
   const sevenDaysAgo = new Date(todayStart)
@@ -118,8 +139,8 @@ export async function getVisitAnalytics(): Promise<VisitSummary> {
   }
 
   for (const item of allFor7Days) {
-    const d = startOfDay(item.createdAt)
-    const key = formatDateLocal(d)
+    // item.createdAt 是 UTC 时间，转换为本地时区的日期
+    const key = formatDateLocal(item.createdAt)
     byDate.set(key, (byDate.get(key) ?? 0) + 1)
 
     const pageKey = (item.pageType as keyof typeof pageAgg) || 'other'
@@ -139,23 +160,29 @@ export async function getVisitAnalytics(): Promise<VisitSummary> {
 
   // 补齐没有访问的日期（包含今天在内的最近7天）
   const last7Days: { date: string; count: number }[] = []
+  const nowLocal = new Date(now)
   for (let i = 6; i >= 0; i--) {
-    const d = new Date(todayStart)
+    const d = new Date(nowLocal)
     d.setDate(d.getDate() - i)
-    const key = formatDateLocal(d)
+    // 获取本地时区的日期字符串
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    const key = `${year}-${month}-${day}`
     last7Days.push({
       date: key,
       count: byDate.get(key) ?? 0,
     })
   }
 
-  // 今日按小时聚合（0-23）
+  // 今日按小时聚合（0-23）- 使用本地时区
   const todayByHour: { hour: number; count: number }[] = Array.from({ length: 24 }, (_, hour) => ({
     hour,
     count: 0,
   }))
   for (const item of todayList) {
-    const h = new Date(item.createdAt).getHours()
+    // item.createdAt 是 UTC 时间，转换为本地时区的小时
+    const h = getLocalHour(item.createdAt)
     if (h >= 0 && h < 24) {
       todayByHour[h].count += 1
     }

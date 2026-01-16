@@ -27,9 +27,7 @@ import { GithubIcon } from '~/components/icons/github'
 import { FrameIcon } from '~/components/icons/frame'
 import { ShieldCheckIcon } from '~/components/icons/shield-check'
 import { CogIcon } from '~/components/icons/cog'
-import { FingerprintIcon } from '~/components/icons/fingerprint'
 import { LoaderPinwheelIcon } from '~/components/icons/loader-pinwheel'
-import { KeySquareIcon } from '~/components/icons/key-square'
 import { FrameIcon as ChartIcon } from '~/components/icons/frame'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -84,25 +82,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           icon: ShieldCheckIcon,
         },
         {
-          title: t('Link.storages'),
-          url: '/admin/settings/storages',
-          icon: CogIcon,
-        },
-        {
-          title: t('Link.authenticator'),
-          url: '/admin/settings/authenticator',
-          icon: FingerprintIcon,
-        },
-        {
-          title: t('Link.passkey'),
-          url: '/admin/settings/passkey',
-          icon: KeySquareIcon,
-        },
-        // 新增：标签管理
-        {
           title: t('Link.tags') || '标签管理',
           url: '/admin/settings/tag',
           icon: GalleryThumbnailsIcon,
+        },
+        {
+          title: t('Link.storages'),
+          url: '/admin/settings/storages',
+          icon: CogIcon,
         },
       ],
     },

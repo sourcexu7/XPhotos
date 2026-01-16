@@ -54,9 +54,8 @@ app.post('/login', async (c) => {
   })
 
   setCookie(c, 'auth_token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Strict',
+    httpOnly: true,    
+    sameSite: 'Lax',
     maxAge: 60 * 60 * 24 * 7,
     path: '/'
   })

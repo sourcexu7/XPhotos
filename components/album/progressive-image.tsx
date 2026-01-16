@@ -100,29 +100,52 @@ export default function ProgressiveImage(
           buttonPrev: () => null,
           buttonNext: () => null,
           buttonClose: () => null,
-          slide: ({ slide, rect }) => (
-            <img
-              src={slide.src}
-              alt={slide.alt}
-              style={{
-                display: 'block',
-                maxWidth: '100vw',
-                maxHeight: '90vh',
-                margin: '0 auto',
-                cursor: 'pointer',
-                objectFit: 'contain',
-              }}
-              onClick={() => {
-                setShowLightbox(false)
-                if (props.onShowLightboxChange) {
-                  props.onShowLightboxChange(false)
-                }
-              }}
-            />
-          ),
+          // Bug修复：增强 slide 渲染，确保点击图片主体区域可以退出全屏
+          slide: ({ slide, rect }) => {
+            const handleClose = () => {
+              setShowLightbox(false)
+              if (props.onShowLightboxChange) {
+                props.onShowLightboxChange(false)
+              }
+            }
+            
+            return (
+              <div
+                onClick={handleClose}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <img
+                  src={slide.src}
+                  alt={slide.alt}
+                  style={{
+                    display: 'block',
+                    maxWidth: '100vw',
+                    maxHeight: '90vh',
+                    margin: '0 auto',
+                    cursor: 'pointer',
+                    objectFit: 'contain',
+                    pointerEvents: 'auto',
+                  }}
+                  onClick={(e) => {
+                    // Bug修复：点击图片时关闭全屏，阻止事件冒泡避免重复触发
+                    e.stopPropagation()
+                    handleClose()
+                  }}
+                />
+              </div>
+            )
+          },
         }}
         styles={{ root: { '--yarl__color_backdrop': 'rgba(0, 0, 0, .8)' } }}
         controller={{
+          // Bug修复：确保点击背景区域可以关闭全屏
           closeOnBackdropClick: true,
           closeOnPullUp: true,
           closeOnPullDown: true,

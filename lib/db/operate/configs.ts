@@ -91,14 +91,14 @@ export async function updateCustomInfo(payload: {
   adminImagesPerPage: number
   // 新增：前台「关于我」配置
   aboutIntro?: string
-  aboutPhotoOriginalUrl?: string
-  aboutPhotoPreviewUrl?: string
   aboutInsUrl?: string
   aboutXhsUrl?: string
   aboutWeiboUrl?: string
   aboutGithubUrl?: string
-  // 新增：关于我画廊图片数组（数组字符串）
+  // 新增：关于我画廊图片数组（数组字符串）- 向后兼容，存储预览图URL数组
   aboutGalleryImages?: string[]
+  // 新增：关于我画廊图片完整数据（包含原图和预览图）
+  aboutGalleryImagesFull?: Array<{ original: string; preview: string }>
 }) {
   const configUpdates: { key: string; value: string }[] = [
     { key: 'custom_title', value: payload.title },
@@ -149,18 +149,6 @@ export async function updateCustomInfo(payload: {
       value: payload.aboutIntro,
     })
   }
-  if (payload.aboutPhotoOriginalUrl) {
-    configUpdates.push({
-      key: 'about_photo_original_url',
-      value: payload.aboutPhotoOriginalUrl,
-    })
-  }
-  if (payload.aboutPhotoPreviewUrl) {
-    configUpdates.push({
-      key: 'about_photo_preview_url',
-      value: payload.aboutPhotoPreviewUrl,
-    })
-  }
   if (payload.aboutInsUrl) {
     configUpdates.push({
       key: 'about_ins_url',
@@ -186,11 +174,21 @@ export async function updateCustomInfo(payload: {
     })
   }
 
-  // 新增：关于我画廊图片数组（以 JSON 存储）
+  // 新增：关于我画廊图片数组（以 JSON 存储）- 向后兼容，存储预览图URL数组
   if (payload.aboutGalleryImages && Array.isArray(payload.aboutGalleryImages)) {
     try {
       const json = JSON.stringify(payload.aboutGalleryImages)
       configUpdates.push({ key: 'about_gallery_images', value: json })
+    } catch (e) {
+      // ignore serialization errors
+    }
+  }
+  
+  // 新增：关于我画廊图片完整数据（包含原图和预览图）
+  if (payload.aboutGalleryImagesFull && Array.isArray(payload.aboutGalleryImagesFull)) {
+    try {
+      const json = JSON.stringify(payload.aboutGalleryImagesFull)
+      configUpdates.push({ key: 'about_gallery_images_full', value: json })
     } catch (e) {
       // ignore serialization errors
     }

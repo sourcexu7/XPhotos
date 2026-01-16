@@ -9,7 +9,7 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml* .npmrc ./
 
-RUN npm install -g corepack@latest && corepack enable pnpm && pnpm i --frozen-lockfile
+RUN npm install -g corepack@latest && corepack enable pnpm && pnpm i --no-frozen-lockfile
 
 FROM base AS runner-base
 
@@ -26,7 +26,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN AUTH_SECRET=pic-impact export NODE_OPTIONS=--openssl-legacy-provider && npm install -g corepack@latest && corepack enable pnpm && pnpm run prisma:generate && pnpm run build
+
+ENV NODE_OPTIONS=--openssl-legacy-provider
+
+RUN npm install -g corepack@latest && corepack enable pnpm && pnpm run build
 
 FROM base AS runner
 
@@ -37,7 +40,7 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=runner-base --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder /app/public ./public
 COPY ./prisma ./prisma
 COPY ./script.sh ./script.sh
@@ -53,7 +56,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
-ENV AUTH_TRUST_HOST=true
+
 ENV NODEJS_HELPERS=0
 
 EXPOSE 3000

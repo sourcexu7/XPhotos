@@ -42,9 +42,6 @@ export const authClient = {
       } catch (e) {
         return { error: { message: 'Network error' } }
       }
-    },
-    passkey: async () => {
-        return { error: { message: 'Passkey login not implemented yet' } }
     }
   },
   signOut: async ({ fetchOptions }: any = {}) => {
@@ -84,9 +81,4 @@ export const authClient = {
       return { error: { message: 'Network error' } }
     }
   },
-  twoFactor: {
-      verifyTotp: async () => {
-          return { error: { message: '2FA not implemented yet' } }
-      }
-  }
 }

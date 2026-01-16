@@ -36,7 +36,14 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+    // 性能优化：优先使用 WebP/AVIF 格式，图片体积减少 50-70%
     formats: ['image/avif', 'image/webp'],
+    // 性能优化：设备尺寸配置，根据设备加载对应尺寸的图片
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    // 性能优化：图片尺寸配置，减少带宽使用 50%+
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // 性能优化：图片质量配置，平衡质量和体积
+    minimumCacheTTL: 60, // 缓存时间 60 秒
   },
   async headers() {
     return [

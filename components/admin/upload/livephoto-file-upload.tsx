@@ -345,7 +345,28 @@ export default function LivephotoFileUpload() {
         <div className="h-full">
           <AntCard className="h-full" title="上传文件">
             <AntSpace vertical size="middle" style={{ width: '100%' }}>
-              <Dragger multiple={false} maxCount={1} beforeUpload={()=>false} showUploadList={false} disabled={storage===''||album===''||(storage==='alist'&&alistMountPath==='')} style={{ padding:12, minHeight:120 }} onChange={(info)=>{ const fileList=info.fileList||[]; const last=fileList.length>0? (fileList[fileList.length-1].originFileObj as UploadFile): undefined; if (last) { if (!last.__key) last.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`; setImages(last?[last]:[]) } else setImages([]) }}>
+              <Dragger 
+                multiple={false} 
+                accept="image/*,.heic,.heif,.cr2,.arw,.nef,.tif,.tiff,.dng"
+                beforeUpload={()=>false} 
+                showUploadList={false} 
+                disabled={storage===''||album===''||(storage==='alist'&&alistMountPath==='')} 
+                style={{ padding:12, minHeight:120 }} 
+                onChange={(info)=>{ 
+                  console.log('Image onChange triggered:', { file: info.file, fileList: info.fileList, event: info.event })
+                  // 当 beforeUpload 返回 false 时，fileList 可能为空，需要从 info.file 获取
+                  const file = info.file?.originFileObj || (info.fileList && info.fileList.length > 0 ? info.fileList[info.fileList.length - 1]?.originFileObj : undefined)
+                  if (file && file instanceof File) { 
+                    const uploadFile = file as UploadFile
+                    if (!uploadFile.__key) uploadFile.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
+                    console.log('Setting image:', uploadFile.name)
+                    setImages([uploadFile]) 
+                  } else {
+                    console.log('No file found in onChange')
+                    setImages([]) 
+                  }
+                }}
+              >
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                   <UploadIcon />
                   <p className="font-medium text-sm">{t('Upload.dragOrClick')}</p>
@@ -358,7 +379,28 @@ export default function LivephotoFileUpload() {
                 </div>
               </Dragger>
 
-              <Dragger multiple={false} maxCount={1} beforeUpload={()=>false} showUploadList={false} disabled={storage===''||album===''||(storage==='alist'&&alistMountPath==='')} style={{ padding:12, minHeight:120 }} onChange={(info)=>{ const fileList=info.fileList||[]; const last=fileList.length>0? (fileList[fileList.length-1].originFileObj as UploadFile): undefined; if (last) { if (!last.__key) last.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`; setVideos(last?[last]:[]) } else setVideos([]) }}>
+              <Dragger 
+                multiple={false} 
+                accept="video/*,.mov,.mp4,.m4v"
+                beforeUpload={()=>false} 
+                showUploadList={false} 
+                disabled={storage===''||album===''||(storage==='alist'&&alistMountPath==='')} 
+                style={{ padding:12, minHeight:120 }} 
+                onChange={(info)=>{ 
+                  console.log('Video onChange triggered:', { file: info.file, fileList: info.fileList, event: info.event })
+                  // 当 beforeUpload 返回 false 时，fileList 可能为空，需要从 info.file 获取
+                  const file = info.file?.originFileObj || (info.fileList && info.fileList.length > 0 ? info.fileList[info.fileList.length - 1]?.originFileObj : undefined)
+                  if (file && file instanceof File) { 
+                    const uploadFile = file as UploadFile
+                    if (!uploadFile.__key) uploadFile.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
+                    console.log('Setting video:', uploadFile.name)
+                    setVideos([uploadFile]) 
+                  } else {
+                    console.log('No file found in onChange')
+                    setVideos([]) 
+                  }
+                }}
+              >
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                   <UploadIcon />
                   <p className="font-medium text-sm">{t('Upload.dragOrClickVideo') ?? '拖拽或点击上传视频'}</p>

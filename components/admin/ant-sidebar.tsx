@@ -12,7 +12,6 @@ import {
   SettingOutlined,
   UserOutlined,
   CloudOutlined,
-  KeyOutlined,
   TagsOutlined,
   LogoutOutlined,
   HomeOutlined,
@@ -84,24 +83,14 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
           label: t('Link.account'),
         },
         {
-          key: '/admin/settings/storages',
-          icon: <CloudOutlined />,
-          label: t('Link.storages'),
-        },
-        {
-          key: '/admin/settings/authenticator',
-          icon: <KeyOutlined />,
-          label: t('Link.authenticator'),
-        },
-        {
-          key: '/admin/settings/passkey',
-          icon: <KeyOutlined />,
-          label: t('Link.passkey'),
-        },
-        {
           key: '/admin/settings/tag',
           icon: <TagsOutlined />,
           label: t('Link.tags') || '标签管理',
+        },
+        {
+          key: '/admin/settings/storages',
+          icon: <CloudOutlined />,
+          label: t('Link.storages'),
         },
       ],
     },
@@ -249,3 +238,4 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
     </div>
   )
 }
+
