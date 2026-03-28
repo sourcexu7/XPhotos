@@ -30,6 +30,10 @@ FROM base AS builder
 
 WORKDIR /app
 
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm i -g pnpm@9.7.1 \
+    && pnpm config set registry https://registry.npmmirror.com
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
