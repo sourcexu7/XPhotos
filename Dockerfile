@@ -38,8 +38,11 @@ RUN echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/xphotos?sch
 
 ENV NODE_OPTIONS=--openssl-legacy-provider
 
-# 直接使用已安装的 pnpm，避免重复安装
-RUN pnpm run build
+# 在 builder 阶段安装 pnpm 并运行构建
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm i -g pnpm@9.7.1 \
+    && pnpm config set registry https://registry.npmmirror.com \
+    && pnpm run build
 
 FROM base AS runner
 
