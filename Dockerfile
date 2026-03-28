@@ -33,13 +33,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-
 ENV NODE_OPTIONS=--openssl-legacy-provider
 
-RUN npm config set registry https://registry.npmmirror.com \
-    && npm i -g pnpm@9.7.1 \
-    && pnpm config set registry https://registry.npmmirror.com \
-    && pnpm run build
+RUN pnpm run build
 
 FROM base AS runner
 
