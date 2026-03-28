@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: xphotos-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - xphotos-net
+    depends_on:
+      - app
+
+  app:
+    image: hackxu/xphotos:v2.0
+    container_name: xphotos-app
+    restart: always
+    depends_on:
+      - db
+    env_file:
+      - .env
+    networks:
+      - xphotos-net
+
+  db:
+    image: postgres:16-alpine
+    container_name: xphotos-db
+    restart: always
+    # 新增端口映射：宿主机5432端口映射到容器5432（核心修复）
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # 新增：设置PostgreSQL编码和时区，避免中文/时间问题
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+      TZ: Asia/Shanghai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - xphotos-net
+    # 新增：健康检查，确保数据库启动完成后再对外提供服务
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  xphotos-net:
+    driver: bridge
