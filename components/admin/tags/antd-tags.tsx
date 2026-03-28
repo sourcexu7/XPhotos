@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import AntdTag from '~/components/admin/tag/antd-tag'
+import AntdTag from '~/components/admin/tags/antd-tag'
 
 export default function AntdTags({ tags }: { tags: string[] }) {
   return (
