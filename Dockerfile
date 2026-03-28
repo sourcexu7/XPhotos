@@ -33,13 +33,13 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# 创建 .env 文件，确保 Prisma 生成时不会失败
+RUN echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/xphotos?schema=public" > .env
 
 ENV NODE_OPTIONS=--openssl-legacy-provider
 
-RUN npm config set registry https://registry.npmmirror.com \
-    && npm i -g pnpm@9.7.1 \
-    && pnpm config set registry https://registry.npmmirror.com \
-    && pnpm run build
+# 直接使用已安装的 pnpm，避免重复安装
+RUN pnpm run build
 
 FROM base AS runner
 
