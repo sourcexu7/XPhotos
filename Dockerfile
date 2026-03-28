@@ -38,6 +38,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NODE_OPTIONS=--openssl-legacy-provider
+# 设置一个占位符 DATABASE_URL，避免构建时 PrismaClient 初始化失败
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public"
 
 RUN pnpm run build
 
