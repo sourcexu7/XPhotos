@@ -1,0 +1,75 @@
+import { fetchCameraAndLensList, fetchClientImagesListByAlbum, fetchClientImagesPageTotalByAlbum } from '~/lib/db/query/images'
+import type { ImageHandleProps } from '~/types/props'
+import { fetchConfigsByKeys } from '~/lib/db/query/configs'
+import 'react-photo-album/masonry.css'
+import type { Config } from '~/types'
+import dynamic from 'next/dynamic'
+import { fetchTagsList } from '~/lib/db/query/tags'
+
+const ThemeGalleryClient = dynamic(() => import('~/components/layout/theme-gallery-client'), {
+  loading: () => <div className="text-center text-gray-500 py-20">加载中...</div>
+})
+
+export default async function AlbumsPage() {
+  const getData = async (
+    pageNum: number,
+    album: string,
+    cameras?: string[],
+    lenses?: string[],
+    tags?: string[],
+    tagsOperator: 'and' | 'or' = 'and',
+    sortByShootTime?: 'desc' | 'asc'
+  ) => {
+    'use server'
+    return await fetchClientImagesListByAlbum(pageNum, album, cameras, lenses, tags, tagsOperator, sortByShootTime)
+  }
+
+  const getPageTotal = async (
+    album: string,
+    cameras?: string[],
+    lenses?: string[],
+    tags?: string[],
+    tagsOperator: 'and' | 'or' = 'and',
+    sortByShootTime?: 'desc' | 'asc'
+  ) => {
+    'use server'
+    // 总数查询不需要排序参数，但为了保持接口一致性，接收但不使用
+    return await fetchClientImagesPageTotalByAlbum(album, cameras, lenses, tags, tagsOperator)
+  }
+
+  const getConfig = async () => {
+    'use server'
+    return await fetchConfigsByKeys([
+      'custom_index_download_enable',
+      'custom_index_origin_enable',
+      'custom_index_style',
+    ])
+  }
+
+  const style: Config[] = await fetchConfigsByKeys(['custom_index_style'])
+  const systemStyle = style.find(a => a.config_key === 'custom_index_style')?.config_value || '2'
+
+  // 新增：获取全局相机 / 镜头选项用于前端筛选
+  const { cameras, lenses } = await fetchCameraAndLensList()
+  const tagOptions = await fetchTagsList()
+
+  const props: ImageHandleProps = {
+    handle: getData,
+    args: 'getImages-client',
+    album: '/',
+    totalHandle: getPageTotal,
+    configHandle: getConfig
+  }
+
+  return (
+    <div className="pt-[60px]">
+      <ThemeGalleryClient
+        systemStyle={systemStyle}
+        enableFilters
+        filterOptions={{ cameras, lenses }}
+        tagOptions={tagOptions?.map(t => t.name) ?? []}
+        {...props}
+      />
+    </div>
+  )
+}
