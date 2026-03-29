@@ -112,6 +112,7 @@ export default function Preferences() {
           maxUploadFiles: maxFiles,
           customIndexOriginEnable: values.customIndexOriginEnable,
           adminImagesPerPage: imagesPerPage,
+          defaultStorage: values.defaultStorage || 's3',
           // 「关于我」前台展示配置
           aboutIntro: values.aboutIntro,
           aboutInsUrl: values.aboutInsUrl,
@@ -150,6 +151,7 @@ export default function Preferences() {
         maxUploadFiles: data?.find((item) => item.config_key === 'max_upload_files')?.config_value || '5',
         customIndexOriginEnable: data?.find((item) => item.config_key === 'custom_index_origin_enable')?.config_value.toString() === 'true' || false,
         adminImagesPerPage: data?.find((item) => item.config_key === 'admin_images_per_page')?.config_value || '8',
+        defaultStorage: data?.find((item) => item.config_key === 'default_storage')?.config_value || 's3',
         // 「关于我」前台展示配置
         aboutIntro: data?.find((item) => item.config_key === 'about_intro')?.config_value || '',
         aboutInsUrl: data?.find((item) => item.config_key === 'about_ins_url')?.config_value || '',
@@ -530,6 +532,21 @@ export default function Preferences() {
                   name="adminImagesPerPage"
                 >
                   <Input type="number" min={1} placeholder={t('Preferences.inputAdminImagesPerPage')} />
+                </Form.Item>
+
+                <Form.Item
+                  label="默认上传方式"
+                  name="defaultStorage"
+                >
+                  <Select
+                    placeholder="选择默认上传方式"
+                    options={[
+                      { label: 'S3', value: 's3' },
+                      { label: '腾讯云 COS', value: 'cos' },
+                      { label: 'Cloudflare R2', value: 'r2' },
+                      { label: 'AList', value: 'alist' }
+                    ]}
+                  />
                 </Form.Item>
               </Space>
             </Col>

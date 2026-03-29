@@ -61,6 +61,9 @@ export default function SimpleFileUpload() {
   const [, setPreviewKey] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadStage, setUploadStage] = useState('')
+  const [totalUploadProgress, setTotalUploadProgress] = useState(0)
+  const [currentUploadStage, setCurrentUploadStage] = useState('')
   const [width, setWidth] = useState(0)
   const [height, setHeight] = useState(0)
   const [lat, setLat] = useState('')
@@ -76,6 +79,7 @@ export default function SimpleFileUpload() {
   const { data, isLoading } = useSWR('/api/v1/albums/get', fetcher)
   const { data: configs } = useSWR<{ config_key: string, config_value: string }[]>('/api/v1/settings/get-custom-info', fetcher)
 
+  const defaultStorage = configs?.find(config => config.config_key === 'default_storage')?.config_value || 's3'
   const previewImageMaxWidthLimitSwitchOn = configs?.find(config => config.config_key === 'preview_max_width_limit_switch')?.config_value === '1'
   const previewImageMaxWidthLimit = parseInt(configs?.find(config => config.config_key === 'preview_max_width_limit')?.config_value || '0')
   const previewCompressQuality = parseFloat(configs?.find(config => config.config_key === 'preview_quality')?.config_value || '0.2')
@@ -84,6 +88,12 @@ export default function SimpleFileUpload() {
   const [primarySelect, setPrimarySelect] = useState<string | null>(null)
   const [secondarySelect, setSecondarySelect] = useState<string[]>([])
   const [cascaderValue, setCascaderValue] = useState<string[]>([])
+  
+  useEffect(() => {
+    if (defaultStorage && storage === 's3') {
+      setStorage(defaultStorage)
+    }
+  }, [defaultStorage])
   // EXIF presets (editable via modal; persisted in localStorage)
   const presetsStorageKey = 'picimpact_exif_presets'
   const defaultPresets = {
@@ -383,6 +393,9 @@ export default function SimpleFileUpload() {
     } finally {
       setIsSubmitting(false)
       setUploadProgress(0)
+      setTotalUploadProgress(0)
+      setCurrentUploadStage('')
+      setUploadStage('')
     }
   }
 
@@ -449,7 +462,18 @@ export default function SimpleFileUpload() {
         maxWidth: previewImageMaxWidthLimitSwitchOn && previewImageMaxWidthLimit > 0 ? previewImageMaxWidthLimit : undefined,
         async success(compressedFile) {
           try {
-            const res = await uploadFile(compressedFile as File, type, storage, alistMountPath, { onProgress: (p: number) => setUploadProgress(p) })
+            setUploadStage('压缩预览图中')
+            setCurrentUploadStage('压缩预览图中')
+            const res = await uploadFile(compressedFile as File, type, storage, alistMountPath, { 
+              onProgress: (p: number) => {
+                setUploadProgress(p)
+                setTotalUploadProgress(50 + (p * 0.4))
+              },
+              onStageChange: (stage: string) => {
+                setUploadStage(stage)
+                setCurrentUploadStage(stage)
+              }
+            })
             if (res?.code === 200) {
               setPreviewUrl(res?.data?.url)
               if (res?.data?.key) setPreviewKey(res.data.key)
@@ -470,13 +494,20 @@ export default function SimpleFileUpload() {
 
   const resHandle = React.useCallback(async (res: UploadResponse, file: File) => {
     try {
+      setCurrentUploadStage('处理元数据中')
+      setTotalUploadProgress(90)
+      
       if (album === '/') {
         await uploadPreviewImage(file, '/preview')
       } else {
         await uploadPreviewImage(file, album + '/preview')
       }
+      
+      setTotalUploadProgress(100)
+      setCurrentUploadStage('完成')
     } catch (e) {
       console.error('Failed to upload preview image:', e)
+      throw e
     }
     await loadExif(file)
     setHash(await encodeBrowserThumbHash(file))
@@ -500,16 +531,27 @@ export default function SimpleFileUpload() {
   }, [t])
 
   const onRequestUpload = React.useCallback(async (file: File) => {
-    // 获取文件名但是去掉扩展名部分
+    setTotalUploadProgress(0)
+    setCurrentUploadStage('准备上传中')
+    
     const fileName = file.name.split('.').slice(0, -1).join('.')
     if (await isHeic(file)) {
-      // 把 HEIC 转成 JPEG
+      setCurrentUploadStage('转换 HEIC 格式中')
       const outputBuffer: Blob | Blob[] = await heicTo({
         blob: file,
         type: 'image/jpeg',
       })
       const outputFile = new File([outputBuffer], fileName + '.jpg', { type: 'image/jpeg' })
-      await uploadFile(outputFile, album, storage, alistMountPath, { onProgress: (p:number) => setUploadProgress(p) }).then(async (res) => {
+      await uploadFile(outputFile, album, storage, alistMountPath, { 
+        onProgress: (p:number) => {
+          setUploadProgress(p)
+          setTotalUploadProgress(10 + (p * 0.4))
+        },
+        onStageChange: (stage: string) => {
+          setUploadStage(stage)
+          setCurrentUploadStage(stage)
+        }
+      }).then(async (res) => {
         if (res.code === 200) {
           await resHandle(res, outputFile)
         } else {
@@ -517,10 +559,18 @@ export default function SimpleFileUpload() {
         }
       })
     } else {
-      // ensure __key exists
-      // @ts-expect-error - preview dataURL typing
+      setCurrentUploadStage('上传原图中')
       if (!file.__key) file.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
-      await uploadFile(file, album, storage, alistMountPath, { onProgress: (p:number) => setUploadProgress(p) }).then(async (res) => {
+      await uploadFile(file, album, storage, alistMountPath, { 
+        onProgress: (p:number) => {
+          setUploadProgress(p)
+          setTotalUploadProgress(10 + (p * 0.4))
+        },
+        onStageChange: (stage: string) => {
+          setUploadStage(stage)
+          setCurrentUploadStage(stage)
+        }
+      }).then(async (res) => {
         if (res.code === 200) {
           await resHandle(res, file)
         } else {
@@ -685,19 +735,20 @@ export default function SimpleFileUpload() {
     <div className="admin-upload flex flex-col space-y-4 h-full flex-1 font-sans text-sm">
       {/* Top controls: storage, album, alist (if any) and submit (Form.Item for colon alignment) */}
       <AntForm layout="horizontal" style={{ marginBottom: 16 }}>
-        <div className="flex items-center" style={{ gap: 16 }}>
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <AntForm.Item 
             label={t('Upload.selectStorage')} 
             required
             validateStatus={storage === '' ? 'error' : ''}
             help={storage === '' ? t('Upload.selectStorage') : ''}
-            style={{ minWidth: 160, marginBottom: 0 }}
+            style={{ minWidth: 120, marginBottom: 0, flex: '0 0 auto' }}
+            className="w-full sm:w-auto"
           >
             <Select
               value={storage || undefined}
               onChange={(value: string) => { setStorage(value); if (value === 'alist') { getAlistStorage() } else { setStorageSelect(false) } if (value === 's3') { try { toast.info(t('Tips.switchToS3Info')) } catch {} } }}
               placeholder={t('Upload.selectStorage')}
-              className="w-[160px]"
+              className="w-full sm:w-[160px]"
               options={storages}
             />
           </AntForm.Item>
@@ -705,8 +756,8 @@ export default function SimpleFileUpload() {
           <AntForm.Item 
             label={t('Upload.selectAlbum')} 
             required
-            style={{ minWidth: 280, flex: 1, marginBottom: 0 }}
-            className="flex-1 min-w-0"
+            style={{ minWidth: 120, marginBottom: 0, flex: '1 1 auto' }}
+            className="w-full sm:w-auto min-w-0"
           >
             <Select
               value={album || undefined}
@@ -723,21 +774,22 @@ export default function SimpleFileUpload() {
               required
               validateStatus={alistMountPath === '' ? 'error' : ''}
               help={alistMountPath === '' ? t('Upload.selectAlistDirectory') : ''}
-              style={{ minWidth: 240, marginBottom: 0 }}
+              style={{ minWidth: 120, marginBottom: 0, flex: '1 1 auto' }}
+              className="w-full sm:w-auto min-w-0"
             >
               <Select
                 value={alistMountPath || undefined}
                 onChange={(value: string) => setAlistMountPath(value)}
                 placeholder={t('Upload.selectAlistDirectory')}
-                className="w-[200px]"
+                className="w-full sm:w-[200px]"
                 options={alistStorage?.map((s) => ({ label: s?.mount_path, value: s?.mount_path }))}
               />
             </AntForm.Item>
           )}
 
-          <div style={{ marginLeft: 'auto' }}>
+          <div className="w-full sm:w-auto sm:ml-auto">
             <AntButton
-              className="h-9 flex items-center justify-center"
+              className="h-9 flex items-center justify-center w-full sm:w-auto"
               size="middle"
               type="primary"
               loading={isSubmitting}
@@ -819,9 +871,12 @@ export default function SimpleFileUpload() {
               </div>
             </Dragger>
             {/* Progress bar for upload */}
-            {uploadProgress > 0 && (
+            {totalUploadProgress > 0 && (
               <div className="mt-3">
-                <AntProgress percent={uploadProgress} status="active" />
+                {currentUploadStage && (
+                  <div className="text-sm text-gray-600 mb-2">{currentUploadStage}</div>
+                )}
+                <AntProgress percent={Math.round(totalUploadProgress)} status="active" />
               </div>
             )}
             {/* Inline EXIF form moved up from bottom to occupy blank space */}

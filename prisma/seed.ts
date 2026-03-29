@@ -49,6 +49,7 @@ const INITIAL_CONFIGS = [
   { config_key: 'umami_analytics', config_value: '', detail: 'Umami Website ID.' },
   { config_key: 'umami_host', config_value: '', detail: 'Umami Cloud Analytics' },
   { config_key: 'admin_images_per_page', config_value: '8', detail: '管理界面每页显示的图片数量' },
+  { config_key: 'default_storage', config_value: 's3', detail: '默认上传方式：s3, cos, r2, alist' },
 ]
 
 // 由 tags_rows.json 导出的真实标签体系

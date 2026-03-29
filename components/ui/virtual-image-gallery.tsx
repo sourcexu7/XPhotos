@@ -158,11 +158,11 @@ export function VirtualImageGallery({
 
         {isPreviewOpen && activeImage && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+            className="fixed inset-0 z-50 flex flex-col bg-black/80"
             onClick={closePreview}
           >
             <div
-              className="relative max-h-[100vh] max-w-[100vw] px-4"
+              className="relative flex-1 flex items-center justify-center px-4 py-4"
               onClick={(e) => e.stopPropagation()}
             >
               <button
@@ -175,8 +175,45 @@ export function VirtualImageGallery({
               <img
                 src={activeImage.preview_url || activeImage.url}
                 alt={activeImage.detail || activeImage.title || 'Image'}
-                className="max-h-[100vh] max-w-[100vw] rounded-lg object-contain"
+                className="max-h-[60vh] max-w-[100vw] rounded-lg object-contain"
               />
+            </div>
+            
+            <div
+              className="bg-black/90 text-white px-4 py-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {activeImage.title && (
+                <div className="text-lg font-semibold mb-3">{activeImage.title}</div>
+              )}
+              
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-300 mb-3">
+                {(() => {
+                  const cam = activeImage?.exif?.make ? `${activeImage?.exif?.make} ${activeImage?.exif?.model ?? ''}`.trim() : (activeImage?.exif?.model ?? '')
+                  return cam && cam.length > 0 ? <span>相机：{cam}</span> : null
+                })()}
+                {activeImage?.exif?.f_number && (() => {
+                  const fNumber = activeImage.exif.f_number.toString()
+                  const displayValue = fNumber.startsWith('f/') ? fNumber : `f/${fNumber}`
+                  return <span>光圈：{displayValue}</span>
+                })()}
+                {activeImage?.exif?.exposure_time && <span>快门：{activeImage.exif.exposure_time}</span>}
+                {activeImage?.exif?.iso_speed_rating && <span>ISO：{activeImage.exif.iso_speed_rating}</span>}
+                {activeImage?.exif?.focal_length && <span>焦距：{activeImage.exif.focal_length}</span>}
+              </div>
+              
+              {activeImage?.labels && activeImage.labels.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {activeImage.labels.map((tag: string) => (
+                    <span
+                      key={tag}
+                      className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs text-gray-300"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -233,11 +270,11 @@ export function VirtualImageGallery({
 
       {isPreviewOpen && activeImage && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+          className="fixed inset-0 z-50 flex flex-col bg-black/80"
           onClick={closePreview}
         >
           <div
-            className="relative max-h-[100vh] max-w-[100vw] px-4"
+            className="relative flex-1 flex items-center justify-center px-4 py-4"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -250,8 +287,45 @@ export function VirtualImageGallery({
             <img
               src={activeImage.preview_url || activeImage.url}
               alt={activeImage.detail || activeImage.title || 'Image'}
-              className="max-h-[100vh] max-w-[100vw] rounded-lg object-contain"
+              className="max-h-[60vh] max-w-[100vw] rounded-lg object-contain"
             />
+          </div>
+          
+          <div
+            className="bg-black/90 text-white px-4 py-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {activeImage.title && (
+              <div className="text-lg font-semibold mb-3">{activeImage.title}</div>
+            )}
+            
+            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-300 mb-3">
+              {(() => {
+                const cam = activeImage?.exif?.make ? `${activeImage?.exif?.make} ${activeImage?.exif?.model ?? ''}`.trim() : (activeImage?.exif?.model ?? '')
+                return cam && cam.length > 0 ? <span>相机：{cam}</span> : null
+              })()}
+              {activeImage?.exif?.f_number && (() => {
+                const fNumber = activeImage.exif.f_number.toString()
+                const displayValue = fNumber.startsWith('f/') ? fNumber : `f/${fNumber}`
+                return <span>光圈：{displayValue}</span>
+              })()}
+              {activeImage?.exif?.exposure_time && <span>快门：{activeImage.exif.exposure_time}</span>}
+              {activeImage?.exif?.iso_speed_rating && <span>ISO：{activeImage.exif.iso_speed_rating}</span>}
+              {activeImage?.exif?.focal_length && <span>焦距：{activeImage.exif.focal_length}</span>}
+            </div>
+            
+            {activeImage?.labels && activeImage.labels.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {activeImage.labels.map((tag: string) => (
+                  <span
+                    key={tag}
+                    className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs text-gray-300"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

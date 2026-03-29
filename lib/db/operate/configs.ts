@@ -125,6 +125,7 @@ export async function updateCustomInfo(payload: {
   maxUploadFiles: number
   customIndexOriginEnable: boolean
   adminImagesPerPage: number
+  defaultStorage?: string
   // 新增：前台「关于我」配置
   aboutIntro?: string
   aboutInsUrl?: string
@@ -163,6 +164,13 @@ export async function updateCustomInfo(payload: {
       value: payload.adminImagesPerPage.toString(),
     },
   ]
+
+  if (payload.defaultStorage) {
+    configUpdates.push({
+      key: 'default_storage',
+      value: payload.defaultStorage,
+    })
+  }
 
   // 添加可选配置
   if (payload.previewImageMaxWidth > 0) {

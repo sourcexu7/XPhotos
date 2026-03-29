@@ -136,6 +136,7 @@ app.get('/get-custom-info', async (c) => {
       'max_upload_files',
       'custom_index_origin_enable',
       'admin_images_per_page',
+      'default_storage',
       // 新增：「关于我」前台展示配置
       'about_intro',
       'about_gallery_images_full',
@@ -450,6 +451,7 @@ app.put('/update-custom-info', async (c) => {
     maxUploadFiles: number
     customIndexOriginEnable: boolean
     adminImagesPerPage: number
+    defaultStorage?: string
     // 新增：「关于我」前台展示配置
     aboutIntro?: string
     aboutInsUrl?: string

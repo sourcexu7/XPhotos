@@ -41,6 +41,7 @@ export async function exifReader(file: ArrayBuffer | SharedArrayBuffer | Buffer 
 
 interface UploadOptions {
   onProgress?: (p: number) => void
+  onStageChange?: (stage: string) => void
 }
 
 interface UploadResponse {
@@ -79,12 +80,10 @@ export async function uploadFile(
   const newFileName = `${imageId}.${ext}`
   const newFile = new File([file], newFileName, { type: file.type })
 
-  // AList 使用传统上传方式
   if (storage === 'alist') {
-    return await uploadViaAList(newFile, type, storage, mountPath, imageId, fileName)
+    return await uploadViaAList(newFile, type, storage, mountPath, imageId, fileName, options)
   }
 
-  // 预签名 URL 上传方式
   return await uploadViaPresignedUrl(newFile, type, storage, options, imageId, fileName)
 }
 
@@ -94,7 +93,8 @@ async function uploadViaAList(
   storage: string,
   mountPath: string,
   imageId: string,
-  fileName: string
+  fileName: string,
+  options?: UploadOptions
 ): Promise<UploadResponse> {
   const formData = new FormData()
   formData.append('file', file)
@@ -104,28 +104,52 @@ async function uploadViaAList(
     formData.append('mountPath', mountPath)
   }
 
-  const res = await fetch('/api/v1/file/upload', {
-    method: 'POST',
-    body: formData,
-    credentials: 'include',
-    headers: { Accept: 'application/json' },
-  })
-  // 尝试以 JSON 解析，若失败则读取文本并抛错
-  const isJson = res.headers.get('content-type')?.includes('application/json')
-  const parsed = isJson ? await res.json().catch(async () => ({ code: res.status })) : null
-  if (!parsed) {
-    const text = await res.text().catch(() => '')
-    throw new Error(text || 'Upload failed')
-  }
-  const json = parsed
+  options?.onStageChange?.('上传中')
 
-  if (json?.code === 200) {
-    return {
-      code: 200,
-      data: { url: json.data, imageId, fileName },
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', '/api/v1/file/upload', true)
+    xhr.withCredentials = true
+    xhr.setRequestHeader('Accept', 'application/json')
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && options?.onProgress) {
+        const percent = Math.round((event.loaded / event.total) * 100)
+        try {
+          options.onProgress(percent)
+        } catch (e) {
+        }
+      }
     }
-  }
-  throw new Error('Upload failed')
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const json = JSON.parse(xhr.responseText)
+          if (json?.code === 200) {
+            options?.onProgress?.(100)
+            options?.onStageChange?.('完成')
+            resolve({
+              code: 200,
+              data: { url: json.data, imageId, fileName },
+            })
+          } else {
+            reject(new Error(json?.message || 'Upload failed'))
+          }
+        } catch (e) {
+          reject(new Error('Failed to parse response'))
+        }
+      } else {
+        reject(new Error(`Upload failed with status: ${xhr.status}`))
+      }
+    }
+
+    xhr.onerror = () => {
+      reject(new Error('Upload failed'))
+    }
+
+    xhr.send(formData)
+  })
 }
 
 async function uploadViaPresignedUrl(
@@ -136,12 +160,12 @@ async function uploadViaPresignedUrl(
   imageId: string,
   fileName: string
 ): Promise<UploadResponse> {
-  // 获取预签名 URL
+  options?.onStageChange?.('获取上传地址')
+  
   const presignedResponse = await fetch('/api/v1/file/presigned-url', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      // 服务端将根据 storage_folder 与 type 组合 key
       filename: file.name,
       contentType: file.type,
       type,
@@ -155,8 +179,8 @@ async function uploadViaPresignedUrl(
     throw new Error(text || `Failed to get presigned URL (status: ${presignedResponse.status})`)
   }
 
-  // 若后端要求强制服务器端上传，直接走回退路径
-  if (presignedJson?.data?.serverUpload === true || presignedJson?.code === 286) {
+  if (presignedJson?.code === 286) {
+    options?.onStageChange?.('服务器上传中')
     const formData = new FormData()
     formData.append('file', file)
     formData.append('storage', storage)
@@ -182,11 +206,12 @@ async function uploadViaPresignedUrl(
 
   const { presignedUrl, key } = presignedJson.data
 
-  // 使用 XHR 上传并跟踪进度
+  options?.onStageChange?.('上传中')
+  
   try {
     await uploadWithProgress(presignedUrl, file, options)
   } catch (e) {
-    // 回退：改用服务器端代理上传，规避浏览器 CORS/网络限制
+    options?.onStageChange?.('重试上传中')
     try {
       const formData = new FormData()
       formData.append('file', file)
@@ -205,12 +230,12 @@ async function uploadViaPresignedUrl(
         data: { url: json.data?.url, imageId, fileName, key: json.data?.key },
       }
     } catch (fallbackErr) {
-      // 原始直传错误透传，以便定位 CORS 或签名问题
       throw e instanceof Error ? e : new Error('Upload failed')
     }
   }
 
-  // 获取对象 URL
+  options?.onStageChange?.('获取访问地址')
+  
   const getObjectResponse = await fetch('/api/v1/file/getObjectUrl', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -229,6 +254,7 @@ async function uploadViaPresignedUrl(
   }
 
   options?.onProgress?.(100)
+  options?.onStageChange?.('完成')
 
   return {
     code: 200,
