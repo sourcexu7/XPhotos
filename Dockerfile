@@ -1,0 +1,79 @@
+FROM node:20.18-alpine3.20 AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml* .npmrc ./
+
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm i -g pnpm@9.7.1 \
+    && pnpm config set registry https://registry.npmmirror.com \
+    && pnpm i --no-frozen-lockfile
+
+FROM base AS runner-base
+
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm i -g pnpm@9.7.1 \
+    && pnpm config set registry https://registry.npmmirror.com \
+    && pnpm add prisma@6.4.1 @prisma/client@6.4.1 \
+    && pnpm add -D tsx
+
+FROM base AS builder
+
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# 创建 .env 文件，确保 Prisma 生成时不会失败
+RUN echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/xphotos?schema=public" > .env
+
+ENV NODE_OPTIONS=--openssl-legacy-provider
+
+# 在 builder 阶段安装 pnpm 并运行构建
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm i -g pnpm@9.7.1 \
+    && pnpm config set registry https://registry.npmmirror.com \
+    && pnpm run build
+
+FROM base AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder /app/public ./public
+COPY ./prisma ./prisma
+COPY ./script.sh ./script.sh
+
+RUN chmod +x script.sh
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+
+ENV NODEJS_HELPERS=0
+
+EXPOSE 3000
+
+ENV PORT=3000
+
+CMD ["./script.sh"]

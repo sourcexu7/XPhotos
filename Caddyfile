@@ -1,0 +1,7 @@
+sourcexu.com {
+	encode gzip
+	reverse_proxy app:3000
+
+	# 强制 https：Caddy 默认会自动将 http 重定向到 https
+	# 证书：Caddy 会自动申请/续期 Let’s Encrypt
+}
