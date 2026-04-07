@@ -210,8 +210,8 @@ export async function fetchServerImagesPageByAlbum(
     image.exif
   `
 
-  // 管理端图片维护：按最新上传优先
-  const orderByFinal = Prisma.sql`image.created_at DESC, image.updated_at DESC, image.sort ASC`
+  // 管理端图片维护：sort 优先级最高，确保用户手动排序生效
+  const orderByFinal = Prisma.sql`image.sort ASC, image.created_at DESC, image.updated_at DESC`
 
   if (normalizedAlbum && normalizedAlbum !== '') {
     const rows = await db.$queryRaw<Array<ImageType & { total: number }>>`
@@ -465,7 +465,7 @@ export async function fetchServerImagesListByAlbum(
           ${filters.fNumberFilter}
           ${filters.isoFilter}
           ${filters.labelsFilter}
-      ORDER BY image.created_at DESC, image.updated_at DESC, image.sort ASC
+      ORDER BY image.sort ASC, image.created_at DESC, image.updated_at DESC
       LIMIT ${pageSize} OFFSET ${offset}
     `
   } else {
@@ -490,7 +490,7 @@ export async function fetchServerImagesListByAlbum(
         ${filters.fNumberFilter}
         ${filters.isoFilter}
         ${filters.labelsFilter}
-      ORDER BY image.created_at DESC, image.updated_at DESC, image.sort ASC 
+      ORDER BY image.sort ASC, image.created_at DESC, image.updated_at DESC
       LIMIT ${pageSize} OFFSET ${offset}
     `
   }

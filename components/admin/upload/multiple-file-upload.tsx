@@ -86,6 +86,7 @@ export default function MultipleFileUpload({ idPrefix: propIdPrefix }: MultipleF
   const [primarySelect, setPrimarySelect] = React.useState<string | null>(null)
   const [secondarySelect, setSecondarySelect] = React.useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [uploadingKeys, setUploadingKeys] = React.useState<Set<string>>(new Set())
   const t = useTranslations()
   const generatedIdPrefix = React.useId()
   const idPrefix = propIdPrefix ?? generatedIdPrefix
@@ -461,24 +462,32 @@ export default function MultipleFileUpload({ idPrefix: propIdPrefix }: MultipleF
     [files, t]
   )
 
-  async function onRequestUpload(file: UploadFile) {
-    // 获取文件名但是去掉扩展名部分
-    const fileName = file.name.split('.').slice(0, -1).join('.')
-    if (await isHeic(file)) {
-      // 把 HEIC 转成 JPEG
-      const outputBuffer: Blob | Blob[] = await heicTo({
-        blob: file,
-        type: 'image/jpeg',
-      })
-      const outputFile = new File([outputBuffer], fileName + '.jpg', { type: 'image/jpeg' }) as UploadFile // 添加文件名
-      new Compressor(outputFile, {
-        quality: previewCompressQuality,
-        checkOrientation: false,
-        mimeType: 'image/jpeg',
-        maxWidth: previewImageMaxWidthLimitSwitchOn && previewImageMaxWidthLimit > 0 ? previewImageMaxWidthLimit : undefined,
-        async success(compressedFile) {
-          if (!outputFile.__key) outputFile.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
-          await uploadFile(compressedFile, album, storage, alistMountPath, {
+  async function onRequestUpload(file: UploadFile, existingImageId?: string) {
+    const fileKey = file.__key
+    if (fileKey && uploadingKeys.has(fileKey)) {
+      return
+    }
+    if (fileKey) {
+      setUploadingKeys(prev => new Set(prev).add(fileKey))
+    }
+    
+    try {
+      const fileName = file.name.split('.').slice(0, -1).join('.')
+      if (await isHeic(file)) {
+        const outputBuffer: Blob | Blob[] = await heicTo({
+          blob: file,
+          type: 'image/jpeg',
+        })
+        const outputFile = new File([outputBuffer], fileName + '.jpg', { type: 'image/jpeg' }) as UploadFile
+        if (!outputFile.__key) outputFile.__key = fileKey || (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
+        new Compressor(outputFile, {
+          quality: previewCompressQuality,
+          checkOrientation: false,
+          mimeType: 'image/jpeg',
+          maxWidth: previewImageMaxWidthLimitSwitchOn && previewImageMaxWidthLimit > 0 ? previewImageMaxWidthLimit : undefined,
+          async success(compressedFile) {
+            await uploadFile(compressedFile as File, album, storage, alistMountPath, {
+              existingImageId,
               onProgress: (p:number) => { if (outputFile.__key) setUploadProgressMap(prev => ({ ...prev, [outputFile.__key!]: p })) }
             }).then(async (res) => {
               if (res.code === 200) {
@@ -488,19 +497,30 @@ export default function MultipleFileUpload({ idPrefix: propIdPrefix }: MultipleF
                 throw new Error('Upload failed')
               }
             })
-        }
-      })
-    } else {
-      // ensure __key exists
-      if (!file.__key) file.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
-      await uploadFile(file, album, storage, alistMountPath, { onProgress: (p:number) => { if (file.__key) setUploadProgressMap(prev => ({ ...prev, [file.__key]: p })) } }).then(async (res) => {
-        if (res.code === 200) {
-          await resHandle(res, file)
-          if (res?.data?.key && file?.__key) setFileKeyMap(prev => ({ ...prev, [file.__key]: res.data!.key! }))
-        } else {
-          throw new Error('Upload failed')
-        }
-      })
+          }
+        })
+      } else {
+        if (!file.__key) file.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
+        await uploadFile(file, album, storage, alistMountPath, { 
+          existingImageId,
+          onProgress: (p:number) => { if (file.__key) setUploadProgressMap(prev => ({ ...prev, [file.__key]: p })) } 
+        }).then(async (res) => {
+          if (res.code === 200) {
+            await resHandle(res, file)
+            if (res?.data?.key && file?.__key) setFileKeyMap(prev => ({ ...prev, [file.__key]: res.data!.key! }))
+          } else {
+            throw new Error('Upload failed')
+          }
+        })
+      }
+    } finally {
+      if (fileKey) {
+        setUploadingKeys(prev => {
+          const next = new Set(prev)
+          next.delete(fileKey)
+          return next
+        })
+      }
     }
   }
 
@@ -539,7 +559,9 @@ export default function MultipleFileUpload({ idPrefix: propIdPrefix }: MultipleF
         return !!(f.__key && missingSelection[f.__key])
       })
       for (const f of toUpload) {
-        await onRequestUpload(f)
+        const key = f.__key
+        const existingImageId = key ? uploadedMeta[key]?.clientImageId : undefined
+        await onRequestUpload(f, existingImageId)
       }
       // Submit all files that now have urls
       for (const file of files) {
@@ -656,34 +678,29 @@ export default function MultipleFileUpload({ idPrefix: propIdPrefix }: MultipleF
             onClick={async () => {
               setIsSubmitting(true)
               try {
-                // Find files that don't have storage url yet
                 const missing = files.filter(f => {
-                      const key = f.__key
-                      if (!key) return true
-                      const m = uploadedMeta[key]
-                      return !(m && m.url)
-                    })
+                  const key = f.__key
+                  if (!key) return true
+                  const m = uploadedMeta[key]
+                  return !(m && m.url)
+                })
                 if (missing.length > 0) {
-                  // Open modal to let user choose which missing files to upload or skip
-                  // initialize selection to all checked
-                    const sel: Record<string, boolean> = {}
-                    missing.forEach(f => { if (f.__key) sel[f.__key] = true })
+                  const sel: Record<string, boolean> = {}
+                  missing.forEach(f => { if (f.__key) sel[f.__key] = true })
                   setMissingSelection(sel)
                   setMissingFiles(missing)
-                  // close submitting state and show modal for user decision
                   setIsSubmitting(false)
                   setShowMissingModal(true)
                   return
                 }
 
-                // If no missing files, submit all
                 for (const file of files) {
                   const key = file.__key
                   if (!key) continue
                   const meta = uploadedMeta[key]
                   if (!meta || !meta.url) {
-                    // upload and wait
-                    await onRequestUpload(file)
+                    const existingImageId = meta?.clientImageId
+                    await onRequestUpload(file, existingImageId)
                   }
                   const finalMeta = { ...(uploadedMeta[key] || {}), file }
                   await autoSubmit(finalMeta)

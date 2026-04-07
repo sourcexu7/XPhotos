@@ -42,6 +42,7 @@ export async function exifReader(file: ArrayBuffer | SharedArrayBuffer | Buffer 
 interface UploadOptions {
   onProgress?: (p: number) => void
   onStageChange?: (stage: string) => void
+  existingImageId?: string
 }
 
 interface UploadResponse {
@@ -60,6 +61,7 @@ interface UploadResponse {
  * @param type 上传类型 '' | '/preview'
  * @param storage storage 存储类型
  * @param mountPath 文件挂载路径（目前只有 alist 用得到）
+ * @param options 上传选项，包括 existingImageId 用于复用已有的 imageId
  */
 export async function uploadFile(
   file: File,
@@ -74,7 +76,7 @@ export async function uploadFile(
   if (!storage) {
     throw new Error('Storage type is required')
   }
-  const imageId = createId()
+  const imageId = options?.existingImageId || createId()
   const ext = file.name.split('.').pop()
   const fileName = file.name
   const newFileName = `${imageId}.${ext}`

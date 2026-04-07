@@ -60,6 +60,7 @@ export default function SimpleFileUpload() {
   const [originalKey, setOriginalKey] = useState<string>('')
   const [, setPreviewKey] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadStage, setUploadStage] = useState('')
   const [totalUploadProgress, setTotalUploadProgress] = useState(0)
@@ -336,8 +337,8 @@ export default function SimpleFileUpload() {
         if (!originOk || !previewOk) {
           if (files && files.length > 0) {
             try {
-              // 自动重传一次原图 + 预览图
-              await onRequestUpload(files[0])
+              // 自动重传一次原图 + 预览图，复用已有的 imageId 避免重复上传
+              await onRequestUpload(files[0], imageId || undefined)
               // 重传成功后，继续后续重复检测与入库流程
             } catch (e) {
               console.error('Re-upload after failed remote verification error', e)
@@ -530,55 +531,66 @@ export default function SimpleFileUpload() {
     }
   }, [t])
 
-  const onRequestUpload = React.useCallback(async (file: File) => {
+  const onRequestUpload = React.useCallback(async (file: File, existingImageId?: string) => {
+    if (isUploading) {
+      return
+    }
+    
+    setIsUploading(true)
     setTotalUploadProgress(0)
     setCurrentUploadStage('准备上传中')
     
-    const fileName = file.name.split('.').slice(0, -1).join('.')
-    if (await isHeic(file)) {
-      setCurrentUploadStage('转换 HEIC 格式中')
-      const outputBuffer: Blob | Blob[] = await heicTo({
-        blob: file,
-        type: 'image/jpeg',
-      })
-      const outputFile = new File([outputBuffer], fileName + '.jpg', { type: 'image/jpeg' })
-      await uploadFile(outputFile, album, storage, alistMountPath, { 
-        onProgress: (p:number) => {
-          setUploadProgress(p)
-          setTotalUploadProgress(10 + (p * 0.4))
-        },
-        onStageChange: (stage: string) => {
-          setUploadStage(stage)
-          setCurrentUploadStage(stage)
-        }
-      }).then(async (res) => {
-        if (res.code === 200) {
-          await resHandle(res, outputFile)
-        } else {
-          throw new Error('Upload failed')
-        }
-      })
-    } else {
-      setCurrentUploadStage('上传原图中')
-      if (!file.__key) file.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
-      await uploadFile(file, album, storage, alistMountPath, { 
-        onProgress: (p:number) => {
-          setUploadProgress(p)
-          setTotalUploadProgress(10 + (p * 0.4))
-        },
-        onStageChange: (stage: string) => {
-          setUploadStage(stage)
-          setCurrentUploadStage(stage)
-        }
-      }).then(async (res) => {
-        if (res.code === 200) {
-          await resHandle(res, file)
-        } else {
-          throw new Error('Upload failed')
-        }
-      })
+    try {
+      const fileName = file.name.split('.').slice(0, -1).join('.')
+      if (await isHeic(file)) {
+        setCurrentUploadStage('转换 HEIC 格式中')
+        const outputBuffer: Blob | Blob[] = await heicTo({
+          blob: file,
+          type: 'image/jpeg',
+        })
+        const outputFile = new File([outputBuffer], fileName + '.jpg', { type: 'image/jpeg' })
+        await uploadFile(outputFile, album, storage, alistMountPath, { 
+          existingImageId,
+          onProgress: (p:number) => {
+            setUploadProgress(p)
+            setTotalUploadProgress(10 + (p * 0.4))
+          },
+          onStageChange: (stage: string) => {
+            setUploadStage(stage)
+            setCurrentUploadStage(stage)
+          }
+        }).then(async (res) => {
+          if (res.code === 200) {
+            await resHandle(res, outputFile)
+          } else {
+            throw new Error('Upload failed')
+          }
+        })
+      } else {
+        setCurrentUploadStage('上传原图中')
+        if (!file.__key) file.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
+        await uploadFile(file, album, storage, alistMountPath, { 
+          existingImageId,
+          onProgress: (p:number) => {
+            setUploadProgress(p)
+            setTotalUploadProgress(10 + (p * 0.4))
+          },
+          onStageChange: (stage: string) => {
+            setUploadStage(stage)
+            setCurrentUploadStage(stage)
+          }
+        }).then(async (res) => {
+          if (res.code === 200) {
+            await resHandle(res, file)
+          } else {
+            throw new Error('Upload failed')
+          }
+        })
+      }
+    } finally {
+      setIsUploading(false)
     }
-  }, [album, storage, alistMountPath, resHandle])
+  }, [album, storage, alistMountPath, resHandle, isUploading])
 
   function onRemoveFile() {
     // 若已上传原图，尝试删除存储对象
@@ -792,18 +804,19 @@ export default function SimpleFileUpload() {
               className="h-9 flex items-center justify-center w-full sm:w-auto"
               size="middle"
               type="primary"
-              loading={isSubmitting}
+              loading={isSubmitting || isUploading}
               onClick={async () => {
+                if (isUploading) return
                 try {
                     if (files.length > 0 && (!url || url === '')) {
-                      await onRequestUpload(files[0])
+                      await onRequestUpload(files[0], imageId || undefined)
                     }
                     await handleSubmit()
                 } catch {}
               }}
-              disabled={(files.length === 0 && (!url || url === '')) || album === '' || storage === '' || (storage === 'alist' && alistMountPath === '')}
+              disabled={(files.length === 0 && (!url || url === '')) || album === '' || storage === '' || (storage === 'alist' && alistMountPath === '') || isUploading}
             >
-              {t('Button.submit')}
+              {isUploading ? t('Upload.uploading') : t('Button.submit')}
             </AntButton>
           </div>
         </div>
@@ -820,8 +833,7 @@ export default function SimpleFileUpload() {
             const f = files[0]
             try {
               setIsSubmitting(true)
-              await onRequestUpload(f)
-              // after upload, try submit again
+              await onRequestUpload(f, imageId || undefined)
               await handleSubmit()
             } catch (e) {
               console.error(e)
