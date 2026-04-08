@@ -159,7 +159,6 @@ export default function AlbumSortPage() {
   const params = useParams<{ albumValue: string }>()
   // 确保albumValue不为空
   const albumValue = params.albumValue || ''
-  console.log('Album value:', albumValue)
   const t = useTranslations()
   const listRef = useRef<List>(null)
   const [images, setImages] = useState<AlbumSortImage[]>([])
@@ -195,13 +194,10 @@ export default function AlbumSortPage() {
       // 只调用获取图片的API
       // 先解码确保得到原始值，再编码，避免双重编码
       const encodedAlbumValue = encodeURIComponent(decodedAlbumValue)
-      console.log('Decoded album value:', decodedAlbumValue)
-      console.log('Encoded album value:', encodedAlbumValue)
       const res = await fetch(`/api/v1/images/album-images/${encodedAlbumValue}`)
       if (!res.ok) throw new Error('Failed to fetch images')
       const data = await res.json()
       const imageList = data.data || []
-      console.log('Fetched images:', imageList.length)
       setImages(imageList)
       setOriginalImages(imageList)
       setHasChanges(false)
@@ -406,7 +402,7 @@ export default function AlbumSortPage() {
   }
 
   const Row = useMemo(() => {
-    return ({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const RowComponent = ({ index, style }: { index: number; style: React.CSSProperties }) => {
       const image = images[index]
       if (!image) return null
       
@@ -429,6 +425,8 @@ export default function AlbumSortPage() {
         </div>
       )
     }
+    RowComponent.displayName = 'Row'
+    return RowComponent
   }, [images, selectedIds, saving, sortingIndex, toggleSelect, moveUp, moveDown, moveToTop, moveToBottom, t])
 
   return (

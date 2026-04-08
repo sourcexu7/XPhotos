@@ -341,8 +341,6 @@ export default function AlbumSortPanel({
         sort: idx,
       }))
       
-      console.log('Saving sort order:', { albumValue, ordersCount: orders.length })
-      
       const res = await fetch('/api/v1/images/album-sort', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -350,7 +348,6 @@ export default function AlbumSortPanel({
       })
       
       const result = await res.json()
-      console.log('Save response:', result)
       
       if (!res.ok) {
         throw new Error(result.message || 'Failed to save')
@@ -395,7 +392,7 @@ export default function AlbumSortPanel({
   }
 
   const Row = useMemo(() => {
-    return ({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const RowComponent = ({ index, style }: { index: number; style: React.CSSProperties }) => {
       const image = images[index]
       if (!image) return null
       
@@ -418,6 +415,8 @@ export default function AlbumSortPanel({
         </div>
       )
     }
+    RowComponent.displayName = 'Row'
+    return RowComponent
   }, [images, selectedIds, saving, sortingIndex, toggleSelect, moveUp, moveDown, moveToTop, moveToBottom, t])
 
   return (

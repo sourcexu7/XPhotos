@@ -94,7 +94,7 @@ export default function SimpleFileUpload() {
     if (defaultStorage && storage === 's3') {
       setStorage(defaultStorage)
     }
-  }, [defaultStorage])
+  }, [defaultStorage, storage])
   // EXIF presets (editable via modal; persisted in localStorage)
   const presetsStorageKey = 'picimpact_exif_presets'
   const defaultPresets = {
