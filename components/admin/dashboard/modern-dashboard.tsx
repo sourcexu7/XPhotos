@@ -11,6 +11,7 @@ import {
   Search, 
   ArrowUpDown, 
 } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next-nprogress-bar'
 
@@ -161,11 +162,11 @@ export function ModernDashboard({
       
       {/* Stats Row */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {stats.map((s) => {
             const route = getStatRoute(s.id)
             const common =
-              'bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors'
+              'bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors'
 
             if (!route) {
               return (
@@ -181,7 +182,7 @@ export function ModernDashboard({
                 key={s.id}
                 type="button"
                 onClick={() => router.push(route)}
-                className={`${common} cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30`}
+                className={`${common} cursor-pointer hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all duration-200`}
                 aria-label={`跳转到 ${s.label}`}
               >
                 <div className="text-sm text-slate-500 dark:text-slate-400 mb-1">{s.label}</div>
@@ -199,40 +200,42 @@ export function ModernDashboard({
         <div className="relative w-full md:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
           <input
-            className="w-full pl-9 pr-4 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            className="w-full pl-9 pr-4 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all duration-200"
             placeholder={t('searchPlaceholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            aria-label={t('searchPlaceholder')}
           />
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-2 w-full md:w-auto">
           <div className="flex items-center gap-2 ml-auto">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortBy)}
-              className="px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm focus:outline-none"
-            >
-              <option value="progress">{t('sortByProgress')}</option>
-              <option value="name">{t('sortByName')}</option>
-            </select>
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
+              <SelectTrigger className="w-[180px] px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
+                <SelectValue placeholder={t('sortByProgress')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="progress">{t('sortByProgress')}</SelectItem>
+                <SelectItem value="name">{t('sortByName')}</SelectItem>
+              </SelectContent>
+            </Select>
 
             <button
               onClick={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
               aria-label="切换排序方向"
-              className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
               <ArrowUpDown className={cx('size-4 text-slate-600 dark:text-slate-400 transition-transform', sortDir === 'asc' && 'rotate-180')} />
             </button>
 
-            <div className="flex rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-1">
+            <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-1">
               <button
                 onClick={() => setViewMode('list')}
                 aria-label="切换为列表视图"
                 className={cx(
-                  'p-1.5 rounded-md transition-colors',
-                  viewMode === 'list' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100' : 'text-slate-400 hover:text-slate-600'
+                  'p-1.5 rounded-md transition-all duration-200',
+                  viewMode === 'list' ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
                 )}
               >
                 <List className="size-4" />
@@ -241,8 +244,8 @@ export function ModernDashboard({
                 onClick={() => setViewMode('grid')}
                 aria-label="切换为网格视图"
                 className={cx(
-                  'p-1.5 rounded-md transition-colors',
-                  viewMode === 'grid' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100' : 'text-slate-400 hover:text-slate-600'
+                  'p-1.5 rounded-md transition-all duration-200',
+                  viewMode === 'grid' ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
                 )}
               >
                 <LayoutGrid className="size-4" />
@@ -263,7 +266,7 @@ export function ModernDashboard({
           <div
             key={p.id}
             className={cx(
-              'group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden hover:shadow-md transition-all duration-200',
+              'group relative bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200',
               viewMode === 'list' ? 'flex items-center p-4 gap-6' : 'p-5 flex flex-col'
             )}
           >
@@ -283,9 +286,9 @@ export function ModernDashboard({
                 <span className="text-slate-500 dark:text-slate-400">{t('visibility')}</span>
                 <span className="font-medium text-slate-700 dark:text-slate-300">{p.progress}{t('percentPublic')}</span>
               </div>
-              <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                  className="h-full bg-primary rounded-full transition-all duration-500"
                   style={{ width: `${p.progress}%` }}
                 />
               </div>
@@ -294,7 +297,7 @@ export function ModernDashboard({
             {/* Footer */}
             <div className={cx(
               'flex items-center justify-between',
-              viewMode === 'grid' ? 'mt-auto pt-4 border-t border-slate-100 dark:border-slate-800' : 'w-48 justify-end gap-4'
+              viewMode === 'grid' ? 'mt-auto pt-4 border-t border-slate-100 dark:border-slate-700' : 'w-48 justify-end gap-4'
             )}>
               <div className="flex items-center gap-2">
                 <span className={cx(
@@ -323,7 +326,7 @@ export function ModernDashboard({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
           <div className="text-sm text-slate-500 dark:text-slate-400">
             {t('pageInfo', { current: currentPage, total: totalPages })}
           </div>
@@ -331,14 +334,14 @@ export function ModernDashboard({
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-800 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:focus:ring-0"
+              className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:focus:ring-0"
             >
               {t('previous')}
             </button>
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-800 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:focus:ring-0"
+              className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:focus:ring-0"
             >
               {t('next')}
             </button>

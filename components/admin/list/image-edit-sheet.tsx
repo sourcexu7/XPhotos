@@ -52,7 +52,7 @@ export default function ImageEditSheet(props : Readonly<ImageServerHandleProps &
   }
 
   const GroupTitle = ({ title }: { title: string }) => (
-    <div className="text-sm font-medium text-gray-900 uppercase tracking-wide mb-3 mt-6 pb-2 border-b border-gray-200">
+    <div className="text-sm font-medium text-foreground uppercase tracking-wide mb-4 mt-6 pb-2 border-b border-border">
       {title}
     </div>
   )
@@ -60,16 +60,16 @@ export default function ImageEditSheet(props : Readonly<ImageServerHandleProps &
   const InputField = ({ label, id, value, onChange, type = 'text', placeholder = '' }: any) => (
     <label
       htmlFor={id}
-      className="block overflow-hidden rounded-md border border-gray-100 px-3 py-2 shadow-sm focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400 mb-3 bg-white"
+      className="block overflow-hidden rounded-lg border border-border px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 mb-4 bg-card transition-all duration-200"
     >
-      <span className="text-xs font-medium text-gray-700">{label}</span>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <input
         type={type}
         id={id}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 text-xs !text-black font-normal placeholder:text-gray-400"
+        className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 text-sm text-foreground font-normal placeholder:text-muted-foreground"
       />
     </label>
   )
@@ -78,21 +78,21 @@ export default function ImageEditSheet(props : Readonly<ImageServerHandleProps &
     <Drawer
       title="编辑图片信息"
       placement="left"
-      size={400}
+      size={{ xs: '100%', sm: 420 }}
       open={imageEdit}
       onClose={() => { setImageEdit(false); setImageEditData({} as ImageType) }}
       mask={false}
       styles={{
-        header: { padding: '16px 24px', background: '#f9fafb' },
+        header: { padding: '16px 24px', background: 'var(--card)' },
         body: { padding: 0 },
       }}
       footer={
-        <div className="p-4 bg-white">
+        <div className="p-4 bg-card border-t border-border">
           <Button 
             type="primary"
             disabled={loading}
             onClick={() => submit()} 
-            className="w-full h-10 bg-blue-600 hover:bg-blue-700 border-none text-base font-medium shadow-sm transition-all"
+            className="w-full h-10 bg-primary hover:bg-primary/90 border-none text-base font-medium shadow-sm transition-all duration-200 transform hover:scale-[1.01]"
           >
             {loading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin"/>}
             保存更改
@@ -100,90 +100,104 @@ export default function ImageEditSheet(props : Readonly<ImageServerHandleProps &
         </div>
       }
     >
-      <div className="flex flex-col h-full bg-white [&>button]:!text-black [&>button]:!opacity-100">
-        <div className="flex-1 overflow-y-auto px-6 py-4 scrollbar-hide">
+      <div className="flex flex-col h-full bg-card">
+        <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-hide">
           <GroupTitle title="基本信息" />
-          <InputField label="标题" id="title" value={image?.title ?? ''} onChange={(e:any) => setImageEditData({...image, title: e.target.value})} placeholder="图片标题" />
-          <InputField label="详情描述" id="detail" value={image?.detail ?? ''} onChange={(e:any) => setImageEditData({...image, detail: e.target.value})} placeholder="图片描述" />
-          
-          <div className="mb-3">
-            <label className="block text-xs font-medium text-gray-700 mb-1">标签</label>
-            <TagInput
-              tags={!image.labels ? [] : image.labels.map((label: string) => ({ id: Math.floor(Math.random() * 1000), text: label }))}
-              setTags={(newTags: any) => setImageEditData({...image, labels: newTags?.map((label: Tag) => label.text)})}
-              placeholder="输入标签回车添加"
-              styleClasses={{
-                inlineTagsContainer: 'border border-gray-300 rounded-md bg-white p-1 gap-1 min-h-[38px]',
-                input: 'w-full min-w-[80px] focus-visible:outline-none shadow-none px-2 h-7 text-xs !text-black font-normal placeholder:text-gray-400',
-                tag: { body: 'h-6 bg-gray-100 border border-gray-200 rounded text-xs px-2 flex items-center gap-1 text-gray-900', closeButton: 'text-gray-400 hover:text-red-500' },
-              }}
-              activeTagIndex={activeTagIndex}
-              setActiveTagIndex={setActiveTagIndex}
-            />
-          </div>
-
-          <div className="flex gap-4 mb-4">
-            <div className="flex items-center justify-between flex-1 p-3 border rounded-lg bg-gray-50">
-              <span className="text-sm text-gray-900">显示状态</span>
-              <Switch checked={image?.show === 0} onChange={(checked) => setImageEditData({...image, show: checked ? 0 : 1})} />
+          <div className="space-y-4">
+            <InputField label="标题" id="title" value={image?.title ?? ''} onChange={(e:any) => setImageEditData({...image, title: e.target.value})} placeholder="图片标题" />
+            <InputField label="详情描述" id="detail" value={image?.detail ?? ''} onChange={(e:any) => setImageEditData({...image, detail: e.target.value})} placeholder="图片描述" />
+            
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-muted-foreground mb-2">标签</label>
+              <TagInput
+                tags={!image.labels ? [] : image.labels.map((label: string) => ({ id: Math.floor(Math.random() * 1000), text: label }))}
+                setTags={(newTags: any) => setImageEditData({...image, labels: newTags?.map((label: Tag) => label.text)})}
+                placeholder="输入标签回车添加"
+                styleClasses={{
+                  inlineTagsContainer: 'border border-border rounded-lg bg-card p-2 gap-2 min-h-[44px] transition-all duration-200 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20',
+                  input: 'w-full min-w-[100px] focus-visible:outline-none shadow-none px-2 h-8 text-sm text-foreground font-normal placeholder:text-muted-foreground',
+                  tag: { body: 'h-7 bg-muted border border-border rounded text-xs px-2 flex items-center gap-1 text-foreground', closeButton: 'text-muted-foreground hover:text-destructive transition-colors' },
+                }}
+                activeTagIndex={activeTagIndex}
+                setActiveTagIndex={setActiveTagIndex}
+              />
             </div>
-          </div>
 
-          <InputField label="排序权重 (越大越靠前)" id="sort" type="number" value={image?.sort ?? 0} onChange={(e:any) => setImageEditData({...image, sort: Number(e.target.value)})} />
+            <div className="p-4 border border-border rounded-lg bg-muted/50 transition-all duration-200">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">显示状态</span>
+                <Switch 
+                  checked={image?.show === 0} 
+                  onChange={(checked) => setImageEditData({...image, show: checked ? 0 : 1})} 
+                  checkedChildren="显示" 
+                  unCheckedChildren="隐藏"
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            </div>
+
+            <InputField label="排序权重 (越大越靠前)" id="sort" type="number" value={image?.sort ?? 0} onChange={(e:any) => setImageEditData({...image, sort: Number(e.target.value)})} />
+          </div>
 
           <GroupTitle title="链接资源" />
-          <InputField label="原图链接" id="url" value={image?.url ?? ''} onChange={(e:any) => setImageEditData({...image, url: e.target.value})} />
-          <InputField label="预览图链接" id="preview_url" value={image?.preview_url ?? ''} onChange={(e:any) => setImageEditData({...image, preview_url: e.target.value})} />
-          <InputField label="视频链接 (LivePhoto)" id="video_url" value={image?.video_url ?? ''} onChange={(e:any) => setImageEditData({...image, video_url: e.target.value})} />
+          <div className="space-y-4">
+            <InputField label="原图链接" id="url" value={image?.url ?? ''} onChange={(e:any) => setImageEditData({...image, url: e.target.value})} />
+            <InputField label="预览图链接" id="preview_url" value={image?.preview_url ?? ''} onChange={(e:any) => setImageEditData({...image, preview_url: e.target.value})} />
+            <InputField label="视频链接 (LivePhoto)" id="video_url" value={image?.video_url ?? ''} onChange={(e:any) => setImageEditData({...image, video_url: e.target.value})} />
+          </div>
 
           <GroupTitle title="尺寸与位置" />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <InputField label="宽度 (px)" id="width" type="number" value={image?.width ?? 0} onChange={(e:any) => setImageEditData({...image, width: Number(e.target.value)})} />
             <InputField label="高度 (px)" id="height" type="number" value={image?.height ?? 0} onChange={(e:any) => setImageEditData({...image, height: Number(e.target.value)})} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
             <InputField label="经度" id="lon" value={image?.lon ?? ''} onChange={(e:any) => setImageEditData({...image, lon: e.target.value})} />
             <InputField label="纬度" id="lat" value={image?.lat ?? ''} onChange={(e:any) => setImageEditData({...image, lat: e.target.value})} />
           </div>
 
           <GroupTitle title="EXIF 信息" />
-          <div className="mb-2 flex items-center gap-2">
-            <Button size="small" onClick={() => referenceInputRef.current?.click()}>
-              参考图提取 EXIF（仅本地解析）
-            </Button>
-            <input
-              ref={referenceInputRef}
-              type="file"
-              accept="image/*,.cr2,.arw,.nef,.tif,.tiff,.dng"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) applyReferenceExif(file)
-                e.target.value = ''
-              }}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <InputField label="相机品牌" id="exif_make" value={image?.exif?.make ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, make: e.target.value}})} />
-            <InputField label="相机型号" id="exif_model" value={image?.exif?.model ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, model: e.target.value}})} />
-          </div>
-          <InputField label="镜头型号" id="exif_lens_model" value={image?.exif?.lens_model ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, lens_model: e.target.value}})} />
-          <div className="grid grid-cols-2 gap-3">
-            <InputField label="焦距" id="exif_focal_length" value={image?.exif?.focal_length ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, focal_length: e.target.value}})} />
-            <InputField label="光圈" id="exif_f_number" value={image?.exif?.f_number ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, f_number: e.target.value}})} />
-            <InputField label="快门" id="exif_exposure_time" value={image?.exif?.exposure_time ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, exposure_time: e.target.value}})} />
-            <InputField label="ISO" id="exif_iso" value={image?.exif?.iso_speed_rating ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, iso_speed_rating: e.target.value}})} />
-          </div>
-          <div className="mb-3">
-            <label className="block overflow-hidden rounded-md border border-gray-100 px-3 py-2 shadow-sm focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400 bg-white">
-              <span className="text-xs font-medium text-gray-700">拍摄日期</span>
-              <input 
-                type="date" 
-                value={image?.exif?.data_time ? image.exif.data_time.split(' ')[0].replace(/:/g, '-') : ''} 
-                onChange={(e) => { const dateValue = e.target.value ? `${e.target.value.replace(/-/g, ':')} 00:00:00` : ''; setImageEditData({...image, exif: {...image.exif, data_time: dateValue}}) }} 
-                className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 text-xs !text-black font-normal" 
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Button 
+                size="small" 
+                onClick={() => referenceInputRef.current?.click()}
+                className="bg-secondary hover:bg-secondary/90 text-secondary-foreground border-none transition-all duration-200"
+              >
+                参考图提取 EXIF（仅本地解析）
+              </Button>
+              <input
+                ref={referenceInputRef}
+                type="file"
+                accept="image/*,.cr2,.arw,.nef,.tif,.tiff,.dng"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) applyReferenceExif(file)
+                  e.target.value = ''
+                }}
               />
-            </label>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <InputField label="相机品牌" id="exif_make" value={image?.exif?.make ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, make: e.target.value}})} />
+              <InputField label="相机型号" id="exif_model" value={image?.exif?.model ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, model: e.target.value}})} />
+            </div>
+            <InputField label="镜头型号" id="exif_lens_model" value={image?.exif?.lens_model ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, lens_model: e.target.value}})} />
+            <div className="grid grid-cols-2 gap-4">
+              <InputField label="焦距" id="exif_focal_length" value={image?.exif?.focal_length ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, focal_length: e.target.value}})} />
+              <InputField label="光圈" id="exif_f_number" value={image?.exif?.f_number ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, f_number: e.target.value}})} />
+              <InputField label="快门" id="exif_exposure_time" value={image?.exif?.exposure_time ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, exposure_time: e.target.value}})} />
+              <InputField label="ISO" id="exif_iso" value={image?.exif?.iso_speed_rating ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, iso_speed_rating: e.target.value}})} />
+            </div>
+            <div className="mb-4">
+              <label className="block overflow-hidden rounded-lg border border-border px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 bg-card transition-all duration-200">
+                <span className="text-xs font-medium text-muted-foreground">拍摄日期</span>
+                <input 
+                  type="date" 
+                  value={image?.exif?.data_time ? image.exif.data_time.split(' ')[0].replace(/:/g, '-') : ''} 
+                  onChange={(e) => { const dateValue = e.target.value ? `${e.target.value.replace(/-/g, ':')} 00:00:00` : ''; setImageEditData({...image, exif: {...image.exif, data_time: dateValue}}) }} 
+                  className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 text-sm text-foreground font-normal" 
+                />
+              </label>
+            </div>
           </div>
         </div>
       </div>

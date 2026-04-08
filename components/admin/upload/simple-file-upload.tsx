@@ -746,31 +746,28 @@ export default function SimpleFileUpload() {
   return (
     <div className="admin-upload flex flex-col space-y-4 h-full flex-1 font-sans text-sm">
       {/* Top controls: storage, album, alist (if any) and submit (Form.Item for colon alignment) */}
-      <AntForm layout="horizontal" style={{ marginBottom: 16 }}>
-        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-          <AntForm.Item 
-            label={t('Upload.selectStorage')} 
-            required
-            validateStatus={storage === '' ? 'error' : ''}
-            help={storage === '' ? t('Upload.selectStorage') : ''}
-            style={{ minWidth: 120, marginBottom: 0, flex: '0 0 auto' }}
-            className="w-full sm:w-auto"
-          >
+      <div className="rounded-lg border border-border bg-background-alt p-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="w-full sm:w-auto sm:min-w-[200px]">
+            <label className="block text-sm font-medium text-text-secondary mb-2">
+              {t('Upload.selectStorage')} *
+            </label>
             <Select
               value={storage || undefined}
               onChange={(value: string) => { setStorage(value); if (value === 'alist') { getAlistStorage() } else { setStorageSelect(false) } if (value === 's3') { try { toast.info(t('Tips.switchToS3Info')) } catch {} } }}
               placeholder={t('Upload.selectStorage')}
-              className="w-full sm:w-[160px]"
+              className="w-full"
               options={storages}
             />
-          </AntForm.Item>
+            {storage === '' && (
+              <p className="mt-1 text-xs text-error">{t('Upload.selectStorage')}</p>
+            )}
+          </div>
 
-          <AntForm.Item 
-            label={t('Upload.selectAlbum')} 
-            required
-            style={{ minWidth: 120, marginBottom: 0, flex: '1 1 auto' }}
-            className="w-full sm:w-auto min-w-0"
-          >
+          <div className="w-full sm:flex-1">
+            <label className="block text-sm font-medium text-text-secondary mb-2">
+              {t('Upload.selectAlbum')} *
+            </label>
             <Select
               value={album || undefined}
               onChange={(value: string) => setAlbum(value)}
@@ -778,30 +775,29 @@ export default function SimpleFileUpload() {
               className="w-full"
               options={data?.map((a: AlbumType) => ({ label: a.name, value: a.album_value }))}
             />
-          </AntForm.Item>
+          </div>
 
           {storage === 'alist' && storageSelect && alistStorage?.length > 0 && (
-            <AntForm.Item
-              label={t('Upload.selectAlistDirectory')}
-              required
-              validateStatus={alistMountPath === '' ? 'error' : ''}
-              help={alistMountPath === '' ? t('Upload.selectAlistDirectory') : ''}
-              style={{ minWidth: 120, marginBottom: 0, flex: '1 1 auto' }}
-              className="w-full sm:w-auto min-w-0"
-            >
+            <div className="w-full sm:flex-1">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                {t('Upload.selectAlistDirectory')} *
+              </label>
               <Select
                 value={alistMountPath || undefined}
                 onChange={(value: string) => setAlistMountPath(value)}
                 placeholder={t('Upload.selectAlistDirectory')}
-                className="w-full sm:w-[200px]"
+                className="w-full"
                 options={alistStorage?.map((s) => ({ label: s?.mount_path, value: s?.mount_path }))}
               />
-            </AntForm.Item>
+              {alistMountPath === '' && (
+                <p className="mt-1 text-xs text-error">{t('Upload.selectAlistDirectory')}</p>
+              )}
+            </div>
           )}
 
-          <div className="w-full sm:w-auto sm:ml-auto">
+          <div className="w-full sm:w-auto sm:ml-auto flex items-end">
             <AntButton
-              className="h-9 flex items-center justify-center w-full sm:w-auto"
+              className="h-10 px-6 flex items-center justify-center w-full sm:w-auto"
               size="middle"
               type="primary"
               loading={isSubmitting || isUploading}
@@ -815,12 +811,19 @@ export default function SimpleFileUpload() {
                 } catch {}
               }}
               disabled={(files.length === 0 && (!url || url === '')) || album === '' || storage === '' || (storage === 'alist' && alistMountPath === '') || isUploading}
+              style={{
+                backgroundColor: 'var(--primary)',
+                borderColor: 'var(--primary)',
+                borderRadius: '8px',
+                fontWeight: '500',
+                transition: 'all 0.2s ease-in-out'
+              }}
             >
               {isUploading ? t('Upload.uploading') : t('Button.submit')}
             </AntButton>
           </div>
         </div>
-      </AntForm>
+      </div>
       <AntModal
         title={t('Upload.fileNotUploadedTitle')}
         open={showMissingModal}
@@ -857,7 +860,15 @@ export default function SimpleFileUpload() {
               disabled={storage === '' || album === '' || (storage === 'alist' && alistMountPath === '')}
               beforeUpload={() => false}
               showUploadList={false}
-              style={{ padding: 12, minHeight: 120, height: '100%' }}
+              style={{ 
+                padding: 24, 
+                minHeight: 200, 
+                height: '100%',
+                border: '2px dashed var(--border)',
+                borderRadius: '12px',
+                backgroundColor: 'var(--background)',
+                transition: 'all 0.2s ease-in-out'
+              }}
               onChange={(info) => {
                 const fileList = info.fileList || []
                 const last = fileList.length > 0 ? (fileList[fileList.length - 1].originFileObj as File) : undefined
@@ -871,12 +882,14 @@ export default function SimpleFileUpload() {
                 }
               }}
             >
-              <div className="flex flex-col items-center justify-center h-full gap-2">
-                <UploadIcon />
-                <p className="font-medium text-sm">{t('Upload.dragOrClick')}</p>
-                <p className="text-muted-foreground text-xs">{t('Upload.uploadTipsSingle')}</p>
+              <div className="flex flex-col items-center justify-center h-full gap-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <UploadIcon className="w-8 h-8 text-primary" />
+                </div>
+                <p className="font-semibold text-text-primary">{t('Upload.dragOrClick')}</p>
+                <p className="text-text-secondary text-sm">{t('Upload.uploadTipsSingle')}</p>
                 {(storage === '' || album === '' || (storage === 'alist' && alistMountPath === '')) && (
-                  <p className="text-[12px]" style={{ color: '#999' }}>
+                  <p className="text-text-muted text-sm">
                     {t(storage === 'alist' ? 'Tips.selectStorageAndAlbumWithAListDirectory' : 'Tips.selectStorageAndAlbum')}
                   </p>
                 )}
@@ -884,11 +897,21 @@ export default function SimpleFileUpload() {
             </Dragger>
             {/* Progress bar for upload */}
             {totalUploadProgress > 0 && (
-              <div className="mt-3">
+              <div className="mt-4 p-4 rounded-lg border border-border bg-background">
                 {currentUploadStage && (
-                  <div className="text-sm text-gray-600 mb-2">{currentUploadStage}</div>
+                  <div className="text-sm text-text-secondary mb-3 font-medium">{currentUploadStage}</div>
                 )}
-                <AntProgress percent={Math.round(totalUploadProgress)} status="active" />
+                <AntProgress 
+                  percent={Math.round(totalUploadProgress)} 
+                  status="active"
+                  strokeColor="var(--primary)"
+                  strokeWidth={8}
+                  showInfo={false}
+                  className="mb-2"
+                />
+                <div className="text-sm text-text-secondary">
+                  {Math.round(totalUploadProgress)}%
+                </div>
               </div>
             )}
             {/* Inline EXIF form moved up from bottom to occupy blank space */}
@@ -992,85 +1015,161 @@ export default function SimpleFileUpload() {
         </div>
 
         <div className="h-full">
-          <AntCard className="h-full" title={t('Upload.metadataCardTitle')} styles={{ header: { borderBottom: '1px solid #f0f0f0' } }}>
-            <AntSpace vertical size={16} style={{ width: '100%' }}>
+          <div className="rounded-lg border border-border bg-background-alt h-full">
+            <div className="p-4 border-b border-border">
+              <h3 className="font-semibold text-text-primary">{t('Upload.metadataCardTitle')}</h3>
+            </div>
+            <div className="p-4 space-y-6">
               <div>
-                <div className="text-sm font-medium" style={{ marginBottom: 12, color: '#262626' }}>{t('Upload.addressAndSizeHeading')}</div>
-                <AntSpace vertical size={12} style={{ width: '100%' }}>
+                <h4 className="text-sm font-medium text-text-secondary mb-4">{t('Upload.addressAndSizeHeading')}</h4>
+                <div className="space-y-4">
                   <div>
-                    <div className="text-xs" style={{ marginBottom: 8, color: '#595959' }}>{t('Upload.title')}</div>
+                    <label className="block text-sm text-text-secondary mb-2">{t('Upload.title')}</label>
                     <AntInput
                       value={title}
                       placeholder={t('Upload.inputTitle')}
                       onChange={(e) => setTitle(e.target.value)}
+                      style={{
+                        borderRadius: '8px',
+                        borderColor: 'var(--border)',
+                        transition: 'all 0.2s ease-in-out'
+                      }}
                     />
                   </div>
 
                   <div>
-                    <div className="text-xs" style={{ marginBottom: 8, color: '#595959' }}>{t('Upload.url')}</div>
-                    <AntInput disabled value={url} />
+                    <label className="block text-sm text-text-secondary mb-2">{t('Upload.url')}</label>
+                    <AntInput 
+                      disabled 
+                      value={url} 
+                      style={{
+                        borderRadius: '8px',
+                        borderColor: 'var(--border)',
+                        backgroundColor: 'var(--background)'
+                      }}
+                    />
                     {!url && (
-                      <div className="text-xs" style={{ marginTop: 8, color: '#cf1322' }}>{t('Upload.originNotUploadedHint')}</div>
+                      <p className="mt-2 text-xs text-error">{t('Upload.originNotUploadedHint')}</p>
                     )}
                   </div>
 
                   <div>
-                    <div className="text-xs" style={{ marginBottom: 8, color: '#595959' }}>{t('Upload.previewUrl')}</div>
-                    <AntInput disabled value={previewUrl} />
+                    <label className="block text-sm text-text-secondary mb-2">{t('Upload.previewUrl')}</label>
+                    <AntInput 
+                      disabled 
+                      value={previewUrl} 
+                      style={{
+                        borderRadius: '8px',
+                        borderColor: 'var(--border)',
+                        backgroundColor: 'var(--background)'
+                      }}
+                    />
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <div className="text-xs" style={{ marginBottom: 8, color: '#595959' }}>{t('Upload.width')}</div>
-                      <AntInputNumber disabled value={width} onChange={(val) => setWidth(Number(val) || 0)} style={{ width: '100%' }} />
+                      <label className="block text-sm text-text-secondary mb-2">{t('Upload.width')}</label>
+                      <AntInputNumber 
+                        disabled 
+                        value={width} 
+                        onChange={(val) => setWidth(Number(val) || 0)} 
+                        style={{ 
+                          width: '100%',
+                          borderRadius: '8px',
+                          borderColor: 'var(--border)',
+                          backgroundColor: 'var(--background)'
+                        }} 
+                      />
                       {!width && (
-                        <div className="text-xs" style={{ marginTop: 8, color: '#cf1322' }}>{t('Tips.imageWidthRequired')}</div>
+                        <p className="mt-2 text-xs text-error">{t('Tips.imageWidthRequired')}</p>
                       )}
                     </div>
                     <div>
-                      <div className="text-xs" style={{ marginBottom: 8, color: '#595959' }}>{t('Upload.height')}</div>
-                      <AntInputNumber disabled value={height} onChange={(val) => setHeight(Number(val) || 0)} style={{ width: '100%' }} />
+                      <label className="block text-sm text-text-secondary mb-2">{t('Upload.height')}</label>
+                      <AntInputNumber 
+                        disabled 
+                        value={height} 
+                        onChange={(val) => setHeight(Number(val) || 0)} 
+                        style={{ 
+                          width: '100%',
+                          borderRadius: '8px',
+                          borderColor: 'var(--border)',
+                          backgroundColor: 'var(--background)'
+                        }} 
+                      />
                       {!height && (
-                        <div className="text-xs" style={{ marginTop: 8, color: '#cf1322' }}>{t('Tips.imageHeightRequired')}</div>
+                        <p className="mt-2 text-xs text-error">{t('Tips.imageHeightRequired')}</p>
                       )}
                     </div>
                   </div>
-                </AntSpace>
+                </div>
               </div>
 
               <div>
-                <div className="text-sm font-medium" style={{ marginBottom: 12, color: '#262626' }}>{t('Upload.locationHeading')}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <h4 className="text-sm font-medium text-text-secondary mb-4">{t('Upload.locationHeading')}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <div className="text-xs" style={{ marginBottom: 8, color: '#595959' }}>{t('Upload.lon')}</div>
-                    <AntInput disabled value={lon} onChange={(e) => setLon(e.target.value)} />
+                    <label className="block text-sm text-text-secondary mb-2">{t('Upload.lon')}</label>
+                    <AntInput 
+                      disabled 
+                      value={lon} 
+                      onChange={(e) => setLon(e.target.value)} 
+                      style={{
+                        borderRadius: '8px',
+                        borderColor: 'var(--border)',
+                        backgroundColor: 'var(--background)'
+                      }}
+                    />
                   </div>
                   <div>
-                    <div className="text-xs" style={{ marginBottom: 8, color: '#595959' }}>{t('Upload.lat')}</div>
-                    <AntInput disabled value={lat} onChange={(e) => setLat(e.target.value)} />
+                    <label className="block text-sm text-text-secondary mb-2">{t('Upload.lat')}</label>
+                    <AntInput 
+                      disabled 
+                      value={lat} 
+                      onChange={(e) => setLat(e.target.value)} 
+                      style={{
+                        borderRadius: '8px',
+                        borderColor: 'var(--border)',
+                        backgroundColor: 'var(--background)'
+                      }}
+                    />
                   </div>
                 </div>
               </div>
 
               <div>
-                <div className="text-sm font-medium" style={{ marginBottom: 12, color: '#262626' }}>{t('Upload.detail')}</div>
+                <h4 className="text-sm font-medium text-text-secondary mb-4">{t('Upload.detail')}</h4>
                 <div>
-                  <div className="text-xs" style={{ marginBottom: 8, color: '#595959' }}>{t('Upload.detail')}</div>
-                  <AntInput value={detail} onChange={(e) => setDetail(e.target.value)} placeholder={t('Upload.inputDetail')} />
+                  <label className="block text-sm text-text-secondary mb-2">{t('Upload.detail')}</label>
+                  <AntInput 
+                    value={detail} 
+                    onChange={(e) => setDetail(e.target.value)} 
+                    placeholder={t('Upload.inputDetail')}
+                    style={{
+                      borderRadius: '8px',
+                      borderColor: 'var(--border)',
+                      transition: 'all 0.2s ease-in-out'
+                    }}
+                  />
                 </div>
               </div>
 
               <div>
-                <div className="text-sm font-medium" style={{ marginBottom: 12, color: '#262626' }}>{t('Upload.tagsHeading')}</div>
-                <AntSpace vertical size={12} style={{ width: '100%' }}>
+                <h4 className="text-sm font-medium text-text-secondary mb-4">{t('Upload.tagsHeading')}</h4>
+                <div className="space-y-4">
                   <div>
-                    <div className="text-xs" style={{ marginBottom: 8, color: '#595959' }}>{t('Upload.presetTagsClickAddRemoveHint')}</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    <label className="block text-sm text-text-secondary mb-2">{t('Upload.presetTagsClickAddRemoveHint')}</label>
+                    <div className="flex flex-wrap gap-2">
                       {presetTags.filter(Boolean).map((tag, i) => (
                         <AntTag
                           key={`${tag}-${i}`}
-                          color={imageLabels && imageLabels.includes(tag) ? 'blue' : 'default'}
-                          style={{ cursor: 'pointer' }}
+                          color={imageLabels && imageLabels.includes(tag) ? 'var(--primary)' : 'default'}
+                          style={{ 
+                            cursor: 'pointer',
+                            borderRadius: '16px',
+                            padding: '4px 12px',
+                            fontSize: '12px'
+                          }}
                           onClick={() => togglePresetTag(tag)}
                         >
                           {tag}
@@ -1080,37 +1179,37 @@ export default function SimpleFileUpload() {
                   </div>
 
                   <div>
-                    <div className="text-xs" style={{ marginBottom: 8, color: '#595959' }}>{t('Upload.tagCategoryHeading')}</div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <div style={{ minWidth: 160 }}>
-                        <Select
-                          value={primarySelect || undefined}
-                          onChange={(v: string) => {
-                            setPrimarySelect(v)
-                            setCascaderValue([v, ...(secondarySelect || [])])
-                          }}
-                          placeholder={t('Upload.tagCategoryPlaceholder')}
-                          className="w-full"
-                          options={tagTree.filter(Boolean).map((n) => ({ label: n.category ?? t('Upload.tagUncategorized'), value: n.category }))}
-                        />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <MultipleSelector
-                          value={(secondarySelect || []).map((s: string) => ({ value: s, label: s }))}
-                          options={(tagTree.find((t) => String(t.category) === String(primarySelect))?.children || []).map((c: any) => ({ value: c.name, label: c.name }))}
-                          placeholder={t('Upload.tagChildrenPlaceholderMultiple')}
-                          onChange={(opts?: any) => {
-                            const vals = (opts || []).map((o: any) => o.value)
-                            setSecondarySelect(vals)
-                            setCascaderValue([primarySelect || '', ...vals])
-                          }}
-                        />
-                      </div>
+                    <label className="block text-sm text-text-secondary mb-2">{t('Upload.tagCategoryHeading')}</label>
+                    <div className="space-y-3">
+                      <Select
+                        value={primarySelect || undefined}
+                        onChange={(v: string) => {
+                          setPrimarySelect(v)
+                          setCascaderValue([v, ...(secondarySelect || [])])
+                        }}
+                        placeholder={t('Upload.tagCategoryPlaceholder')}
+                        className="w-full"
+                        options={tagTree.filter(Boolean).map((n) => ({ label: n.category ?? t('Upload.tagUncategorized'), value: n.category }))}
+                        style={{
+                          borderRadius: '8px',
+                          borderColor: 'var(--border)'
+                        }}
+                      />
+                      <MultipleSelector
+                        value={(secondarySelect || []).map((s: string) => ({ value: s, label: s }))}
+                        options={(tagTree.find((t) => String(t.category) === String(primarySelect))?.children || []).map((c: any) => ({ value: c.name, label: c.name }))}
+                        placeholder={t('Upload.tagChildrenPlaceholderMultiple')}
+                        onChange={(opts?: any) => {
+                          const vals = (opts || []).map((o: any) => o.value)
+                          setSecondarySelect(vals)
+                          setCascaderValue([primarySelect || '', ...vals])
+                        }}
+                      />
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-xs" style={{ marginBottom: 8, color: '#595959' }}>{t('Upload.customTagsHeading')}</div>
+                    <label className="block text-sm text-text-secondary mb-2">{t('Upload.customTagsHeading')}</label>
                     <MultipleSelector
                       value={(imageLabels.filter(Boolean) || []).map((s: string) => ({ value: s, label: s }))}
                       options={(presetTags || []).map((s: string) => ({ value: s, label: s }))}
@@ -1119,38 +1218,52 @@ export default function SimpleFileUpload() {
                       onChange={(opts?: any) => handleImageLabelsChange((opts || []).map((o:any)=>o.value))}
                     />
                   </div>
-                </AntSpace>
+                </div>
               </div>
-            </AntSpace>
-          </AntCard>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* File list - full width (hidden when no files) */}
       {files.length > 0 && (
         <div className="w-full">
-          <AntCard>
-            {files.map((file, index) => (
-              <div key={((file as any).__key || file.name || index)} className="flex items-center justify-between p-2 border rounded mb-2">
-                <div className="flex items-center gap-3">
-                  <div className="font-medium">{file.name}</div>
+          <div className="rounded-lg border border-border bg-background-alt">
+            <div className="p-4 border-b border-border">
+              <h3 className="font-semibold text-text-primary">{t('Upload.selectedFiles')}</h3>
+            </div>
+            <div className="p-4">
+              {files.map((file, index) => (
+                <div key={((file as any).__key || file.name || index)} className="flex items-center justify-between p-3 border border-border rounded-lg mb-3 bg-background">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <UploadIcon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-text-primary">{file.name}</div>
+                      <div className="text-sm text-text-secondary">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <AntButton
+                      type="text"
+                      danger
+                      icon={<CloseOutlined />}
+                      onClick={() => {
+                        // @ts-expect-error - read key from possibly-augmented File
+                        const k = (file && ((file as any).__key || file.name))
+                        if (k) removeFileByKey(String(k))
+                        else onRemoveFile()
+                      }}
+                      className="hover:bg-error/10 rounded-full p-2"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <AntButton
-                    type="text"
-                    danger
-                    icon={<CloseOutlined />}
-                    onClick={() => {
-                      // @ts-expect-error - read key from possibly-augmented File
-                      const k = (file && ((file as any).__key || file.name))
-                      if (k) removeFileByKey(String(k))
-                      else onRemoveFile()
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </AntCard>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

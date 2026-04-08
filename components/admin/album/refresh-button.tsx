@@ -12,7 +12,7 @@ export default function RefreshButton(props: Readonly<HandleProps>) {
   return (
     <Button
       variant="outline"
-      className="cursor-pointer bg-white text-gray-900 border-gray-200 hover:bg-gray-100"
+      className="cursor-pointer bg-white text-slate-900 border-slate-200 hover:bg-slate-100 rounded-lg transition-all duration-200"
       disabled={isLoading}
       aria-label="刷新"
       onClick={async () => {

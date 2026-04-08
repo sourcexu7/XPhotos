@@ -87,4 +87,25 @@ app.put('/update-sort', async (c) => {
   }
 })
 
+app.get('/get-by-value/:albumValue', async (c) => {
+  try {
+    const { albumValue } = c.req.param()
+    
+    if (!albumValue) {
+      throw new HTTPException(400, { message: 'albumValue is required' })
+    }
+
+    const album = await import('~/lib/db/query/albums').then(m => m.fetchAlbumByRouter(albumValue))
+    
+    if (!album) {
+      throw new HTTPException(404, { message: 'Album not found' })
+    }
+
+    return c.json({ code: 200, data: album })
+  } catch (e) {
+    if (e instanceof HTTPException) throw e
+    throw new HTTPException(500, { message: 'Failed to fetch album', cause: e })
+  }
+})
+
 export default app

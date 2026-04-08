@@ -388,22 +388,19 @@ export async function updateImagesSort(
 ) {
   if (!Array.isArray(orders) || orders.length === 0) return
 
-  // 优化：使用事务批量更新，避免每个更新都是独立操作
-  await db.$transaction(async (tx) => {
-    // 优化：使用原生 for 循环，大数据量场景性能更优
-    for (let i = 0; i < orders.length; i++) {
-      await tx.images.update({
-        where: { id: orders[i].id },
-        data: {
-          sort: orders[i].sort,
-          updatedAt: new Date(),
-        },
-      })
-    }
-  }, {
-    maxWait: 10000,
-    timeout: 30000,
-  })
+  // 优化：使用原生 SQL 批量更新，减少数据库交互次数
+  const now = new Date()
+  await db.$executeRaw`
+    UPDATE "public"."images"
+    SET "sort" = data.sort, "updatedAt" = ${now}
+    FROM (
+      VALUES ${Prisma.join(
+        orders.map((order) => Prisma.sql`(${order.id}, ${order.sort})`),
+        Prisma.sql`, `
+      )}
+    ) AS data(id, sort)
+    WHERE "public"."images"."id" = data.id
+  `
 }
 
 /**
@@ -430,4 +427,177 @@ export async function updateImageAlbum(imageId: string, albumId: string) {
       },
     })
   })
+}
+
+/**
+ * 更新相册内图片排序（相册级别独立排序）
+ * @param albumValue 相册标识（album_value）
+ * @param orders 包含图片 ID 和对应排序权重的数组
+ */
+export async function updateImagesAlbumSort(
+  albumValue: string,
+  orders: { imageId: string; sort: number }[]
+) {
+  if (!Array.isArray(orders) || orders.length === 0) return
+
+  // 优化：使用原生 SQL 批量更新，减少数据库交互次数
+  await db.$executeRaw`
+    UPDATE "public"."images_albums_relation"
+    SET "sort" = data.sort
+    FROM (
+      VALUES ${Prisma.join(
+        orders.map((order) => Prisma.sql`(${order.imageId}, ${albumValue}, ${order.sort})`),
+        Prisma.sql`, `
+      )}
+    ) AS data("imageId", "album_value", sort)
+    WHERE "public"."images_albums_relation"."imageId" = data."imageId"
+    AND "public"."images_albums_relation"."album_value" = data."album_value"
+  `
+}
+
+/**
+ * 批量排序操作类型
+ */
+type BatchSortOperation = 'moveToTop' | 'moveToBottom' | 'moveToPosition'
+
+/**
+ * 批量更新相册内图片排序
+ * @param albumValue 相册标识
+ * @param operation 操作类型
+ * @param imageIds 要操作的图片ID列表
+ * @param targetPosition 目标位置（仅 moveToPosition 时需要）
+ */
+export async function batchUpdateImagesAlbumSort(
+  albumValue: string,
+  operation: BatchSortOperation,
+  imageIds: string[],
+  targetPosition?: number
+) {
+  const allRelations = await db.imagesAlbumsRelation.findMany({
+    where: { album_value: albumValue },
+    orderBy: { sort: 'asc' },
+    select: { imageId: true, sort: true },
+  })
+
+  const imageIdSet = new Set(imageIds)
+  const targetImages: { imageId: string; sort: number }[] = []
+  const otherImages: { imageId: string; sort: number }[] = []
+
+  for (const rel of allRelations) {
+    if (imageIdSet.has(rel.imageId)) {
+      targetImages.push(rel)
+    } else {
+      otherImages.push(rel)
+    }
+  }
+
+  let newOrder: { imageId: string; sort: number }[] = []
+
+  switch (operation) {
+    case 'moveToTop':
+      newOrder = [...targetImages, ...otherImages]
+      break
+    case 'moveToBottom':
+      newOrder = [...otherImages, ...targetImages]
+      break
+    case 'moveToPosition':
+      const pos = Math.max(0, Math.min(targetPosition ?? 0, otherImages.length))
+      newOrder = [
+        ...otherImages.slice(0, pos),
+        ...targetImages,
+        ...otherImages.slice(pos),
+      ]
+      break
+  }
+
+  const orders = newOrder.map((item, index) => ({
+    imageId: item.imageId,
+    sort: index,
+  }))
+
+  await updateImagesAlbumSort(albumValue, orders)
+}
+
+/**
+ * 获取相册内所有图片（用于排序管理）
+ * @param albumValue 相册标识
+ */
+export async function fetchAllImagesByAlbum(albumValue: string) {
+  const result = await db.$queryRaw<Array<{
+    id: string
+    image_name: string | null
+    url: string | null
+    preview_url: string | null
+    width: number
+    height: number
+    sort: number
+    show: number
+    featured: number
+    blurhash: string | null
+    created_at: Date
+  }>>`
+    SELECT 
+      image.id,
+      image.image_name,
+      image.url,
+      image.preview_url,
+      image.width,
+      image.height,
+      relation.sort,
+      image.show,
+      image.featured,
+      image.blurhash,
+      image.created_at
+    FROM "public"."images" AS image
+    INNER JOIN "public"."images_albums_relation" AS relation
+      ON image.id = relation."imageId"
+    WHERE 
+      image.del = 0
+      AND relation.album_value = ${albumValue}
+    ORDER BY relation.sort ASC, image.created_at DESC
+  `
+
+  return result
+}
+
+/**
+ * 获取相册内图片总数
+ * @param albumValue 相册标识
+ */
+export async function fetchImageCountByAlbum(albumValue: string): Promise<number> {
+  const result = await db.imagesAlbumsRelation.count({
+    where: {
+      album_value: albumValue,
+      images: {
+        del: 0,
+      },
+    },
+  })
+  return result
+}
+
+/**
+ * 重置相册内图片排序（按创建时间降序）
+ * @param albumValue 相册标识
+ */
+export async function resetAlbumImagesSort(albumValue: string) {
+  const images = await db.$queryRaw<Array<{ imageId: string; created_at: Date }>>`
+    SELECT 
+      relation."imageId" as "imageId",
+      image.created_at
+    FROM "public"."images_albums_relation" AS relation
+    INNER JOIN "public"."images" AS image
+      ON relation."imageId" = image.id
+    WHERE 
+      relation.album_value = ${albumValue}
+      AND image.del = 0
+    ORDER BY image.created_at DESC
+  `
+
+  const orders = images.map((img, index) => ({
+    imageId: img.imageId,
+    sort: index,
+  }))
+
+  await updateImagesAlbumSort(albumValue, orders)
 }

@@ -76,7 +76,7 @@ export default function ImageBatchDeleteSheet(props : Readonly<ImageServerHandle
       <div>
         <div className="text-center text-gray-500 mt-2">
           {t('List.batchDeleteDescriptionPrefix')}
-          <span className="font-bold text-[#E53E3E]">{selectedIds?.length || 0}</span>
+          <span className="font-bold text-[var(--admin-error)]">{selectedIds?.length || 0}</span>
           {t('List.batchDeleteDescriptionSuffix')}
         </div>
         

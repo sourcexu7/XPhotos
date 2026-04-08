@@ -13,6 +13,7 @@ import {
 } from 'recharts'
 import type { VisitSummary } from '~/lib/db/query/analytics'
 import { useTranslations } from 'next-intl'
+import { DownloadIcon } from '~/components/icons/download'
 
 interface AdminAnalyticsClientProps {
   initialData: VisitSummary
@@ -47,6 +48,42 @@ export function AdminAnalyticsClient({ initialData }: AdminAnalyticsClientProps)
     return () => clearInterval(interval)
   }, [])
 
+  // Export data as CSV
+  const exportData = () => {
+    const csvContent = [
+      ['Date', 'Visits'],
+      ...data.last7Days.map(item => [item.date, item.count]),
+      ['', ''],
+      ['Hour', 'Visits'],
+      ...data.todayByHour.map(item => [`${item.hour}:00`, item.count]),
+      ['', ''],
+      ['Page', 'Visits'],
+      ['Home', data.pages.home],
+      ['Gallery', data.pages.gallery],
+      ['Album Detail', data.pages.album],
+      ['Admin', data.pages.admin],
+      ['Other', data.pages.other],
+      ['', ''],
+      ['Source', 'Visits'],
+      ['Direct', data.sources.direct],
+      ['Referer', data.sources.referer],
+      ['Search', data.sources.search],
+      ['Other', data.sources.other],
+    ].map(row => row.join(',')).join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `analytics-${new Date().toISOString().split('T')[0]}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+  }
+
   const trendData = data.last7Days.map((item) => {
     // 将 "YYYY-MM-DD" 转换为 "MM/DD" 格式
     const [year, month, day] = item.date.split('-')
@@ -64,169 +101,216 @@ export function AdminAnalyticsClient({ initialData }: AdminAnalyticsClientProps)
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-semibold">{t('title')}</h1>
-          <p className="text-xs text-gray-500">
+          <h1 className="text-xl font-semibold text-text-primary">{t('title')}</h1>
+          <p className="text-sm text-text-secondary">
             {t('subtitle')}
           </p>
         </div>
-        <Button
-          type="default"
-          size="small"
-          loading={loading}
-          onClick={fetchData}
-          className="rounded-full transition-transform hover:scale-[1.02]"
-        >
-          {t('refresh')}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            type="default"
+            size="middle"
+            onClick={exportData}
+            className="rounded-lg border border-border bg-background hover:bg-background/80 text-text-secondary transition-all duration-200 flex items-center gap-2"
+          >
+            <DownloadIcon size={16} />
+            {t('export')}
+          </Button>
+          <Button
+            type="primary"
+            size="middle"
+            loading={loading}
+            onClick={fetchData}
+            className="rounded-lg bg-primary hover:bg-primary/90 text-white transition-all duration-200"
+          >
+            {t('refresh')}
+          </Button>
+        </div>
       </div>
 
       {!hasChartData && (
-        <Card size="small" styles={{ body: { padding: 16 } }}>
-          <Empty description={t('empty')} />
-        </Card>
-      )}
-
-      {/* Today's Visits Chart */}
-      <Card size="small" styles={{ body: { padding: 16 } }} title={t('todayHourly')}>
-        {loading && <Skeleton active paragraph={{ rows: 4 }} />}
-        {!loading && (
-          <div style={{ width: '100%', height: 220 }}>
-            <ResponsiveContainer>
-              <LineChart data={todayData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={token.colorBorderSecondary} />
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke={token.colorPrimary}
-                  name={t('visits')}
-                  dot={{ r: 3 }}
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+        <div className="rounded-lg border border-border bg-background p-8 flex flex-col items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <div className="w-8 h-8 text-primary">📊</div>
           </div>
-        )}
-      </Card>
+          <h3 className="text-lg font-semibold text-text-primary mb-2">{t('empty')}</h3>
+          <p className="text-text-secondary text-sm text-center">
+            {t('emptyDescription')}
+          </p>
+        </div>
+      )}
 
       {/* Key Metrics */}
       <Row gutter={[16, 16]}>
         <Col xs={12} md={6}>
-          <Card size="small" className="text-center">
+          <div className="rounded-lg border border-border bg-background p-4">
             <Statistic
               title={t('todayVisits')}
               value={data.todayVisits}
-              styles={{ content: { fontSize: '24px', fontWeight: 'bold' } }}
+              styles={{ 
+                title: { color: 'var(--text-secondary)', fontSize: '14px' },
+                content: { fontSize: '28px', fontWeight: 'bold', color: 'var(--text-primary)' }
+              }}
             />
-          </Card>
+          </div>
         </Col>
         <Col xs={12} md={6}>
-          <Card size="small" className="text-center">
+          <div className="rounded-lg border border-border bg-background p-4">
             <Statistic
               title={t('yesterdayVisits')}
               value={data.yesterdayVisits}
-              styles={{ content: { fontSize: '24px', fontWeight: 'bold' } }}
+              styles={{ 
+                title: { color: 'var(--text-secondary)', fontSize: '14px' },
+                content: { fontSize: '28px', fontWeight: 'bold', color: 'var(--text-primary)' }
+              }}
             />
-          </Card>
+          </div>
         </Col>
         <Col xs={12} md={6}>
-          <Card size="small" className="text-center">
+          <div className="rounded-lg border border-border bg-background p-4">
             <Statistic
               title={t('last7DaysTotal')}
               value={data.totalVisits}
-              styles={{ content: { fontSize: '24px', fontWeight: 'bold' } }}
+              styles={{ 
+                title: { color: 'var(--text-secondary)', fontSize: '14px' },
+                content: { fontSize: '28px', fontWeight: 'bold', color: 'var(--text-primary)' }
+              }}
             />
-          </Card>
+          </div>
         </Col>
         <Col xs={12} md={6}>
-          <Card size="small" className="text-center">
+          <div className="rounded-lg border border-border bg-background p-4">
             <Statistic
               title={t('uniqueIpCount')}
               value={data.uniqueIpCount}
-              styles={{ content: { fontSize: '24px', fontWeight: 'bold' } }}
+              styles={{ 
+                title: { color: 'var(--text-secondary)', fontSize: '14px' },
+                content: { fontSize: '28px', fontWeight: 'bold', color: 'var(--text-primary)' }
+              }}
             />
-          </Card>
+          </div>
         </Col>
       </Row>
 
-      {/* Last 7 Days Chart */}
-      <Card size="small" styles={{ body: { padding: 16 } }} title={t('last7DaysTrend')}>
+      {/* Today's Visits Chart */}
+      <div className="rounded-lg border border-border bg-background p-6">
+        <h3 className="text-lg font-semibold text-text-primary mb-4">{t('todayHourly')}</h3>
         {loading && <Skeleton active paragraph={{ rows: 4 }} />}
         {!loading && (
-          <div style={{ width: '100%', height: 220 }}>
+          <div style={{ width: '100%', height: 300 }}>
             <ResponsiveContainer>
-              <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={token.colorBorderSecondary} />
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
+              <LineChart data={todayData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)' }} />
+                <YAxis allowDecimals={false} tick={{ fill: 'var(--text-secondary)' }} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'var(--background-alt)', 
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px'
+                  }} 
+                />
                 <Line
                   type="monotone"
                   dataKey="value"
-                  stroke={token.colorPrimary}
+                  stroke="var(--primary)"
                   name={t('visits')}
-                  dot={{ r: 3 }}
-                  strokeWidth={2}
+                  dot={{ r: 4, fill: 'var(--primary)', strokeWidth: 2, stroke: 'var(--background-alt)' }}
+                  activeDot={{ r: 6, fill: 'var(--primary)', strokeWidth: 2, stroke: 'var(--background-alt)' }}
+                  strokeWidth={3}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
         )}
-      </Card>
+      </div>
+
+      {/* Last 7 Days Chart */}
+      <div className="rounded-lg border border-border bg-background p-6">
+        <h3 className="text-lg font-semibold text-text-primary mb-4">{t('last7DaysTrend')}</h3>
+        {loading && <Skeleton active paragraph={{ rows: 4 }} />}
+        {!loading && (
+          <div style={{ width: '100%', height: 300 }}>
+            <ResponsiveContainer>
+              <LineChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)' }} />
+                <YAxis allowDecimals={false} tick={{ fill: 'var(--text-secondary)' }} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'var(--background-alt)', 
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px'
+                  }} 
+                />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="var(--primary)"
+                  name={t('visits')}
+                  dot={{ r: 4, fill: 'var(--primary)', strokeWidth: 2, stroke: 'var(--background-alt)' }}
+                  activeDot={{ r: 6, fill: 'var(--primary)', strokeWidth: 2, stroke: 'var(--background-alt)' }}
+                  strokeWidth={3}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
 
       {/* Page and Source Distribution */}
       <Row gutter={[16, 16]}>
         <Col xs={24} md={12}>
-          <Card size="small" title={t('pageDistribution')}>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>{t('home')}</span>
-                <span className="font-medium">{data.pages.home}</span>
+          <div className="rounded-lg border border-border bg-background p-6">
+            <h3 className="text-lg font-semibold text-text-primary mb-4">{t('pageDistribution')}</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
+                <span className="text-text-secondary">{t('home')}</span>
+                <span className="font-semibold text-text-primary">{data.pages.home}</span>
               </div>
-              <div className="flex justify-between">
-                <span>{t('gallery')}</span>
-                <span className="font-medium">{data.pages.gallery}</span>
+              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
+                <span className="text-text-secondary">{t('gallery')}</span>
+                <span className="font-semibold text-text-primary">{data.pages.gallery}</span>
               </div>
-              <div className="flex justify-between">
-                <span>{t('albumDetail')}</span>
-                <span className="font-medium">{data.pages.album}</span>
+              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
+                <span className="text-text-secondary">{t('albumDetail')}</span>
+                <span className="font-semibold text-text-primary">{data.pages.album}</span>
               </div>
-              <div className="flex justify-between">
-                <span>{t('admin')}</span>
-                <span className="font-medium">{data.pages.admin}</span>
+              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
+                <span className="text-text-secondary">{t('admin')}</span>
+                <span className="font-semibold text-text-primary">{data.pages.admin}</span>
               </div>
-              <div className="flex justify-between">
-                <span>{t('other')}</span>
-                <span className="font-medium">{data.pages.other}</span>
+              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
+                <span className="text-text-secondary">{t('other')}</span>
+                <span className="font-semibold text-text-primary">{data.pages.other}</span>
               </div>
             </div>
-          </Card>
+          </div>
         </Col>
         <Col xs={24} md={12}>
-          <Card size="small" title={t('sourceDistribution')}>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>{t('direct')}</span>
-                <span className="font-medium">{data.sources.direct}</span>
+          <div className="rounded-lg border border-border bg-background p-6">
+            <h3 className="text-lg font-semibold text-text-primary mb-4">{t('sourceDistribution')}</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
+                <span className="text-text-secondary">{t('direct')}</span>
+                <span className="font-semibold text-text-primary">{data.sources.direct}</span>
               </div>
-              <div className="flex justify-between">
-                <span>{t('referer')}</span>
-                <span className="font-medium">{data.sources.referer}</span>
+              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
+                <span className="text-text-secondary">{t('referer')}</span>
+                <span className="font-semibold text-text-primary">{data.sources.referer}</span>
               </div>
-              <div className="flex justify-between">
-                <span>{t('search')}</span>
-                <span className="font-medium">{data.sources.search}</span>
+              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
+                <span className="text-text-secondary">{t('search')}</span>
+                <span className="font-semibold text-text-primary">{data.sources.search}</span>
               </div>
-              <div className="flex justify-between">
-                <span>{t('other')}</span>
-                <span className="font-medium">{data.sources.other}</span>
+              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
+                <span className="text-text-secondary">{t('other')}</span>
+                <span className="font-semibold text-text-primary">{data.sources.other}</span>
               </div>
             </div>
-          </Card>
+          </div>
         </Col>
       </Row>
     </div>
@@ -250,7 +334,7 @@ export default function AntdChart({
           <XAxis dataKey="name" />
           <YAxis />
           <Tooltip />
-          <Line type="monotone" dataKey={dataKey} stroke="#1890ff" name={name} />
+          <Line type="monotone" dataKey={dataKey} stroke="var(--primary)" name={name} />
         </LineChart>
       </ResponsiveContainer>
     </Card>

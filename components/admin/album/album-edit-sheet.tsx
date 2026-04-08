@@ -59,101 +59,91 @@ export default function AlbumEditSheet(props : Readonly<HandleProps>) {
     }
   }
 
+  const InputField = ({ label, id, value, onChange, type = 'text', placeholder = '' }: any) => (
+    <label
+      htmlFor={id}
+      className="block overflow-hidden rounded-lg border border-border px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 bg-card transition-all duration-200"
+    >
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <input
+        type={type}
+        id={id}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 text-sm text-foreground font-normal placeholder:text-muted-foreground"
+      />
+    </label>
+  )
+
   return (
     <Drawer
       title={t('Album.editAlbum')}
       placement="left"
-      size={400}
+      size={{ xs: '100%', sm: 420 }}
       open={albumEdit}
       onClose={() => setAlbumEdit(false)}
       mask={false}
       styles={{
-        header: { padding: '16px 24px', background: '#f9fafb' },
+        header: { padding: '16px 24px', background: 'var(--card)' },
         body: { padding: '24px' },
       }}
     >
-      <div className="space-y-4 text-sm">
-        <label
-          htmlFor="name"
-          className="block overflow-hidden rounded-md border border-gray-100 px-3 py-2 shadow-sm focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400"
-        >
-          <span className="text-xs font-medium text-gray-700">{t('Album.name')}</span>
-          <input
-            type="text"
-            id="name"
-            value={data?.name || ''}
-            placeholder={t('Album.inputName')}
-            onChange={(e) => setData({...data, name: e.target.value})}
-            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-          />
-        </label>
-        <label
-          htmlFor="album_value"
-          className="block overflow-hidden rounded-md border border-gray-100 px-3 py-2 shadow-sm focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400"
-        >
-          <span className="text-xs font-medium text-gray-700">{t('Album.router')}</span>
-          <input
-            type="text"
-            id="album_value"
-            value={data?.album_value || ''}
-            placeholder={t('Album.inputRouter')}
-            onChange={(e) => setData({...data, album_value: e.target.value})}
-            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-          />
-        </label>
-        <label
-          htmlFor="detail"
-          className="block overflow-hidden rounded-md border border-gray-100 px-3 py-2 shadow-sm focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400"
-        >
-          <span className="text-xs font-medium text-gray-700">{t('Album.detail')}</span>
-          <input
-            type="text"
-            id="detail"
-            value={data?.detail || ''}
-            placeholder={t('Album.inputDetail')}
-            onChange={(e) => setData({...data, detail: e.target.value})}
-            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-          />
-        </label>
-        <label
-          htmlFor="sort"
-          className="block overflow-hidden rounded-md border border-gray-100 px-3 py-2 shadow-sm focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400"
-        >
-          <span className="text-xs font-medium text-gray-700">{t('Album.sort')}</span>
-          <input
-            type="number"
-            id="sort"
-            value={data?.sort}
-            placeholder="0"
-            onChange={(e) => setData({...data, sort: Number(e.target.value)})}
-            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-          />
-        </label>
-        <label
-          htmlFor="license"
-          className="block overflow-hidden rounded-md border border-gray-100 px-3 py-2 shadow-sm focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400"
-        >
-          <span className="text-xs font-medium text-gray-700">{t('Album.license')}</span>
-          <input
-            type="text"
-            id="license"
-            value={data?.license || ''}
-            placeholder={t('Album.licensePlaceholder')}
-            onChange={(e) => setData({...data, license: e.target.value})}
-            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
-          />
-        </label>
+      <div className="space-y-5">
+        <InputField 
+          label={t('Album.name')} 
+          id="name" 
+          value={data?.name || ''} 
+          onChange={(e) => setData({...data, name: e.target.value})} 
+          placeholder={t('Album.inputName')} 
+        />
+        <InputField 
+          label={t('Album.router')} 
+          id="album_value" 
+          value={data?.album_value || ''} 
+          onChange={(e) => setData({...data, album_value: e.target.value})} 
+          placeholder={t('Album.inputRouter')} 
+        />
+        <InputField 
+          label={t('Album.detail')} 
+          id="detail" 
+          value={data?.detail || ''} 
+          onChange={(e) => setData({...data, detail: e.target.value})} 
+          placeholder={t('Album.inputDetail')} 
+        />
+        <InputField 
+          label={t('Album.sort')} 
+          id="sort" 
+          type="number" 
+          value={data?.sort} 
+          onChange={(e) => setData({...data, sort: Number(e.target.value)})} 
+          placeholder="0" 
+        />
+        <InputField 
+          label={t('Album.license')} 
+          id="license" 
+          value={data?.license || ''} 
+          onChange={(e) => setData({...data, license: e.target.value})} 
+          placeholder={t('Album.licensePlaceholder')} 
+        />
 
         {data.cover && (
-          <div className="mb-4">
-            <span className="text-xs font-medium text-gray-700 block mb-2">封面预览</span>
-            <div className="relative w-full aspect-video rounded-md overflow-hidden border border-gray-200 group">
-              <img src={data.cover} alt={data.title ? `${data.title} 封面` : '封面预览'} className="w-full h-full object-cover" decoding="async" draggable={false} />
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="mb-5">
+            <span className="text-xs font-medium text-muted-foreground block mb-2">封面预览</span>
+            <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-border group transition-all duration-200 hover:shadow-sm">
+              <img 
+                src={data.cover} 
+                alt={data.title ? `${data.title} 封面` : '封面预览'} 
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                decoding="async" 
+                draggable={false} 
+              />
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <Button 
                   danger 
                   size="small"
                   onClick={() => setData({...data, cover: null})}
+                  className="bg-destructive hover:bg-destructive/90 border-none transition-all duration-200"
                 >
                   清除封面
                 </Button>
@@ -162,44 +152,59 @@ export default function AlbumEditSheet(props : Readonly<HandleProps>) {
           </div>
         )}
 
-        <div className="w-full space-y-1">
-          <Label htmlFor="indexStyleSelect"> {t('Preferences.indexThemeSelect')} </Label>
+        <div className="w-full space-y-2">
+          <Label htmlFor="indexStyleSelect" className="text-sm font-medium text-foreground"> 
+            {t('Preferences.indexThemeSelect')} 
+          </Label>
           <Select
             value={data?.theme || '0'}
             onChange={(value) => setData({...data, theme: value})}
-            className="w-full"
+            className="w-full border-border rounded-lg"
             options={[
               { label: t('Theme.indexDefaultStyle'), value: '0' },
               { label: t('Theme.indexSimpleStyle'), value: '1' }
             ]}
           />
         </div>
-        <div className="flex flex-row items-center justify-between rounded-lg border border-gray-200 p-3 shadow-sm">
-          <div className="flex flex-col gap-1">
-            <div className="text-sm font-medium">{t('Album.showStatus')}</div>
-            <div className="text-xs text-gray-500">
-              {t('Album.showStatusDesc')}
+
+        <div className="p-4 border border-border rounded-lg bg-muted/50 transition-all duration-200">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <div className="text-sm font-medium text-foreground">{t('Album.showStatus')}</div>
+              <div className="text-xs text-muted-foreground">
+                {t('Album.showStatusDesc')}
+              </div>
             </div>
+            <Switch
+              checked={data?.show === 0}
+              onChange={(checked) => setData({ ...data, show: checked ? 0 : 1 })}
+              checkedChildren="显示"
+              unCheckedChildren="隐藏"
+              className="data-[state=checked]:bg-primary"
+            />
           </div>
-          <Switch
-            checked={data?.show === 0}
-            onChange={(checked) => setData({ ...data, show: checked ? 0 : 1 })}
-          />
         </div>
-        <div className="flex flex-row items-center justify-between rounded-lg border border-gray-200 p-3 shadow-sm">
-          <div className="flex flex-col gap-1">
-            <div className="text-sm font-medium">{t('Album.randomSort')}</div>
-            <div className="text-xs text-gray-500">
-              {t('Album.randomSortDesc')}
+
+        <div className="p-4 border border-border rounded-lg bg-muted/50 transition-all duration-200">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <div className="text-sm font-medium text-foreground">{t('Album.randomSort')}</div>
+              <div className="text-xs text-muted-foreground">
+                {t('Album.randomSortDesc')}
+              </div>
             </div>
+            <Switch
+              checked={data?.random_show === 0}
+              onChange={(checked) => setData({ ...data, random_show: checked ? 0 : 1 })}
+              checkedChildren="开启"
+              unCheckedChildren="关闭"
+              className="data-[state=checked]:bg-primary"
+            />
           </div>
-          <Switch
-            checked={data?.random_show === 0}
-            onChange={(checked) => setData({ ...data, random_show: checked ? 0 : 1 })}
-          />
         </div>
-        <div className="flex flex-col gap-1 rounded-lg border border-gray-200 p-3 shadow-sm">
-          <div className="text-sm font-medium">{t('Album.imageSortRule')}</div>
+
+        <div className="p-4 border border-border rounded-lg bg-card transition-all duration-200">
+          <div className="text-sm font-medium text-foreground mb-3">{t('Album.imageSortRule')}</div>
           <Select
             value={typeof data.image_sorting === 'number' ? data.image_sorting.toString() : '1'}
             onChange={(value) => {
@@ -208,7 +213,7 @@ export default function AlbumEditSheet(props : Readonly<HandleProps>) {
                 image_sorting: parseInt(value),
               })
             }}
-            className="w-full mt-2"
+            className="w-full border-border rounded-lg"
             placeholder={t('Album.selectSortRule')}
             options={[
               { label: t('Album.uploadTimeNewToOld'), value: '1' },
@@ -218,9 +223,10 @@ export default function AlbumEditSheet(props : Readonly<HandleProps>) {
             ]}
           />
         </div>
+
         <Button
           type="primary"
-          className="w-full mt-4 bg-blue-600 text-white hover:bg-blue-700 border-transparent h-10"
+          className="w-full mt-6 bg-primary hover:bg-primary/90 text-primary-foreground border-none h-10 rounded-lg transition-all duration-200 transform hover:scale-[1.01]"
           disabled={loading}
           onClick={() => submit()}
           aria-label={t('Album.submit')}

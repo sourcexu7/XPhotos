@@ -52,7 +52,7 @@ export default function AlistEditSheet() {
       }}
       mask={false}
       styles={{
-        header: { padding: '16px 24px', background: '#f9fafb' },
+        header: { padding: '16px 24px', background: 'var(--admin-bg-secondary)' },
         body: { padding: '24px' },
       }}
     >

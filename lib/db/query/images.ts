@@ -20,9 +20,9 @@ enum AlbumImageSorting {
 const ALBUM_IMAGE_SORTING_ORDER: Record<number, string> = {
   [AlbumImageSorting.DEFAULT]: 'image.sort ASC, image.created_at DESC, image.updated_at DESC',
   [AlbumImageSorting.CREATED_DESC]: 'image.created_at DESC, image.updated_at DESC',
-  [AlbumImageSorting.SHOOT_TIME_DESC]: 'COALESCE(image.shoot_at, \'1970-01-01 00:00:00\') DESC, image.created_at DESC, image.updated_at DESC',
+  [AlbumImageSorting.SHOOT_TIME_DESC]: 'image.shoot_at DESC NULLS LAST, image.created_at DESC, image.updated_at DESC',
   [AlbumImageSorting.CREATED_ASC]: 'image.created_at ASC, image.updated_at ASC',
-  [AlbumImageSorting.SHOOT_TIME_ASC]: 'COALESCE(image.shoot_at, \'1970-01-01 00:00:00\') ASC, image.created_at ASC, image.updated_at ASC',
+  [AlbumImageSorting.SHOOT_TIME_ASC]: 'image.shoot_at ASC NULLS FIRST, image.created_at ASC, image.updated_at ASC',
 }
 
 /**
@@ -585,7 +585,7 @@ export async function fetchServerImagesPageTotalByAlbum(
 /**
  * 根据相册获取图片分页列表（客户端）
  */
-export async function fetchClientImagesListByAlbum(
+export const fetchClientImagesListByAlbum = cache(async (
   pageNum: number,
   album: string,
   cameras?: string[],
@@ -593,7 +593,7 @@ export async function fetchClientImagesListByAlbum(
   tags?: string[],
   tagsOperator: 'and' | 'or' = 'and',
   sortByShootTime?: 'desc' | 'asc'
-): Promise<ImageType[]> {
+): Promise<ImageType[]> => {
   if (pageNum < 1) {
     pageNum = 1
   }
@@ -655,10 +655,7 @@ export async function fetchClientImagesListByAlbum(
           ${lensFilter}
           ${tagsFilter}
       ORDER BY 
-        COALESCE(
-          image.shoot_at,
-          '1970-01-01 00:00:00'::timestamp
-        ) DESC,
+        image.shoot_at DESC NULLS LAST,
         image.created_at DESC,
         image.updated_at DESC
       LIMIT 16 OFFSET ${(pageNum - 1) * 16}
@@ -687,10 +684,7 @@ export async function fetchClientImagesListByAlbum(
           ${lensFilter}
           ${tagsFilter}
       ORDER BY 
-        COALESCE(
-          image.shoot_at,
-          '1970-01-01 00:00:00'::timestamp
-        ) ASC,
+        image.shoot_at ASC NULLS FIRST,
         image.created_at ASC,
         image.updated_at ASC
       LIMIT 16 OFFSET ${(pageNum - 1) * 16}
@@ -729,14 +723,37 @@ export async function fetchClientImagesListByAlbum(
       }
     })
 
-    let orderBy = Prisma.sql(['image.sort ASC, image.created_at DESC, image.updated_at DESC'])
-    if (albumData?.image_sorting && ALBUM_IMAGE_SORTING_ORDER[albumData.image_sorting]) {
-      orderBy = Prisma.sql([`image.sort ASC, ${ALBUM_IMAGE_SORTING_ORDER[albumData.image_sorting]}`])
+    const selectFieldsWithSort = `
+      image.id,
+      image.image_name,
+      image.url,
+      image.preview_url,
+      image.video_url,
+      image.blurhash,
+      image.width,
+      image.height,
+      image.title,
+      image.detail,
+      image.type,
+      image.show,
+      image.show_on_mainpage,
+      image.featured,
+      image.sort,
+      image.created_at,
+      image.updated_at,
+      image.labels,
+      image.exif,
+      relation.sort AS album_sort
+    `
+
+    let orderBy = Prisma.sql`relation.sort ASC, image.created_at DESC, image.updated_at DESC`
+    if (albumData?.image_sorting && albumData.image_sorting !== 0 && ALBUM_IMAGE_SORTING_ORDER[albumData.image_sorting]) {
+      orderBy = Prisma.sql([`relation.sort ASC, ${ALBUM_IMAGE_SORTING_ORDER[albumData.image_sorting]}`])
     }
 
     result = await db.$queryRaw`
       SELECT 
-          ${Prisma.raw(selectFields)},
+          ${Prisma.raw(selectFieldsWithSort)},
           albums.name AS album_name,
           albums.id AS album_value,
           albums.license AS album_license,
@@ -770,7 +787,7 @@ export async function fetchClientImagesListByAlbum(
   }
 
   return result
-}
+})
 
 /**
  * 根据相册获取图片分页总数（客户端）
@@ -1034,7 +1051,7 @@ export const fetchFeaturedImages = cache(async (): Promise<ImageType[]> => {
 /**
  * 获取所有相机和镜头型号列表
  */
-export async function fetchCameraAndLensList(): Promise<{ cameras: string[], lenses: string[] }> {
+export const fetchCameraAndLensList = cache(async (): Promise<{ cameras: string[], lenses: string[] }> => {
   const stats = await db.$queryRaw<Array<{ camera: string; lens: string }>>`
     SELECT DISTINCT
       COALESCE(exif->>'model', 'Unknown') as camera,
@@ -1056,4 +1073,4 @@ export async function fetchCameraAndLensList(): Promise<{ cameras: string[], len
     cameras: Array.from(cameraSet),
     lenses: Array.from(lensSet)
   }
-}
+})

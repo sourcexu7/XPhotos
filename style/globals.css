@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -6,8 +7,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Fira Code', monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -102,63 +103,102 @@
 }
 
 /* 优化：合并重复的 CSS 变量定义，减少代码冗余 */
-:root,
+:root {
+  --radius: 0.625rem;
+  /* Flat Design - Light Mode */
+  --background: #F8FAFC;    /* 浅灰 */
+  --foreground: #1E293B;  /* 深灰 */
+  
+  --card: #FFFFFF;
+  --card-foreground: #1E293B;
+  
+  --popover: #FFFFFF;
+  --popover-foreground: #1E293B;
+  
+  /* Professional Blue Primary */
+  --primary: #3B82F6;
+  --primary-foreground: #FFFFFF;
+  
+  /* Gray Secondary */
+  --secondary: #64748B;
+  --secondary-foreground: #FFFFFF;
+  
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  
+  --accent: #F1F5F9;
+  --accent-foreground: #1E293B;
+  
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #3B82F6;
+  
+  --chart-1: #3B82F6; /* Blue */
+  --chart-2: #10B981;  /* Green */
+  
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1E293B;
+  --sidebar-primary: #3B82F6;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F1F5F9;
+  --sidebar-accent-foreground: #1E293B;
+  --sidebar-border: #E2E8F0;
+  --sidebar-ring: #3B82F6;
+}
+
 .dark {
   --radius: 0.625rem;
-  /* Midnight Blue / Charcoal Gray Background */
-  --background: oklch(0.15 0.02 260); 
-  --foreground: oklch(0.985 0 0);
+  /* Flat Design - Dark Mode */
+  --background: #1E293B;
+  --foreground: #F8FAFC;
   
-  /* Card background slightly lighter */
-  --card: oklch(0.2 0.03 260);
-  --card-foreground: oklch(0.985 0 0);
+  --card: #334155;
+  --card-foreground: #F8FAFC;
   
-  --popover: oklch(0.2 0.03 260);
-  --popover-foreground: oklch(0.985 0 0);
+  --popover: #334155;
+  --popover-foreground: #F8FAFC;
   
-  /* Cyber Purple Primary */
-  --primary: oklch(0.6 0.25 300);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: #60A5FA;
+  --primary-foreground: #1E293B;
   
-  /* Sunset Orange Secondary */
-  --secondary: oklch(0.65 0.2 40);
-  --secondary-foreground: oklch(0.985 0 0);
+  --secondary: #94A3B8;
+  --secondary-foreground: #1E293B;
   
-  --muted: oklch(0.25 0.02 260);
-  --muted-foreground: oklch(0.7 0.02 260);
+  --muted: #334155;
+  --muted-foreground: #94A3B8;
   
-  --accent: oklch(0.25 0.02 260);
-  --accent-foreground: oklch(0.985 0 0);
+  --accent: #475569;
+  --accent-foreground: #F8FAFC;
   
-  --border: oklch(0.3 0.02 260);
-  --input: oklch(0.3 0.02 260);
-  --ring: oklch(0.6 0.25 300);
+  --border: #475569;
+  --input: #475569;
+  --ring: #60A5FA;
   
-  --chart-1: oklch(0.6 0.25 300); /* Cyber Purple */
-  --chart-2: oklch(0.65 0.2 40);  /* Sunset Orange */
+  --chart-1: #60A5FA; /* Blue */
+  --chart-2: #34D399;  /* Green */
   
-  --sidebar: oklch(0.15 0.02 260);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.6 0.25 300);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.25 0.02 260);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.3 0.02 260);
-  --sidebar-ring: oklch(0.6 0.25 300);
+  --sidebar: #334155;
+  --sidebar-foreground: #F8FAFC;
+  --sidebar-primary: #60A5FA;
+  --sidebar-primary-foreground: #1E293B;
+  --sidebar-accent: #475569;
+  --sidebar-accent-foreground: #F8FAFC;
+  --sidebar-border: #475569;
+  --sidebar-ring: #60A5FA;
 }
 
 :root {
-  --destructive: oklch(0.577 0.245 27.325);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --destructive: #EF4444; /* Red */
+  --chart-3: #F59E0B; /* Orange */
+  --chart-4: #10B981; /* Green */
+  --chart-5: #64748B; /* Gray */
 }
 
 .dark {
-  --destructive: oklch(0.704 0.191 22.216);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+  --destructive: #F87171; /* Light Red */
+  --chart-3: #FBBF24; /* Light Orange */
+  --chart-4: #34D399; /* Light Green */
+  --chart-5: #94A3B8; /* Light Gray */
 }
 
 /* Custom Scrollbar */

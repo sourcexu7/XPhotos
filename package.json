@@ -78,6 +78,7 @@
     "@remixicon/react": "^4.7.0",
     "@smithy/protocol-http": "^5.3.5",
     "antd": "^6.0.0",
+    "axios": "^1.14.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",

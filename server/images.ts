@@ -13,6 +13,11 @@ import {
   updateImageFeatured,
   updateImageAlbum,
   updateImagesSort,
+  updateImagesAlbumSort,
+  batchUpdateImagesAlbumSort,
+  fetchAllImagesByAlbum,
+  fetchImageCountByAlbum,
+  resetAlbumImagesSort,
 } from '~/lib/db/operate/images'
 
 import { db } from '~/lib/db'
@@ -315,6 +320,115 @@ app.put('/update-sort', async (c) => {
   } catch (e) {
     if (e instanceof HTTPException) throw e
     throw new HTTPException(500, { message: 'Failed to update image sort', cause: e })
+  }
+})
+
+app.put('/album-sort', async (c) => {
+  try {
+    const body = await c.req.json<{ albumValue?: string; orders?: unknown }>()
+    const { albumValue, orders } = body
+
+    if (!albumValue || typeof albumValue !== 'string') {
+      throw new HTTPException(400, { message: 'albumValue is required' })
+    }
+
+    if (
+      !Array.isArray(orders) ||
+      !orders.every(
+        (o) =>
+          o &&
+          typeof o === 'object' &&
+          typeof (o as any).imageId === 'string' &&
+          typeof (o as any).sort === 'number',
+      )
+    ) {
+      throw new HTTPException(400, { message: 'Invalid payload for album-sort' })
+    }
+
+    await updateImagesAlbumSort(albumValue, orders as { imageId: string; sort: number }[])
+    return c.json({ code: 200, message: 'Success' })
+  } catch (e) {
+    if (e instanceof HTTPException) throw e
+    throw new HTTPException(500, { message: 'Failed to update album image sort', cause: e })
+  }
+})
+
+app.put('/batch-album-sort', async (c) => {
+  try {
+    const body = await c.req.json<{
+      albumValue?: string
+      operation?: 'moveToTop' | 'moveToBottom' | 'moveToPosition'
+      imageIds?: string[]
+      targetPosition?: number
+    }>()
+
+    const { albumValue, operation, imageIds, targetPosition } = body
+
+    if (!albumValue || typeof albumValue !== 'string') {
+      throw new HTTPException(400, { message: 'albumValue is required' })
+    }
+
+    if (!operation || !['moveToTop', 'moveToBottom', 'moveToPosition'].includes(operation)) {
+      throw new HTTPException(400, { message: 'Invalid operation' })
+    }
+
+    if (!Array.isArray(imageIds) || imageIds.length === 0) {
+      throw new HTTPException(400, { message: 'imageIds is required and must be a non-empty array' })
+    }
+
+    await batchUpdateImagesAlbumSort(albumValue, operation, imageIds, targetPosition)
+    return c.json({ code: 200, message: 'Success' })
+  } catch (e) {
+    if (e instanceof HTTPException) throw e
+    throw new HTTPException(500, { message: 'Failed to batch update album image sort', cause: e })
+  }
+})
+
+app.get('/album-images/:albumValue', async (c) => {
+  try {
+    const { albumValue } = c.req.param()
+
+    if (!albumValue) {
+      throw new HTTPException(400, { message: 'albumValue is required' })
+    }
+
+    const images = await fetchAllImagesByAlbum(albumValue)
+    return c.json({ code: 200, data: images })
+  } catch (e) {
+    if (e instanceof HTTPException) throw e
+    throw new HTTPException(500, { message: 'Failed to fetch album images', cause: e })
+  }
+})
+
+app.get('/album-image-count/:albumValue', async (c) => {
+  try {
+    const { albumValue } = c.req.param()
+
+    if (!albumValue) {
+      throw new HTTPException(400, { message: 'albumValue is required' })
+    }
+
+    const count = await fetchImageCountByAlbum(albumValue)
+    return c.json({ code: 200, data: { count } })
+  } catch (e) {
+    if (e instanceof HTTPException) throw e
+    throw new HTTPException(500, { message: 'Failed to fetch album image count', cause: e })
+  }
+})
+
+app.post('/reset-album-sort/:albumValue', async (c) => {
+  try {
+    const { albumValue } = c.req.param()
+
+    if (!albumValue) {
+      throw new HTTPException(400, { message: 'albumValue is required' })
+    }
+
+    await resetAlbumImagesSort(albumValue)
+    return c.json({ code: 200, message: 'Success' })
+  } catch (e) {
+    if (e instanceof HTTPException) throw e
+    throw new HTTPException(500, { message: 'Failed to reset album image sort', cause: e })
   }
 })
 

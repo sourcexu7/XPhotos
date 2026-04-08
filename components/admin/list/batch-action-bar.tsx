@@ -26,12 +26,12 @@ export default function BatchActionBar({
   if (selectedCount === 0) return null
 
   return (
-    <div className="sticky top-0 z-20 bg-white text-gray-900 border border-gray-200 px-4 py-3 rounded-lg shadow-lg flex justify-between items-center animate-in slide-in-from-top-2 duration-300">
+    <div className="sticky top-0 z-20 bg-white text-slate-900 border border-slate-200 px-4 py-3 rounded-lg shadow-sm flex justify-between items-center animate-in slide-in-from-top-2 duration-300">
       <div className="flex items-center gap-3">
         <Checkbox
           checked={selectedCount < totalCount ? 'indeterminate' : true}
           onCheckedChange={(v) => onSelectAll(!!v)}
-          className="text-gray-900"
+          className="text-slate-900"
         />
         <span className="text-sm font-medium">
           {t('List.selectedPhotosCount', { count: selectedCount })}
@@ -41,7 +41,7 @@ export default function BatchActionBar({
         <Tooltip title={t('List.refreshListTooltip')}>
           <AntButton
             type="text"
-            className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 flex items-center gap-1"
+            className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1 rounded-lg"
             icon={<ReloadOutlined />}
             onClick={onRefresh}
           >
@@ -54,7 +54,7 @@ export default function BatchActionBar({
             danger
             icon={<DeleteOutlined />}
             onClick={onBatchDelete}
-            className="bg-white border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 shadow-sm"
+            className="bg-white border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-lg transition-all duration-200"
           >
             {t('Button.batchDelete')}
           </AntButton>

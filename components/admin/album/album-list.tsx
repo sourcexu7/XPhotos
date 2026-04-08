@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useSwrHydrated } from '~/hooks/use-swr-hydrated'
-import { ArrowDown10, ArrowUp, ArrowDown, Pin } from 'lucide-react'
+import { ArrowDown10, ArrowUp, ArrowDown, Pin, SortAsc } from 'lucide-react'
 import { toast } from 'sonner'
 import { Empty } from 'antd'
 import type { AlbumType } from '~/types'
@@ -153,179 +153,193 @@ export default function AlbumList(props : Readonly<HandleProps>) {
   }
 
   return (
-    <div className="flex w-full justify-center">
-      <div className="flex w-full max-w-[1440px] flex-col bg-white px-3 py-2 md:px-4 md:py-2">
-        {!isLoading && albums.length === 0 && (
-          <div className="py-12">
-            <Empty
-              description={<span>{t('Album.noAlbumsTitle')}</span>}
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            >
-              <div className="mt-3">
-                <AlbumAddButton />
+    <>
+      <div className="flex w-full justify-center">
+        <div className="flex w-full max-w-[1440px] flex-col bg-background-alt p-4 rounded-lg border border-border">
+          {!isLoading && albums.length === 0 && (
+            <div className="py-16 flex flex-col items-center justify-center">
+              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+                <div className="w-12 h-12 text-primary">
+                  📁
+                </div>
               </div>
-            </Empty>
-            <div className="mt-2 text-center text-xs text-gray-500">
-              {t('Album.noAlbumsDescription')}
+              <h3 className="text-lg font-semibold text-text-primary mb-2">{t('Album.noAlbumsTitle')}</h3>
+              <p className="text-text-secondary text-sm mb-6 text-center max-w-md">
+                {t('Album.noAlbumsDescription')}
+              </p>
+              <AlbumAddButton />
             </div>
-          </div>
-        )}
+          )}
 
-        {albums?.map((album, index) => {
-          const onlyOne = albums.length <= 1
-          const isFirst = index === 0
-          const isLast = index === albums.length - 1
-          const disableUp = isFirst || onlyOne || savingSort
-          const disableDown = isLast || onlyOne || savingSort
-          const disablePin = isFirst || onlyOne || savingSort
+          {albums?.map((album, index) => {
+            const onlyOne = albums.length <= 1
+            const isFirst = index === 0
+            const isLast = index === albums.length - 1
+            const disableUp = isFirst || onlyOne || savingSort
+            const disableDown = isLast || onlyOne || savingSort
+            const disablePin = isFirst || onlyOne || savingSort
 
-          return (
-            <div
-              key={album.id}
-              className={[
-                'flex items-center gap-3 py-3 transition-all duration-200 ease-in-out',
-                index !== albums.length - 1 ? 'border-b border-gray-100' : '',
-              ].join(' ')}
-            >
-              {/* 左侧：相册封面 */}
-              <div className="h-16 w-24 flex-shrink-0 overflow-hidden rounded bg-gray-100">
-                {album.cover ? (
-                  <img
-                    src={album.cover}
-                    alt={album.name || '相册封面'}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-gray-100 text-gray-400 text-xs">
-                    无封面
-                  </div>
-                )}
-              </div>
-
-              {/* 中间：相册名称和信息 */}
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-sm font-medium text-gray-900">
-                    {album.name}
-                  </span>
-                  <Badge
-                    variant="secondary"
-                    aria-label={t('Album.router')}
-                    className="bg-white text-gray-500 border-gray-200 hover:bg-gray-50 text-xs"
-                  >
-                    {album.album_value}
-                  </Badge>
-                </div>
-                <p className="line-clamp-1 text-xs text-gray-500">
-                  {album.detail || t('Album.noTips')}
-                </p>
-              </div>
-
-              {/* 右侧：操作按钮区域 */}
-              <div className="flex flex-shrink-0 items-center gap-2">
-                {/* 显示状态开关 */}
-                <Switch
-                  checked={album.show === 0}
-                  disabled={updateAlbumLoading && updateAlbumId === album.id}
-                  size="small"
-                  onChange={(checked: boolean) => {
-                    updateAlbumShow(album.id, checked ? 0 : 1)
-                  }}
-                />
-
-                {/* 排序按钮组：置顶、↑、↓ - 位置在相册框右侧，间距8px，按钮之间间距4px */}
-                <div className="flex items-center gap-1 ml-2">
-                  <button
-                    type="button"
-                    className="flex items-center justify-center rounded text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent transition-colors duration-150 border-0 bg-transparent p-1"
-                    disabled={disablePin}
-                    onClick={() => pinTop(index)}
-                    aria-label="置顶"
-                    title="置顶到列表最前面"
-                  >
-                    <Pin size={14} className="w-[12px] h-[12px] md:w-[14px] md:h-[14px]" strokeWidth={1.5} />
-                  </button>
-                  <button
-                    type="button"
-                    className="flex items-center justify-center rounded text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent transition-colors duration-150 border-0 bg-transparent p-1"
-                    disabled={disableUp}
-                    onClick={() => moveUp(index)}
-                    aria-label="上移"
-                    title="向上移动一位"
-                  >
-                    <ArrowUp size={14} className="w-[12px] h-[12px] md:w-[14px] md:h-[14px]" strokeWidth={1.5} />
-                  </button>
-                  <button
-                    type="button"
-                    className="flex items-center justify-center rounded text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent transition-colors duration-150 border-0 bg-transparent p-1"
-                    disabled={disableDown}
-                    onClick={() => moveDown(index)}
-                    aria-label="下移"
-                    title="向下移动一位"
-                  >
-                    <ArrowDown size={14} className="w-[12px] h-[12px] md:w-[14px] md:h-[14px]" strokeWidth={1.5} />
-                  </button>
-                </div>
-
-                {/* 编辑按钮 */}
-                <button
-                  className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 text-gray-600 transition-all duration-200 hover:bg-gray-200 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
-                  onClick={() => {
-                    setAlbumEditData(album)
-                    setAlbumEdit(true)
-                  }}
-                  title={t('Album.editAlbum')}
-                >
-                  <SquarePenIcon size={14} className="text-gray-600" />
-                </button>
-
-                {/* 删除按钮 */}
-                <Dialog onOpenChange={(value) => {
-                  if (!value) {
-                    setAlbum({} as AlbumType)
-                  }
-                }}>
-                  <DialogTrigger asChild>
-                    <button
-                      className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 text-gray-600 transition-all duration-200 hover:bg-gray-200 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
-                      onClick={() => {
-                        setAlbum(album)
-                      }}
-                      title={t('Album.deleteAlbum')}
-                    >
-                      <DeleteIcon size={14} className="text-gray-600" />
-                    </button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px] bg-white text-gray-900">
-                    <DialogHeader>
-                      <DialogTitle>{t('Tips.reallyDelete')}</DialogTitle>
-                    </DialogHeader>
-                    <div>
-                      <p>{t('Album.albumId')}：{album.id}</p>
-                      <p>{t('Album.albumName')}：{album.name}</p>
-                      <p>{t('Album.albumRouter')}：{album.album_value}</p>
+            return (
+              <div
+                key={album.id}
+                className={[
+                  'flex items-center gap-4 p-4 rounded-lg transition-all duration-200 ease-in-out',
+                  index !== albums.length - 1 ? 'mb-3' : '',
+                  'bg-background hover:bg-background/80 border border-border'
+                ].join(' ')}
+              >
+                {/* 左侧：相册封面 */}
+                <div className="h-20 w-32 flex-shrink-0 overflow-hidden rounded-lg bg-background">
+                  {album.cover ? (
+                    <img
+                      src={album.cover}
+                      alt={album.name || '相册封面'}
+                      className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center bg-background text-text-muted text-sm">
+                      无封面
                     </div>
-                    <DialogFooter>
-                      <Button
-                        danger
-                        className="cursor-pointer bg-white border border-red-200 hover:bg-red-50"
-                        disabled={deleteLoading}
-                        onClick={() => deleteAlbum()}
-                        aria-label={t('Button.yesDelete')}
+                  )}
+                </div>
+
+                {/* 中间：相册名称和信息 */}
+                <div className="flex min-w-0 flex-1 flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-base font-semibold text-text-primary">
+                      {album.name}
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      aria-label={t('Album.router')}
+                      className="bg-background text-text-secondary border-border hover:bg-background/80 text-xs px-2 py-0.5"
+                    >
+                      {album.album_value}
+                    </Badge>
+                  </div>
+                  <p className="line-clamp-1 text-sm text-text-secondary">
+                    {album.detail || t('Album.noTips')}
+                  </p>
+                </div>
+
+                {/* 右侧：操作按钮区域 */}
+                <div className="flex flex-shrink-0 items-center gap-3">
+                  {/* 显示状态开关 */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-text-secondary">{album.show === 0 ? t('Album.show') : t('Album.hide')}</span>
+                    <Switch
+                      checked={album.show === 0}
+                      disabled={updateAlbumLoading && updateAlbumId === album.id}
+                      size="small"
+                      onChange={(checked: boolean) => {
+                        updateAlbumShow(album.id, checked ? 0 : 1)
+                      }}
+                    />
+                  </div>
+
+                  {/* 排序按钮组：置顶、↑、↓ - 位置在相册框右侧，间距8px，按钮之间间距4px */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="flex items-center justify-center rounded-lg text-text-secondary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent transition-colors duration-150 border-0 bg-transparent p-2"
+                      disabled={disablePin}
+                      onClick={() => pinTop(index)}
+                      aria-label="置顶"
+                      title="置顶到列表最前面"
+                    >
+                      <Pin size={16} className="w-4 h-4" strokeWidth={1.5} />
+                    </button>
+                    <button
+                      type="button"
+                      className="flex items-center justify-center rounded-lg text-text-secondary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent transition-colors duration-150 border-0 bg-transparent p-2"
+                      disabled={disableUp}
+                      onClick={() => moveUp(index)}
+                      aria-label="上移"
+                      title="向上移动一位"
+                    >
+                      <ArrowUp size={16} className="w-4 h-4" strokeWidth={1.5} />
+                    </button>
+                    <button
+                      type="button"
+                      className="flex items-center justify-center rounded-lg text-text-secondary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent transition-colors duration-150 border-0 bg-transparent p-2"
+                      disabled={disableDown}
+                      onClick={() => moveDown(index)}
+                      aria-label="下移"
+                      title="向下移动一位"
+                    >
+                      <ArrowDown size={16} className="w-4 h-4" strokeWidth={1.5} />
+                    </button>
+                  </div>
+
+                  {/* 排序按钮 */}
+                <a
+                  href={`/admin/album/${encodeURIComponent(album.album_value)}/sort`}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-background text-text-secondary transition-all duration-200 hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                  title={t('Album.sortImages')}
+                >
+                  <SortAsc size={16} />
+                </a>
+
+                  {/* 编辑按钮 */}
+                  <button
+                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-background text-text-secondary transition-all duration-200 hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                    onClick={() => {
+                      setAlbumEditData(album)
+                      setAlbumEdit(true)
+                    }}
+                    title={t('Album.editAlbum')}
+                  >
+                    <SquarePenIcon size={16} />
+                  </button>
+
+                  {/* 删除按钮 */}
+                  <Dialog onOpenChange={(value) => {
+                    if (!value) {
+                      setAlbum({} as AlbumType)
+                    }
+                  }}>
+                    <DialogTrigger asChild>
+                      <button
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-background text-text-secondary transition-all duration-200 hover:bg-error/10 hover:text-error focus:outline-none focus:ring-2 focus:ring-error focus:ring-offset-2"
+                        onClick={() => {
+                          setAlbum(album)
+                        }}
+                        title={t('Album.deleteAlbum')}
                       >
-                        {deleteLoading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin"/>}
-                        {t('Button.delete')}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                        <DeleteIcon size={16} />
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px] bg-background-alt border-border">
+                      <DialogHeader>
+                        <DialogTitle className="text-text-primary">{t('Tips.reallyDelete')}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-2 text-text-secondary">
+                        <p>{t('Album.albumId')}：{album.id}</p>
+                        <p>{t('Album.albumName')}：{album.name}</p>
+                        <p>{t('Album.albumRouter')}：{album.album_value}</p>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          danger
+                          className="cursor-pointer bg-background border border-error hover:bg-error/10 text-error"
+                          disabled={deleteLoading}
+                          onClick={() => deleteAlbum()}
+                          aria-label={t('Button.yesDelete')}
+                        >
+                          {deleteLoading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin"/>}
+                          {t('Button.delete')}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
       </div>
     </div>
+    </>
   )
 }

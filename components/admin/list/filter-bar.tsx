@@ -162,24 +162,24 @@ export default function FilterBar({
 
       <Popover>
         <PopoverTrigger asChild>
-          <button className="h-9 px-3 border border-gray-200 rounded-md text-sm text-left w-full md:w-auto min-w-[100px] bg-white text-gray-950 hover:bg-gray-50 transition-colors">
+          <button className="h-9 px-3 border border-slate-200 rounded-lg text-sm text-left w-full md:w-auto min-w-[100px] bg-white text-slate-900 hover:bg-slate-50 transition-all duration-200">
             {filters.selectedTags.length > 0
               ? t('List.tagCount', { count: filters.selectedTags.length })
               : t('List.filterTags')}
           </button>
         </PopoverTrigger>
-        <PopoverContent className="p-3 w-64">
+        <PopoverContent className="p-3 w-64 border border-slate-200 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">{t('List.selectTags')}</span>
             <div className="flex gap-1">
               <button
-                className={`px-2 py-0.5 text-xs border rounded ${filters.labelsOperator === 'and' ? 'bg-primary text-white border-primary' : 'hover:bg-gray-50'}`}
+                className={`px-2 py-0.5 text-xs border rounded-lg ${filters.labelsOperator === 'and' ? 'bg-primary text-white border-primary' : 'border-slate-200 hover:bg-slate-50'}`}
                 onClick={() => onChange({ labelsOperator: 'and' })}
               >
                 {t('List.tagsOperatorAnd')}
               </button>
               <button
-                className={`px-2 py-0.5 text-xs border rounded ${filters.labelsOperator === 'or' ? 'bg-primary text-white border-primary' : 'hover:bg-gray-50'}`}
+                className={`px-2 py-0.5 text-xs border rounded-lg ${filters.labelsOperator === 'or' ? 'bg-primary text-white border-primary' : 'border-slate-200 hover:bg-slate-50'}`}
                 onClick={() => onChange({ labelsOperator: 'or' })}
               >
                 {t('List.tagsOperatorOr')}
@@ -188,7 +188,7 @@ export default function FilterBar({
           </div>
           <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto my-2">
             {tagsList.map(tag => (
-              <label key={tag} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+              <label key={tag} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded-lg">
                 <Checkbox
                   checked={filters.selectedTags.includes(tag)}
                   onCheckedChange={(v) => {
@@ -202,9 +202,9 @@ export default function FilterBar({
               </label>
             ))}
           </div>
-          <div className="flex justify-end pt-2 border-t">
+          <div className="flex justify-end pt-2 border-t border-slate-100">
             <button
-              className="text-xs text-gray-500 hover:text-primary"
+              className="text-xs text-slate-500 hover:text-primary transition-colors"
               onClick={() => onChange({ selectedTags: [] })}
             >
               {t('List.clearSelectedTags')}
@@ -217,7 +217,7 @@ export default function FilterBar({
         <Tooltip title={t('List.applyFiltersTooltip')}>
           <AntButton
             type="primary"
-            className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 border-none shadow-sm transition-all text-white"
+            className="flex-1 md:flex-none bg-primary hover:bg-primary/90 border-none transition-all text-white rounded-lg"
             onClick={onApply}
           >
             {t('Button.query')}
@@ -225,7 +225,7 @@ export default function FilterBar({
         </Tooltip>
         <Tooltip title={t('List.resetFiltersTooltip')}>
           <AntButton
-            className="flex-1 md:flex-none hover:text-blue-600 hover:border-blue-600 transition-all"
+            className="flex-1 md:flex-none border border-slate-200 hover:border-primary hover:text-primary transition-all rounded-lg"
             onClick={onReset}
           >
             {t('Button.reset')}
@@ -234,7 +234,7 @@ export default function FilterBar({
         <Tooltip title={layout === 'card' ? t('List.switchToListLayout') : t('List.switchToCardLayout')}>
           <AntButton
             type="text"
-            className="flex flex-1 items-center gap-1 text-gray-600 hover:bg-gray-50 hover:text-blue-600 md:flex-none"
+            className="flex flex-1 items-center gap-1 text-slate-600 hover:bg-slate-50 hover:text-primary md:flex-none rounded-lg"
             icon={layout === 'card' ? <Rows3 size={14} /> : <LayoutGrid size={14} />}
             onClick={() => setLayout(layout === 'card' ? 'list' : 'card')}
           >

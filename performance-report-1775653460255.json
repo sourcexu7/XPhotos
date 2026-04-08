@@ -1,0 +1,681 @@
+{
+  "start": "2026-04-08T13:04:12.769Z",
+  "end": "2026-04-08T13:04:20.255Z",
+  "totalRequests": 100,
+  "concurrentRequests": 10,
+  "endpoints": {
+    "图片列表查询": {
+      "total": 50,
+      "success": 50,
+      "failed": 0,
+      "totalTime": 333823,
+      "averageTime": 6676.46,
+      "maxTime": 7451,
+      "minTime": 6574,
+      "responses": [
+        {
+          "requestId": 14,
+          "status": 200,
+          "duration": 6574,
+          "timestamp": "2026-04-08T13:04:19.381Z"
+        },
+        {
+          "requestId": 2,
+          "status": 200,
+          "duration": 6581,
+          "timestamp": "2026-04-08T13:04:19.383Z"
+        },
+        {
+          "requestId": 16,
+          "status": 200,
+          "duration": 6582,
+          "timestamp": "2026-04-08T13:04:19.390Z"
+        },
+        {
+          "requestId": 17,
+          "status": 200,
+          "duration": 6586,
+          "timestamp": "2026-04-08T13:04:19.394Z"
+        },
+        {
+          "requestId": 15,
+          "status": 200,
+          "duration": 6594,
+          "timestamp": "2026-04-08T13:04:19.401Z"
+        },
+        {
+          "requestId": 20,
+          "status": 200,
+          "duration": 6599,
+          "timestamp": "2026-04-08T13:04:19.407Z"
+        },
+        {
+          "requestId": 11,
+          "status": 200,
+          "duration": 6605,
+          "timestamp": "2026-04-08T13:04:19.411Z"
+        },
+        {
+          "requestId": 18,
+          "status": 200,
+          "duration": 6605,
+          "timestamp": "2026-04-08T13:04:19.413Z"
+        },
+        {
+          "requestId": 8,
+          "status": 200,
+          "duration": 6614,
+          "timestamp": "2026-04-08T13:04:19.419Z"
+        },
+        {
+          "requestId": 5,
+          "status": 200,
+          "duration": 6617,
+          "timestamp": "2026-04-08T13:04:19.421Z"
+        },
+        {
+          "requestId": 12,
+          "status": 200,
+          "duration": 6616,
+          "timestamp": "2026-04-08T13:04:19.423Z"
+        },
+        {
+          "requestId": 24,
+          "status": 200,
+          "duration": 6614,
+          "timestamp": "2026-04-08T13:04:19.424Z"
+        },
+        {
+          "requestId": 9,
+          "status": 200,
+          "duration": 6619,
+          "timestamp": "2026-04-08T13:04:19.425Z"
+        },
+        {
+          "requestId": 4,
+          "status": 200,
+          "duration": 6630,
+          "timestamp": "2026-04-08T13:04:19.433Z"
+        },
+        {
+          "requestId": 22,
+          "status": 200,
+          "duration": 6624,
+          "timestamp": "2026-04-08T13:04:19.434Z"
+        },
+        {
+          "requestId": 23,
+          "status": 200,
+          "duration": 6626,
+          "timestamp": "2026-04-08T13:04:19.436Z"
+        },
+        {
+          "requestId": 21,
+          "status": 200,
+          "duration": 6629,
+          "timestamp": "2026-04-08T13:04:19.438Z"
+        },
+        {
+          "requestId": 13,
+          "status": 200,
+          "duration": 6633,
+          "timestamp": "2026-04-08T13:04:19.440Z"
+        },
+        {
+          "requestId": 26,
+          "status": 200,
+          "duration": 6630,
+          "timestamp": "2026-04-08T13:04:19.441Z"
+        },
+        {
+          "requestId": 19,
+          "status": 200,
+          "duration": 6635,
+          "timestamp": "2026-04-08T13:04:19.443Z"
+        },
+        {
+          "requestId": 10,
+          "status": 200,
+          "duration": 6638,
+          "timestamp": "2026-04-08T13:04:19.444Z"
+        },
+        {
+          "requestId": 7,
+          "status": 200,
+          "duration": 6641,
+          "timestamp": "2026-04-08T13:04:19.446Z"
+        },
+        {
+          "requestId": 25,
+          "status": 200,
+          "duration": 6638,
+          "timestamp": "2026-04-08T13:04:19.448Z"
+        },
+        {
+          "requestId": 40,
+          "status": 200,
+          "duration": 6636,
+          "timestamp": "2026-04-08T13:04:19.449Z"
+        },
+        {
+          "requestId": 37,
+          "status": 200,
+          "duration": 6638,
+          "timestamp": "2026-04-08T13:04:19.451Z"
+        },
+        {
+          "requestId": 31,
+          "status": 200,
+          "duration": 6650,
+          "timestamp": "2026-04-08T13:04:19.461Z"
+        },
+        {
+          "requestId": 42,
+          "status": 200,
+          "duration": 6648,
+          "timestamp": "2026-04-08T13:04:19.462Z"
+        },
+        {
+          "requestId": 39,
+          "status": 200,
+          "duration": 6651,
+          "timestamp": "2026-04-08T13:04:19.464Z"
+        },
+        {
+          "requestId": 38,
+          "status": 200,
+          "duration": 6652,
+          "timestamp": "2026-04-08T13:04:19.465Z"
+        },
+        {
+          "requestId": 41,
+          "status": 200,
+          "duration": 6654,
+          "timestamp": "2026-04-08T13:04:19.467Z"
+        },
+        {
+          "requestId": 35,
+          "status": 200,
+          "duration": 6656,
+          "timestamp": "2026-04-08T13:04:19.468Z"
+        },
+        {
+          "requestId": 34,
+          "status": 200,
+          "duration": 6657,
+          "timestamp": "2026-04-08T13:04:19.469Z"
+        },
+        {
+          "requestId": 43,
+          "status": 200,
+          "duration": 6657,
+          "timestamp": "2026-04-08T13:04:19.471Z"
+        },
+        {
+          "requestId": 28,
+          "status": 200,
+          "duration": 6661,
+          "timestamp": "2026-04-08T13:04:19.472Z"
+        },
+        {
+          "requestId": 50,
+          "status": 200,
+          "duration": 6659,
+          "timestamp": "2026-04-08T13:04:19.474Z"
+        },
+        {
+          "requestId": 48,
+          "status": 200,
+          "duration": 6660,
+          "timestamp": "2026-04-08T13:04:19.475Z"
+        },
+        {
+          "requestId": 27,
+          "status": 200,
+          "duration": 6665,
+          "timestamp": "2026-04-08T13:04:19.476Z"
+        },
+        {
+          "requestId": 36,
+          "status": 200,
+          "duration": 6664,
+          "timestamp": "2026-04-08T13:04:19.477Z"
+        },
+        {
+          "requestId": 29,
+          "status": 200,
+          "duration": 6668,
+          "timestamp": "2026-04-08T13:04:19.479Z"
+        },
+        {
+          "requestId": 30,
+          "status": 200,
+          "duration": 6669,
+          "timestamp": "2026-04-08T13:04:19.480Z"
+        },
+        {
+          "requestId": 45,
+          "status": 200,
+          "duration": 6667,
+          "timestamp": "2026-04-08T13:04:19.481Z"
+        },
+        {
+          "requestId": 49,
+          "status": 200,
+          "duration": 6668,
+          "timestamp": "2026-04-08T13:04:19.483Z"
+        },
+        {
+          "requestId": 32,
+          "status": 200,
+          "duration": 6672,
+          "timestamp": "2026-04-08T13:04:19.484Z"
+        },
+        {
+          "requestId": 1,
+          "status": 200,
+          "duration": 6716,
+          "timestamp": "2026-04-08T13:04:19.486Z"
+        },
+        {
+          "requestId": 33,
+          "status": 200,
+          "duration": 6675,
+          "timestamp": "2026-04-08T13:04:19.487Z"
+        },
+        {
+          "requestId": 46,
+          "status": 200,
+          "duration": 6719,
+          "timestamp": "2026-04-08T13:04:19.533Z"
+        },
+        {
+          "requestId": 47,
+          "status": 200,
+          "duration": 6836,
+          "timestamp": "2026-04-08T13:04:19.651Z"
+        },
+        {
+          "requestId": 44,
+          "status": 200,
+          "duration": 7029,
+          "timestamp": "2026-04-08T13:04:19.843Z"
+        },
+        {
+          "requestId": 3,
+          "status": 200,
+          "duration": 7115,
+          "timestamp": "2026-04-08T13:04:19.918Z"
+        },
+        {
+          "requestId": 6,
+          "status": 200,
+          "duration": 7451,
+          "timestamp": "2026-04-08T13:04:20.255Z"
+        }
+      ]
+    },
+    "相机和镜头列表": {
+      "total": 50,
+      "success": 0,
+      "failed": 50,
+      "totalTime": 277068,
+      "averageTime": 5541.36,
+      "maxTime": 0,
+      "minTime": null,
+      "responses": [
+        {
+          "requestId": 2,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5533,
+          "timestamp": "2026-04-08T13:04:18.349Z"
+        },
+        {
+          "requestId": 1,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5535,
+          "timestamp": "2026-04-08T13:04:18.351Z"
+        },
+        {
+          "requestId": 5,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5535,
+          "timestamp": "2026-04-08T13:04:18.351Z"
+        },
+        {
+          "requestId": 4,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5536,
+          "timestamp": "2026-04-08T13:04:18.352Z"
+        },
+        {
+          "requestId": 3,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5536,
+          "timestamp": "2026-04-08T13:04:18.352Z"
+        },
+        {
+          "requestId": 7,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5536,
+          "timestamp": "2026-04-08T13:04:18.353Z"
+        },
+        {
+          "requestId": 6,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5536,
+          "timestamp": "2026-04-08T13:04:18.353Z"
+        },
+        {
+          "requestId": 8,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5537,
+          "timestamp": "2026-04-08T13:04:18.354Z"
+        },
+        {
+          "requestId": 9,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5537,
+          "timestamp": "2026-04-08T13:04:18.354Z"
+        },
+        {
+          "requestId": 11,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5538,
+          "timestamp": "2026-04-08T13:04:18.355Z"
+        },
+        {
+          "requestId": 12,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5537,
+          "timestamp": "2026-04-08T13:04:18.355Z"
+        },
+        {
+          "requestId": 10,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5539,
+          "timestamp": "2026-04-08T13:04:18.356Z"
+        },
+        {
+          "requestId": 13,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5538,
+          "timestamp": "2026-04-08T13:04:18.356Z"
+        },
+        {
+          "requestId": 15,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5539,
+          "timestamp": "2026-04-08T13:04:18.357Z"
+        },
+        {
+          "requestId": 14,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5539,
+          "timestamp": "2026-04-08T13:04:18.357Z"
+        },
+        {
+          "requestId": 17,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5539,
+          "timestamp": "2026-04-08T13:04:18.358Z"
+        },
+        {
+          "requestId": 16,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5540,
+          "timestamp": "2026-04-08T13:04:18.358Z"
+        },
+        {
+          "requestId": 18,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5539,
+          "timestamp": "2026-04-08T13:04:18.358Z"
+        },
+        {
+          "requestId": 20,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5540,
+          "timestamp": "2026-04-08T13:04:18.359Z"
+        },
+        {
+          "requestId": 21,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5540,
+          "timestamp": "2026-04-08T13:04:18.359Z"
+        },
+        {
+          "requestId": 22,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5540,
+          "timestamp": "2026-04-08T13:04:18.359Z"
+        },
+        {
+          "requestId": 19,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5541,
+          "timestamp": "2026-04-08T13:04:18.360Z"
+        },
+        {
+          "requestId": 23,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5540,
+          "timestamp": "2026-04-08T13:04:18.360Z"
+        },
+        {
+          "requestId": 25,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5540,
+          "timestamp": "2026-04-08T13:04:18.360Z"
+        },
+        {
+          "requestId": 26,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5541,
+          "timestamp": "2026-04-08T13:04:18.361Z"
+        },
+        {
+          "requestId": 24,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5541,
+          "timestamp": "2026-04-08T13:04:18.361Z"
+        },
+        {
+          "requestId": 29,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5542,
+          "timestamp": "2026-04-08T13:04:18.362Z"
+        },
+        {
+          "requestId": 28,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5542,
+          "timestamp": "2026-04-08T13:04:18.362Z"
+        },
+        {
+          "requestId": 27,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5542,
+          "timestamp": "2026-04-08T13:04:18.362Z"
+        },
+        {
+          "requestId": 30,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5542,
+          "timestamp": "2026-04-08T13:04:18.363Z"
+        },
+        {
+          "requestId": 31,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5542,
+          "timestamp": "2026-04-08T13:04:18.363Z"
+        },
+        {
+          "requestId": 33,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5543,
+          "timestamp": "2026-04-08T13:04:18.364Z"
+        },
+        {
+          "requestId": 32,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5543,
+          "timestamp": "2026-04-08T13:04:18.364Z"
+        },
+        {
+          "requestId": 34,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5545,
+          "timestamp": "2026-04-08T13:04:18.366Z"
+        },
+        {
+          "requestId": 36,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5544,
+          "timestamp": "2026-04-08T13:04:18.367Z"
+        },
+        {
+          "requestId": 35,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5546,
+          "timestamp": "2026-04-08T13:04:18.367Z"
+        },
+        {
+          "requestId": 37,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5545,
+          "timestamp": "2026-04-08T13:04:18.367Z"
+        },
+        {
+          "requestId": 38,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5546,
+          "timestamp": "2026-04-08T13:04:18.368Z"
+        },
+        {
+          "requestId": 41,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5545,
+          "timestamp": "2026-04-08T13:04:18.368Z"
+        },
+        {
+          "requestId": 40,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5545,
+          "timestamp": "2026-04-08T13:04:18.368Z"
+        },
+        {
+          "requestId": 42,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5546,
+          "timestamp": "2026-04-08T13:04:18.369Z"
+        },
+        {
+          "requestId": 39,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5547,
+          "timestamp": "2026-04-08T13:04:18.369Z"
+        },
+        {
+          "requestId": 43,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5546,
+          "timestamp": "2026-04-08T13:04:18.369Z"
+        },
+        {
+          "requestId": 44,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5546,
+          "timestamp": "2026-04-08T13:04:18.370Z"
+        },
+        {
+          "requestId": 45,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5546,
+          "timestamp": "2026-04-08T13:04:18.370Z"
+        },
+        {
+          "requestId": 46,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5546,
+          "timestamp": "2026-04-08T13:04:18.370Z"
+        },
+        {
+          "requestId": 47,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5547,
+          "timestamp": "2026-04-08T13:04:18.371Z"
+        },
+        {
+          "requestId": 49,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5546,
+          "timestamp": "2026-04-08T13:04:18.371Z"
+        },
+        {
+          "requestId": 48,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5547,
+          "timestamp": "2026-04-08T13:04:18.371Z"
+        },
+        {
+          "requestId": 50,
+          "status": 404,
+          "error": "Request failed with status code 404",
+          "duration": 5547,
+          "timestamp": "2026-04-08T13:04:18.372Z"
+        }
+      ]
+    }
+  },
+  "totalDuration": 7486
+}

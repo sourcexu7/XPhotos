@@ -734,7 +734,7 @@ export default function MultipleFileUpload({ idPrefix: propIdPrefix }: MultipleF
           ) : (
             missingFiles.map((f: UploadFile) => (
               // use __key as stable identifier for selection
-              <div key={f.__key || f.name} style={{ display: 'flex', alignItems: 'center', padding: 8, borderBottom: '1px solid #f0f0f0' }}>
+              <div key={f.__key || f.name} style={{ display: 'flex', alignItems: 'center', padding: 8, borderBottom: '1px solid var(--border)' }}>
                 <Checkbox checked={!!missingSelection[f.__key || f.name]} onCheckedChange={(v) => setMissingSelection(prev => ({ ...prev, [f.__key || f.name]: !!v }))} />
                 <div style={{ marginLeft: 8 }}>{f.name}</div>
               </div>
@@ -765,7 +765,15 @@ export default function MultipleFileUpload({ idPrefix: propIdPrefix }: MultipleF
               disabled={storage === '' || (storage === 'alist' && alistMountPath === '')}
               beforeUpload={() => false}
               showUploadList={false}
-              style={{ padding: 12, minHeight: 120, height: '100%' }}
+              style={{ 
+                padding: 24, 
+                minHeight: 200, 
+                height: '100%',
+                border: '2px dashed var(--border)',
+                borderRadius: '12px',
+                backgroundColor: 'var(--background)',
+                transition: 'all 0.2s ease-in-out'
+              }}
               onChange={(info) => {
                 const fileList = info.fileList || []
                 const selected = fileList.map(f => f.originFileObj).filter(Boolean).map((orig: UploadFile) => {
@@ -791,11 +799,13 @@ export default function MultipleFileUpload({ idPrefix: propIdPrefix }: MultipleF
                 })
               }}
             >
-              <div className="flex flex-col items-center justify-center h-full gap-2">
-                <UploadIcon />
-                <p className="font-medium text-sm">{t('Upload.uploadTips1')}</p>
-                <p className="text-muted-foreground text-xs">{t('Upload.uploadTips2')}</p>
-                <p className="text-muted-foreground text-xs">{t('Upload.uploadTips4', { count: maxUploadFiles })}</p>
+              <div className="flex flex-col items-center justify-center h-full gap-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <UploadIcon className="w-8 h-8 text-primary" />
+                </div>
+                <p className="font-semibold text-text-primary">{t('Upload.uploadTips1')}</p>
+                <p className="text-text-secondary text-sm">{t('Upload.uploadTips2')}</p>
+                <p className="text-text-secondary text-sm">{t('Upload.uploadTips4', { count: maxUploadFiles })}</p>
               </div>
             </Dragger>
           </AntCard>
@@ -804,15 +814,20 @@ export default function MultipleFileUpload({ idPrefix: propIdPrefix }: MultipleF
         <div className="h-full">
           <AntCard className="h-full">
             {files.length === 0 ? (
-              <div className="text-sm text-gray-500">{t('Upload.noFiles')}</div>
+              <div className="flex flex-col items-center justify-center h-64 text-text-muted">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <UploadIcon className="w-8 h-8 text-primary" />
+                </div>
+                <p className="text-sm">{t('Upload.noFiles')}</p>
+              </div>
             ) : (
                 files.map((f: UploadFile, idx: number) => (
-                  <div key={f.__key || f.id || idx} className="p-2 border rounded mb-2">
-                    <div className="flex justify-between items-center">
-                      <div className="flex flex-col">
-                        <div className="font-medium">{f.name}</div>
+                  <div key={f.__key || f.id || idx} className="p-4 border border-border rounded-lg mb-3 bg-background">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="font-medium text-text-primary">{f.name}</div>
                         {/* per-file upload status */}
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-sm text-text-secondary mt-1">
                           {(() => {
                             const key = f.__key
                             if (!key) return t('Upload.statusNotUploaded')
@@ -826,32 +841,43 @@ export default function MultipleFileUpload({ idPrefix: propIdPrefix }: MultipleF
                         {/* per-file small progress bar */}
                         {f.__key && typeof uploadProgressMap[f.__key] === 'number' && (
                           <div className="w-full mt-2">
-                            <AntProgress percent={uploadProgressMap[f.__key]} size="small" />
+                            <AntProgress 
+                              percent={uploadProgressMap[f.__key]} 
+                              size="small"
+                              strokeColor="var(--primary)"
+                              strokeWidth={6}
+                            />
                           </div>
                         )}
                       </div>
-                        <div>
-                          <AntButton
-                            type="text"
-                            danger
-                            icon={<CloseOutlined />}
-                            onClick={() => {
-                              // remove file from list
-                              const k = f.__key || f.id || f.name
-                              if (k) removeFileByKey(k)
-                            }}
-                          />
-                        </div>
+                      <div>
+                        <AntButton
+                          type="text"
+                          danger
+                          icon={<CloseOutlined />}
+                          onClick={() => {
+                            // remove file from list
+                            const k = f.__key || f.id || f.name
+                            if (k) removeFileByKey(k)
+                          }}
+                          className="hover:bg-error/10 rounded-full p-2"
+                        />
+                      </div>
                     </div>
 
-                    <div className="mt-2">
-                      <div className="text-xs mb-1">{t('Upload.presetTagsLabel')}</div>
+                    <div className="mt-4">
+                      <div className="text-sm text-text-secondary mb-2">{t('Upload.presetTagsLabel')}</div>
                       <div className="flex flex-wrap gap-2">
                         {presetTags.map((tag, i) => (
                           <AntTag
                             key={`${tag}-${i}`}
-                            color={f.labels?.includes(tag) ? 'blue' : 'default'}
-                            style={{ cursor: 'pointer' }}
+                            color={f.labels?.includes(tag) ? 'var(--primary)' : 'default'}
+                            style={{ 
+                              cursor: 'pointer',
+                              borderRadius: '16px',
+                              padding: '4px 12px',
+                              fontSize: '12px'
+                            }}
                             onClick={() => togglePresetTagForItem(tag, idx)}
                           >
                             {tag}
@@ -860,112 +886,156 @@ export default function MultipleFileUpload({ idPrefix: propIdPrefix }: MultipleF
                       </div>
                     </div>
 
-                        <div className="mt-2 p-2 border rounded">
-                          <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <div className="text-xs">{t('Upload.exifOptionalLabel')}</div>
-                            <AntButton
-                              size="small"
-                              onClick={() => document.getElementById(`${idPrefix}-ref-${idx}`)?.click()}
+                    <div className="mt-4 p-4 border border-border rounded-lg bg-background-alt">
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <div className="text-sm text-text-secondary">{t('Upload.exifOptionalLabel')}</div>
+                        <AntButton
+                          size="small"
+                          onClick={() => document.getElementById(`${idPrefix}-ref-${idx}`)?.click()}
+                          style={{
+                            borderRadius: '8px',
+                            borderColor: 'var(--border)'
+                          }}
+                        >
+                          {t('Upload.referenceExifExtractButton')}
+                        </AntButton>
+                        <input
+                          id={`${idPrefix}-ref-${idx}`}
+                          type="file"
+                          className="hidden"
+                          accept="image/*,.cr2,.arw,.nef,.tif,.tiff,.dng"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) applyReferenceExifToItem(file, idx)
+                            e.target.value = ''
+                          }}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-sm text-text-secondary mb-2">{t('Upload.exifCameraModelLabel')}</label>
+                          <Select value={f.exif?.model || undefined} onValueChange={(v)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), model: v}; setFiles(items) }}>
+                            <SelectTrigger className="w-full"><SelectValue placeholder={t('Upload.exifCommonCameraModelsPlaceholder')} /></SelectTrigger>
+                            <SelectContent>
+                              {exifPresets.cameraModels.map((m: string)=>(<SelectItem key={m} value={m}>{m}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                          <p className="mt-1 text-xs text-text-muted">
+                            <a
+                              onClick={() => {
+                                setEditingPresetsText({
+                                  cameraModels: exifPresets.cameraModels.join(', '),
+                                  shutterSpeeds: exifPresets.shutterSpeeds.join(', '),
+                                  isos: exifPresets.isos.join(', '),
+                                  apertures: exifPresets.apertures.join(', '),
+                                })
+                                setIsPresetModalOpen(true)
+                              }}
                             >
-                              {t('Upload.referenceExifExtractButton')}
-                            </AntButton>
-                            <input
-                              id={`${idPrefix}-ref-${idx}`}
-                              type="file"
-                              className="hidden"
-                              accept="image/*,.cr2,.arw,.nef,.tif,.tiff,.dng"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0]
-                                if (file) applyReferenceExifToItem(file, idx)
-                                e.target.value = ''
+                              {t('Upload.manageCommonExifOptionsLink')}
+                            </a>
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm text-text-secondary mb-2">{t('Upload.exifShutterLabel')}</label>
+                          <div className="flex gap-2">
+                            <Select value={f.exif?.exposure_time || undefined} onValueChange={(v)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), exposure_time: v}; setFiles(items) }}>
+                              <SelectTrigger className="flex-1"><SelectValue placeholder={t('Upload.exifCommonShutterPlaceholder')} /></SelectTrigger>
+                              <SelectContent>
+                                {exifPresets.shutterSpeeds.map((s: string)=>(<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                              </SelectContent>
+                            </Select>
+                            <AntInput 
+                              value={f.exif?.exposure_time || ''} 
+                              onChange={(e)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), exposure_time: e.target.value}; setFiles(items) }} 
+                              placeholder={t('Upload.orManualInputPlaceholder')}
+                              style={{
+                                flex: 1,
+                                borderRadius: '8px',
+                                borderColor: 'var(--border)'
                               }}
                             />
                           </div>
-                          <AntForm layout="vertical">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                            <AntForm.Item
-                              label={t('Upload.exifCameraModelLabel')}
-                              extra={
-                                <a
-                                  onClick={() => {
-                                    setEditingPresetsText({
-                                      cameraModels: exifPresets.cameraModels.join(', '),
-                                      shutterSpeeds: exifPresets.shutterSpeeds.join(', '),
-                                      isos: exifPresets.isos.join(', '),
-                                      apertures: exifPresets.apertures.join(', '),
-                                    })
-                                    setIsPresetModalOpen(true)
-                                  }}
-                                >
-                                  {t('Upload.manageCommonExifOptionsLink')}
-                                </a>
-                              }
-                            >
-                              <Select value={f.exif?.model || undefined} onValueChange={(v)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), model: v}; setFiles(items) }}>
-                                <SelectTrigger className="w-full h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder={t('Upload.exifCommonCameraModelsPlaceholder')} /></SelectTrigger>
-                                <SelectContent>
-                                  {exifPresets.cameraModels.map((m: string)=> (<SelectItem key={m} value={m}>{m}</SelectItem>))}
-                                </SelectContent>
-                              </Select>
-                            </AntForm.Item>
-                            <AntForm.Item label={t('Upload.exifShutterLabel')}>
-                              <div style={{ display:'flex', gap:8 }}>
-                                <Select value={f.exif?.exposure_time || undefined} onValueChange={(v)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), exposure_time: v}; setFiles(items) }}>
-                                  <SelectTrigger className="min-w-[140px] h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder={t('Upload.exifCommonShutterPlaceholder')} /></SelectTrigger>
-                                  <SelectContent>
-                                    {exifPresets.shutterSpeeds.map((s: string)=> (<SelectItem key={s} value={s}>{s}</SelectItem>))}
-                                  </SelectContent>
-                                </Select>
-                                <AntInput value={f.exif?.exposure_time || ''} onChange={(e)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), exposure_time: e.target.value}; setFiles(items) }} placeholder={t('Upload.orManualInputPlaceholder')} />
-                              </div>
-                            </AntForm.Item>
-                            <AntForm.Item label="ISO">
-                              <div style={{ display:'flex', gap:8 }}>
-                              <Select value={f.exif?.iso_speed_rating || undefined} onValueChange={(v)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), iso_speed_rating: v}; setFiles(items) }}>
-                                  <SelectTrigger className="min-w-[140px] h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder={t('Upload.exifCommonIsoPlaceholder')} /></SelectTrigger>
-                                <SelectContent>
-                                  {exifPresets.isos.map((i: string)=> (<SelectItem key={i} value={i}>{i}</SelectItem>))}
-                                </SelectContent>
-                              </Select>
-                                <AntInput value={f.exif?.iso_speed_rating || ''} onChange={(e)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), iso_speed_rating: e.target.value}; setFiles(items) }} placeholder={t('Upload.orManualInputPlaceholder')} />
-                              </div>
-                            </AntForm.Item>
-                            <AntForm.Item label={t('Upload.exifApertureLabel')}>
-                              <div style={{ display:'flex', gap:8 }}>
-                              <Select value={f.exif?.f_number || undefined} onValueChange={(v)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), f_number: v}; setFiles(items) }}>
-                                  <SelectTrigger className="min-w-[140px] h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder={t('Upload.exifCommonAperturePlaceholder')} /></SelectTrigger>
-                                <SelectContent>
-                                  {exifPresets.apertures.map((a: string)=> (<SelectItem key={a} value={a}>{a}</SelectItem>))}
-                                </SelectContent>
-                              </Select>
-                                <AntInput value={f.exif?.f_number || ''} onChange={(e)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), f_number: e.target.value}; setFiles(items) }} placeholder={t('Upload.orManualInputPlaceholder')} />
-                              </div>
-                            </AntForm.Item>
-                            <AntForm.Item label={t('Upload.exifFocalLengthLabel')}>
-                              <AntInput value={f.exif?.focal_length || ''} onChange={(e)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), focal_length: e.target.value}; setFiles(items) }} />
-                            </AntForm.Item>
-                            <AntForm.Item label={t('Upload.exifShootDateLabel')}>
-                              <AntDatePicker
-                                style={{ width: '100%' }}
-                                locale={zhCN}
-                                placeholder={t('Upload.exifShootDatePlaceholder')}
-                                value={f.exif?.data_time ? dayjs(f.exif.data_time) : undefined}
-                                onChange={(date) => {
-                                  const items = [...files]
-                                  items[idx].exif = { ...(items[idx].exif || {}), data_time: date ? date.format('YYYY-MM-DD') : '' }
-                                  setFiles(items)
-                                }}
-                                disabledDate={(current) => {
-                                  return current && (current < dayjs('2020-01-01') || current > dayjs().endOf('day'))
-                                }}
-                                allowClear
-                              />
-                            </AntForm.Item>
+                        </div>
+                        <div>
+                          <label className="block text-sm text-text-secondary mb-2">ISO</label>
+                          <div className="flex gap-2">
+                            <Select value={f.exif?.iso_speed_rating || undefined} onValueChange={(v)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), iso_speed_rating: v}; setFiles(items) }}>
+                              <SelectTrigger className="flex-1"><SelectValue placeholder={t('Upload.exifCommonIsoPlaceholder')} /></SelectTrigger>
+                              <SelectContent>
+                                {exifPresets.isos.map((i: string)=>(<SelectItem key={i} value={i}>{i}</SelectItem>))}
+                              </SelectContent>
+                            </Select>
+                            <AntInput 
+                              value={f.exif?.iso_speed_rating || ''} 
+                              onChange={(e)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), iso_speed_rating: e.target.value}; setFiles(items) }} 
+                              placeholder={t('Upload.orManualInputPlaceholder')}
+                              style={{
+                                flex: 1,
+                                borderRadius: '8px',
+                                borderColor: 'var(--border)'
+                              }}
+                            />
                           </div>
-                        </AntForm>
+                        </div>
+                        <div>
+                          <label className="block text-sm text-text-secondary mb-2">{t('Upload.exifApertureLabel')}</label>
+                          <div className="flex gap-2">
+                            <Select value={f.exif?.f_number || undefined} onValueChange={(v)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), f_number: v}; setFiles(items) }}>
+                              <SelectTrigger className="flex-1"><SelectValue placeholder={t('Upload.exifCommonAperturePlaceholder')} /></SelectTrigger>
+                              <SelectContent>
+                                {exifPresets.apertures.map((a: string)=>(<SelectItem key={a} value={a}>{a}</SelectItem>))}
+                              </SelectContent>
+                            </Select>
+                            <AntInput 
+                              value={f.exif?.f_number || ''} 
+                              onChange={(e)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), f_number: e.target.value}; setFiles(items) }} 
+                              placeholder={t('Upload.orManualInputPlaceholder')}
+                              style={{
+                                flex: 1,
+                                borderRadius: '8px',
+                                borderColor: 'var(--border)'
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm text-text-secondary mb-2">{t('Upload.exifFocalLengthLabel')}</label>
+                          <AntInput 
+                            value={f.exif?.focal_length || ''} 
+                            onChange={(e)=>{ const items=[...files]; items[idx].exif={...(items[idx].exif||{}), focal_length: e.target.value}; setFiles(items) }} 
+                            style={{
+                              borderRadius: '8px',
+                              borderColor: 'var(--border)'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm text-text-secondary mb-2">{t('Upload.exifShootDateLabel')}</label>
+                          <AntDatePicker
+                            style={{ 
+                              width: '100%',
+                              borderRadius: '8px',
+                              borderColor: 'var(--border)'
+                            }}
+                            locale={zhCN}
+                            placeholder={t('Upload.exifShootDatePlaceholder')}
+                            value={f.exif?.data_time ? dayjs(f.exif.data_time) : undefined}
+                            onChange={(date) => {
+                              const items = [...files]
+                              items[idx].exif = { ...(items[idx].exif || {}), data_time: date ? date.format('YYYY-MM-DD') : '' }
+                              setFiles(items)
+                            }}
+                            disabledDate={(current) => {
+                              return current && (current < dayjs('2020-01-01') || current > dayjs().endOf('day'))
+                            }}
+                            allowClear
+                          />
+                        </div>
                       </div>
-                </div>
-              ))
+                    </div>
+                  </div>
+                ))
             )}
           </AntCard>
         </div>

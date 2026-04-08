@@ -212,15 +212,17 @@
     "refresh": "Refresh",
     "update": "Update",
     "canal": "Cancel",
+    "cancel": "Cancel",
     "delete": "Delete",
     "yesDelete": "Confirm Delete",
     "goBack": "Back",
     "removeTwoFactor": "Remove Two-Factor",
     "loadMore": "Load More",
-    "loading": "Loading..."
-    ,
+    "loading": "Loading...",
     "close": "Close",
-    "query": "Query"
+    "query": "Query",
+    "save": "Save",
+    "saving": "Saving..."
   },
   "Dashboard": {
     "picData": "Photo Data",
@@ -426,6 +428,7 @@
     "coverUpdateFailed": "Cover update failed",
     "sortUpdateSuccess": "Sort updated successfully",
     "sortUpdateFailedRetry": "Failed to update sort, please try again",
+    "sortHint": "Adjust order and click save",
     "batchDeleteNoSelection": "Please select images to delete",
     "batchDeleteSuccess": "Delete successful",
     "batchDeleteFailed": "Delete failed",
@@ -476,7 +479,22 @@
     "routerStartWithSlash": "Router must start with /!",
     "rootRouterWarning": "/ router cannot be set to hidden!",
     "noAlbumsTitle": "No albums yet",
-    "noAlbumsDescription": "Create your first album to manage and display photos."
+    "noAlbumsDescription": "Create your first album to manage and display photos.",
+    "manageSort": "Manage Sort",
+    "sortDescription": "Drag or use buttons to adjust image order. Changes will take effect on the frontend album page.",
+    "images": "images",
+    "selected": "selected",
+    "selectAll": "Select All",
+    "batchTop": "Batch Top",
+    "batchBottom": "Batch Bottom",
+    "resetSort": "Reset Sort",
+    "noImages": "No images",
+    "moveToTop": "Move to Top",
+    "moveUp": "Move Up",
+    "moveDown": "Move Down",
+    "moveToBottom": "Move to Bottom",
+    "featured": "Featured",
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to close?"
   },
   "Preferences": {
     "webSiteTitle": "Website Title",

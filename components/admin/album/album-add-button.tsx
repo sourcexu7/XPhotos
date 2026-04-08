@@ -12,7 +12,7 @@ export default function AlbumAddButton() {
   return (
     <Button
       type="primary"
-      className="cursor-pointer !text-white"
+      className="cursor-pointer !text-white bg-primary hover:bg-primary/90 rounded-lg transition-all duration-200"
       onClick={() => setAlbumAdd(true)}
       aria-label="新增"
     >

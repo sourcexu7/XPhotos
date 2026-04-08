@@ -80,6 +80,7 @@ model Albums {
   imagesAlbumsRelation ImagesAlbumsRelation[]
   image_sorting        Int                    @default(1) @db.SmallInt
   cover                String?                @db.Text
+  guide_albums_relation GuideAlbumsRelation[]
 
   // 性能优化：添加高频查询字段索引
   @@index([del, show]) // 相册筛选联合索引
@@ -93,12 +94,14 @@ model ImagesAlbumsRelation {
   album_value String @db.Text
   images      Images @relation(fields: [imageId], references: [id])
   imageId     String @db.VarChar(50)
+  sort        Int    @default(0) @db.SmallInt
 
   @@id([imageId, album_value])
   // 性能优化：添加关联查询索引
   @@index([imageId]) // 图片关联查询索引
   @@index([album_value]) // 相册关联查询索引
   @@index([imageId, album_value]) // 联合查询索引
+  @@index([album_value, sort]) // 相册内图片排序查询优化索引
   @@map("images_albums_relation")
 }
 
@@ -241,4 +244,118 @@ model VisitLog {
   @@index([createdAt])
   @@index([path])
   @@map("visit_log")
+}
+
+// 攻略表
+model Guides {
+  id           String              @id @default(cuid()) @db.VarChar(50)
+  title        String              @db.VarChar(200)
+  country      String              @db.VarChar(100)
+  city         String              @db.VarChar(100)
+  days         Int                 @db.SmallInt
+  start_date   DateTime?           @db.Timestamp
+  end_date     DateTime?           @db.Timestamp
+  cover_image  String?             @db.Text
+  content      Json?               @db.Json
+  show         Int                 @default(1) @db.SmallInt
+  sort         Int                 @default(0) @db.SmallInt
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamp
+  updatedAt    DateTime?           @updatedAt @map("updated_at") @db.Timestamp
+  del          Int                 @default(0) @db.SmallInt
+  components   GuideComponents[]
+  albums       GuideAlbumsRelation[]
+  modules      GuideModules[]
+  tableOfContents GuideTableOfContents[]
+
+  @@index([del, show])
+  @@index([country, city])
+  @@index([days])
+  @@map("guides")
+}
+
+// 攻略组件表
+model GuideComponents {
+  id         String    @id @default(cuid()) @db.VarChar(50)
+  guide_id   String    @db.VarChar(50)
+  type       String    @db.VarChar(50)   // image, map, table, list, text
+  content    Json?     @db.Json
+  sort       Int       @default(0) @db.SmallInt
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamp
+  updatedAt  DateTime? @updatedAt @map("updated_at") @db.Timestamp
+
+  guide      Guides    @relation(fields: [guide_id], references: [id], onDelete: Cascade)
+
+  @@index([guide_id])
+  @@map("guide_components")
+}
+
+// 攻略相册关联表
+model GuideAlbumsRelation {
+  id         String    @id @default(cuid()) @db.VarChar(50)
+  guide_id   String    @db.VarChar(50)
+  album_id   String    @db.VarChar(50)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamp
+
+  guide      Guides    @relation(fields: [guide_id], references: [id], onDelete: Cascade)
+  album      Albums    @relation(fields: [album_id], references: [id], onDelete: Cascade)
+
+  @@index([guide_id])
+  @@index([album_id])
+  @@unique([guide_id, album_id])
+  @@map("guide_albums_relation")
+}
+
+// 攻略模块表（新版块化编辑器）
+model GuideModules {
+  id          String    @id @default(cuid()) @db.VarChar(50)
+  guide_id    String    @db.VarChar(50)
+  name        String    @db.VarChar(100)
+  template    String?   @db.VarChar(50)  // 模板类型：itinerary, expense, checklist, attraction, food, tips
+  sort        Int       @default(0) @db.SmallInt
+  is_hidden   Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp
+  updatedAt   DateTime? @updatedAt @map("updated_at") @db.Timestamp
+
+  guide       Guides              @relation(fields: [guide_id], references: [id], onDelete: Cascade)
+  contents    GuideModuleContents[]
+
+  @@index([guide_id])
+  @@index([guide_id, sort])
+  @@map("guide_modules")
+}
+
+// 模块内容表（支持多类型内容）
+model GuideModuleContents {
+  id          String    @id @default(cuid()) @db.VarChar(50)
+  module_id   String    @db.VarChar(50)
+  type        String    @db.VarChar(50)   // text, image, table, video, code, latex, link, card
+  content     Json?     @db.Json          // 存储具体内容
+  sort        Int       @default(0) @db.SmallInt
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp
+  updatedAt   DateTime? @updatedAt @map("updated_at") @db.Timestamp
+
+  module      GuideModules @relation(fields: [module_id], references: [id], onDelete: Cascade)
+
+  @@index([module_id])
+  @@index([module_id, sort])
+  @@map("guide_module_contents")
+}
+
+// 攻略目录表
+model GuideTableOfContents {
+  id          String    @id @default(cuid()) @db.VarChar(50)
+  guide_id    String    @db.VarChar(50)
+  title       String    @db.VarChar(200)
+  level       Int       @default(1) @db.SmallInt       // 1: 一级目录, 2: 二级目录
+  target_id   String?   @db.VarChar(50)               // 关联的模块ID或内容ID
+  target_type String?   @db.VarChar(50)               // module 或 content
+  sort        Int       @default(0) @db.SmallInt
+  is_hidden   Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp
+
+  guide       Guides    @relation(fields: [guide_id], references: [id], onDelete: Cascade)
+
+  @@index([guide_id])
+  @@index([guide_id, sort])
+  @@map("guide_table_of_contents")
 }

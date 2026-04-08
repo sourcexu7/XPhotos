@@ -78,14 +78,14 @@ export default function S3EditModal() {
       className="admin-storage-edit-modal"
       styles={{
         content: {
-          background: '#ffffff',
+          background: 'var(--admin-bg)',
           border: '1px solid rgba(15, 23, 42, 0.08)',
           boxShadow: '0 12px 40px rgba(15, 23, 42, 0.18)',
           borderRadius: 12,
           padding: 16,
         },
         header: {
-          background: '#ffffff',
+          background: 'var(--admin-bg)',
           borderBottom: '1px solid rgba(15, 23, 42, 0.08)',
           marginBottom: 12,
           paddingBottom: 12,
@@ -96,7 +96,7 @@ export default function S3EditModal() {
           overflowY: 'auto',
         },
         footer: {
-          background: '#ffffff',
+          background: 'var(--admin-bg)',
           borderTop: '1px solid rgba(15, 23, 42, 0.08)',
           marginTop: 12,
           paddingTop: 12,

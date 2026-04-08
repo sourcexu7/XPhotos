@@ -61,15 +61,15 @@ export default function AboutPage() {
             <AlertCircle className="h-7 w-7 text-red-400" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-lg font-semibold tracking-wide">关于信息加载失败</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-lg font-semibold tracking-wide text-foreground">关于信息加载失败</h1>
+            <p className="text-sm text-foreground/70">
               网络波动或服务器暂时不可用，请检查网络后重试。
             </p>
           </div>
           <button
             type="button"
             onClick={() => mutate()}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-white text-black px-5 py-2.5 text-sm font-medium hover:bg-white/90 transition-colors"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:bg-foreground/90 transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
             重新加载
@@ -142,10 +142,10 @@ export default function AboutPage() {
             {/* 标题区域 */}
             <header className="space-y-4">
               <div className="inline-block">
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-[0.08em] text-white">
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-[0.08em] text-foreground">
                   ABOUT ME
                 </h1>
-                <div className="mt-2 h-0.5 w-12 bg-gradient-to-r from-white/80 to-transparent" />
+                <div className="mt-2 h-0.5 w-12 bg-gradient-to-r from-foreground/80 to-transparent" />
               </div>
               
               {intro && (
@@ -158,7 +158,7 @@ export default function AboutPage() {
             {/* 社交媒体链接 */}
             {socialLinks.length > 0 && (
               <nav className="space-y-3">
-                <h2 className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-medium">
+                <h2 className="text-xs uppercase tracking-[0.2em] text-foreground/80 font-medium">
                   Follow Me
                 </h2>
                 <div className="flex flex-wrap items-center gap-3">
@@ -168,7 +168,7 @@ export default function AboutPage() {
                       href={link.href}
                       target="_blank"
                       rel="noreferrer"
-                      className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+                      className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-foreground/5 border border-foreground/10 text-sm text-foreground/80 hover:text-foreground hover:bg-foreground/10 hover:border-foreground/20 transition-all duration-300"
                     >
                       <span className="transform group-hover:scale-110 transition-transform">
                         {link.icon}
@@ -182,8 +182,8 @@ export default function AboutPage() {
 
             {/* 装饰性分隔线 */}
             <div className="hidden lg:flex items-center gap-3 pt-2">
-              <div className="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent" />
-              <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Photography</span>
+              <div className="h-px flex-1 bg-gradient-to-r from-foreground/20 to-transparent" />
+              <span className="text-[10px] text-foreground/60 uppercase tracking-widest">Photography</span>
             </div>
           </section>
 

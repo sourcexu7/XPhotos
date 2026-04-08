@@ -12,7 +12,7 @@ import ImageView from '~/components/admin/list/image-view'
 import { fetcher } from '~/lib/utils/fetcher'
 import useSWR from 'swr'
 import ImageBatchDeleteSheet from '~/components/admin/list/image-batch-delete-sheet'
-import { Pagination, Button } from 'antd'
+import { Button } from 'antd'
 import {
   Sheet,
   SheetContent,
@@ -22,6 +22,7 @@ import {
   SheetFooter,
   SheetClose,
 } from '~/components/ui/sheet'
+import { AdminPagination } from '~/components/admin/ui/pagination'
 import { useTranslations } from 'next-intl'
 
 import FilterBar, { FilterState, defaultFilterState } from './filter-bar'
@@ -544,20 +545,13 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       {/* 4. 分页导航 */}
       {typeof total === 'number' && total !== 0 && (
         <div className="flex justify-center mt-6 pb-4">
-          <Pagination
+          <AdminPagination
             current={pageNum}
             total={total}
             pageSize={pageSize}
             onChange={async (page) => { setPageNum(page); await mutate() }}
             showSizeChanger={false}
-            showQuickJumper
             showTotal={(total) => t('List.paginationTotalImages', { total })}
-            itemRender={(page, type, originalElement) => {
-              if (type === 'page') {
-                return <a className={`${pageNum === page ? 'bg-blue-600 text-white border-blue-600' : ''} rounded hover:text-blue-600`}>{page}</a>
-              }
-              return originalElement
-            }}
           />
         </div>
       )}
