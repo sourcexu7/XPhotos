@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
 import type { ExifType, AlbumType, ImageType } from '~/types'
 import Compressor from 'compressorjs'
-import { App as AntApp, Upload as AntUpload, Button as AntButton, Input as AntInput, Form as AntForm, Modal as AntModal, message as AntMessage, Tag as AntTag, Card as AntCard, Progress as AntProgress, InputNumber as AntInputNumber, DatePicker as AntDatePicker, Select, Checkbox, Collapse } from 'antd'
+import { App as AntApp, Upload as AntUpload, Button as AntButton, Input as AntInput, Modal as AntModal, message as AntMessage, Tag as AntTag, Card as AntCard, Progress as AntProgress, DatePicker as AntDatePicker, Select, Checkbox } from 'antd'
 import MultipleSelector from '~/components/ui/origin/multiselect'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
@@ -19,22 +19,8 @@ import { heicTo, isHeic } from 'heic-to'
 import { encodeBrowserThumbHash } from '~/lib/utils/blurhash-client'
 
 const { Dragger } = AntUpload
-const { Panel } = Collapse
 
-interface UploadResponse {
-  code: number
-  data?: {
-    url: string
-    imageId: string
-    fileName: string
-    key?: string
-  }
-}
 
-interface TagNode {
-  category: string
-  children: { name: string }[]
-}
 
 interface AlistStorage {
   mount_path: string
@@ -71,20 +57,18 @@ export default function MultipleFileUpload() {
   const [alistMountPath, setAlistMountPath] = useState('')
   const [files, setFiles] = useState<UploadFile[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isGlobalUploading, setIsGlobalUploading] = useState(false)
   const [totalProgress, setTotalProgress] = useState(0)
-  const [globalUploadStage, setGlobalUploadStage] = useState('')
   const [showMissingModal, setShowMissingModal] = useState(false)
   const [missingFiles, setMissingFiles] = useState<UploadFile[]>([])
   const [missingSelection, setMissingSelection] = useState<Record<string, boolean>>({})
   const [expandedFileKeys, setExpandedFileKeys] = useState<Set<string>>(new Set())
-  const [batchExif, setBatchExif] = useState<Partial<ExifType>>({})
+  const [batchExif, setBatchExif] = useState<Partial<Record<keyof ExifType, string>>>({})
   const [batchLabels, setBatchLabels] = useState<string[]>([])
   const [showBatchEdit, setShowBatchEdit] = useState(false)
 
   const t = useTranslations()
 
-  const { data, isLoading } = useSWR('/api/v1/albums/get', fetcher)
+  const { data } = useSWR('/api/v1/albums/get', fetcher)
   const { data: configs } = useSWR<{ config_key: string, config_value: string }[]>('/api/v1/settings/get-custom-info', fetcher)
 
   const defaultStorage = configs?.find(config => config.config_key === 'default_storage')?.config_value || 's3'
@@ -93,7 +77,6 @@ export default function MultipleFileUpload() {
   const previewCompressQuality = parseFloat(configs?.find(config => config.config_key === 'preview_quality')?.config_value || '0.2')
   const maxUploadFiles = parseInt(configs?.find(config => config.config_key === 'max_upload_files')?.config_value || '20')
   const [presetTags, setPresetTags] = useState<string[]>([])
-  const [tagTree, setTagTree] = useState<TagNode[]>([])
   const [primarySelect, setPrimarySelect] = useState<string | null>(null)
   const [secondarySelect, setSecondarySelect] = useState<string[]>([])
   const [cascaderValue, setCascaderValue] = useState<string[]>([])
@@ -127,12 +110,6 @@ export default function MultipleFileUpload() {
     fetcher('/api/v1/settings/tags/get')
       .then((res: { data: { name: string }[] }) => {
         if (res?.data) setPresetTags(res.data.map((t) => t.name))
-      })
-      .catch(() => {})
-
-    fetcher('/api/v1/settings/tags/get?tree=true')
-      .then((res: { data: TagNode[] }) => {
-        if (res?.data) setTagTree(res.data)
       })
       .catch(() => {})
   }, [])
@@ -308,7 +285,7 @@ export default function MultipleFileUpload() {
     }
 
     // Verify URL accessibility
-    const originOk = await verifyUrlAccessible(file.url)
+    const originOk = file.url ? await verifyUrlAccessible(file.url) : false
     let previewOk = true
     if (file.previewUrl) {
       previewOk = await verifyUrlAccessible(file.previewUrl)
@@ -335,25 +312,25 @@ export default function MultipleFileUpload() {
       secondarySelect.forEach(s => { tagCategoryMap[s] = primarySelect })
     }
 
-    const data = {
+    const data: Partial<ImageType> & { tagCategoryMap?: Record<string, string>; client_image_id?: string } = {
       album,
-      url: file.url,
+      url: file.url || '',
       client_image_id: file.imageId,
       image_name: file.name,
       title: '',
       preview_url: file.previewUrl,
       video_url: '',
       blurhash: file.blurhash,
-      exif: { ...(file.exif || {}), ...batchExif },
+      exif: { ...(file.exif || {}), ...batchExif } as any,
       labels,
       detail: '',
-      width: file.width,
-      height: file.height,
+      width: file.width || 0,
+      height: file.height || 0,
       type: 1,
       lat: file.lat || '',
       lon: file.lon || '',
       tagCategoryMap: Object.keys(tagCategoryMap).length ? tagCategoryMap : undefined,
-    } as ImageType & { tagCategoryMap?: Record<string, string> }
+    }
 
     // Check for duplicates
     const dupRes = await fetchWithTimeout('/api/v1/images/check-duplicate', {
@@ -855,7 +832,7 @@ export default function MultipleFileUpload() {
                 <div>
                   <label className="block text-xs text-text-secondary mb-1">{t('Upload.exifApertureLabel')}</label>
                   <AntInput
-                    value={batchExif.f_number || ''}
+                    value={batchExif.f_number?.toString() || ''}
                     onChange={(e) => setBatchExif({ ...batchExif, f_number: e.target.value })}
                     placeholder={t('Upload.input')}
                   />
@@ -871,7 +848,7 @@ export default function MultipleFileUpload() {
                 <div>
                   <label className="block text-xs text-text-secondary mb-1">ISO</label>
                   <AntInput
-                    value={batchExif.iso_speed_rating || ''}
+                    value={batchExif.iso_speed_rating?.toString() || ''}
                     onChange={(e) => setBatchExif({ ...batchExif, iso_speed_rating: e.target.value })}
                     placeholder={t('Upload.input')}
                   />
@@ -976,9 +953,9 @@ export default function MultipleFileUpload() {
               onChange={(info) => {
                 const fileList = info.fileList || []
                 const selected = fileList
-                  .map(f => f.originFileObj)
-                  .filter(Boolean)
-                  .map((orig: UploadFile) => {
+                  .map(f => f.originFileObj as UploadFile | undefined)
+                  .filter((f): f is UploadFile => Boolean(f))
+                  .map((orig) => {
                     if (!orig.__key) {
                       orig.__key = (typeof crypto !== 'undefined' && crypto.randomUUID)
                         ? crypto.randomUUID()
@@ -1180,7 +1157,7 @@ export default function MultipleFileUpload() {
                             <div>
                               <label className="block text-xs text-text-secondary mb-1">{t('Upload.exifApertureLabel')}</label>
                               <AntInput
-                                value={file.exif?.f_number || ''}
+                                value={file.exif?.f_number?.toString() || ''}
                                 onChange={(e) => {
                                   if (file.__key) {
                                     updateFileField(file.__key, 'exif', { ...(file.exif || {}), f_number: e.target.value })
@@ -1192,7 +1169,7 @@ export default function MultipleFileUpload() {
                             <div>
                               <label className="block text-xs text-text-secondary mb-1">{t('Upload.exifShutterLabel')}</label>
                               <AntInput
-                                value={file.exif?.exposure_time || ''}
+                                value={file.exif?.exposure_time?.toString() || ''}
                                 onChange={(e) => {
                                   if (file.__key) {
                                     updateFileField(file.__key, 'exif', { ...(file.exif || {}), exposure_time: e.target.value })
@@ -1204,7 +1181,7 @@ export default function MultipleFileUpload() {
                             <div>
                               <label className="block text-xs text-text-secondary mb-1">ISO</label>
                               <AntInput
-                                value={file.exif?.iso_speed_rating || ''}
+                                value={file.exif?.iso_speed_rating?.toString() || ''}
                                 onChange={(e) => {
                                   if (file.__key) {
                                     updateFileField(file.__key, 'exif', { ...(file.exif || {}), iso_speed_rating: e.target.value })
@@ -1216,7 +1193,7 @@ export default function MultipleFileUpload() {
                             <div>
                               <label className="block text-xs text-text-secondary mb-1">{t('Upload.exifFocalLengthLabel')}</label>
                               <AntInput
-                                value={file.exif?.focal_length || ''}
+                                value={file.exif?.focal_length?.toString() || ''}
                                 onChange={(e) => {
                                   if (file.__key) {
                                     updateFileField(file.__key, 'exif', { ...(file.exif || {}), focal_length: e.target.value })
@@ -1231,7 +1208,7 @@ export default function MultipleFileUpload() {
                                 style={{ width: '100%' }}
                                 showTime
                                 locale={zhCN}
-                                value={file.exif?.data_time ? dayjs(file.exif.data_time) : undefined}
+                                value={file.exif?.data_time && typeof file.exif.data_time === 'string' ? dayjs(file.exif.data_time) : undefined}
                                 onChange={(date) => {
                                   if (file.__key) {
                                     updateFileField(file.__key, 'exif', {

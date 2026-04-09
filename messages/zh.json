@@ -228,22 +228,7 @@
     "save": "保存",
     "saving": "保存中..."
   },
-  "Dashboard": {
-    "picData": "照片数据",
-    "picShow": "显示照片",
-    "bisData": "业务数据",
-    "albumData": "相册数据",
-    "how": "感觉如何？",
-    "starTip": "如果您觉得项目不错",
-    "issueTip": "如果您有 Bug 反馈和建议",
-    "count": "数量/张",
-    "show": "显示/张",
-    "zhang": "张",
-    "ge": "个",
-    "cameraStats": "拍摄设备统计",
-    "camera": "相机",
-    "lens": "镜头"
-  },
+
   "AdminAnalytics": {
     "title": "访问分析概览",
     "subtitle": "今日及近 7 天访问趋势与关键指标（每 5 分钟自动刷新）",
@@ -390,7 +375,6 @@
     "livePhotoNotUploadedBody": "检测到LivePhoto文件尚未上传完整（图片或视频）。点击“上传并提交”将先上传文件，然后提交元数据。",
     "dragOrClickImage": "拖拽或点击上传图片",
     "uploadTipsLivePhotoImage": "请上传LivePhoto的图片部分（JPEG格式）",
-    "dragOrClickVideo": "拖拽或点击上传视频",
     "uploadTipsLivePhotoVideo": "请上传LivePhoto的视频部分（MOV/MP4格式）",
     "imageUploadProgress": "图片上传进度",
     "videoUploadProgress": "视频上传进度",

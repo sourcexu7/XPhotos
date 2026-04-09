@@ -5,15 +5,14 @@
 import { db } from '~/lib/db'
 import type { ImageType } from '~/types'
 import dayjs from 'dayjs'
-import { Prisma } from '@prisma/client'
-import type { Tag } from '@prisma/client'
+import type { Tags } from '@prisma/client'
 import { upsertTagsByName } from '~/lib/db/operate/tags'
 
 /**
  * 恢复已删除的图片
  */
 import type { PrismaClient } from '@prisma/client'
-async function reviveDeletedImage(tx: PrismaClient, imageId: string, image: ImageType) {
+async function reviveDeletedImage(tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>, imageId: string, image: ImageType) {
   const revived = await tx.images.update({
     where: { id: imageId },
     data: {
@@ -54,7 +53,7 @@ async function reviveDeletedImage(tx: PrismaClient, imageId: string, image: Imag
  * 优化：使用批量查询减少数据库往返，避免事务超时
  * 新增：自动关联二级标签对应的一级标签（父标签）
  */
-async function syncImageTags(tx: PrismaClient, imageId: string, image: ImageType) {
+async function syncImageTags(tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>, imageId: string, image: ImageType) {
   if (!image.labels || !Array.isArray(image.labels) || image.labels.length === 0) {
     return
   }
@@ -71,16 +70,16 @@ async function syncImageTags(tx: PrismaClient, imageId: string, image: ImageType
 
   const categoryMap = (image as ImageType & { tagCategoryMap?: Record<string, string> }).tagCategoryMap as Record<string, string> | undefined
 
-  let tags: Tag[] = []
+  let tags: Tags[] = []
   if (categoryMap && typeof categoryMap === 'object') {
     tags = await upsertTagsByName(tx, uniqueLabels, categoryMap)
   } else {
-    // 优化：批量查询已存在的标签，使用 Map 进行 O(1) 查找
+    // 优化：使用 Map 进行 O(1) 查找
     const existingTags = await tx.tags.findMany({
       where: { name: { in: uniqueLabels } },
       include: { parent: true }
     })
-    const existingTagMap = new Map<string, Tag>()
+    const existingTagMap = new Map<string, Tags>()
     // 优化：使用原生 for 循环构建 Map
     for (let i = 0; i < existingTags.length; i++) {
       existingTagMap.set(existingTags[i].name, existingTags[i])
@@ -162,7 +161,7 @@ export async function insertImage(image: ImageType) {
         : null
 
     // 如果存在且被逻辑删除, 恢复并更新元数据
-    if (existingImage && (existingImage as ImageType & { del?: number }).del === 1) {
+    if (existingImage && (existingImage as { del?: number }).del === 1) {
       return await reviveDeletedImage(tx, existingImage.id, image)
     }
 
@@ -240,16 +239,16 @@ export async function deleteImage(id: string) {
     // 尝试删除存储对象（尽力而为，失败不阻断）
     try {
       const img = await tx.images.findUnique({ where: { id } })
-      const originalKey = (img as ImageType & { original_key?: string | null })?.original_key as string | undefined
-      const previewKey = (img as ImageType & { preview_key?: string | null })?.preview_key as string | undefined
-      const videoKey = (img as ImageType & { video_key?: string | null })?.video_key as string | undefined
+      const originalKey = (img as { original_key?: string | null })?.original_key as string | undefined
+      const previewKey = (img as { preview_key?: string | null })?.preview_key as string | undefined
+      const videoKey = (img as { video_key?: string | null })?.video_key as string | undefined
       const keys = [originalKey, previewKey, videoKey].filter(Boolean) as string[]
       if (keys.length) {
         // 删除 S3
         try {
           const { fetchConfigsByKeys } = await import('~/lib/db/query/configs')
           const s3Configs = await fetchConfigsByKeys(['accesskey_id','accesskey_secret','region','endpoint','bucket'])
-          const s3Bucket = s3Configs.find((i: { config_key: string; config_value: string }) => i.config_key === 'bucket')?.config_value || ''
+          const s3Bucket = s3Configs.find((i: { config_key: string; config_value: string | null }) => i.config_key === 'bucket')?.config_value || ''
           if (s3Bucket) {
             const { getClient } = await import('~/lib/s3')
             const client = getClient(s3Configs)
@@ -264,7 +263,7 @@ export async function deleteImage(id: string) {
           const { fetchConfigsByKeys } = await import('~/lib/db/query/configs')
           const r2Configs = await fetchConfigsByKeys(['r2_account_id','r2_accesskey_id','r2_accesskey_secret','r2_bucket'])
           const { getR2Client } = await import('~/lib/r2')
-          const r2Bucket = r2Configs.find((i: { config_key: string; config_value: string }) => i.config_key === 'r2_bucket')?.config_value || ''
+          const r2Bucket = r2Configs.find((i: { config_key: string; config_value: string | null }) => i.config_key === 'r2_bucket')?.config_value || ''
           if (r2Bucket) {
             const r2Client = getR2Client(r2Configs)
             const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
@@ -391,17 +390,17 @@ export async function updateImagesSort(
 
   // 优化：使用原生 SQL 批量更新，减少数据库交互次数
   const now = new Date()
-  await db.$executeRaw`
+  // 构建 VALUES 子句
+  const valuesClause = orders.map((order) => `('${order.id}', ${order.sort})`).join(', ')
+  const query = `
     UPDATE "public"."images"
-    SET "sort" = data.sort, "updatedAt" = ${now}
+    SET "sort" = data.sort, "updatedAt" = '${now.toISOString()}'
     FROM (
-      VALUES ${Prisma.join(
-        orders.map((order) => Prisma.sql`(${order.id}, ${order.sort})`),
-        Prisma.sql`, `
-      )}
+      VALUES ${valuesClause}
     ) AS data(id, sort)
     WHERE "public"."images"."id" = data.id
   `
+  await db.$executeRawUnsafe(query)
 }
 
 /**

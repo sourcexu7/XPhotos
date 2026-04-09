@@ -3,8 +3,7 @@
 'use server'
 
 import { db } from '~/lib/db'
-import type { Config } from '~/types'
-import type { PrismaClient, Tag } from '@prisma/client'
+import type { PrismaClient, Tags } from '@prisma/client'
 
 /**
  * 获取全部标签
@@ -140,12 +139,12 @@ export async function deleteTagAndChildren(id: string) {
  * 确保一组标签存在（upsert），返回 tags 对象数组
  * 优化：使用批量查询减少数据库往返，避免事务超时
  */
-export async function upsertTagsByName(tx: PrismaClient, names: string[], categoryMap?: Record<string, string>) {
+export async function upsertTagsByName(tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>, names: string[], categoryMap?: Record<string, string>) {
   if (names.length === 0) {
     return []
   }
 
-  const results: Tag[] = []
+  const results: Tags[] = []
   const parentIdMap: Record<string, string> = {}
   
   // 批量查询已存在的标签
