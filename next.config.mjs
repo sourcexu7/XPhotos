@@ -16,6 +16,7 @@ const nextConfig = {
   // 解决跨域请求警告
   allowedDevOrigins: [
     'http://192.168.0.125',
+    'http://192.168.0.125:3000',
     'http://localhost:3000',
     'http://198.18.0.1:3000'
   ],

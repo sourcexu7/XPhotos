@@ -35,8 +35,8 @@ export default function AlbumSelector({ albums, currentAlbum = '/' }: AlbumSelec
         onClick={() => setIsOpen(!isOpen)}
         className="
           flex items-center space-x-2 px-4 py-2 rounded-lg
-          bg-gray-100 dark:bg-gray-800
-          hover:bg-gray-200 dark:hover:bg-gray-700
+          bg-muted dark:bg-muted
+          hover:bg-muted/80 dark:hover:bg-muted/80
           transition-colors duration-200
           text-sm font-medium
         "
@@ -61,8 +61,8 @@ export default function AlbumSelector({ albums, currentAlbum = '/' }: AlbumSelec
           <div className="
             absolute top-full left-0 mt-2 z-50
             min-w-[200px] max-h-[400px] overflow-y-auto
-            bg-white dark:bg-gray-800
-            rounded-lg shadow-lg border border-gray-200 dark:border-gray-700
+            bg-card dark:bg-card
+            rounded-lg shadow-lg border border-border dark:border-border
             py-2
           ">
             {/* 全部照片选项 */}
@@ -70,9 +70,9 @@ export default function AlbumSelector({ albums, currentAlbum = '/' }: AlbumSelec
               onClick={() => handleAlbumChange('/')}
               className={`
                 w-full px-4 py-2 text-left text-sm
-                hover:bg-gray-100 dark:hover:bg-gray-700
+                hover:bg-muted dark:hover:bg-muted
                 transition-colors duration-150
-                ${currentAlbum === '/' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium' : ''}
+                ${currentAlbum === '/' ? 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary font-medium' : ''}
               `}
             >
               全部照片
@@ -86,16 +86,16 @@ export default function AlbumSelector({ albums, currentAlbum = '/' }: AlbumSelec
                   onClick={() => handleAlbumChange(album.album_value)}
                   className={`
                     w-full px-4 py-2 text-left text-sm
-                    hover:bg-gray-100 dark:hover:bg-gray-700
+                    hover:bg-muted dark:hover:bg-muted
                     transition-colors duration-150
-                    ${currentAlbum === album.album_value ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium' : ''}
+                    ${currentAlbum === album.album_value ? 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary font-medium' : ''}
                   `}
                 >
                   <span>{album.name}</span>
                 </button>
               ))
             ) : (
-              <div className="px-4 py-2 text-sm text-gray-400">
+              <div className="px-4 py-2 text-sm text-muted-foreground">
                 暂无相册
               </div>
             )}

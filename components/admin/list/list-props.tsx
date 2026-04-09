@@ -94,8 +94,6 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
   const total = (pageData as any)?.total as number | undefined
   
   const [localImages, setLocalImages] = useState<ImageType[]>([])
-  const [prevImages, setPrevImages] = useState<ImageType[]>([])
-  const [savingSort, setSavingSort] = useState(false)
   
   const [updateShowLoading, setUpdateShowLoading] = useState(false)
   const [updateFeaturedLoading, setUpdateFeaturedLoading] = useState(false)
@@ -182,7 +180,6 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
   useEffect(() => {
     if (Array.isArray(data)) {
       setLocalImages(data as ImageType[])
-      setPrevImages(data as ImageType[])
     }
   }, [data])
 
@@ -215,68 +212,6 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
     loadCameraAndLensList()
     loadTags()
   }, [])
-
-  async function persistImageSort(nextList: ImageType[]) {
-    setPrevImages(localImages)
-    setLocalImages(nextList)
-    setSavingSort(true)
-    try {
-      const orders = nextList.map((img) => ({
-        id: img.id,
-        sort: img.sort,
-      }))
-      const res = await fetch('/api/v1/images/update-sort', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ orders }),
-      })
-      if (!res.ok) {
-        throw new Error('sort failed')
-      }
-      toast.success(t('List.sortUpdateSuccess'))
-      await mutate()
-    } catch {
-      toast.error(t('List.sortUpdateFailedRetry'))
-      setLocalImages(prevImages)
-    } finally {
-      setSavingSort(false)
-    }
-  }
-
-  function recalcSortValues(list: ImageType[]): ImageType[] {
-    if (!list.length) return list
-    return list.map((img, idx) => ({
-      ...img,
-      sort: idx,
-    }))
-  }
-
-  function moveUp(index: number) {
-    if (index <= 0 || localImages.length <= 1 || savingSort) return
-    const next = [...localImages]
-    ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
-    const withSort = recalcSortValues(next)
-    void persistImageSort(withSort)
-  }
-
-  function moveDown(index: number) {
-    if (index >= localImages.length - 1 || localImages.length <= 1 || savingSort) return
-    const next = [...localImages]
-    ;[next[index], next[index + 1]] = [next[index + 1], next[index]]
-    const withSort = recalcSortValues(next)
-    void persistImageSort(withSort)
-  }
-
-  function pinTop(index: number) {
-    if (index <= 0 || localImages.length <= 1 || savingSort) return
-    const next = [...localImages]
-    const [item] = next.splice(index, 1)
-    next.unshift(item)
-    const withSort = recalcSortValues(next)
-    void persistImageSort(withSort)
-  }
 
   async function updateImageAlbum(targetImage: ImageType, albumId: string) {
     if (!albumId) {
@@ -373,8 +308,8 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
   return (
     <div className="flex flex-col space-y-4 h-full flex-1 relative">
       {/* 1. 筛选栏 */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-        <div className="mb-3 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+      <div className="bg-card p-4 rounded-lg border border-border">
+        <div className="mb-3 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary">
           {t('List.filterHint')}
         </div>
         <div className="hidden md:block">
@@ -400,7 +335,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
           />
         </div>
         <div className="md:hidden flex justify-between items-center">
-          <span className="text-sm font-medium text-gray-600">{t('List.filterConditions')}</span>
+          <span className="text-sm font-medium text-foreground">{t('List.filterConditions')}</span>
           <Sheet>
             <SheetTrigger asChild>
               <Button size="small" className="gap-2" aria-label={t('List.openFilterPanel')}>
@@ -461,13 +396,6 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {Array.isArray(localImages) &&
             localImages.map((img: ImageType, index) => {
-              const onlyOne = localImages.length <= 1
-              const isFirst = index === 0
-              const isLast = index === localImages.length - 1
-              const disableUp = isFirst || onlyOne || savingSort
-              const disableDown = isLast || onlyOne || savingSort
-              const disablePin = isFirst || onlyOne || savingSort
-
               return (
                 <ImageCard
                   key={img.id}
@@ -490,12 +418,6 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                   onUpdateFeatured={updateImageFeatured}
                   updateFeaturedLoading={updateFeaturedLoading}
                   updateFeaturedId={updateFeaturedId}
-                  onPin={pinTop}
-                  onMoveUp={moveUp}
-                  onMoveDown={moveDown}
-                  disablePin={disablePin}
-                  disableUp={disableUp}
-                  disableDown={disableDown}
                   albums={albums}
                   onBindAlbum={updateImageAlbum}
                   updateImageAlbumLoading={updateImageAlbumLoading}
@@ -506,16 +428,9 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
         </div>
       ) : (
         <div className="flex w-full justify-center">
-          <div className="flex w-full max-w-[1440px] flex-col rounded-md bg-white/70 px-3 py-2 md:px-4 md:py-2">
+          <div className="flex w-full max-w-[1440px] flex-col rounded-lg border border-border bg-card px-3 py-2 md:px-4 md:py-2">
             {Array.isArray(localImages) &&
               localImages.map((img: ImageType, index) => {
-                const onlyOne = localImages.length <= 1
-                const isFirst = index === 0
-                const isLast = index === localImages.length - 1
-                const disableUp = isFirst || onlyOne || savingSort
-                const disableDown = isLast || onlyOne || savingSort
-                const disablePin = isFirst || onlyOne || savingSort
-
                 return (
                   <ImageListItem
                     key={img.id}
@@ -529,12 +444,6 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                     onUpdateShow={updateImageShow}
                     updateShowLoading={updateShowLoading}
                     updateShowId={updateShowId}
-                    onPin={pinTop}
-                    onMoveUp={moveUp}
-                    onMoveDown={moveDown}
-                    disablePin={disablePin}
-                    disableUp={disableUp}
-                    disableDown={disableDown}
                   />
                 )
               })}

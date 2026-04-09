@@ -6,7 +6,8 @@
 
 import React from 'react'
 import { cn } from '~/lib/utils'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from 'lucide-react'
+import { Button } from '~/components/ui/button'
 
 export interface AdminPaginationProps {
   current: number
@@ -25,7 +26,7 @@ export function AdminPagination({
   pageSize,
   onChange,
   showSizeChanger = false,
-  pageSizeOptions = ['10', '20', '50', '100'],
+  pageSizeOptions = ['8', '16', '32', '64'],
   showTotal,
   className,
 }: AdminPaginationProps) {
@@ -73,44 +74,61 @@ export function AdminPagination({
   }
   
   return (
-    <div className={cn('flex items-center gap-4', className)}>
-      {showTotal && (
-        <span className="text-sm text-[var(--admin-text-secondary)] whitespace-nowrap">
-          {showTotal(total, [start, end])}
-        </span>
-      )}
-      {showSizeChanger && (
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-[var(--admin-text-secondary)]">每页</span>
-          <select
-            value={pageSize}
-            onChange={handleSizeChange}
-            className="h-8 px-2 text-sm border border-[var(--admin-border)] rounded-[var(--admin-radius-md)] bg-[var(--admin-bg)] text-[var(--admin-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)]"
-          >
-            {pageSizeOptions.map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+    <div className={cn('flex flex-col sm:flex-row items-center justify-between gap-4 py-6', className)}>
+      <div className="flex items-center gap-4 w-full sm:w-auto">
+        {showTotal && (
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
+            {showTotal(total, [start, end])}
+          </span>
+        )}
+        {showSizeChanger && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">每页</span>
+            <select
+              value={pageSize}
+              onChange={handleSizeChange}
+              className="h-10 px-3 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all duration-200"
+            >
+              {pageSizeOptions.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
       
-      <div className="flex items-center gap-1.5 ml-auto">
-        <button
-          onClick={() => handlePageChange(current - 1)}
+      <div className="flex items-center gap-2">
+        <Button
+          size="icon"
+          variant="ghost"
           disabled={current === 1}
-          className="h-8 w-8 flex items-center justify-center rounded-[var(--admin-radius-md)] border border-[var(--admin-border)] bg-[var(--admin-bg)] text-[var(--admin-text-primary)] hover:bg-[var(--admin-bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          onClick={() => handlePageChange(1)}
+          className="h-10 w-10 rounded-lg border border-border bg-background text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          aria-label="First page"
+        >
+          <ChevronLeftIcon className="h-4 w-4" />
+          <ChevronLeftIcon className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          size="icon"
+          variant="ghost"
+          disabled={current === 1}
+          onClick={() => handlePageChange(current - 1)}
+          className="h-10 w-10 rounded-lg border border-border bg-background text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          aria-label="Previous page"
         >
           <ChevronLeft className="h-4 w-4" />
-        </button>
+        </Button>
         
         {getPageNumbers().map((page, index) => {
           if (page === 'ellipsis') {
             return (
               <span
                 key={`ellipsis-${index}`}
-                className="h-8 w-8 flex items-center justify-center text-[var(--admin-text-tertiary)]"
+                className="h-10 w-10 flex items-center justify-center text-muted-foreground"
               >
                 ...
               </span>
@@ -121,28 +139,46 @@ export function AdminPagination({
           const isActive = pageNum === current
           
           return (
-            <button
+            <Button
               key={pageNum}
+              size="sm"
+              variant={isActive ? "default" : "ghost"}
               onClick={() => handlePageChange(pageNum)}
               className={cn(
-                'h-8 min-w-[32px] px-2 flex items-center justify-center rounded-[var(--admin-radius-md)] text-sm font-medium transition-colors',
+                'h-10 min-w-[40px] px-3 flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200',
                 isActive
-                  ? 'bg-[var(--admin-primary)] text-white'
-                  : 'border border-[var(--admin-border)] bg-[var(--admin-bg)] text-[var(--admin-text-primary)] hover:bg-[var(--admin-bg-secondary)]'
+                  ? 'bg-primary text-white shadow-sm hover:bg-primary/90'
+                  : 'border border-border bg-background text-foreground hover:bg-muted'
               )}
+              aria-label={`Go to page ${pageNum}`}
             >
               {pageNum}
-            </button>
+            </Button>
           )
         })}
         
-        <button
-          onClick={() => handlePageChange(current + 1)}
+        <Button
+          size="icon"
+          variant="ghost"
           disabled={current === totalPages}
-          className="h-8 w-8 flex items-center justify-center rounded-[var(--admin-radius-md)] border border-[var(--admin-border)] bg-[var(--admin-bg)] text-[var(--admin-text-primary)] hover:bg-[var(--admin-bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          onClick={() => handlePageChange(current + 1)}
+          className="h-10 w-10 rounded-lg border border-border bg-background text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          aria-label="Next page"
         >
           <ChevronRight className="h-4 w-4" />
-        </button>
+        </Button>
+        
+        <Button
+          size="icon"
+          variant="ghost"
+          disabled={current === totalPages}
+          onClick={() => handlePageChange(totalPages)}
+          className="h-10 w-10 rounded-lg border border-border bg-background text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          aria-label="Last page"
+        >
+          <ChevronRightIcon className="h-4 w-4" />
+          <ChevronRightIcon className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   )

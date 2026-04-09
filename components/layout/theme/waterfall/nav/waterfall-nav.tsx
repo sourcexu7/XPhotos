@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react'
 import type { AlbumType } from '~/types'
 import AlbumSelector from './album-selector'
+import HeaderIconGroup from '~/components/layout/header-icon-group.tsx'
+import type { AlbumDataProps } from '~/types/props.ts'
 
-interface WaterfallNavProps {
-  albums?: AlbumType[]
+interface WaterfallNavProps extends AlbumDataProps {
   currentAlbum?: string
 }
 
-export default function WaterfallNav({ albums = [], currentAlbum = '/' }: WaterfallNavProps) {
+export default function WaterfallNav({ data, currentAlbum = '/' }: WaterfallNavProps) {
+  const albums = data?.albums || []
   const [isScrolled, setIsScrolled] = useState(false)
 
   useEffect(() => {
@@ -27,15 +29,20 @@ export default function WaterfallNav({ albums = [], currentAlbum = '/' }: Waterf
         fixed top-0 left-0 right-0 z-50 
         transition-all duration-300 ease-in-out
         ${isScrolled 
-          ? 'bg-white/80 dark:bg-black/80 backdrop-blur-md shadow-sm' 
+          ? 'bg-white/80 dark:bg-background/80 backdrop-blur-md shadow-sm' 
           : 'bg-transparent'
         }
       `}
     >
       <div className="max-w-[1400px] mx-auto px-6 py-4">
-        <div className="flex items-center justify-center">
-          {/* 相册选择器 */}
-          <AlbumSelector albums={albums} currentAlbum={currentAlbum} />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            {/* 相册选择器 */}
+            <AlbumSelector albums={albums} currentAlbum={currentAlbum} />
+          </div>
+          <div className="flex items-center">
+            <HeaderIconGroup {...{ data }} />
+          </div>
         </div>
       </div>
     </nav>

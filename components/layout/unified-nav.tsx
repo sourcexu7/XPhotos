@@ -96,7 +96,7 @@ export default function UnifiedNav({
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
+            <div className="hidden md:flex items-center space-x-6">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -140,7 +140,7 @@ export default function UnifiedNav({
                 {isActive('/albums') && (
                   <motion.div
                     layoutId="underline"
-                      className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)]"
+                    className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)]"
                   />
                 )}
               </Link>
@@ -163,7 +163,7 @@ export default function UnifiedNav({
                 {isActive('/about') && (
                   <motion.div
                     layoutId="underline"
-                      className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)]"
+                    className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)]"
                   />
                 )}
               </Link>
@@ -182,6 +182,21 @@ export default function UnifiedNav({
                     {session ? t('Link.dashboard') : t('Login.signIn')}
                  </span>
               </Link>
+
+              {/* Dark Mode Toggle */}
+              {mounted && (
+                <button
+                  onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                  className="p-2 rounded-full hover:bg-white/10 transition-colors duration-200"
+                  aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  {resolvedTheme === 'dark' ? (
+                    <SunIcon className="w-5 h-5 text-foreground/90" />
+                  ) : (
+                    <MoonIcon className="w-5 h-5 text-foreground/90" />
+                  )}
+                </button>
+              )}
             </div>
 
             {/* Mobile Menu Toggle */}
@@ -249,6 +264,26 @@ export default function UnifiedNav({
               </div>
 
               <div className="h-[1px] bg-white/10 my-4" />
+
+              {/* Dark Mode Toggle for Mobile */}
+              {mounted && (
+                <button
+                  onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                  className="flex items-center space-x-2 text-xl text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors duration-200"
+                >
+                  {resolvedTheme === 'dark' ? (
+                    <>
+                      <SunIcon className="w-5 h-5" />
+                      <span>浅色模式</span>
+                    </>
+                  ) : (
+                    <>
+                      <MoonIcon className="w-5 h-5" />
+                      <span>深色模式</span>
+                    </>
+                  )}
+                </button>
+              )}
 
               <Link
                 href={session ? '/admin' : '/login'}

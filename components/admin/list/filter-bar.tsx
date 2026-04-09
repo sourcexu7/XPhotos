@@ -74,7 +74,7 @@ export default function FilterBar({
         value={filters.album || undefined}
         onChange={(v) => onChange({ album: v })}
         placeholder={t('List.selectAlbum')}
-        className="w-full md:w-[140px]"
+        className="w-full md:w-[140px] border-border rounded-lg"
         options={[
           { label: t('Words.all'), value: 'all' },
           ...(albums?.map(a => ({ label: a.name, value: a.album_value })) || [])
@@ -85,7 +85,7 @@ export default function FilterBar({
         value={filters.showStatus || undefined}
         onChange={(v) => onChange({ showStatus: v })}
         placeholder={t('List.selectShowStatus')}
-        className="w-full md:w-[140px]"
+        className="w-full md:w-[140px] border-border rounded-lg"
         options={[
           { label: t('Words.all'), value: 'all' },
           { label: t('Words.public'), value: '0' },
@@ -97,7 +97,7 @@ export default function FilterBar({
         value={filters.featured || undefined}
         onChange={(v) => onChange({ featured: v })}
         placeholder={t('List.selectFeatured')}
-        className="w-full md:w-[120px]"
+        className="w-full md:w-[120px] border-border rounded-lg"
         options={[
           { label: t('Words.all'), value: 'all' },
           { label: t('List.featuredOn'), value: '1' },
@@ -109,7 +109,7 @@ export default function FilterBar({
         value={filters.selectedCamera || undefined}
         onChange={(v) => onChange({ selectedCamera: v })}
         placeholder={t('List.selectCamera')}
-        className="w-full md:w-[120px]"
+        className="w-full md:w-[120px] border-border rounded-lg"
         options={[
           { label: t('Words.all'), value: 'all' },
           ...cameras.map(c => ({ label: c, value: c }))
@@ -120,7 +120,7 @@ export default function FilterBar({
         value={filters.selectedLens || undefined}
         onChange={(v) => onChange({ selectedLens: v })}
         placeholder={t('List.selectLens')}
-        className="w-full md:w-[120px]"
+        className="w-full md:w-[120px] border-border rounded-lg"
         options={[
           { label: t('Words.all'), value: 'all' },
           ...lenses.map(l => ({ label: l, value: l }))
@@ -131,7 +131,7 @@ export default function FilterBar({
         value={filters.selectedExposure || undefined}
         onChange={(v) => onChange({ selectedExposure: v })}
         placeholder={t('List.selectShutter')}
-        className="w-full md:w-[100px]"
+        className="w-full md:w-[100px] border-border rounded-lg"
         options={[
           { label: t('Words.all'), value: 'all' },
           ...exifPresets.shutterSpeeds.map(s => ({ label: s, value: s }))
@@ -142,7 +142,7 @@ export default function FilterBar({
         value={filters.selectedAperture || undefined}
         onChange={(v) => onChange({ selectedAperture: v })}
         placeholder={t('List.selectAperture')}
-        className="w-full md:w-[90px]"
+        className="w-full md:w-[90px] border-border rounded-lg"
         options={[
           { label: t('Words.all'), value: 'all' },
           ...exifPresets.apertures.map(a => ({ label: a, value: a }))
@@ -153,7 +153,7 @@ export default function FilterBar({
         value={filters.selectedISO || undefined}
         onChange={(v) => onChange({ selectedISO: v })}
         placeholder={t('List.selectISO')}
-        className="w-full md:w-[80px]"
+        className="w-full md:w-[80px] border-border rounded-lg"
         options={[
           { label: t('Words.all'), value: 'all' },
           ...exifPresets.isos.map(i => ({ label: i, value: i }))
@@ -162,24 +162,24 @@ export default function FilterBar({
 
       <Popover>
         <PopoverTrigger asChild>
-          <button className="h-9 px-3 border border-slate-200 rounded-lg text-sm text-left w-full md:w-auto min-w-[100px] bg-white text-slate-900 hover:bg-slate-50 transition-all duration-200">
+          <button className="h-9 px-3 border border-border rounded-lg text-sm text-left w-full md:w-auto min-w-[100px] bg-card text-foreground hover:bg-muted transition-all duration-200">
             {filters.selectedTags.length > 0
               ? t('List.tagCount', { count: filters.selectedTags.length })
               : t('List.filterTags')}
           </button>
         </PopoverTrigger>
-        <PopoverContent className="p-3 w-64 border border-slate-200 rounded-lg">
+        <PopoverContent className="p-3 w-64 border border-border rounded-lg bg-card">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">{t('List.selectTags')}</span>
+            <span className="text-sm font-medium text-foreground">{t('List.selectTags')}</span>
             <div className="flex gap-1">
               <button
-                className={`px-2 py-0.5 text-xs border rounded-lg ${filters.labelsOperator === 'and' ? 'bg-primary text-white border-primary' : 'border-slate-200 hover:bg-slate-50'}`}
+                className={`px-2 py-0.5 text-xs border rounded-lg ${filters.labelsOperator === 'and' ? 'bg-primary text-white border-primary' : 'border-border hover:bg-muted'}`}
                 onClick={() => onChange({ labelsOperator: 'and' })}
               >
                 {t('List.tagsOperatorAnd')}
               </button>
               <button
-                className={`px-2 py-0.5 text-xs border rounded-lg ${filters.labelsOperator === 'or' ? 'bg-primary text-white border-primary' : 'border-slate-200 hover:bg-slate-50'}`}
+                className={`px-2 py-0.5 text-xs border rounded-lg ${filters.labelsOperator === 'or' ? 'bg-primary text-white border-primary' : 'border-border hover:bg-muted'}`}
                 onClick={() => onChange({ labelsOperator: 'or' })}
               >
                 {t('List.tagsOperatorOr')}
@@ -188,7 +188,7 @@ export default function FilterBar({
           </div>
           <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto my-2">
             {tagsList.map(tag => (
-              <label key={tag} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded-lg">
+              <label key={tag} className="flex items-center gap-2 cursor-pointer hover:bg-muted p-1 rounded-lg">
                 <Checkbox
                   checked={filters.selectedTags.includes(tag)}
                   onCheckedChange={(v) => {
@@ -198,13 +198,13 @@ export default function FilterBar({
                     onChange({ selectedTags: next })
                   }}
                 />
-                <span className="text-xs truncate" title={tag}>{tag}</span>
+                <span className="text-xs truncate text-foreground" title={tag}>{tag}</span>
               </label>
             ))}
           </div>
-          <div className="flex justify-end pt-2 border-t border-slate-100">
+          <div className="flex justify-end pt-2 border-t border-border">
             <button
-              className="text-xs text-slate-500 hover:text-primary transition-colors"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors"
               onClick={() => onChange({ selectedTags: [] })}
             >
               {t('List.clearSelectedTags')}
@@ -225,7 +225,7 @@ export default function FilterBar({
         </Tooltip>
         <Tooltip title={t('List.resetFiltersTooltip')}>
           <AntButton
-            className="flex-1 md:flex-none border border-slate-200 hover:border-primary hover:text-primary transition-all rounded-lg"
+            className="flex-1 md:flex-none border border-border hover:border-primary hover:text-primary transition-all rounded-lg"
             onClick={onReset}
           >
             {t('Button.reset')}
@@ -234,7 +234,7 @@ export default function FilterBar({
         <Tooltip title={layout === 'card' ? t('List.switchToListLayout') : t('List.switchToCardLayout')}>
           <AntButton
             type="text"
-            className="flex flex-1 items-center gap-1 text-slate-600 hover:bg-slate-50 hover:text-primary md:flex-none rounded-lg"
+            className="flex flex-1 items-center gap-1 text-foreground hover:bg-muted hover:text-primary md:flex-none rounded-lg"
             icon={layout === 'card' ? <Rows3 size={14} /> : <LayoutGrid size={14} />}
             onClick={() => setLayout(layout === 'card' ? 'list' : 'card')}
           >

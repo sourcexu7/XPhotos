@@ -72,9 +72,9 @@ function ImageItem({
           className="data-[state=checked]:bg-primary"
         />
 
-      <div className="w-8 sm:w-10 text-center text-xs sm:text-sm font-mono ${
+      <div className={`w-8 sm:w-10 text-center text-xs sm:text-sm font-mono ${ 
         sorting ? 'text-primary font-semibold' : 'text-muted-foreground'
-      }">
+      }`}>
         {index + 1}
       </div>
 

@@ -5,7 +5,8 @@
 import { db } from '~/lib/db'
 import type { ImageType } from '~/types'
 import dayjs from 'dayjs'
-import type { Prisma, Tag } from '@prisma/client'
+import { Prisma } from '@prisma/client'
+import type { Tag } from '@prisma/client'
 import { upsertTagsByName } from '~/lib/db/operate/tags'
 
 /**
@@ -440,19 +441,18 @@ export async function updateImagesAlbumSort(
 ) {
   if (!Array.isArray(orders) || orders.length === 0) return
 
-  // 优化：使用原生 SQL 批量更新，减少数据库交互次数
-  await db.$executeRaw`
-    UPDATE "public"."images_albums_relation"
-    SET "sort" = data.sort
-    FROM (
-      VALUES ${Prisma.join(
-        orders.map((order) => Prisma.sql`(${order.imageId}, ${albumValue}, ${order.sort})`),
-        Prisma.sql`, `
-      )}
-    ) AS data("imageId", "album_value", sort)
-    WHERE "public"."images_albums_relation"."imageId" = data."imageId"
-    AND "public"."images_albums_relation"."album_value" = data."album_value"
-  `
+  // 使用循环更新每个图片的排序
+  for (const order of orders) {
+    await db.imagesAlbumsRelation.updateMany({
+      where: {
+        imageId: order.imageId,
+        album_value: albumValue
+      },
+      data: {
+        sort: order.sort
+      }
+    })
+  }
 }
 
 /**

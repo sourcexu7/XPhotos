@@ -5,7 +5,7 @@ import AlbumSelector from '~/components/layout/theme/waterfall/nav/album-selecto
 
 export default async function SimpleHeader(props: Readonly<AlbumDataProps>) {
   return (
-    <div className="flex items-center w-full p-2 sm:w-[66.667%] mx-auto sticky top-0 z-50 bg-white dark:bg-black">
+    <div className="flex items-center w-full p-2 sm:w-[66.667%] mx-auto sticky top-0 z-50 bg-white dark:bg-background">
       <div className="justify-start">
         <Logo/>
       </div>

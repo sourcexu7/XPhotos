@@ -1160,21 +1160,27 @@ export default function SimpleFileUpload() {
                   <div>
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.presetTagsClickAddRemoveHint')}</label>
                     <div className="flex flex-wrap gap-2">
-                      {presetTags.filter(Boolean).map((tag, i) => (
-                        <AntTag
-                          key={`${tag}-${i}`}
-                          color={imageLabels && imageLabels.includes(tag) ? 'var(--primary)' : 'default'}
-                          style={{ 
-                            cursor: 'pointer',
-                            borderRadius: '16px',
-                            padding: '4px 12px',
-                            fontSize: '12px'
-                          }}
-                          onClick={() => togglePresetTag(tag)}
-                        >
-                          {tag}
-                        </AntTag>
-                      ))}
+                      {presetTags.filter(Boolean).map((tag, i) => {
+                        const isSelected = imageLabels && imageLabels.includes(tag)
+                        return (
+                          <AntTag
+                            key={`${tag}-${i}`}
+                            color={isSelected ? 'blue' : 'default'}
+                            style={{ 
+                              cursor: 'pointer',
+                              borderRadius: '16px',
+                              padding: '4px 12px',
+                              fontSize: '12px',
+                              backgroundColor: isSelected ? 'var(--primary)' : undefined,
+                              color: isSelected ? '#FFFFFF' : undefined,
+                              borderColor: isSelected ? 'var(--primary)' : undefined
+                            }}
+                            onClick={() => togglePresetTag(tag)}
+                          >
+                            {tag}
+                          </AntTag>
+                        )
+                      })}
                     </div>
                   </div>
 

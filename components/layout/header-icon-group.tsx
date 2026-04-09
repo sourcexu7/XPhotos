@@ -10,6 +10,7 @@ import type { AlbumDataProps } from '~/types/props.ts'
 import { useEffect } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip.tsx'
 import { useTranslations } from 'next-intl'
+import DarkModeToggle from '~/components/ui/dark-mode-toggle.tsx'
 
 export default function HeaderIconGroup(props: Readonly<AlbumDataProps>) {
   const router = useRouter()
@@ -47,6 +48,8 @@ export default function HeaderIconGroup(props: Readonly<AlbumDataProps>) {
             <p>{t('Link.settings')}</p>
           </TooltipContent>
         </Tooltip>
+        
+        <DarkModeToggle />
       </div>
       <Command {...props} />
     </>

@@ -105,64 +105,64 @@
 /* 优化：合并重复的 CSS 变量定义，减少代码冗余 */
 :root {
   --radius: 0.625rem;
-  /* Flat Design - Light Mode */
-  --background: #F8FAFC;    /* 浅灰 */
-  --foreground: #1E293B;  /* 深灰 */
+  /* Elegant Light Mode */
+  --background: #F5F7FA;    /* 柔和浅灰 */
+  --foreground: #1A1F2E;  /* 深灰蓝 */
   
   --card: #FFFFFF;
-  --card-foreground: #1E293B;
+  --card-foreground: #1A1F2E;
   
   --popover: #FFFFFF;
-  --popover-foreground: #1E293B;
+  --popover-foreground: #1A1F2E;
   
-  /* Professional Blue Primary */
-  --primary: #3B82F6;
+  /* Elegant Blue Primary */
+  --primary: #2563EB;  /* 深蓝 */
   --primary-foreground: #FFFFFF;
   
-  /* Gray Secondary */
-  --secondary: #64748B;
+  /* Sophisticated Secondary */
+  --secondary: #475569;
   --secondary-foreground: #FFFFFF;
   
   --muted: #F1F5F9;
   --muted-foreground: #64748B;
   
-  --accent: #F1F5F9;
-  --accent-foreground: #1E293B;
+  --accent: #EFF6FF;
+  --accent-foreground: #1E40AF;
   
   --border: #E2E8F0;
   --input: #E2E8F0;
-  --ring: #3B82F6;
+  --ring: #2563EB;
   
-  --chart-1: #3B82F6; /* Blue */
-  --chart-2: #10B981;  /* Green */
+  --chart-1: #2563EB; /* Blue */
+  --chart-2: #059669;  /* Deep Green */
   
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #1E293B;
-  --sidebar-primary: #3B82F6;
+  --sidebar-foreground: #1A1F2E;
+  --sidebar-primary: #2563EB;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #F1F5F9;
-  --sidebar-accent-foreground: #1E293B;
+  --sidebar-accent-foreground: #1A1F2E;
   --sidebar-border: #E2E8F0;
-  --sidebar-ring: #3B82F6;
+  --sidebar-ring: #2563EB;
 }
 
 .dark {
   --radius: 0.625rem;
-  /* Flat Design - Dark Mode */
-  --background: #1E293B;
+  /* Elegant Dark Mode */
+  --background: #121826;
   --foreground: #F8FAFC;
   
-  --card: #334155;
+  --card: #1E293B;
   --card-foreground: #F8FAFC;
   
-  --popover: #334155;
+  --popover: #1E293B;
   --popover-foreground: #F8FAFC;
   
-  --primary: #60A5FA;
-  --primary-foreground: #1E293B;
+  --primary: #3B82F6;
+  --primary-foreground: #121826;
   
   --secondary: #94A3B8;
-  --secondary-foreground: #1E293B;
+  --secondary-foreground: #121826;
   
   --muted: #334155;
   --muted-foreground: #94A3B8;
@@ -170,21 +170,21 @@
   --accent: #475569;
   --accent-foreground: #F8FAFC;
   
-  --border: #475569;
-  --input: #475569;
-  --ring: #60A5FA;
+  --border: #334155;
+  --input: #334155;
+  --ring: #3B82F6;
   
-  --chart-1: #60A5FA; /* Blue */
+  --chart-1: #3B82F6; /* Blue */
   --chart-2: #34D399;  /* Green */
   
-  --sidebar: #334155;
+  --sidebar: #1E293B;
   --sidebar-foreground: #F8FAFC;
-  --sidebar-primary: #60A5FA;
-  --sidebar-primary-foreground: #1E293B;
+  --sidebar-primary: #3B82F6;
+  --sidebar-primary-foreground: #121826;
   --sidebar-accent: #475569;
   --sidebar-accent-foreground: #F8FAFC;
-  --sidebar-border: #475569;
-  --sidebar-ring: #60A5FA;
+  --sidebar-border: #334155;
+  --sidebar-ring: #3B82F6;
 }
 
 :root {
@@ -315,4 +315,15 @@
   syntax: "<angle>";
   initial-value: 0deg;
   inherits: false;
+}
+
+/* Dark mode transition animation */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  * {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  }
 }

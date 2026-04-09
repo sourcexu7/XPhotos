@@ -265,7 +265,8 @@
     "other": "其他",
     "direct": "直接访问",
     "referer": "外部链接",
-    "search": "搜索引擎"
+    "search": "搜索引擎",
+    "export": "导出"
   },
   "Upload": {
     "simple": "单文件上传",
@@ -366,7 +367,35 @@
     "exifAperturesCommaSeparatedLabel": "常用光圈（逗号分隔）",
     "exifApertureLabel": "光圈 (f/)",
     "manualFillExifNotDetectedHint": "手动填写 EXIF（未检测到）",
-    "exifCameraModelManualPlaceholder": "可从建议中选择或直接输入相机型号"
+    "exifCameraModelManualPlaceholder": "可从建议中选择或直接输入相机型号",
+    "selectedFiles": "已选文件",
+    "noFilesSelected": "未选择文件",
+    "batchSubmitFailed": "批量提交失败",
+    "batchExifApplied": "批量EXIF已应用",
+    "batchLabelsApplied": "批量标签已应用",
+    "batchEdit": "批量编辑",
+    "submitting": "提交中...",
+    "batchEditTitle": "批量编辑",
+    "batchExifTitle": "批量EXIF信息",
+    "batchLabelsTitle": "批量标签",
+    "select": "选择",
+    "input": "输入",
+    "addCustomTags": "添加自定义标签",
+    "dragOrClickMultiple": "拖拽或点击上传多张图片",
+    "uploadTipsMultiple": "支持批量选择多张图片，自动上传并处理",
+    "clearAll": "清空所有",
+    "fileDetailsCardTitle": "文件详情",
+    "dimensionsPending": "尺寸待处理",
+    "videoRequired": "请上传LivePhoto视频",
+    "livePhotoNotUploadedBody": "检测到LivePhoto文件尚未上传完整（图片或视频）。点击“上传并提交”将先上传文件，然后提交元数据。",
+    "dragOrClickImage": "拖拽或点击上传图片",
+    "uploadTipsLivePhotoImage": "请上传LivePhoto的图片部分（JPEG格式）",
+    "dragOrClickVideo": "拖拽或点击上传视频",
+    "uploadTipsLivePhotoVideo": "请上传LivePhoto的视频部分（MOV/MP4格式）",
+    "imageUploadProgress": "图片上传进度",
+    "videoUploadProgress": "视频上传进度",
+    "videoNotUploadedHint": "请上传LivePhoto视频",
+    "maxFilesLimit": "最多上传 {count} 个文件"
   },
   "Search": {
     "placeholder": "搜索"
@@ -449,7 +478,11 @@
     "selectCamera": "选择相机",
     "selectLens": "选择镜头",
     "camera": "相机",
-    "lens": "镜头"
+    "lens": "镜头",
+    "public": "公开",
+    "hidden": "隐藏",
+    "featured": "精选",
+    "selectImage": "选择图片"
   },
   "Album": {
     "router": "路由",
@@ -615,7 +648,9 @@
     "indexSimpleStyle": "单列主题",
     "indexWaterfallStyle": "瀑布流主题",
     "light": "浅色",
-    "dark": "深色"
+    "dark": "深色",
+    "lightMode": "浅色模式",
+    "darkMode": "深色模式"
   },
   "Dashboard": {
     "title": "控制台",
