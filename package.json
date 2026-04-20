@@ -11,7 +11,7 @@
     "pnpm": ">=9.0.0"
   },
   "scripts": {
-    "dev": "pnpm run dev:server",
+    "dev": "next dev",
     "dev:server": "pnpm run dev:prisma && pnpm run prisma:seed && next dev",
     "dev:turbopack": "pnpm run dev:prisma && pnpm run prisma:seed && next dev --turbopack",
     "dev:prisma": "pnpm run prisma:dev && pnpm run prisma:generate",
@@ -31,8 +31,7 @@
     "prisma:dev": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
-    "prisma:studio": "prisma studio",
-    "prebuild": "prisma generate"
+    "prisma:studio": "prisma studio"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -44,6 +43,9 @@
     "@aws-sdk/s3-request-presigner": "3.873.0",
     "@aws-sdk/util-create-request": "^3.936.0",
     "@aws-sdk/util-format-url": "^3.936.0",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@hono/node-server": "1.19.0",
     "@hookform/resolvers": "3.10.0",
     "@paralleldrive/cuid2": "2.2.2",
@@ -77,6 +79,7 @@
     "@radix-ui/react-tooltip": "1.2.8",
     "@remixicon/react": "^4.7.0",
     "@smithy/protocol-http": "^5.3.5",
+    "@smithy/types": "^4.14.0",
     "antd": "^6.0.0",
     "axios": "^1.14.0",
     "bcryptjs": "^3.0.3",

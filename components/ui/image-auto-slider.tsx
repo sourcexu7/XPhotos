@@ -94,19 +94,19 @@ export const ImageAutoSlider = ({ images }: ImageAutoSliderProps) => {
         }
       `}</style>
       
-      <div className="w-full bg-transparent relative overflow-hidden flex items-center justify-center py-4">
+      <div className="w-full bg-transparent relative overflow-hidden flex items-center justify-center py-5">
         {/* 骨架屏 - 在第一张图片加载完成前显示 */}
         {!firstImageLoaded && (
           <div className="absolute inset-0 z-20 flex items-center justify-center">
-            <div className="scroll-container w-full max-w-[1400px]">
-              <div className="flex gap-6 w-max">
+            <div className="scroll-container w-full max-w-[1600px]">
+              <div className="flex gap-7 w-max">
                 {[...Array(8)].map((_, index) => (
                   <div
                     key={`skeleton-${index}`}
-                    className="relative flex-shrink-0 rounded-xl overflow-hidden bg-gray-200 animate-pulse"
+                    className="relative flex-shrink-0 rounded-2xl overflow-hidden bg-gray-200/60 dark:bg-gray-700/40 animate-pulse"
                     style={{
-                      width: 'clamp(128px, 20vw, 256px)',
-                      aspectRatio: '4/3',
+                      width: 'clamp(160px, 26vw, 320px)',
+                      aspectRatio: '3/2',
                     }}
                   />
                 ))}
@@ -117,25 +117,24 @@ export const ImageAutoSlider = ({ images }: ImageAutoSliderProps) => {
         
         {/* Scrolling images container */}
         <div className={`relative z-10 w-full flex items-center justify-center transition-opacity duration-500 ${firstImageLoaded ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="scroll-container w-full max-w-[1400px]">
-            <div className="infinite-scroll flex gap-6 w-max">
+          <div className="scroll-container w-full max-w-[1600px]">
+            <div className="infinite-scroll flex gap-7 w-max">
               {duplicatedImages.map((image, index) => (
                 <div
                   key={`${image.id}-${index}`}
-                  className="image-item relative flex-shrink-0 rounded-xl overflow-hidden"
+                  className="image-item relative flex-shrink-0 rounded-2xl overflow-hidden shadow-lg ring-1 ring-white/10 dark:ring-white/5"
                   style={{
-                    width: 'clamp(128px, 20vw, 256px)',
-                    aspectRatio: '4/3',
+                    width: 'clamp(160px, 26vw, 320px)',
+                    aspectRatio: '3/2',
                   }}
                 >
                   <Image
                     src={image.preview_url || image.url || ''}
                     alt={image.title || `Gallery image ${index + 1}`}
                     fill
-                    sizes="(max-width: 768px) 128px, (max-width: 1024px) 192px, 256px"
+                    sizes="(max-width: 768px) 160px, (max-width: 1024px) 240px, 320px"
                     className="object-cover"
                     onLoad={() => {
-                      // 作为备用方案，如果预加载没有触发，这里也会更新状态
                       if (index === 0 && !firstImageLoaded) {
                         setFirstImageLoaded(true)
                       }

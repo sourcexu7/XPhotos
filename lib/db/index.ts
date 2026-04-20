@@ -2,21 +2,18 @@ import { PrismaClient } from '@prisma/client'
 
 const prismaClientSingleton = () => {
   const client = new PrismaClient({
-    // 性能优化：生产环境关闭日志，减少 I/O 开销
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-    // 性能优化：连接池配置，适配 Node.js >=20 高并发场景
     datasources: {
       db: {
         url: process.env.DATABASE_URL,
       },
     },
   })
-  
-  // 添加连接错误处理
+
   client.$on('error' as never, (e: unknown) => {
     console.error('Prisma Client Error:', e)
   })
-  
+
   return client
 }
 
@@ -60,3 +57,52 @@ if (typeof process !== 'undefined' && !globalThis.prismaShutdownListenersAdded) 
 }
 
 export const db = prisma
+
+export async function checkDatabaseHealth() {
+  try {
+    const startTime = Date.now()
+    await prisma.$queryRaw`SELECT 1`
+    const responseTime = Date.now() - startTime
+
+    return {
+      status: 'healthy',
+      responseTime: `${responseTime}ms`,
+      timestamp: new Date().toISOString(),
+    }
+  } catch (error) {
+    console.error('Database health check failed:', error)
+    return {
+      status: 'unhealthy',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    }
+  }
+}
+
+export async function getConnectionPoolInfo() {
+  try {
+    const result = await prisma.$queryRaw<Array<{ count: number }>>`
+      SELECT count(*) as count FROM pg_stat_activity WHERE state = 'active'
+    `
+
+    const activeConnections = Number(result[0]?.count) || 0
+
+    const dbUrl = process.env.DATABASE_URL || ''
+    const connectionLimitMatch = dbUrl.match(/connection_limit=(\d+)/)
+    const connectionLimit = connectionLimitMatch ? parseInt(connectionLimitMatch[1], 10) : 13
+
+    return {
+      activeConnections,
+      connectionLimit,
+      utilization: `${Math.round((activeConnections / connectionLimit) * 100)}%`,
+      status: activeConnections >= connectionLimit * 0.8 ? 'warning' : 'ok',
+      timestamp: new Date().toISOString(),
+    }
+  } catch (error) {
+    console.error('Failed to get connection pool info:', error)
+    return {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    }
+  }
+}

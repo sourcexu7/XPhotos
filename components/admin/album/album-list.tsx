@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useSwrHydrated } from '~/hooks/use-swr-hydrated'
-import { ArrowDown10, ArrowUp, ArrowDown, Pin } from 'lucide-react'
+import { ArrowUp, ArrowDown, Pin, Settings2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Empty } from 'antd'
 import type { AlbumType } from '~/types'
@@ -21,11 +21,13 @@ import {
 import { SquarePenIcon } from '~/components/icons/square-pen'
 import { DeleteIcon } from '~/components/icons/delete'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { Badge } from '~/components/ui/badge'
 import AlbumAddButton from '~/components/admin/album/album-add-button'
 
 export default function AlbumList(props : Readonly<HandleProps>) {
   const { data, mutate, isLoading } = useSwrHydrated(props)
+  const router = useRouter()
   const [album, setAlbum] = useState({} as AlbumType)
   const [albums, setAlbums] = useState<AlbumType[]>([])
   const [prevAlbums, setPrevAlbums] = useState<AlbumType[]>([])
@@ -271,6 +273,18 @@ export default function AlbumList(props : Readonly<HandleProps>) {
                     <ArrowDown size={16} className="w-4 h-4" strokeWidth={1.5} />
                   </button>
                 </div>
+
+                {/* 管理排序按钮 */}
+                <button
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-background text-text-secondary transition-all duration-200 hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                  onClick={() => {
+                    router.push(`/admin/album/${encodeURIComponent(album.album_value)}/sort`)
+                  }}
+                  title={t('Album.manageSort')}
+                  aria-label={t('Album.manageSort')}
+                >
+                  <Settings2 size={16} />
+                </button>
 
                 {/* 编辑按钮 */}
                 <button

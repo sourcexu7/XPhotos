@@ -75,19 +75,105 @@
   }
 
   @keyframes blob {
-    0% {
-      transform: translate(0px, 0px) scale(1);
-    }
-    33% {
-      transform: translate(30px, -50px) scale(1.1);
-    }
-    66% {
-      transform: translate(-20px, 20px) scale(0.9);
-    }
-    100% {
-      transform: translate(0px, 0px) scale(1);
-    }
+  0% {
+    transform: translate(0px, 0px) scale(1);
   }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(15px, -20px) rotate(2deg); }
+  50% { transform: translate(-10px, 15px) rotate(-1deg); }
+  75% { transform: translate(20px, 10px) rotate(1deg); }
+}
+
+@keyframes float-medium {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(-20px, 15px) scale(1.05); }
+  50% { transform: translate(15px, -20px) scale(0.95); }
+  75% { transform: translate(-15px, -10px) scale(1.03); }
+}
+
+@keyframes float-fast {
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  33% { transform: translate(12px, -18px) rotate(3deg) scale(1.08); }
+  66% { transform: translate(-18px, 12px) rotate(-2deg) scale(0.92); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.05); }
+}
+
+@keyframes pulse-medium {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.08); }
+}
+
+@keyframes glow {
+  0%, 100% { opacity: 0.45; transform: scale(1); filter: blur(100px); }
+  50% { opacity: 0.65; transform: scale(1.15); filter: blur(110px); }
+}
+
+@keyframes glow-delayed {
+  0%, 100% { opacity: 0.4; transform: scale(1); filter: blur(90px); }
+  50% { opacity: 0.55; transform: scale(1.12); filter: blur(100px); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 0.2; transform: scale(0.8); }
+}
+
+@keyframes twinkle-delayed {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.85); }
+}
+
+@keyframes twinkle-slow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 0.2; transform: scale(0.7); }
+}
+
+@keyframes nebula {
+  0%, 100% { 
+    opacity: 0.35; 
+    transform: translate(0, 0) scale(1) rotate(0deg); 
+    filter: blur(130px);
+  }
+  33% { 
+    opacity: 0.5; 
+    transform: translate(20px, -30px) scale(1.1) rotate(5deg); 
+    filter: blur(140px);
+  }
+  66% { 
+    opacity: 0.4; 
+    transform: translate(-15px, 20px) scale(0.95) rotate(-3deg); 
+    filter: blur(125px);
+  }
+}
+
+@keyframes nebula-delayed {
+  0%, 100% { 
+    opacity: 0.3; 
+    transform: translate(0, 0) scale(1) rotate(0deg); 
+    filter: blur(120px);
+  }
+  50% { 
+    opacity: 0.45; 
+    transform: translate(-25px, 15px) scale(1.08) rotate(-4deg); 
+    filter: blur(128px);
+  }
+}
 }
 
 .animate-blob {
@@ -100,6 +186,59 @@
 
 .animation-delay-4000 {
   animation-delay: 4s;
+}
+
+/* Hero background animations */
+.animate-float-slow {
+  animation: float-slow 20s ease-in-out infinite;
+}
+
+.animate-float-medium {
+  animation: float-medium 15s ease-in-out infinite;
+}
+
+.animate-float-fast {
+  animation: float-fast 12s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 8s ease-in-out infinite;
+}
+
+.animate-pulse-medium {
+  animation: pulse-medium 6s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 10s ease-in-out infinite;
+}
+
+.animate-glow-delayed {
+  animation: glow-delayed 10s ease-in-out infinite;
+  animation-delay: 3s;
+}
+
+.animate-twinkle {
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+.animate-twinkle-delayed {
+  animation: twinkle-delayed 4s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+.animate-twinkle-slow {
+  animation: twinkle-slow 5s ease-in-out infinite;
+  animation-delay: 2.5s;
+}
+
+.animate-nebula {
+  animation: nebula 25s ease-in-out infinite;
+}
+
+.animate-nebula-delayed {
+  animation: nebula-delayed 22s ease-in-out infinite;
+  animation-delay: 5s;
 }
 
 /* 优化：合并重复的 CSS 变量定义，减少代码冗余 */

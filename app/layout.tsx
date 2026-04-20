@@ -86,7 +86,7 @@ export default async function RootLayout({
   const umamiAnalytics = getConfigValue(data, 'umami_analytics')
 
   return (
-    <html className="overflow-y-auto scrollbar-hide" lang={locale} suppressHydrationWarning>
+    <html className="overflow-y-auto scrollbar-hide" lang={locale} suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />

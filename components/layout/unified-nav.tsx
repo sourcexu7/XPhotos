@@ -2,18 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter, usePathname } from 'next/navigation'
-import { Affix } from 'antd'
+import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import Command from '~/components/layout/command'
 import { authClient } from '~/lib/auth-client'
 import { useTheme } from 'next-themes'
-import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '~/lib/utils'
 import type { AlbumType } from '~/types'
 import { 
-  HomeIcon, 
-  ImageIcon,
   SunIcon, 
   MoonIcon, 
   HamburgerMenuIcon,
@@ -36,7 +32,6 @@ export default function UnifiedNav({
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const router = useRouter()
   const pathname = usePathname()
   const t = useTranslations()
   const { data: session } = authClient.useSession()
@@ -54,19 +49,18 @@ export default function UnifiedNav({
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false)
   }, [pathname])
 
-  // Bug修复：导航顺序要求「相册分类」之后再放「关于我」，且倒数第二
-  // 需求修改：将「景行集」与「城隅寻迹」的位置互换
   const navLinks = [
-    { name: '序章', href: '/', icon: <HomeIcon className="w-4 h-4" /> },
-    { name: '城隅寻迹', href: '/covers', icon: <ImageIcon className="w-4 h-4" /> },
+    { name: '序章', href: '/' },
+    { name: '城隅寻迹', href: '/covers' },
+    { name: '景行集', href: '/albums' },
+    { name: '攻略路书', href: '/guides' },
+    { name: '关于我', href: '/about' },
   ]
 
-  // Filter albums for the dropdown/list
   const visibleAlbums = albums.filter((album) => album.album_value !== '/' && album.show === 0)
 
   const isActive = (path: string) => {
@@ -76,226 +70,164 @@ export default function UnifiedNav({
 
   return (
     <>
-      <Affix offsetTop={0}>
-        <nav
-          className={cn(
-            'w-full h-[60px] fixed top-0 left-0 z-50 transition-all duration-300',
-            'backdrop-blur-[12px] bg-background/15 border-b border-transparent',
-            isScrolled && 'border-b-[1px] border-white/10 shadow-lg'
-          )}
-          style={{
-            borderBottomImage: isScrolled ? 'linear-gradient(to right, var(--primary), var(--secondary)) 1' : 'none'
-          }}
-        >
-          <div className="max-w-[1400px] mx-auto px-4 h-full flex items-center justify-between">
-            {/* Logo */}
-            <Link href="/" className="flex-shrink-0 group">
-              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] tracking-tight group-hover:opacity-80 transition-opacity">
-                {siteTitle}
-              </span>
-            </Link>
+      <nav
+        className={cn(
+          'w-full fixed top-0 left-0 z-50 transition-all duration-300',
+          'backdrop-blur-[12px] bg-background/15 border-b border-transparent',
+          isScrolled && 'border-b-[1px] border-white/10 shadow-lg'
+        )}
+        style={{
+          height: 64,
+          borderBottomImage: isScrolled ? 'linear-gradient(to right, var(--primary), var(--secondary)) 1' : 'none'
+        }}
+      >
+        <div className="max-w-[1200px] mx-auto h-full flex items-center justify-between px-5">
+          {/* Logo */}
+          <Link href="/" className="flex-shrink-0 group">
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] tracking-tight group-hover:opacity-80 transition-opacity">
+              {siteTitle}
+            </span>
+          </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-6">
-              {navLinks.map((link) => (
+          {/* Desktop Navigation */}
+          <div className="hidden lg:flex items-center gap-7">
+            {navLinks.map((link) => (
+              <div key={link.href} className="h-[30px] min-w-[60px] px-4 flex justify-center items-center relative">
                 <Link
-                  key={link.href}
                   href={link.href}
-                  className="relative group py-2"
+                  className={cn(
+                    'transition-all duration-200',
+                    isActive(link.href)
+                      ? 'text-primary font-semibold relative flex flex-col justify-center items-center'
+                      : 'font-normal text-muted-foreground hover:text-primary hover:font-semibold'
+                  )}
                 >
-                  <span 
-                    className={cn(
-                      'text-[16px] transition-all duration-300 block',
-                      isActive(link.href) 
-                        ? 'bg-clip-text text-transparent bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] font-medium'
-                        : 'text-foreground/90 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[var(--primary)] group-hover:to-[var(--secondary)] group-hover:translate-x-[5px]'
-                    )}
-                  >
-                    {link.name}
-                  </span>
+                  <span className="relative z-10">{link.name}</span>
                   {isActive(link.href) && (
-                    <motion.div
-                      layoutId="underline"
-                      className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)]"
-                    />
+                    <span className="absolute bottom-0 w-full h-[12px] bg-primary/20 rounded" />
                   )}
                 </Link>
-              ))}
-
-              {/* 需求修改：将「景行集」放在「城隅寻迹」之后 */}
-              <Link
-                href="/albums"
-                className="relative group py-2"
-              >
-                <span
-                  className={cn(
-                    'text-[16px] transition-all duration-300 block select-none',
-                    isActive('/albums')
-                      ? 'bg-clip-text text-transparent bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] font-medium'
-                      : 'text-foreground/90 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[var(--primary)] group-hover:to-[var(--secondary)] group-hover:translate-x-[5px]',
-                  )}
-                >
-                  景行集
-                </span>
-                {isActive('/albums') && (
-                  <motion.div
-                    layoutId="underline"
-                    className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)]"
-                  />
-                )}
-              </Link>
-
-              {/* 关于我：放在相册分类之后、倒数第二 */}
-              <Link
-                href="/about"
-                className="relative group py-2"
-              >
-                <span
-                  className={cn(
-                    'text-[16px] transition-all duration-300 block select-none',
-                    isActive('/about')
-                      ? 'bg-clip-text text-transparent bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] font-medium'
-                      : 'text-foreground/90 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[var(--primary)] group-hover:to-[var(--secondary)] group-hover:translate-x-[5px]',
-                  )}
-                >
-                  关于我
-                </span>
-                {isActive('/about') && (
-                  <motion.div
-                    layoutId="underline"
-                    className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)]"
-                  />
-                )}
-              </Link>
-
-              {/* Console / Login */}
-              <Link
-                href={session ? '/admin' : '/login'}
-                className="relative group py-2"
-              >
-                 <span className={cn(
-                      'text-[16px] transition-all duration-300 block',
-                      isActive('/admin') || isActive('/login')
-                        ? 'bg-clip-text text-transparent bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] font-medium'
-                        : 'text-foreground/90 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[var(--primary)] group-hover:to-[var(--secondary)] group-hover:translate-x-[5px]'
-                    )}>
-                    {session ? t('Link.dashboard') : t('Login.signIn')}
-                 </span>
-              </Link>
-
-              {/* Dark Mode Toggle */}
-              {mounted && (
-                <button
-                  onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-                  className="p-2 rounded-full hover:bg-white/10 transition-colors duration-200"
-                  aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                >
-                  {resolvedTheme === 'dark' ? (
-                    <SunIcon className="w-5 h-5 text-foreground/90" />
-                  ) : (
-                    <MoonIcon className="w-5 h-5 text-foreground/90" />
-                  )}
-                </button>
-              )}
-            </div>
-
-            {/* Mobile Menu Toggle */}
-            <div className="md:hidden flex items-center">
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 text-foreground/90 hover:text-white transition-colors"
-              >
-                {mobileMenuOpen ? <Cross1Icon className="w-6 h-6" /> : <HamburgerMenuIcon className="w-6 h-6" />}
-              </button>
-            </div>
-          </div>
-        </nav>
-      </Affix>
-
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-background/95 backdrop-blur-xl pt-[80px] px-6 md:hidden overflow-y-auto"
-          >
-              <div className="flex flex-col space-y-6 pb-10">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-2xl font-medium text-gray-200 hover:text-white"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {link.name}
-                </Link>
-              ))}
-              {/* 需求修改：将「景行集」放在「城隅寻迹」之后 */}
-              <Link
-                href="/albums"
-                className="text-2xl font-medium text-gray-200 hover:text-white"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                景行集
-              </Link>
-              <Link
-                href="/about"
-                className="text-2xl font-medium text-gray-200 hover:text-white"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                关于我
-              </Link>
-              
-              <div className="text-sm text-gray-500 uppercase tracking-wider mt-4">相册</div>
-              <div className="grid grid-cols-2 gap-4">
-                {visibleAlbums.map(album => (
-                  <Link
-                    key={album.id}
-                    href={album.album_value}
-                    className="text-lg text-gray-300 hover:text-white"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {album.name}
-                  </Link>
-                ))}
               </div>
+            ))}
 
-              <div className="h-[1px] bg-white/10 my-4" />
-
-              {/* Dark Mode Toggle for Mobile */}
-              {mounted && (
-                <button
-                  onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-                  className="flex items-center space-x-2 text-xl text-gray-200 p-2 rounded-lg hover:bg-white/10 transition-colors duration-200"
-                >
-                  {resolvedTheme === 'dark' ? (
-                    <>
-                      <SunIcon className="w-5 h-5" />
-                      <span>浅色模式</span>
-                    </>
-                  ) : (
-                    <>
-                      <MoonIcon className="w-5 h-5" />
-                      <span>深色模式</span>
-                    </>
-                  )}
-                </button>
-              )}
-
+            {/* Console / Login */}
+            <div className="h-[30px] min-w-[60px] px-4 flex justify-center items-center">
               <Link
                 href={session ? '/admin' : '/login'}
-                className="text-xl text-gray-200"
-                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  'transition-all duration-200',
+                  isActive('/admin') || isActive('/login')
+                    ? 'text-primary font-semibold'
+                    : 'font-normal text-muted-foreground hover:text-primary hover:font-semibold'
+                )}
               >
                 {session ? t('Link.dashboard') : t('Login.signIn')}
               </Link>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+            {/* Dark Mode Toggle */}
+            {mounted && (
+              <button
+                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                className="p-2 hover:bg-muted rounded-md transition-colors"
+                aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {resolvedTheme === 'dark' ? (
+                  <SunIcon className="w-5 h-5 text-foreground/70" />
+                ) : (
+                  <MoonIcon className="w-5 h-5 text-foreground/70" />
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Mobile Menu Toggle */}
+          <div className="lg:hidden flex items-center gap-2">
+            {mounted && (
+              <button
+                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                className="p-2 hover:bg-muted rounded-md transition-colors"
+                aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {resolvedTheme === 'dark' ? (
+                  <SunIcon className="w-5 h-5 text-foreground/70" />
+                ) : (
+                  <MoonIcon className="w-5 h-5 text-foreground/70" />
+                )}
+              </button>
+            )}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 hover:bg-muted rounded-md transition-colors touch-manipulation"
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            >
+              {mobileMenuOpen ? (
+                <Cross1Icon className="w-6 h-6 text-foreground" />
+              ) : (
+                <HamburgerMenuIcon className="w-6 h-6 text-foreground" />
+              )}
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-background lg:hidden overflow-y-auto pt-[80px]"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <div className="flex flex-col px-6 pb-10" onClick={(e) => e.stopPropagation()}>
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  'py-3 border-b border-border last:border-b-0',
+                  'text-lg font-medium transition-colors',
+                  isActive(link.href)
+                    ? 'text-primary'
+                    : 'text-foreground/60 hover:text-primary'
+                )}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {link.name}
+              </Link>
+            ))}
+
+            {/* Albums Section */}
+            {visibleAlbums.length > 0 && (
+              <>
+                <div className="pt-4 pb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground mt-2">
+                  相册
+                </div>
+                <div className="grid grid-cols-2 gap-1">
+                  {visibleAlbums.map((album) => (
+                    <Link
+                      key={album.id}
+                      href={album.album_value}
+                      className="py-2.5 px-3 text-sm text-foreground/60 hover:text-primary hover:bg-muted/50 rounded transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {album.name}
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div className="h-px bg-border my-5" />
+
+            <Link
+              href={session ? '/admin' : '/login'}
+              className="py-3 text-lg font-medium text-foreground/80 hover:text-primary transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {session ? t('Link.dashboard') : t('Login.signIn')}
+            </Link>
+          </div>
+        </div>
+      )}
 
       <Command data={albums} />
     </>

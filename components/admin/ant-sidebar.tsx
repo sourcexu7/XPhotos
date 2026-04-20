@@ -16,6 +16,7 @@ import {
   LogoutOutlined,
   HomeOutlined,
   BarChartOutlined,
+  BookOutlined,
 } from '@ant-design/icons'
 import { authClient } from '~/lib/auth-client'
 import { clearAllAuthData } from '~/lib/utils/auth-utils'
@@ -63,6 +64,11 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
       key: '/admin/album',
       icon: <PictureOutlined />,
       label: t('Link.album'),
+    },
+    {
+      key: '/admin/guides',
+      icon: <BookOutlined />,
+      label: '攻略管理',
     },
   ]
 

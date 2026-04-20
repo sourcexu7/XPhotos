@@ -55,7 +55,7 @@ export async function deleteAlbum(id: string) {
  * 更新相册
  * @param album 相册数据
  */
-export async function updateAlbum(album: AlbumType) {
+export async function updateAlbum(album: Partial<AlbumType> & { id: string }) {
   await db.$transaction(async (tx) => {
     const existingAlbum = await tx.albums.findFirst({
       where: { id: album.id },
@@ -65,25 +65,26 @@ export async function updateAlbum(album: AlbumType) {
       throw new Error('相册不存在！')
     }
 
+    const updateData: any = { updatedAt: new Date() }
+    
+    if (album.name !== undefined) updateData.name = album.name
+    if (album.album_value !== undefined) updateData.album_value = album.album_value
+    if (album.detail !== undefined) updateData.detail = album.detail
+    if (album.sort !== undefined) updateData.sort = normalizeSortValue(album.sort)
+    if (album.theme !== undefined) updateData.theme = album.theme
+    if (album.show !== undefined) updateData.show = album.show
+    if (album.license !== undefined) updateData.license = album.license
+    if (album.image_sorting !== undefined) updateData.image_sorting = album.image_sorting
+    if (album.random_show !== undefined) updateData.random_show = album.random_show
+    if (album.cover !== undefined) updateData.cover = album.cover
+
     await tx.albums.update({
       where: { id: album.id },
-      data: {
-        name: album.name,
-        album_value: album.album_value,
-        detail: album.detail,
-        sort: normalizeSortValue(album.sort),
-        theme: album.theme,
-        show: album.show,
-        license: album.license,
-        updatedAt: new Date(),
-        image_sorting: album.image_sorting,
-        random_show: album.random_show,
-        cover: album.cover,
-      },
+      data: updateData,
     })
 
     // 如果相册路由发生变化，更新关联表
-    if (existingAlbum.album_value !== album.album_value) {
+    if (album.album_value && existingAlbum.album_value !== album.album_value) {
       await tx.imagesAlbumsRelation.updateMany({
         where: { album_value: existingAlbum.album_value },
         data: { album_value: album.album_value },

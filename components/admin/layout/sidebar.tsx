@@ -25,6 +25,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  BookOpen,
 } from 'lucide-react'
 import { authClient } from '~/lib/auth-client'
 import { clearAllAuthData } from '~/lib/utils/auth-utils'
@@ -74,6 +75,7 @@ export function AdminSidebar({ collapsed: controlledCollapsed, onCollapse }: Adm
     { key: '/admin/upload', label: t('Link.upload'), icon: Upload },
     { key: '/admin/list', label: t('Link.list'), icon: List },
     { key: '/admin/album', label: t('Link.album'), icon: Images },
+    { key: '/admin/guides', label: '攻略管理', icon: BookOpen },
   ]
   
   const settingsItems: SidebarItem[] = [
