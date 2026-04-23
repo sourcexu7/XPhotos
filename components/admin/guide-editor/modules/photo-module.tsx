@@ -9,7 +9,7 @@ import {
   Form,
   Popconfirm,
   Select,
-  message,
+  App,
 } from 'antd'
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
 
@@ -34,9 +34,10 @@ export default function PhotoModule({ value, onChange }: PhotoModuleProps) {
   const [spots, setSpots] = useState<PhotoSpot[]>(value || [])
   const [editingSpot, setEditingSpot] = useState<PhotoSpot | null>(null)
   const [form] = Form.useForm()
+  const { message } = App.useApp()
 
   useEffect(() => {
-    if (value && value.length > 0) {
+    if (value !== undefined && value !== null) {
       setSpots(value)
     }
   }, [value])

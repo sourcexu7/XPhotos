@@ -203,8 +203,8 @@ export default function ThemeGalleryClient({
     <>
       {getGalleryComponent()}
 
-      {/* Theme & Filter Toggle Buttons */}
-      <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-3">
+      {/* Theme & Filter Toggle Buttons - Optimized Layout */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
         {enableFilters && (
           <>
             {/* 排序选择悬浮窗（仅在 /albums 页面显示） */}
@@ -214,10 +214,10 @@ export default function ThemeGalleryClient({
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-12 w-12 rounded-full bg-background/85 backdrop-blur-sm shadow-lg border-border hover:bg-accent"
+                    className="h-10 w-10 rounded-full bg-background/90 backdrop-blur-sm shadow-md border-border hover:bg-accent hover:shadow-lg transition-all duration-200"
                     title={sortByShootTime === 'desc' ? '拍摄时间：从新到旧' : sortByShootTime === 'asc' ? '拍摄时间：从旧到新' : '默认排序'}
                   >
-                    <ArrowUpDown className="h-5 w-5" />
+                    <ArrowUpDown className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent 
@@ -263,33 +263,33 @@ export default function ThemeGalleryClient({
             <Button
               variant="outline"
               size="icon"
-              className="h-12 w-12 rounded-full bg-background/85 backdrop-blur-sm shadow-lg border-border hover:bg-accent"
+              className="h-10 w-10 rounded-full bg-background/90 backdrop-blur-sm shadow-md border-border hover:bg-accent hover:shadow-lg transition-all duration-200"
               onClick={() => setFiltersOpen(o => !o)}
               title={filtersOpen ? '收起筛选' : '展开筛选'}
               aria-expanded={filtersOpen}
               aria-controls="gallery-filter-panel"
             >
-              <Filter className="h-5 w-5" />
+              <Filter className="h-4 w-4" />
             </Button>
           </>
         )}
         <Button
           variant="outline"
           size="icon"
-          className="h-12 w-12 rounded-full bg-background/80 backdrop-blur-sm shadow-lg border-border hover:bg-accent"
+          className="h-10 w-10 rounded-full bg-background/90 backdrop-blur-sm shadow-md border-border hover:bg-accent hover:shadow-lg transition-all duration-200"
           onClick={toggleTheme}
           title={toggleLabel}
         >
           {currentStyle === 'waterfall'
-            ? <Rows className="h-5 w-5" />
-            : <LayoutGrid className="h-5 w-5" />}
+            ? <Rows className="h-4 w-4" />
+            : <LayoutGrid className="h-4 w-4" />}
         </Button>
       </div>
       {enableFilters && filtersOpen && (
         <div
           id="gallery-filter-panel"
           ref={filterSectionRef}
-          className="fixed bottom-24 right-8 z-50 w-[min(92vw,520px)] rounded-2xl border border-border/60 bg-background/85 shadow-2xl supports-[backdrop-filter]:backdrop-blur-xl"
+          className="fixed bottom-20 right-6 z-50 w-[min(92vw,520px)] rounded-2xl border border-border/60 bg-background/85 shadow-2xl supports-[backdrop-filter]:backdrop-blur-xl"
         >
           <div className="px-4 pt-3 pb-4 space-y-3 text-xs md:text-sm text-foreground/80">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

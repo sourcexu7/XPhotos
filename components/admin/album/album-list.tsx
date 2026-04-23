@@ -294,6 +294,7 @@ export default function AlbumList(props : Readonly<HandleProps>) {
                     setAlbumEdit(true)
                   }}
                   title={t('Album.editAlbum')}
+                  aria-label={t('Album.editAlbum')}
                 >
                   <SquarePenIcon size={16} />
                 </button>
@@ -311,6 +312,7 @@ export default function AlbumList(props : Readonly<HandleProps>) {
                         setAlbum(album)
                       }}
                       title={t('Album.deleteAlbum')}
+                      aria-label={t('Album.deleteAlbum')}
                     >
                       <DeleteIcon size={16} />
                     </button>

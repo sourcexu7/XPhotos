@@ -4,6 +4,7 @@ import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
 import { Github, Instagram, Book, MessagesSquare, AlertCircle, RefreshCw } from 'lucide-react'
 import { FramerCarousel, CarouselItem } from '~/components/ui/framer-carousel'
+import { cn } from '~/lib/utils'
 
 interface AboutConfig {
   config_key: string
@@ -135,10 +136,10 @@ export default function AboutPage() {
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
       <div className="w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-8">
         {/* 响应式布局：移动端上下结构，桌面端 1/3 + 2/3 */}
-        <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-20">
+        <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
           
           {/* 左侧：个人简介 + 社交媒体链接 */}
-          <section className="w-full lg:w-[30%] flex flex-col justify-center space-y-6 order-2 lg:order-1">
+          <section className="w-full lg:w-[35%] flex flex-col justify-center space-y-6 order-2 lg:order-1">
             {/* 标题区域 */}
             <header className="space-y-4">
               <div className="inline-block">
@@ -168,12 +169,20 @@ export default function AboutPage() {
                       href={link.href}
                       target="_blank"
                       rel="noreferrer"
-                      className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-foreground/5 border border-foreground/10 text-sm text-foreground/80 hover:text-foreground hover:bg-foreground/10 hover:border-foreground/20 transition-all duration-300"
+                      className={cn(
+                        "group inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-all duration-300",
+                        "hover:scale-105 hover:shadow-md",
+                        link.key === 'instagram' && "bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100 dark:bg-pink-950/30 dark:border-pink-800 dark:text-pink-400",
+                        link.key === 'twitter' && "bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100 dark:bg-sky-950/30 dark:border-sky-800 dark:text-sky-400",
+                        link.key === 'github' && "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-300",
+                        link.key === 'weibo' && "bg-red-50 border-red-200 text-red-700 hover:bg-red-100 dark:bg-red-950/30 dark:border-red-800 dark:text-red-400",
+                        !['instagram', 'twitter', 'github', 'weibo'].includes(link.key) && "bg-foreground/5 border-foreground/10 text-foreground/80 hover:text-foreground hover:bg-foreground/10 hover:border-foreground/20"
+                      )}
                     >
-                      <span className="transform group-hover:scale-110 transition-transform">
+                      <span className="transform group-hover:rotate-12 transition-transform">
                         {link.icon}
                       </span>
-                      <span className="font-medium">{link.label}</span>
+                      <span>{link.label}</span>
                     </a>
                   ))}
                 </div>
@@ -188,7 +197,7 @@ export default function AboutPage() {
           </section>
 
           {/* 右侧：多图轮播展示 */}
-          <section className="w-full lg:w-[65%] order-1 lg:order-2 lg:pl-4">
+          <section className="w-full lg:w-[60%] order-1 lg:order-2 lg:pl-4">
             {galleryImages.length > 0 ? (
               <FramerCarousel
                 items={galleryImages}

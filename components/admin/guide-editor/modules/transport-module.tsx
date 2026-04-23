@@ -9,8 +9,8 @@ import {
   Form,
   Popconfirm,
   Select,
-  message,
   InputNumber,
+  App,
 } from 'antd'
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
 
@@ -45,9 +45,10 @@ export default function TransportModule({ value, onChange }: TransportModuleProp
   const [items, setItems] = useState<TransportItem[]>(value || [])
   const [editingItem, setEditingItem] = useState<TransportItem | null>(null)
   const [form] = Form.useForm()
+  const { message } = App.useApp()
 
   useEffect(() => {
-    if (value && value.length > 0) {
+    if (value !== undefined && value !== null) {
       setItems(value)
     }
   }, [value])

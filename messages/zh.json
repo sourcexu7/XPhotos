@@ -655,7 +655,14 @@
     "previous": "上一页",
     "next": "下一页",
     "updated": "更新于 {date}",
-    "photoCount": "{count} 张照片"
+    "photoCount": "{count} 张照片",
+    "totalGuides": "攻略数量",
+    "totalLenses": "镜头型号",
+    "todayVisits": "今日访问",
+    "visitTrend": "访问趋势（近7天）",
+    "photosByYear": "年份照片分布",
+    "topCameras": "最常用相机 TOP 5",
+    "topLenses": "最常用镜头 TOP 5"
   },
   "GuideEditor": {
     "addModule": "添加模块",

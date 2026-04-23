@@ -62,7 +62,7 @@ export default async function AlbumsPage() {
   }
 
   return (
-    <div className="pt-[60px]">
+    <div className="pt-16">
       <ThemeGalleryClient
         systemStyle={systemStyle}
         enableFilters

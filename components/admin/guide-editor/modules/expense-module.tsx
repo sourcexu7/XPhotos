@@ -9,13 +9,13 @@ import {
   InputNumber,
   Form,
   Popconfirm,
-  message,
   Table,
   Tag,
   Divider,
   Statistic,
   Row,
   Col,
+  App,
 } from 'antd'
 import {
   PlusOutlined,
@@ -82,9 +82,10 @@ export default function ExpenseModule({ value, onChange }: ExpenseModuleProps) {
   const [items, setItems] = useState<ExpenseItem[]>(value || [])
   const [editingItem, setEditingItem] = useState<ExpenseItem | null>(null)
   const [form] = Form.useForm()
+  const { message } = App.useApp()
 
   useEffect(() => {
-    if (value && value.length > 0) {
+    if (value !== undefined && value !== null) {
       setItems(value)
     }
   }, [value])

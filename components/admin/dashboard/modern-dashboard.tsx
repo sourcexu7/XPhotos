@@ -171,7 +171,7 @@ export function ModernDashboard({
             if (!route) {
               return (
                 <div key={s.id} className={common}>
-                  <div className="text-sm text-slate-500 dark:text-slate-400 mb-1">{s.label}</div>
+                  <div className="text-sm text-slate-600 dark:text-slate-500 mb-1">{s.label}</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{s.value}</div>
                 </div>
               )
@@ -185,7 +185,7 @@ export function ModernDashboard({
                 className={`${common} cursor-pointer hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all duration-200`}
                 aria-label={`跳转到 ${s.label}`}
               >
-                <div className="text-sm text-slate-500 dark:text-slate-400 mb-1">{s.label}</div>
+                <div className="text-sm text-slate-600 dark:text-slate-500 mb-1">{s.label}</div>
                 <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{s.value}</div>
               </button>
             )
@@ -226,7 +226,7 @@ export function ModernDashboard({
               aria-label="切换排序方向"
               className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
-              <ArrowUpDown className={cx('size-4 text-slate-600 dark:text-slate-400 transition-transform', sortDir === 'asc' && 'rotate-180')} />
+              <ArrowUpDown className={cx('size-4 text-slate-700 dark:text-slate-500 transition-transform', sortDir === 'asc' && 'rotate-180')} />
             </button>
 
             <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-1">
@@ -276,14 +276,14 @@ export function ModernDashboard({
                 <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate pr-4" title={p.name}>
                   {p.name}
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{p.subtitle}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-500 mt-1">{p.subtitle}</p>
               </div>
             </div>
 
             {/* Progress */}
             <div className={cx('flex-1', viewMode === 'grid' && 'mt-6 mb-4')}>
               <div className="flex justify-between text-xs mb-2">
-                <span className="text-slate-500 dark:text-slate-400">{t('visibility')}</span>
+                <span className="text-slate-600 dark:text-slate-500">{t('visibility')}</span>
                 <span className="font-medium text-slate-700 dark:text-slate-300">{p.progress}{t('percentPublic')}</span>
               </div>
               <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -318,7 +318,7 @@ export function ModernDashboard({
         ))}
 
         {pagedProjects.length === 0 && (
-          <div className="col-span-full py-12 text-center text-slate-500 dark:text-slate-400">
+          <div className="col-span-full py-12 text-center text-slate-600 dark:text-slate-500">
             {emptyProjectsLabel || t('noResults')}
           </div>
         )}
@@ -327,7 +327,7 @@ export function ModernDashboard({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
-          <div className="text-sm text-slate-500 dark:text-slate-400">
+          <div className="text-sm text-slate-600 dark:text-slate-500">
             {t('pageInfo', { current: currentPage, total: totalPages })}
           </div>
           <div className="flex gap-2">
@@ -335,6 +335,8 @@ export function ModernDashboard({
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:focus:ring-0"
+              aria-label="上一页"
+              aria-disabled={currentPage === 1}
             >
               {t('previous')}
             </button>
@@ -342,6 +344,8 @@ export function ModernDashboard({
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:focus:ring-0"
+              aria-label="下一页"
+              aria-disabled={currentPage === totalPages}
             >
               {t('next')}
             </button>

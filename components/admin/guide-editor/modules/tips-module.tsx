@@ -9,7 +9,7 @@ import {
   Form,
   Popconfirm,
   Select,
-  message,
+  App,
 } from 'antd'
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
 
@@ -32,9 +32,10 @@ export default function TipsModule({ value, onChange }: TipsModuleProps) {
   const [tips, setTips] = useState<Tip[]>(value || [])
   const [editingTip, setEditingTip] = useState<Tip | null>(null)
   const [form] = Form.useForm()
+  const { message } = App.useApp()
 
   useEffect(() => {
-    if (value && value.length > 0) {
+    if (value !== undefined && value !== null) {
       setTips(value)
     }
   }, [value])

@@ -9,6 +9,8 @@ import { Button } from '~/components/ui/button.tsx'
 import React, { useEffect, useRef, useMemo, useCallback, useState } from 'react'
 import { VirtualImageGallery } from '~/components/ui/virtual-image-gallery'
 import { useGalleryFilters } from '~/hooks/use-gallery-filters'
+import { EmptyState, ErrorState } from '~/components/ui/empty-state'
+import { ImageIcon } from 'lucide-react'
 
 export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
   // 避免 `props.filters?.xxx || []` 每次渲染都创建新数组，导致 hook deps 噪声
@@ -198,9 +200,28 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
           
           {/* 无数据提示：仅在非加载态且无错误时显示 */}
           {!error && !isValidating && dataList.length === 0 && (
-            <div className="flex items-center justify-center py-12">
-              <p className="text-muted-foreground text-sm">暂无匹配的图片</p>
-            </div>
+            <EmptyState
+              icon={ImageIcon}
+              title="暂无匹配的图片"
+              description="尝试调整筛选条件或清空所有筛选器"
+              actionLabel="清除筛选条件"
+              onAction={() => {
+                // 清空所有筛选
+                setCameraFilter([])
+                setLensFilter([])
+                setTagFilter([])
+                setSortByShootTime(undefined)
+              }}
+            />
+          )}
+          
+          {/* 错误状态提示 */}
+          {error && !isValidating && (
+            <ErrorState
+              title="加载失败"
+              message={error.message || '获取图片列表时遇到错误'}
+              onRetry={() => mutate()}
+            />
           )}
         </>
       )}

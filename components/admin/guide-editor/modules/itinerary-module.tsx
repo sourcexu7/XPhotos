@@ -8,13 +8,13 @@ import {
   Input,
   Form,
   Popconfirm,
-  message,
   Tag,
   Timeline,
   Badge,
   Divider,
   Empty,
   Modal,
+  App,
 } from 'antd'
 import {
   PlusOutlined,
@@ -34,12 +34,15 @@ const { TextArea } = Input
 interface ItineraryItem {
   id: string
   day: number
+  title?: string
+  date?: string
   time: string
   location: string
   duration: string
   description: string
   tips: string
   type: string
+  highlights: string[]
 }
 
 interface ItineraryModuleProps {
@@ -78,9 +81,10 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
   const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [form] = Form.useForm()
+  const { message } = App.useApp()
 
   useEffect(() => {
-    if (value && value.length > 0) {
+    if (value !== undefined && value !== null) {
       setItems(value)
     }
   }, [value])
@@ -89,12 +93,15 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
     const newItem: ItineraryItem = {
       id: Date.now().toString(),
       day: 1,
+      title: '',
+      date: '',
       time: '',
       location: '',
       duration: '',
       description: '',
       tips: '',
       type: '景点',
+      highlights: [],
     }
     setItems([...items, newItem])
     setEditingItem(newItem)
@@ -110,11 +117,17 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
 
   const handleSaveItem = async () => {
     if (!editingItem) return
-    
+
     try {
       const values = await form.validateFields()
+      const processedValues = {
+        ...values,
+        highlights: values.highlights
+          ? String(values.highlights).split(',').map(h => h.trim()).filter(Boolean)
+          : []
+      }
       const updatedItems = items.map((item) =>
-        item.id === editingItem.id ? { ...item, ...values } : item
+        item.id === editingItem.id ? { ...item, ...processedValues } : item
       )
       setItems(updatedItems)
       setEditingItem(null)
@@ -138,25 +151,81 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
     message.success('全部保存成功')
   }
 
+  const [titleModalVisible, setTitleModalVisible] = useState(false)
+  const [editingDay, setEditingDay] = useState<number | null>(null)
+  const [editingTitle, setEditingTitle] = useState<string>('')
+
+  const handleEditDayTitle = (day: number, currentTitle?: string) => {
+    setEditingDay(day)
+    setEditingTitle(currentTitle || '')
+    setTitleModalVisible(true)
+  }
+
+  const handleOk = () => {
+    if (editingDay !== null) {
+      const newTitle = editingTitle.trim() || undefined
+      
+      const updatedItems = items.map(item => {
+        if (item.day === editingDay) {
+          return { ...item, title: newTitle }
+        }
+        return item
+      })
+      
+      setItems(updatedItems)
+      onChange(updatedItems)
+      message.success('标题更新成功')
+    }
+    setTitleModalVisible(false)
+  }
+
+  const handleCancel = () => {
+    setTitleModalVisible(false)
+  }
+
   const groupByDay = (items: ItineraryItem[]) => {
-    const groups: Record<number, ItineraryItem[]> = {}
-    items.forEach(item => {
-      const day = item.day || 1
-      if (!groups[day]) {
-        groups[day] = []
+    const groups: Record<string, { day: number, items: ItineraryItem[], title?: string, date?: string }> = {}
+    
+    items.forEach((item, index) => {
+      const dayKey = item.date || item.day || `day_${index + 1}`
+      if (!groups[dayKey]) {
+        groups[dayKey] = {
+          day: item.day || 1,
+          items: [],
+          title: item.title,
+          date: item.date
+        }
       }
-      groups[day].push(item)
+      groups[dayKey].items.push(item)
+      // Use the first item's title and date for the group
+      if (!groups[dayKey].title && item.title) {
+        groups[dayKey].title = item.title
+      }
+      if (!groups[dayKey].date && item.date) {
+        groups[dayKey].date = item.date
+      }
     })
-    return Object.keys(groups).map(key => ({
-      day: parseInt(key),
-      items: groups[parseInt(key)].sort((a, b) => a.time.localeCompare(b.time))
-    })).sort((a, b) => a.day - b.day)
+    
+    return Object.keys(groups).map(key => {
+      const group = groups[key]
+      const dayItems = group.items.sort((a, b) => {
+        const timeA = a.time || ''
+        const timeB = b.time || ''
+        return timeA.localeCompare(timeB)
+      })
+      return {
+        day: group.day,
+        title: group.title,
+        date: group.date,
+        items: dayItems
+      }
+    }).sort((a, b) => a.day - b.day)
   }
 
   const dayGroups = groupByDay(items)
 
   return (
-    <div 
+    <App 
       className="space-y-4 rounded-xl overflow-hidden"
       style={{
         background: 'linear-gradient(135deg, #fff7e6 0%, #ffe7ba 50%, #ffd591 100%)',
@@ -248,29 +317,50 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
+                  justifyContent: 'space-between',
                 }}
               >
-                <Badge 
-                  count={group.day} 
-                  style={{ 
-                    backgroundColor: '#fff', 
-                    color: '#ff7a45',
-                    fontWeight: 'bold',
-                    minWidth: '28px',
-                  }} 
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Badge 
+                    count={group.day} 
+                    style={{ 
+                      backgroundColor: '#fff', 
+                      color: '#ff7a45',
+                      fontWeight: 'bold',
+                      minWidth: '28px',
+                    }} 
+                  />
+                  <span style={{ color: '#fff', fontWeight: 500, fontSize: '15px' }}>
+                    {group.title || `第 ${group.day} 天`}
+                  </span>
+                  {group.date && (
+                    <Tag 
+                      style={{ 
+                        background: 'rgba(255,255,255,0.25)', 
+                        border: 'none',
+                        color: '#fff',
+                      }}
+                    >
+                      {group.date}
+                    </Tag>
+                  )}
+                  <Tag 
+                    style={{ 
+                      background: 'rgba(255,255,255,0.25)', 
+                      border: 'none',
+                      color: '#fff',
+                    }}
+                  >
+                    {group.items.length} 个行程
+                  </Tag>
+                </div>
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<EditOutlined style={{ color: '#fff' }} />}
+                  onClick={() => handleEditDayTitle(group.day, group.title)}
+                  style={{ color: '#fff' }}
                 />
-                <span style={{ color: '#fff', fontWeight: 500, fontSize: '15px' }}>
-                  第 {group.day} 天
-                </span>
-                <Tag 
-                  style={{ 
-                    background: 'rgba(255,255,255,0.25)', 
-                    border: 'none',
-                    color: '#fff',
-                  }}
-                >
-                  {group.items.length} 个行程
-                </Tag>
               </div>
               
               <div style={{ padding: '16px 20px', background: '#fff' }}>
@@ -354,9 +444,9 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
                         </div>
                         
                         {item.description && (
-                          <div 
-                            style={{ 
-                              marginTop: '8px', 
+                          <div
+                            style={{
+                              marginTop: '8px',
                               color: '#595959',
                               fontSize: '13px',
                               lineHeight: '1.6',
@@ -365,7 +455,15 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
                             {item.description}
                           </div>
                         )}
-                        
+
+                        {item.highlights && item.highlights.length > 0 && (
+                          <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                            {item.highlights.map((highlight, idx) => (
+                              <Tag key={idx} color="blue" style={{ margin: 0 }}>{highlight}</Tag>
+                            ))}
+                          </div>
+                        )}
+
                         {item.tips && (
                           <div 
                             style={{
@@ -444,13 +542,43 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
             </Form.Item>
 
             <Form.Item
+              label="日期"
+              name="date"
+            >
+              <Input placeholder="例如：2024-01-01" />
+            </Form.Item>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item
               label="活动类型"
               name="type"
               rules={[{ required: true, message: '请选择活动类型' }]}
             >
               <Input placeholder="例如：景点、餐饮、交通" />
             </Form.Item>
+
+            <Form.Item
+              label="时间"
+              name="time"
+            >
+              <Input placeholder="例如：09:00" />
+            </Form.Item>
           </div>
+
+          <Form.Item
+            label="当日标题"
+            name="title"
+          >
+            <Input placeholder="例如：第一天：落地科莫多" />
+          </Form.Item>
+
+          <Form.Item
+            label="日期"
+            name="date"
+          >
+            <Input placeholder="例如：4.30, 5.1" />
+          </Form.Item>
 
           <div className="grid grid-cols-2 gap-4">
             <Form.Item
@@ -473,9 +601,9 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
             name="location"
             rules={[{ required: true, message: '请输入地点' }]}
           >
-            <Input 
+            <Input
               prefix={<EnvironmentOutlined style={{ color: '#bfbfbf' }} />}
-              placeholder="请输入地点" 
+              placeholder="请输入地点"
             />
           </Form.Item>
 
@@ -483,11 +611,20 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
             label="描述"
             name="description"
           >
-            <TextArea 
-              rows={3} 
-              placeholder="请输入行程描述，包括活动内容、路线等" 
+            <TextArea
+              rows={3}
+              placeholder="请输入行程描述，包括活动内容、路线等"
               showCount
               maxLength={500}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="亮点标签"
+            name="highlights"
+          >
+            <Input
+              placeholder="多个标签用逗号分隔，例如：卡隆岛日落,万蝠出巢"
             />
           </Form.Item>
 
@@ -495,16 +632,16 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
             label="提示"
             name="tips"
           >
-            <TextArea 
-              rows={2} 
-              placeholder="请输入注意事项、小贴士等" 
+            <TextArea
+              rows={2}
+              placeholder="请输入注意事项、小贴士等"
               showCount
               maxLength={200}
             />
           </Form.Item>
 
           <div className="flex justify-end gap-2">
-            <Button 
+            <Button
               onClick={() => {
                 setIsModalVisible(false)
                 setEditingItem(null)
@@ -512,10 +649,10 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
             >
               取消
             </Button>
-            <Button 
+            <Button
               type="primary"
               onClick={handleSaveItem}
-              style={{ 
+              style={{
                 background: '#ff7a45',
                 borderColor: '#ff7a45',
               }}
@@ -525,6 +662,21 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
           </div>
         </Form>
       </Modal>
-    </div>
+
+      <Modal
+        title="编辑当日标题"
+        open={titleModalVisible}
+        onOk={handleOk}
+        onCancel={handleCancel}
+      >
+        <Input
+          placeholder={editingDay !== null ? `输入第 ${editingDay} 天的标题` : '输入标题'}
+          value={editingTitle}
+          onChange={(e) => setEditingTitle(e.target.value)}
+          style={{ width: '100%' }}
+          maxLength={50}
+        />
+      </Modal>
+    </App>
   )
 }

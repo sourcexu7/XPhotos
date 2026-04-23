@@ -58,6 +58,7 @@ export default function UnifiedNav({
     { name: '城隅寻迹', href: '/covers' },
     { name: '景行集', href: '/albums' },
     { name: '攻略路书', href: '/guides' },
+    { name: '数据一览', href: '/dashboard' },
     { name: '关于我', href: '/about' },
   ]
 
@@ -68,16 +69,17 @@ export default function UnifiedNav({
     return pathname.startsWith(path)
   }
 
+  // 移除 isDashboardActive 函数，因为现在数据一览已经包含在 navLinks 中
+
   return (
     <>
       <nav
         className={cn(
-          'w-full fixed top-0 left-0 z-50 transition-all duration-300',
+          'w-full fixed top-0 left-0 z-50 transition-all duration-300 h-16',
           'backdrop-blur-[12px] bg-background/15 border-b border-transparent',
           isScrolled && 'border-b-[1px] border-white/10 shadow-lg'
         )}
         style={{
-          height: 64,
           borderBottomImage: isScrolled ? 'linear-gradient(to right, var(--primary), var(--secondary)) 1' : 'none'
         }}
       >
@@ -104,7 +106,7 @@ export default function UnifiedNav({
                 >
                   <span className="relative z-10">{link.name}</span>
                   {isActive(link.href) && (
-                    <span className="absolute bottom-0 w-full h-[12px] bg-primary/20 rounded" />
+                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full transition-all duration-300" />
                   )}
                 </Link>
               </div>
@@ -174,7 +176,7 @@ export default function UnifiedNav({
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-background lg:hidden overflow-y-auto pt-[80px]"
+          className="fixed inset-0 z-40 bg-background lg:hidden overflow-y-auto pt-16"
           onClick={() => setMobileMenuOpen(false)}
         >
           <div className="flex flex-col px-6 pb-10" onClick={(e) => e.stopPropagation()}>

@@ -9,11 +9,11 @@ import {
   Form,
   List,
   Popconfirm,
-  message,
   Tag,
   Row,
   Col,
   Modal,
+  App,
 } from 'antd'
 import {
   PlusOutlined,
@@ -61,9 +61,10 @@ export default function ChecklistModule({ value, onChange }: ChecklistModuleProp
   const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false)
   const [isItemModalVisible, setIsItemModalVisible] = useState(false)
   const [form] = Form.useForm()
+  const { message } = App.useApp()
 
   useEffect(() => {
-    if (value && value.length > 0) {
+    if (value !== undefined && value !== null) {
       setCategories(value)
     }
   }, [value])

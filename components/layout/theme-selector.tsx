@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Dropdown, Space } from 'antd'
-import type { MenuProps } from 'antd'
-import { DownOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
+import { ChevronDown } from 'lucide-react'
 
 interface ThemeSelectorProps {
   currentTheme: string
@@ -29,7 +28,7 @@ export default function ThemeSelector({ currentTheme }: ThemeSelectorProps) {
     // 触发自定义事件通知其他组件主题已更改
     window.dispatchEvent(new CustomEvent('themeChanged', { detail: newTheme }))
     
-    // 刷新页面以应用新主题
+    // 刷新页面以应用新主题（保持原有行为）
     window.location.reload()
   }
 
@@ -41,22 +40,22 @@ export default function ThemeSelector({ currentTheme }: ThemeSelectorProps) {
     }
   }, [])
 
-  const currentThemeLabel = themes.find(t => t.value === theme)?.label || themes[0].label
-
-  const menuItems: MenuProps['items'] = themes.map(themeOption => ({
-    key: themeOption.value,
-    label: themeOption.label,
-    onClick: () => handleThemeChange(themeOption.value)
-  }))
-
   return (
-    <Dropdown menu={{ items: menuItems }} placement="bottomRight">
-      <a onClick={(e) => e.preventDefault()} className="cursor-pointer select-none ant-menu-title-content">
-        <Space>
-          <span style={{ fontSize: '14px' }}>{currentThemeLabel}</span>
-          <DownOutlined style={{ fontSize: '12px' }} />
-        </Space>
-      </a>
-    </Dropdown>
+    <Select value={theme} onValueChange={handleThemeChange}>
+      <SelectTrigger className="w-[140px] h-9 border-border/50 bg-background/50 hover:bg-accent/50 transition-colors focus:ring-primary/30">
+        <SelectValue placeholder="选择主题" />
+      </SelectTrigger>
+      <SelectContent className="border-border/50 bg-popover/95 backdrop-blur-md">
+        {themes.map((themeOption) => (
+          <SelectItem 
+            key={themeOption.value} 
+            value={themeOption.value}
+            className="cursor-pointer focus:bg-accent/50"
+          >
+            <span className="text-sm">{themeOption.label}</span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }

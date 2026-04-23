@@ -66,7 +66,7 @@ export default async function Page({
   }
 
   return (
-    <div className="pt-[60px]">
+    <div className="pt-16">
       <div className="container mx-auto px-4 mb-4">
         <CoversBackButton />
       </div>

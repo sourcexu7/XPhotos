@@ -2,6 +2,7 @@ import 'server-only'
 
 import { fetchConfigsByKeys } from '~/lib/db/query/configs'
 import { fetchAlbumsShowWithCounts } from '~/lib/db/query/albums'
+import { fetchPublicDashboardStats } from '~/lib/db/query/public-dashboard'
 import gallery from '~/server/open/gallery'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
@@ -64,6 +65,20 @@ app.get('/covers', async (c) => {
   } catch (error) {
     console.error('Error fetching covers:', error)
     throw new HTTPException(500, { message: 'Failed to fetch covers', cause: error })
+  }
+})
+
+/**
+ * 公开 API：获取前台概览页面统计数据（无需登录）
+ * 返回照片总数、相册数量、攻略数量、设备使用TOP5、年份趋势等
+ */
+app.get('/dashboard', async (c) => {
+  try {
+    const data = await fetchPublicDashboardStats()
+    return c.json(data)
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error)
+    throw new HTTPException(500, { message: 'Failed to fetch dashboard stats', cause: error })
   }
 })
 
