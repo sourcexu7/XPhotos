@@ -173,6 +173,7 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
                 onClick={handleClose}
                 aria-label={t('Button.goBack')}
                 style={{ marginLeft: '8px', flexShrink: 0 }}
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md hover:bg-muted/60 transition-colors touch-manipulation"
               >
                 <XIcon className={exifIconClass} size={20} />
               </button>
@@ -190,7 +191,7 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
             {/* EXIF信息区域 */}
             <div style={{ paddingLeft: '16px', marginTop: '12px' }}>
               <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--foreground)' }}>拍摄参数</Text>
-              <div style={{ width: '88px', height: '1px', backgroundColor: 'rgba(255,255,255,0.2)', marginTop: '6px' }} />
+              <div style={{ width: '88px', height: '1px', backgroundColor: 'var(--border)', marginTop: '6px' }} />
             </div>
 
             <div style={{ marginTop: '12px' }}>
@@ -384,9 +385,9 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
                   {props.data.labels.map((tag: string) => (
                     <Tag
                       key={tag}
-                      className="cursor-pointer select-none border border-white/20 bg-white/10 text-white hover:bg-white/20 dark:bg-white/10 dark:text-white dark:border-white/20 !bg-white/10 !text-white !border-white/20"
+                      className="cursor-pointer select-none border border-border bg-muted text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                       onClick={() => router.push(`/tag/${tag}`)}
-                      style={{ margin: 0, fontSize: 12, background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
+                      style={{ margin: 0, fontSize: 12 }}
                     >
                       {tag}
                     </Tag>

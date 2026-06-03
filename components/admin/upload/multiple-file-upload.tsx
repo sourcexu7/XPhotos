@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
+import ExifReader from 'exifreader'
 import { toast } from 'sonner'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
@@ -193,21 +194,39 @@ export default function MultipleFileUpload() {
 
   const getImageDimensions = useCallback((file: File): Promise<{ width: number; height: number }> => {
     return new Promise((resolve) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const img = new Image()
-        img.onload = () => {
-          resolve({ width: img.width, height: img.height })
+      // 优先尝试从 EXIF 读取真实像素尺寸（PixelXDimension / PixelYDimension）
+      // 这能正确处理旋转后的相机原始尺寸，避免浏览器解码时的方向补偿误差
+      ExifReader.load(file).then((tags) => {
+        const exifW = tags?.PixelXDimension?.value ?? tags?.ImageWidth?.value ?? 0
+        const exifH = tags?.PixelYDimension?.value ?? tags?.ImageLength?.value ?? 0
+        if (exifW > 0 && exifH > 0) {
+          resolve({ width: Number(exifW), height: Number(exifH) })
+          return
         }
-        img.onerror = () => resolve({ width: 0, height: 0 })
-        if (typeof e.target?.result === 'string') {
-          img.src = e.target.result
-        } else {
-          resolve({ width: 0, height: 0 })
+        // EXIF 中没有尺寸时，fallback 到浏览器解码
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const img = new Image()
+          img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
+          img.onerror = () => resolve({ width: 0, height: 0 })
+          if (typeof e.target?.result === 'string') img.src = e.target.result
+          else resolve({ width: 0, height: 0 })
         }
-      }
-      reader.onerror = () => resolve({ width: 0, height: 0 })
-      reader.readAsDataURL(file)
+        reader.onerror = () => resolve({ width: 0, height: 0 })
+        reader.readAsDataURL(file)
+      }).catch(() => {
+        // EXIF 解析失败，fallback 到浏览器解码
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const img = new Image()
+          img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
+          img.onerror = () => resolve({ width: 0, height: 0 })
+          if (typeof e.target?.result === 'string') img.src = e.target.result
+          else resolve({ width: 0, height: 0 })
+        }
+        reader.onerror = () => resolve({ width: 0, height: 0 })
+        reader.readAsDataURL(file)
+      })
     })
   }, [])
 

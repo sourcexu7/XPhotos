@@ -10,30 +10,25 @@ interface ImageAutoSliderProps {
 
 export const ImageAutoSlider = ({ images }: ImageAutoSliderProps) => {
   const [firstImageLoaded, setFirstImageLoaded] = useState(false)
-  // Duplicate images for seamless loop
+  // 复制一份做无缝循环
   const duplicatedImages = [...images, ...images]
 
+  // M3：恢复骨架屏状态 — 首图加载完才显示滑块，避免无占位直接渲染
   useEffect(() => {
-    // 预加载第一张图片，用于检测加载状态
-    if (images.length > 0 && typeof window !== 'undefined') {
-      const firstImageUrl = images[0].preview_url || images[0].url
-      if (firstImageUrl) {
-        // 使用 window.Image 来避免与 Next.js Image 组件冲突
-        const img = new window.Image()
-        img.src = firstImageUrl
-        img.onload = () => {
-          setFirstImageLoaded(true)
-        }
-        img.onerror = () => {
-          // 即使加载失败也设置为true，避免一直显示加载动画
-          setFirstImageLoaded(true)
-        }
-      } else {
-        setFirstImageLoaded(true)
-      }
-    } else if (images.length === 0) {
+    if (images.length === 0) {
       setFirstImageLoaded(true)
+      return
     }
+    const firstUrl = images[0].preview_url || images[0].url
+    if (!firstUrl) {
+      setFirstImageLoaded(true)
+      return
+    }
+    // 使用 window.Image 避免与 Next.js Image 组件冲突
+    const img = new window.Image()
+    img.src = firstUrl
+    img.onload = () => setFirstImageLoaded(true)
+    img.onerror = () => setFirstImageLoaded(true)
   }, [images])
 
   if (images.length === 0) return null
@@ -42,42 +37,24 @@ export const ImageAutoSlider = ({ images }: ImageAutoSliderProps) => {
     <>
       <style>{`
         @keyframes scroll-right {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
         }
 
         .infinite-scroll {
           animation: scroll-right 40s linear infinite;
         }
 
+        /* M2：prefers-reduced-motion 独立保护 CSS animation */
+        @media (prefers-reduced-motion: reduce) {
+          .infinite-scroll {
+            animation: none;
+          }
+        }
+
         .scroll-container {
-          mask: linear-gradient(
-            90deg,
-            transparent 0%,
-            black 10%,
-            black 90%,
-            transparent 100%
-          );
-          -webkit-mask: linear-gradient(
-            90deg,
-            transparent 0%,
-            black 10%,
-            black 90%,
-            transparent 100%
-          );
+          mask: linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);
+          -webkit-mask: linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);
         }
 
         .image-item {
@@ -88,60 +65,55 @@ export const ImageAutoSlider = ({ images }: ImageAutoSliderProps) => {
           transform: scale(1.05);
           filter: brightness(1.1);
         }
-
-        .loading-spinner {
-          animation: spin 1s linear infinite;
-        }
       `}</style>
-      
+
       <div className="w-full bg-transparent relative overflow-hidden flex items-center justify-center py-5">
-        {/* 骨架屏 - 在第一张图片加载完成前显示 */}
+        {/* M3：骨架屏占位 — 首图加载完成前显示 */}
         {!firstImageLoaded && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center">
-            <div className="scroll-container w-full max-w-[1600px]">
-              <div className="flex gap-7 w-max">
-                {[...Array(8)].map((_, index) => (
-                  <div
-                    key={`skeleton-${index}`}
-                    className="relative flex-shrink-0 rounded-2xl overflow-hidden bg-gray-200/60 dark:bg-gray-700/40 animate-pulse"
-                    style={{
-                      width: 'clamp(160px, 26vw, 320px)',
-                      aspectRatio: '3/2',
-                    }}
-                  />
-                ))}
-              </div>
+          <div className="scroll-container w-full max-w-[1600px]">
+            <div className="flex gap-7">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={`skeleton-${i}`}
+                  className="relative flex-shrink-0 rounded-2xl overflow-hidden bg-muted animate-pulse"
+                  style={{ width: 'clamp(160px, 26vw, 320px)', aspectRatio: '3/2' }}
+                />
+              ))}
             </div>
           </div>
         )}
-        
-        {/* Scrolling images container */}
-        <div className={`relative z-10 w-full flex items-center justify-center transition-opacity duration-500 ${firstImageLoaded ? 'opacity-100' : 'opacity-0'}`}>
+
+        {/* 真实图片轮播 */}
+        <div
+          className={`relative z-10 w-full flex items-center justify-center transition-opacity duration-500 ${
+            firstImageLoaded ? 'opacity-100' : 'opacity-0 absolute'
+          }`}
+        >
           <div className="scroll-container w-full max-w-[1600px]">
             <div className="infinite-scroll flex gap-7 w-max">
-              {duplicatedImages.map((image, index) => (
-                <div
-                  key={`${image.id}-${index}`}
-                  className="image-item relative flex-shrink-0 rounded-2xl overflow-hidden shadow-lg ring-1 ring-white/10 dark:ring-white/5"
-                  style={{
-                    width: 'clamp(160px, 26vw, 320px)',
-                    aspectRatio: '3/2',
-                  }}
-                >
-                  <Image
-                    src={image.preview_url || image.url || ''}
-                    alt={image.title || `Gallery image ${index + 1}`}
-                    fill
-                    sizes="(max-width: 768px) 160px, (max-width: 1024px) 240px, 320px"
-                    className="object-cover"
-                    onLoad={() => {
-                      if (index === 0 && !firstImageLoaded) {
-                        setFirstImageLoaded(true)
-                      }
-                    }}
-                  />
-                </div>
-              ))}
+              {duplicatedImages.map((image, index) => {
+                const isFirstTwo = index === 0 || index === 1
+                return (
+                  <div
+                    key={`${image.id}-${index}`}
+                    className="image-item relative flex-shrink-0 rounded-2xl overflow-hidden shadow-lg ring-1 ring-white/10 dark:ring-white/5"
+                    style={{ width: 'clamp(160px, 26vw, 320px)', aspectRatio: '3/2' }}
+                  >
+                    <Image
+                      src={image.preview_url || image.url || ''}
+                      alt={image.title || `Gallery image ${index + 1}`}
+                      fill
+                      sizes="(max-width: 768px) 160px, (max-width: 1024px) 240px, 320px"
+                      className="object-cover"
+                      priority={isFirstTwo}
+                      loading={isFirstTwo ? undefined : 'lazy'}
+                      onLoad={() => {
+                        if (index === 0) setFirstImageLoaded(true)
+                      }}
+                    />
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>

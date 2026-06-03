@@ -51,14 +51,14 @@ const nextConfig = {
     ],
     // 性能优化：优先使用 WebP/AVIF 格式，图片体积减少 50-70%
     formats: ['image/avif', 'image/webp'],
-    // 性能优化：设备尺寸配置，根据设备加载对应尺寸的图片
+    // 设备断点
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    // 性能优化：图片尺寸配置，减少带宽使用 50%+
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // 扩充以覆盖瀑布流动态列宽（2列~4列场景下常见宽度）
+    imageSizes: [16, 32, 48, 64, 96, 128, 160, 200, 256, 320, 384, 480, 560, 640],
     // Next.js 16 起要求显式声明允许的 quality 值
     //（你的 OptimizedImage 默认是 85）
     qualities: [60, 75, 85, 90, 100],
-    minimumCacheTTL: 60, // 缓存时间 60 秒
+    minimumCacheTTL: 3600, // 优化 LCP：延长图片缓存 TTL 为 1 小时
   },
   async headers() {
     return [

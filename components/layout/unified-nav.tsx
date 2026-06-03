@@ -45,7 +45,7 @@ export default function UnifiedNav({
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10)
     }
-    window.addEventListener('scroll', handleScroll)
+    window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
@@ -144,11 +144,11 @@ export default function UnifiedNav({
           </div>
 
           {/* Mobile Menu Toggle */}
-          <div className="lg:hidden flex items-center gap-2">
+          <div className="lg:hidden flex items-center gap-1">
             {mounted && (
               <button
                 onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-                className="p-2 hover:bg-muted rounded-md transition-colors"
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2.5 hover:bg-muted transition-colors touch-manipulation"
                 aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               >
                 {resolvedTheme === 'dark' ? (
@@ -160,7 +160,7 @@ export default function UnifiedNav({
             )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 hover:bg-muted rounded-md transition-colors touch-manipulation"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2.5 hover:bg-muted transition-colors touch-manipulation"
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             >
               {mobileMenuOpen ? (
@@ -173,10 +173,11 @@ export default function UnifiedNav({
         </div>
       </nav>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu Overlay — animate-in from top */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-background lg:hidden overflow-y-auto pt-16"
+          className="fixed inset-0 z-40 bg-background lg:hidden overflow-y-auto pt-16
+            animate-in slide-in-from-top-2 fade-in duration-200"
           onClick={() => setMobileMenuOpen(false)}
         >
           <div className="flex flex-col px-6 pb-10" onClick={(e) => e.stopPropagation()}>

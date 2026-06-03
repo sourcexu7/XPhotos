@@ -49,7 +49,7 @@ export default function CoversClient() {
     <div className="pt-[80px] min-h-screen bg-background">
       <div className="container mx-auto px-4 mb-8">
         <Link href="/albums">
-          <Button variant="ghost" className="gap-2 pl-0 hover:bg-transparent hover:text-gray-900">
+          <Button variant="ghost" className="gap-2 pl-0 hover:bg-transparent hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />
             返回作品合集
           </Button>
@@ -57,13 +57,18 @@ export default function CoversClient() {
 
         {error ? (
           <div className="text-center py-20 px-4">
-            <p className="text-gray-500 mb-4">加载失败，请检查网络后重试</p>
+            <p className="text-muted-foreground mb-4">加载失败，请检查网络后重试</p>
             <Button variant="outline" size="sm" onClick={() => mutate()}>
               重新加载
             </Button>
           </div>
         ) : isLoading ? (
-          <div className="text-center text-gray-500 py-20">加载中...</div>
+          /* M6：骨架屏替代纯文字加载态 */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 max-w-6xl mx-auto">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="w-full aspect-[4/3] rounded-2xl bg-muted animate-pulse" />
+            ))}
+          </div>
         ) : albums.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 max-w-6xl mx-auto">
             {albums.map((album) => (
@@ -81,7 +86,7 @@ export default function CoversClient() {
             ))}
           </div>
         ) : (
-          <div className="text-center text-gray-500 py-20">暂无相册封面</div>
+          <div className="text-center text-muted-foreground py-20">暂无相册封面</div>
         )}
       </div>
     </div>

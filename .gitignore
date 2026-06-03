@@ -10,6 +10,7 @@ build
 .output
 .vercel
 .turbopack
+tsconfig.tsbuildinfo
 
 # Environment variables
 .env
@@ -28,6 +29,7 @@ build
 *.swo
 *~
 .DS_Store
+.trae
 
 # Logs
 *.log
@@ -44,6 +46,7 @@ coverage
 # Prisma
 prisma/dev.db
 prisma/dev.db-journal
+prisma.zip
 
 # PWA
 public/sw.js
@@ -56,3 +59,25 @@ certificates
 
 # Claude
 .claude
+
+# Temporary files
+checklist.json
+expense.json
+expense_utf8.bin
+expense_utf8.json
+itinerary.json
+response.json
+performance-report-*.json
+performance-test.js
+test-build.tsx
+script.sh
+hero-prompt.md
+*.zip
+get-token.ps1
+
+# Database backup files
+prisma/migrations.zip
+
+# Local project directories
+design-system
+ui-ux-pro-max-skill

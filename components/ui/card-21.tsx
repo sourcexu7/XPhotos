@@ -1,33 +1,27 @@
 'use client'
 
 import * as React from 'react'
-import { cn } from '~/lib/utils' // Your utility for merging class names
+import { cn } from '~/lib/utils'
 import Link from 'next/link'
 
-// Define the props for the DestinationCard component
 interface DestinationCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  imageUrl: string;
-  location: string;
-  flag?: string;
-  stats: string;
-  href: string;
-  themeColor: string; // e.g., "150 50% 25%" for a deep green
-  exploreText?: string;
-  enableImageColor?: boolean;
+  imageUrl: string
+  location: string
+  flag?: string
+  stats: string
+  href: string
+  themeColor: string
+  exploreText?: string
+  enableImageColor?: boolean
 }
 
-// Helper to convert RGB to HSL
 function rgbToHsl(r: number, g: number, b: number) {
-  r /= 255
-  g /= 255
-  b /= 255
-  const max = Math.max(r, g, b)
-  const min = Math.min(r, g, b)
+  r /= 255; g /= 255; b /= 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
   let h = 0, s
   const l = (max + min) / 2
-
   if (max === min) {
-    h = s = 0 // achromatic
+    h = s = 0
   } else {
     const d = max - min
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
@@ -38,16 +32,18 @@ function rgbToHsl(r: number, g: number, b: number) {
     }
     h /= 6
   }
-
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`
 }
 
-// Hook to extract color from bottom 20% of image (only runs when imageUrl is non-empty)
-function useImageColor(imageUrl: string, fallback: string) {
+/**
+ * 颜色提取 hook：只在 enabled=true 且 imageUrl 非空时执行 canvas 解码。
+ * 通过 IntersectionObserver 懒触发，避免首屏所有卡同时 decode CPU 抖动。
+ */
+function useImageColor(imageUrl: string, fallback: string, enabled: boolean) {
   const [color, setColor] = React.useState(fallback)
 
   React.useEffect(() => {
-    if (!imageUrl || typeof imageUrl !== 'string') return
+    if (!enabled || !imageUrl || typeof imageUrl !== 'string') return
 
     const img = new Image()
     img.crossOrigin = 'Anonymous'
@@ -59,90 +55,105 @@ function useImageColor(imageUrl: string, fallback: string) {
         const ctx = canvas.getContext('2d')
         if (!ctx) return
 
-        // We only care about the bottom 20%
         const heightToSample = Math.floor(img.height * 0.2)
         const startY = img.height - heightToSample
-        
         if (heightToSample <= 0) return
 
         canvas.width = img.width
         canvas.height = heightToSample
-
-        // Draw the bottom part of the image onto the canvas
         ctx.drawImage(img, 0, startY, img.width, heightToSample, 0, 0, img.width, heightToSample)
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-        const data = imageData.data
-        
-        let r = 0, g = 0, b = 0
-        let count = 0
-
-        // Sample every 10th pixel to save performance
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+        let r = 0, g = 0, b = 0, count = 0
         for (let i = 0; i < data.length; i += 4 * 10) {
-          r += data[i]
-          g += data[i + 1]
-          b += data[i + 2]
-          count++
+          r += data[i]; g += data[i + 1]; b += data[i + 2]; count++
         }
-
         if (count > 0) {
-          r = Math.round(r / count)
-          g = Math.round(g / count)
-          b = Math.round(b / count)
-          setColor(rgbToHsl(r, g, b))
+          setColor(rgbToHsl(Math.round(r / count), Math.round(g / count), Math.round(b / count)))
         }
-      } catch (e) {
-        // console.warn("Failed to extract color from image", e);
-        // Keep fallback on error (e.g. CORS)
+      } catch {
+        // CORS 等异常时保持 fallback
       }
     }
-  }, [imageUrl])
+  }, [imageUrl, enabled])
 
   return color
 }
 
 const DestinationCard = React.forwardRef<HTMLDivElement, DestinationCardProps>(
-  ({ className, imageUrl, location, flag, stats, href, themeColor: initialThemeColor, exploreText = 'Explore Now', enableImageColor = true, ...props }, ref) => {
-    // 仅在启用时传 imageUrl，避免移动端多图同时加载导致卡顿/白屏
-    const imageThemeColor = useImageColor(enableImageColor ? imageUrl ?? '' : '', initialThemeColor)
-    const themeColor = enableImageColor ? imageThemeColor : initialThemeColor
+  (
+    {
+      className,
+      imageUrl,
+      location,
+      flag,
+      stats,
+      href,
+      themeColor: initialThemeColor,
+      exploreText = 'Explore Now',
+      enableImageColor = true,
+      ...props
+    },
+    ref,
+  ) => {
+    // IntersectionObserver：卡片进入视口后才启动取色，避免首屏全量 decode
+    const cardRef = React.useRef<HTMLDivElement>(null)
+    const [inView, setInView] = React.useState(false)
+
+    React.useEffect(() => {
+      const el = cardRef.current
+      if (!el || !enableImageColor) return
+      const io = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setInView(true)
+            io.disconnect()
+          }
+        },
+        { rootMargin: '100px' },
+      )
+      io.observe(el)
+      return () => io.disconnect()
+    }, [enableImageColor])
+
+    const themeColor = useImageColor(
+      enableImageColor && inView ? (imageUrl ?? '') : '',
+      initialThemeColor,
+      enableImageColor && inView,
+    )
 
     return (
-      // The 'group' class enables hover effects on child elements
       <div
-        ref={ref}
-        style={{
-          '--theme-color': themeColor,
-        } as React.CSSProperties}
+        ref={(node) => {
+          // 合并 forwardRef 和内部 ref
+          cardRef.current = node!
+          if (typeof ref === 'function') ref(node)
+          else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+        }}
+        style={{ '--theme-color': themeColor } as React.CSSProperties}
         className={cn('group w-full h-full', className)}
         {...props}
       >
         <Link
           href={href}
-          className="relative block w-full h-full overflow-hidden shadow-lg 
-                     transition-all duration-500 ease-in-out 
+          className="relative block w-full h-full overflow-hidden shadow-lg
+                     transition-all duration-500 ease-in-out
                      group-hover:scale-105 group-hover:shadow-[0_0_60px_-15px_hsl(var(--theme-color)/0.6)]"
           aria-label={`Explore details for ${location}`}
-          style={{
-             boxShadow: '0 0 40px -15px hsl(var(--theme-color) / 0.5)'
-          }}
+          style={{ boxShadow: '0 0 40px -15px hsl(var(--theme-color) / 0.5)' }}
         >
-          {/* Background Image with Parallax Zoom */}
-          <div
-            className="absolute inset-0 bg-cover bg-center 
-                       transition-transform duration-500 ease-in-out group-hover:scale-110"
-            style={imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined}
-          />
+          {/* 背景图：改用 <img> 实现 lazy load，绝对定位填满容器 */}
+          {imageUrl && (
+            <img
+              src={imageUrl}
+              alt={location}
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover
+                         transition-transform duration-500 ease-in-out group-hover:scale-110"
+            />
+          )}
 
-          {/* Themed Gradient Overlay - Removed */}
-          {/* <div
-            className="absolute inset-0 transition-opacity duration-500 group-hover:opacity-80"
-            style={{
-              background: `linear-gradient(to bottom, transparent, hsl(var(--theme-color) / 0.8))`,
-              opacity: 0.4
-            }}
-          /> */}
-          
           {/* Content */}
           <div className="relative flex flex-col justify-center items-center h-full p-6 text-white text-center">
             <h3 className="text-4xl font-bold tracking-[0.2em] uppercase drop-shadow-lg">
@@ -152,13 +163,11 @@ const DestinationCard = React.forwardRef<HTMLDivElement, DestinationCardProps>(
             <p className="text-sm text-white/90 mt-3 font-medium tracking-widest uppercase opacity-0 transform translate-y-4 transition-all duration-500 group-hover:opacity-100 group-hover:translate-y-0">
               {stats}
             </p>
-
-            {/* Explore Button - Removed for SamAlive style */}
           </div>
         </Link>
       </div>
     )
-  }
+  },
 )
 DestinationCard.displayName = 'DestinationCard'
 

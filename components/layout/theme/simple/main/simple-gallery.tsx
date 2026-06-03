@@ -132,14 +132,14 @@ const SimpleGallery = React.memo(function SimpleGallery(props: Readonly<ImageHan
   return (
     <div
       ref={containerRef}
-      className="w-full mx-auto max-w-[1400px] px-3 space-y-3 sm:px-4 sm:py-1 sm:space-y-4 md:px-6 md:space-y-6"
+      className="w-full mx-auto max-w-[1400px] px-3 pt-4 space-y-3 sm:px-4 sm:pt-5 sm:space-y-4 md:px-6 md:space-y-6"
     >
       {/* 初始加载态：首次加载时显示 */}
       {isInitialLoading && (
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-3">
             <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-            <span className="text-sm text-gray-400">正在加载图片...</span>
+            <span className="text-sm text-muted-foreground">正在加载图片...</span>
           </div>
         </div>
       )}
@@ -148,8 +148,8 @@ const SimpleGallery = React.memo(function SimpleGallery(props: Readonly<ImageHan
       {isFiltering && !isInitialLoading && (
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-gray-400">正在筛选图片...</span>
+            <div className="w-8 h-8 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-muted-foreground">正在筛选图片...</span>
           </div>
         </div>
       )}

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import ExifReader from 'exifreader'
 import { toast } from 'sonner'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
@@ -222,17 +223,30 @@ export default function SimpleFileUpload() {
       console.error(e)
     }
     try {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const img = new Image()
-        img.onload = () => {
-          setWidth(Number(img.width))
-          setHeight(Number(img.height))
+      // EXIF 尺寸校准：优先从 EXIF 读取真实像素尺寸
+      let exifWidth = 0, exifHeight = 0
+      try {
+        const tags = await ExifReader.load(file)
+        exifWidth = Number(tags?.PixelXDimension?.value ?? tags?.ImageWidth?.value ?? 0)
+        exifHeight = Number(tags?.PixelYDimension?.value ?? tags?.ImageLength?.value ?? 0)
+      } catch {}
+
+      if (exifWidth > 0 && exifHeight > 0) {
+        setWidth(exifWidth)
+        setHeight(exifHeight)
+      } else {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const img = new Image()
+          img.onload = () => {
+            setWidth(Number(img.naturalWidth))
+            setHeight(Number(img.naturalHeight))
+          }
+          // @ts-expect-error - FileReader result typing
+          img.src = e.target.result
         }
-        // @ts-expect-error - FileReader result typing
-        img.src = e.target.result
+        reader.readAsDataURL(file)
       }
-      reader.readAsDataURL(file)
     } catch (e) {
       console.error(e)
     }

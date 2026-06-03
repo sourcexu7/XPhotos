@@ -23,8 +23,8 @@ import { toast } from 'sonner'
 import { CopyIcon } from '~/components/icons/copy'
 
 export default function PreviewImageExif(props: Readonly<ImageDataProps>) {
-  const exifIconClass = 'dark:text-gray-50 text-gray-500 !p-0 w-[18px] h-[18px]'
-  const exifTextClass = 'text-tiny text-sm select-none items-center dark:text-gray-50 text-gray-500 leading-[18px] m-0'
+  const exifIconClass = 'text-muted-foreground !p-0 w-[18px] h-[18px]'
+  const exifTextClass = 'text-tiny text-sm select-none items-center text-muted-foreground leading-[18px] m-0'
 
   return (
     <Dialog>

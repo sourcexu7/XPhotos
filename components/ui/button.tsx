@@ -5,24 +5,30 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '~/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\'size-\'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\'size-\'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
   {
     variants: {
       variant: {
+        // 默认轻量按钮：card 背景 + border + 前景色，hover 时 muted 背景
         minimal:
-          // Minimal white button per design
-          'bg-white text-[#333333] border border-[#e6e6e6] rounded-lg hover:bg-[#f5f5f5] hover:text-[#333333] data-[active=true]:bg-[#ebf5ff] data-[active=true]:border-[#4299e1] data-[active=true]:text-[#4299e1] aria-pressed:bg-[#ebf5ff] aria-pressed:border-[#4299e1] aria-pressed:text-[#4299e1] disabled:bg-[#fafafa] disabled:text-[#999999] disabled:cursor-not-allowed',
+          'bg-card text-card-foreground border border-border rounded-lg hover:bg-muted hover:text-foreground data-[active=true]:bg-primary/10 data-[active=true]:border-primary data-[active=true]:text-primary aria-pressed:bg-primary/10 aria-pressed:border-primary aria-pressed:text-primary disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed',
+        // 主色实心按钮
         default:
-          'bg-blue-600 text-white border-transparent shadow-xs hover:bg-blue-700 hover:text-white rounded-lg',
+          'bg-primary text-primary-foreground border border-transparent shadow-sm hover:bg-primary/90 rounded-lg',
+        // 危险操作按钮
         destructive:
-          'bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
+          'bg-destructive text-white border border-transparent shadow-sm hover:bg-destructive/90 focus-visible:ring-destructive/30 dark:focus-visible:ring-destructive/40',
+        // 描边按钮：白/深色背景 + border
         outline:
-          'border border-gray-300 bg-white text-gray-950 shadow-none hover:bg-gray-50 hover:text-gray-950 rounded-lg',
+          'border border-border bg-background text-foreground shadow-none hover:bg-muted hover:text-foreground rounded-lg',
+        // 次级实心按钮
         secondary:
-          'bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80',
+          'bg-secondary text-secondary-foreground border border-transparent shadow-sm hover:bg-secondary/80',
+        // 透明按钮，hover 时 accent 背景
         ghost:
-          'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
-        link: 'text-primary underline-offset-4 hover:underline',
+          'border border-transparent hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
+        // 文字链接按钮
+        link: 'border border-transparent text-primary underline-offset-4 hover:underline',
       },
       size: {
         default: 'h-10 px-4',

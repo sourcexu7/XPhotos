@@ -1,35 +1,249 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ImageFilters, ImageHandleProps } from '~/types/props'
 import { useSwrPageTotalHook } from '~/hooks/use-swr-page-total-hook'
 import SimpleGallery from '~/components/layout/theme/simple/main/simple-gallery'
 import WaterfallGallery from '~/components/layout/theme/waterfall/main/waterfall-gallery'
-import { Button } from '~/components/ui/button'
-import { Filter, LayoutGrid, Rows, ArrowUpDown } from 'lucide-react'
-import { MultiSelect } from '~/components/ui/multi-select'
+import { LayoutGrid, Rows, SlidersHorizontal, X, ChevronDown, Check, ArrowUpDown } from 'lucide-react'
+import { cn } from '~/lib/utils'
+import { useFilterStore } from '~/lib/store/filter-store'
+import { useIsMobile } from '~/hooks/use-mobile'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '~/components/ui/sheet'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
-import { cn } from '~/lib/utils'
-import { useFilterStore } from '~/lib/store/filter-store'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '~/components/ui/command'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '~/components/ui/tooltip'
 
 interface ThemeGalleryClientProps extends ImageHandleProps {
   systemStyle: string
   preferredStyle?: 'waterfall' | 'single'
-  // 新增：是否启用前端筛选面板（仅作品画廊页开启）
   enableFilters?: boolean
-  // 新增：EXIF 选项（由服务端预先计算，相机 / 镜头列表）
-  filterOptions?: {
-    cameras: string[]
-    lenses: string[]
-  }
-  // 新增：标签候选列表（如果有）
+  filterOptions?: { cameras: string[]; lenses: string[] }
   tagOptions?: string[]
 }
 
+// ─── MultiSelect ─────────────────────────────────────────────────────────────
+interface SelectProps {
+  label: string
+  placeholder: string
+  options: string[]
+  selected: string[]
+  onChange: (v: string[]) => void
+}
+
+function InlineMultiSelect({ label, placeholder, options, selected, onChange }: SelectProps) {
+  const [open, setOpen] = useState(false)
+  const selectedSet = useMemo(() => new Set(selected), [selected])
+
+  const toggle = (v: string) => {
+    const next = new Set(selected)
+    next.has(v) ? next.delete(v) : next.add(v)
+    onChange(Array.from(next))
+  }
+
+  return (
+    <div className="w-full">
+      <p className="mb-1.5 text-xs font-medium text-muted-foreground">{label}</p>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              'flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm',
+              'bg-background/60 hover:bg-accent/40 transition-colors',
+              selected.length ? 'border-primary/50 text-foreground' : 'border-border/60 text-muted-foreground',
+            )}
+          >
+            <span className="truncate">
+              {selected.length ? `已选 ${selected.length} 项` : placeholder}
+            </span>
+            <ChevronDown className={cn('ml-2 h-4 w-4 shrink-0 opacity-60 transition-transform', open && 'rotate-180')} />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start" sideOffset={6}>
+          <Command>
+            <CommandInput placeholder={`搜索${label}...`} className="h-9" />
+            <CommandList className="max-h-52">
+              <CommandEmpty>无匹配结果</CommandEmpty>
+              <CommandGroup>
+                {options.map((opt) => (
+                  <CommandItem key={opt} onSelect={() => toggle(opt)} className="flex items-center justify-between text-sm">
+                    <span className="truncate">{opt}</span>
+                    {selectedSet.has(opt) && <Check className="ml-2 h-4 w-4 shrink-0 text-primary" />}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+
+      {selected.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {selected.map((v) => (
+            <span key={v} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs text-primary">
+              {v}
+              <button type="button" aria-label={`移除 ${v}`} onClick={() => toggle(v)} className="rounded-full hover:bg-primary/20 p-0.5">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── 排序选择器 ──────────────────────────────────────────────────────────────
+const SORT_OPTIONS = [
+  { value: 'desc' as const, label: '最新优先' },
+  { value: 'asc' as const, label: '最早优先' },
+  { value: undefined, label: '默认排序' },
+]
+
+function SortSelect({ value, onChange }: { value: 'desc' | 'asc' | undefined; onChange: (v: 'desc' | 'asc' | undefined) => void }) {
+  const [open, setOpen] = useState(false)
+  const label = SORT_OPTIONS.find((o) => o.value === value)?.label ?? '排序'
+
+  return (
+    <div className="w-full">
+      <p className="mb-1.5 text-xs font-medium text-muted-foreground">排序</p>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              'flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm',
+              'bg-background/60 hover:bg-accent/40 transition-colors',
+              value !== undefined ? 'border-primary/50 text-foreground' : 'border-border/60 text-muted-foreground',
+            )}
+          >
+            <span>{label}</span>
+            <ChevronDown className={cn('ml-2 h-4 w-4 shrink-0 opacity-60 transition-transform', open && 'rotate-180')} />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-40 p-1" align="start" sideOffset={6}>
+          {SORT_OPTIONS.map((opt) => (
+            <button
+              key={String(opt.value)}
+              type="button"
+              onClick={() => { onChange(opt.value); setOpen(false) }}
+              className={cn(
+                'flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors',
+                opt.value === value ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent/50',
+              )}
+            >
+              {opt.label}
+              {opt.value === value && <Check className="h-4 w-4" />}
+            </button>
+          ))}
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
+
+// ─── 标签逻辑切换 ────────────────────────────────────────────────────────────
+function TagOperatorToggle({ value, onChange }: { value: 'and' | 'or'; onChange: (v: 'and' | 'or') => void }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-muted-foreground">标签逻辑：</span>
+      {(['and', 'or'] as const).map((op) => (
+        <button
+          key={op}
+          type="button"
+          onClick={() => onChange(op)}
+          className={cn(
+            'rounded-md border px-2.5 py-0.5 text-xs font-medium transition-colors',
+            value === op ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:bg-accent',
+          )}
+        >
+          {op.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── 筛选面板内容 ────────────────────────────────────────────────────────────
+function FilterPanel({
+  filterOptions, tagOptions, showSort,
+  cameras, lenses, tags, tagsOperator, sort,
+  setCameras, setLenses, setTags, setTagsOperator, setSort, onReset,
+}: {
+  filterOptions?: { cameras: string[]; lenses: string[] }
+  tagOptions?: string[]
+  showSort: boolean
+  cameras: string[]; lenses: string[]; tags: string[]; tagsOperator: 'and' | 'or'
+  sort: 'desc' | 'asc' | undefined
+  setCameras: (v: string[]) => void; setLenses: (v: string[]) => void
+  setTags: (v: string[]) => void; setTagsOperator: (v: 'and' | 'or') => void
+  setSort: (v: 'desc' | 'asc' | undefined) => void; onReset: () => void
+}) {
+  const hasAny = cameras.length > 0 || lenses.length > 0 || tags.length > 0
+
+  return (
+    <div className="space-y-5">
+      {showSort && <SortSelect value={sort} onChange={setSort} />}
+      {(filterOptions?.cameras?.length ?? 0) > 0 && (
+        <InlineMultiSelect label="相机" placeholder="选择相机型号" options={filterOptions!.cameras} selected={cameras} onChange={setCameras} />
+      )}
+      {(filterOptions?.lenses?.length ?? 0) > 0 && (
+        <InlineMultiSelect label="镜头" placeholder="选择镜头型号" options={filterOptions!.lenses} selected={lenses} onChange={setLenses} />
+      )}
+      {(tagOptions?.length ?? 0) > 0 && (
+        <div className="space-y-2">
+          <InlineMultiSelect label="标签" placeholder="选择标签" options={tagOptions!} selected={tags} onChange={setTags} />
+          {tags.length > 1 && <TagOperatorToggle value={tagsOperator} onChange={setTagsOperator} />}
+        </div>
+      )}
+      {hasAny && (
+        <button
+          type="button"
+          onClick={onReset}
+          className="w-full rounded-xl border border-destructive/40 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+        >
+          清除全部筛选
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ─── Pill ────────────────────────────────────────────────────────────────────
+function Pill({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex max-w-[180px] items-center gap-1 truncate rounded-full bg-primary/10 px-2.5 py-0.5 text-xs text-primary">
+      <span className="truncate">{label}</span>
+      <button type="button" aria-label={`移除 ${label}`} onClick={onRemove} className="shrink-0 rounded-full p-2 -m-1 hover:bg-primary/20 touch-manipulation">
+        <X className="h-3 w-3" />
+      </button>
+    </span>
+  )
+}
+
+// ─── 主组件 ──────────────────────────────────────────────────────────────────
 export default function ThemeGalleryClient({
   systemStyle,
   preferredStyle,
@@ -39,346 +253,236 @@ export default function ThemeGalleryClient({
   ...props
 }: ThemeGalleryClientProps) {
   const { data: total } = useSwrPageTotalHook(props)
+  const isMobile = useIsMobile()
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   const isSingleAlbum = props.album && props.album !== '/' && props.album !== 'all'
 
-  // 计算“后台默认 + 数量规则”得到的基础主题：
-  // - 首页 / 作品合集：完全按照后台首选项（1=单列，2=瀑布流，其他视为瀑布流）
-  // - 单个相册：若有 preferredStyle（封面跳转时附带）优先；否则按数量：>10 瀑布流；<=10 单列
   const baseStyle: 'waterfall' | 'single' = useMemo(() => {
     if (preferredStyle) return preferredStyle
-
-    if (isSingleAlbum && typeof total === 'number') {
-      return total > 10 ? 'waterfall' : 'single'
-    }
-    // 首页 / 合集：后台首选项
+    if (isSingleAlbum && typeof total === 'number') return total > 10 ? 'waterfall' : 'single'
     return systemStyle === '1' ? 'single' : 'waterfall'
   }, [isSingleAlbum, total, systemStyle, preferredStyle])
 
   const [currentStyle, setCurrentStyle] = useState<'waterfall' | 'single'>(baseStyle)
   const [userOverridden, setUserOverridden] = useState(false)
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  
-  // 使用 Zustand 管理筛选状态
-  const {
-    cameraFilter,
-    lensFilter,
-    tagsFilter,
-    tagsOperator,
-    sortByShootTime,
-    dateRange,
-    imageTypeFilter,
-    setCameraFilter,
-    setLensFilter,
-    setTagsFilter,
-    setTagsOperator,
-    setSortByShootTime,
-    setDateRange,
-    setImageTypeFilter,
-  } = useFilterStore()
-  
-  const imageTypes = ['JPG', 'PNG', 'WEBP', 'GIF']
-  const filterSectionRef = useRef<HTMLDivElement | null>(null)
-  
-  // Bug修复：当筛选面板关闭时，如果所有筛选条件都为空，重置 tagsOperator 为默认值
-  useEffect(() => {
-    if (!filtersOpen && tagsFilter.length === 0) {
-      setTagsOperator('and')
-    }
-  }, [filtersOpen, tagsFilter.length, setTagsOperator])
-  // 滚动时自动收起筛选，避免遮挡图片
-  useEffect(() => {
-    if (!enableFilters) return
-    let lastY = typeof window !== 'undefined' ? window.scrollY : 0
-    const onScroll = () => {
-      const currentY = window.scrollY
-      if (filtersOpen && currentY > lastY + 8) {
-        setFiltersOpen(false)
-      }
-      lastY = currentY
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [enableFilters, filtersOpen])
 
-  // 点击页面任意处自动收起筛选（除了筛选面板本身、切换按钮或 Popover 内容）
   useEffect(() => {
-    if (!enableFilters) return
-    const onPointerDown = (e: PointerEvent) => {
-      if (!filtersOpen) return
-      const target = e.target as Element | null
-      if (!target) return
-      
-      // 点击在筛选面板内则忽略
-      if (filterSectionRef.current && filterSectionRef.current.contains(target)) return
-      
-      // 点击在切换按钮（带有 aria-controls="gallery-filter-panel"）上则忽略
-      if (target.closest('[aria-controls="gallery-filter-panel"]')) return
-      
-      // 点击在 Popover 内容内则忽略（MultiSelect 的 Popover 通过 Portal 渲染到 body）
-      // 检查多种可能的 Popover 和 Command 相关选择器
-      const popoverSelectors = [
-        '[data-slot="popover-content"]',
-        '[data-slot="popover"]',
-        '[role="dialog"]',
-        '[data-radix-popper-content-wrapper]',
-        '[data-slot="command"]',
-        '[data-slot="command-input"]',
-        '[data-slot="command-list"]',
-        '[data-slot="command-item"]',
-        '[data-slot="command-group"]',
-        '[cmdk-root]',
-        '[cmdk-input]',
-        '[cmdk-list]',
-        '[cmdk-item]',
-        '[cmdk-group]',
-      ]
-      
-      // 检查点击的元素是否在任何 Popover 或 Command 相关元素内
-      const isInPopover = popoverSelectors.some(selector => {
-        try {
-          return target.closest(selector) !== null
-        } catch {
-          return false
-        }
-      })
-      
-      if (isInPopover) return
-      
-      setFiltersOpen(false)
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [enableFilters, filtersOpen])
-
-
-  // Bug修复：确保当 tags 为空时，不传递 tagsOperator，避免后端查询错误
-  const filters: ImageFilters & { tagsOperator?: 'and' | 'or' } | undefined = useMemo(() => {
-    return enableFilters
-      ? {
-          cameras: cameraFilter.length ? cameraFilter : undefined,
-          lenses: lensFilter.length ? lensFilter : undefined,
-          tags: tagsFilter.length ? tagsFilter : undefined,
-          // 只有当 tags 有值时才传递 tagsOperator
-          tagsOperator: tagsFilter.length > 0 ? tagsOperator : undefined,
-          // 新增：时间范围筛选
-          startDate: dateRange.start ? dateRange.start : undefined,
-          endDate: dateRange.end ? dateRange.end : undefined,
-          // 新增：图片类型筛选
-          imageTypes: imageTypeFilter.length ? imageTypeFilter : undefined,
-        }
-      : undefined
-  }, [enableFilters, cameraFilter, lensFilter, tagsFilter, tagsOperator, dateRange, imageTypeFilter])
-
-  // 当后台设置或图片数量变化时，如果用户没手动切换，则跟随基础主题
-  useEffect(() => {
-    if (!userOverridden) {
-      setCurrentStyle(baseStyle)
-    }
+    if (!userOverridden) setCurrentStyle(baseStyle)
   }, [baseStyle, userOverridden])
+
+  const {
+    cameraFilter, lensFilter, tagsFilter, tagsOperator, sortByShootTime,
+    setCameraFilter, setLensFilter, setTagsFilter, setTagsOperator, setSortByShootTime, resetFilters,
+  } = useFilterStore()
+
+  const filters: ImageFilters & { tagsOperator?: 'and' | 'or' } | undefined = useMemo(() => {
+    if (!enableFilters) return undefined
+    return {
+      cameras: cameraFilter.length ? cameraFilter : undefined,
+      lenses: lensFilter.length ? lensFilter : undefined,
+      tags: tagsFilter.length ? tagsFilter : undefined,
+      tagsOperator: tagsFilter.length > 0 ? tagsOperator : undefined,
+    }
+  }, [enableFilters, cameraFilter, lensFilter, tagsFilter, tagsOperator])
 
   const toggleTheme = () => {
     setUserOverridden(true)
-    setCurrentStyle(prev => (prev === 'waterfall' ? 'single' : 'waterfall'))
+    setCurrentStyle((prev) => (prev === 'waterfall' ? 'single' : 'waterfall'))
   }
 
-  const getGalleryComponent = () => {
-    const galleryProps = {
-      ...props,
-      // 改造点：向主题组件传入前端筛选条件和排序
-      filters,
-      sortByShootTime: enableFilters && props.album === '/' ? sortByShootTime : undefined,
-    }
-    return currentStyle === 'waterfall'
-      ? <WaterfallGallery {...galleryProps} />
-      : <SimpleGallery {...galleryProps} />
+  const activeCount = cameraFilter.length + lensFilter.length + tagsFilter.length
+
+  const galleryProps = {
+    ...props,
+    filters,
+    sortByShootTime: enableFilters && props.album === '/' ? sortByShootTime : undefined,
   }
 
-  const toggleLabel = useMemo(
-    () => currentStyle === 'waterfall' ? '切换到单列' : '切换到瀑布流',
-    [currentStyle],
-  )
+  const filterPanelProps = {
+    filterOptions,
+    tagOptions,
+    showSort: props.album === '/',
+    cameras: cameraFilter,
+    lenses: lensFilter,
+    tags: tagsFilter,
+    tagsOperator,
+    sort: sortByShootTime,
+    setCameras: setCameraFilter,
+    setLenses: setLensFilter,
+    setTags: setTagsFilter,
+    setTagsOperator,
+    setSort: setSortByShootTime,
+    onReset: resetFilters,
+  }
 
   return (
-    <>
-      {getGalleryComponent()}
-
-      {/* Theme & Filter Toggle Buttons - Optimized Layout */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
-        {enableFilters && (
-          <>
-            {/* 排序选择悬浮窗（仅在 /albums 页面显示） */}
-            {props.album === '/' && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-10 w-10 rounded-full bg-background/90 backdrop-blur-sm shadow-md border-border hover:bg-accent hover:shadow-lg transition-all duration-200"
-                    title={sortByShootTime === 'desc' ? '拍摄时间：从新到旧' : sortByShootTime === 'asc' ? '拍摄时间：从旧到新' : '默认排序'}
-                  >
-                    <ArrowUpDown className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent 
-                  className="w-[--trigger-width] p-1 bg-popover/95 backdrop-blur-md border border-border/50 shadow-lg rounded-md" 
-                  align="end"
-                  sideOffset={8}
-                >
-                  <div className="max-h-[inherit] overflow-auto outline-none">
-                    <button
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                        sortByShootTime === 'desc'
-                          ? 'bg-accent text-accent-foreground font-medium'
-                          : 'text-foreground hover:bg-accent/50 hover:text-accent-foreground'
-                      }`}
-                      onClick={() => setSortByShootTime('desc')}
-                    >
-                      从新到旧
-                    </button>
-                    <button
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                        sortByShootTime === 'asc'
-                          ? 'bg-accent text-accent-foreground font-medium'
-                          : 'text-foreground hover:bg-accent/50 hover:text-accent-foreground'
-                      }`}
-                      onClick={() => setSortByShootTime('asc')}
-                    >
-                      从旧到新
-                    </button>
-                    <button
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                        sortByShootTime === undefined
-                          ? 'bg-accent text-accent-foreground font-medium'
-                          : 'text-foreground hover:bg-accent/50 hover:text-accent-foreground'
-                      }`}
-                      onClick={() => setSortByShootTime(undefined)}
-                    >
-                      默认排序
-                    </button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-10 w-10 rounded-full bg-background/90 backdrop-blur-sm shadow-md border-border hover:bg-accent hover:shadow-lg transition-all duration-200"
-              onClick={() => setFiltersOpen(o => !o)}
-              title={filtersOpen ? '收起筛选' : '展开筛选'}
-              aria-expanded={filtersOpen}
-              aria-controls="gallery-filter-panel"
-            >
-              <Filter className="h-4 w-4" />
-            </Button>
-          </>
-        )}
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-10 w-10 rounded-full bg-background/90 backdrop-blur-sm shadow-md border-border hover:bg-accent hover:shadow-lg transition-all duration-200"
-          onClick={toggleTheme}
-          title={toggleLabel}
-        >
-          {currentStyle === 'waterfall'
-            ? <Rows className="h-4 w-4" />
-            : <LayoutGrid className="h-4 w-4" />}
-        </Button>
+    <TooltipProvider delayDuration={300}>
+      {/* ── 画廊内容 ── */}
+      <div>
+        {currentStyle === 'waterfall'
+          ? <WaterfallGallery {...galleryProps} />
+          : <SimpleGallery {...galleryProps} />}
       </div>
-      {enableFilters && filtersOpen && (
-        <div
-          id="gallery-filter-panel"
-          ref={filterSectionRef}
-          className="fixed bottom-20 right-6 z-50 w-[min(92vw,520px)] rounded-2xl border border-border/60 bg-background/85 shadow-2xl supports-[backdrop-filter]:backdrop-blur-xl"
-        >
-          <div className="px-4 pt-3 pb-4 space-y-3 text-xs md:text-sm text-foreground/80">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <MultiSelect
-                label="相机"
-                placeholder="选择相机型号"
-                options={(filterOptions?.cameras || []).map(v => ({ label: v, value: v }))}
-                selected={cameraFilter}
-                onChange={setCameraFilter}
-                className="bg-background/70 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.35)]"
-              />
-              <MultiSelect
-                label="镜头"
-                placeholder="选择镜头型号"
-                options={(filterOptions?.lenses || []).map(v => ({ label: v, value: v }))}
-                selected={lensFilter}
-                onChange={setLensFilter}
-                className="bg-background/70 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.35)]"
-              />
-              <MultiSelect
-                label="图片类型"
-                placeholder="选择图片类型"
-                options={imageTypes.map(v => ({ label: v, value: v }))}
-                selected={imageTypeFilter}
-                onChange={setImageTypeFilter}
-                className="bg-background/70 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.35)]"
-              />
+
+      {/* ── 悬浮工具组（桌面 + 移动共用，右下角） ── */}
+      {enableFilters && (
+        <div className="fixed bottom-6 right-5 z-40 flex flex-col items-end gap-2">
+
+          {/* 激活筛选 pill 摘要（有筛选时向上展开） */}
+          {activeCount > 0 && (
+            <div className="flex flex-col items-end gap-1.5 max-w-[200px]">
+              {cameraFilter.map((v) => (
+                <Pill key={`cam:${v}`} label={v} onRemove={() => setCameraFilter(cameraFilter.filter((c) => c !== v))} />
+              ))}
+              {lensFilter.map((v) => (
+                <Pill key={`lens:${v}`} label={v} onRemove={() => setLensFilter(lensFilter.filter((l) => l !== v))} />
+              ))}
+              {tagsFilter.map((v) => (
+                <Pill key={`tag:${v}`} label={`#${v}`} onRemove={() => setTagsFilter(tagsFilter.filter((t) => t !== v))} />
+              ))}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <MultiSelect
-                  label="标签"
-                  placeholder="选择标签"
-                  options={(tagOptions || []).map(v => ({ label: v, value: v }))}
-                  selected={tagsFilter}
-                  onChange={setTagsFilter}
-                  className="bg-background/70 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.35)]"
-                />
-                {tagsFilter.length > 0 && (
-                  <div className="flex items-center gap-2 px-1">
-                    <span className="text-xs text-foreground/60">标签逻辑：</span>
-                    <button
-                      type="button"
-                      onClick={() => setTagsOperator('and')}
-                      className={`px-2 py-0.5 text-xs border rounded transition-colors ${
-                        tagsOperator === 'and'
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'hover:bg-accent'
-                      }`}
-                    >
-                      AND
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTagsOperator('or')}
-                      className={`px-2 py-0.5 text-xs border rounded transition-colors ${
-                        tagsOperator === 'or'
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'hover:bg-accent'
-                      }`}
-                    >
-                      OR
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-2">
-                <label className="block text-xs font-medium text-foreground/80">拍摄时间范围</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="date"
-                    value={dateRange.start}
-                    onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                    className="px-3 py-2 text-xs border rounded-md bg-background/70 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.35)]"
-                    placeholder="开始日期"
-                  />
-                  <input
-                    type="date"
-                    value={dateRange.end}
-                    onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                    className="px-3 py-2 text-xs border rounded-md bg-background/70 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.35)]"
-                    placeholder="结束日期"
-                  />
-                </div>
-              </div>
-            </div>
+          )}
+
+          {/* 工具按钮组 */}
+          <div className="flex items-center gap-1.5 rounded-2xl border border-border/40 bg-background/80 backdrop-blur-[12px] p-1.5 shadow-lg">
+
+            {/* 排序（仅 /albums 页） */}
+            {props.album === '/' && (
+              <>
+                
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={sortByShootTime === 'desc' ? '最新优先' : sortByShootTime === 'asc' ? '最早优先' : '默认排序'}
+                        onClick={() => setSortByShootTime(
+                          sortByShootTime === undefined ? 'desc' : sortByShootTime === 'desc' ? 'asc' : undefined
+                        )}
+                        className={cn(
+                          'relative flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl transition-all duration-200',
+                          sortByShootTime !== undefined
+                            ? 'bg-primary/15 text-primary'
+                            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                        )}
+                      >
+                        <ArrowUpDown className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" sideOffset={8} className="text-xs">
+                      {sortByShootTime === 'desc' ? '最新优先（点击切换）' : sortByShootTime === 'asc' ? '最早优先（点击切换）' : '默认排序'}
+                    </TooltipContent>
+                  </Tooltip>
+                
+
+                <div className="h-6 w-px bg-border/60" />
+              </>
+            )}
+
+            {/* 布局切换 */}
+            
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={currentStyle === 'waterfall' ? '切换到单列' : '切换到瀑布流'}
+                    onClick={toggleTheme}
+                    className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200"
+                  >
+                    {currentStyle === 'waterfall' ? <Rows className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" sideOffset={8} className="text-xs">
+                  {currentStyle === 'waterfall' ? '切换到单列' : '切换到瀑布流'}
+                </TooltipContent>
+              </Tooltip>
+            
+
+            <div className="h-6 w-px bg-border/60" />
+
+            {/* 筛选 */}
+            
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setSheetOpen(true)}
+                    aria-expanded={sheetOpen}
+                    aria-controls="filter-sheet"
+                    aria-label={activeCount > 0 ? `筛选（已选 ${activeCount} 项）` : '筛选'}
+                    className={cn(
+                      'relative flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl transition-all duration-200',
+                      activeCount > 0 || sheetOpen
+                        ? 'bg-primary/15 text-primary'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                    )}
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    {activeCount > 0 && (
+                      <span className="absolute top-1.5 right-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-bold leading-none text-primary-foreground">
+                        {activeCount > 9 ? '9+' : activeCount}
+                      </span>
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" sideOffset={8} className="text-xs">
+                  {activeCount > 0 ? `筛选（已选 ${activeCount} 项）` : '筛选'}
+                </TooltipContent>
+              </Tooltip>
+            
           </div>
         </div>
       )}
-    </>
+
+      {/* ── 画廊内容 ── */}
+      <div>
+        {currentStyle === 'waterfall'
+          ? <WaterfallGallery {...galleryProps} />
+          : <SimpleGallery {...galleryProps} />}
+      </div>
+
+      {/* ── 筛选面板（Sheet）── */}
+      {enableFilters && (
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetContent
+            id="filter-sheet"
+            side={isMobile ? 'bottom' : 'right'}
+            className={cn(
+              'flex flex-col gap-0 p-0',
+              isMobile ? 'h-[85dvh] rounded-t-2xl' : 'w-80 sm:w-96',
+            )}
+          >
+            <SheetHeader className="flex-row items-center justify-between border-b px-5 py-4 shrink-0">
+              <SheetTitle className="text-base font-semibold">筛选 & 排序</SheetTitle>
+              {activeCount > 0 && (
+                <button type="button" onClick={resetFilters} className="text-xs text-destructive hover:underline">
+                  清除全部
+                </button>
+              )}
+            </SheetHeader>
+
+            {isMobile && (
+              <div className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-muted-foreground/30" />
+            )}
+
+            <div className="flex-1 overflow-y-auto px-5 py-5">
+              <FilterPanel {...filterPanelProps} />
+            </div>
+
+            {isMobile && (
+              <div className="shrink-0 border-t px-5 py-4 bg-background">
+                <button
+                  type="button"
+                  onClick={() => setSheetOpen(false)}
+                  className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  完成
+                </button>
+              </div>
+            )}
+          </SheetContent>
+        </Sheet>
+      )}
+    </TooltipProvider>
   )
 }

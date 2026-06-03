@@ -16,13 +16,13 @@ export default function BlurImage({ photo, dataList }: { photo: ImageType, dataL
         className="cursor-pointer"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
+        transition={{ duration: 0.3 }}
         src={photo.src}
         overrideSrc={photo.src}
         alt={photo.alt}
         width={photo.width}
         height={photo.height}
-        unoptimized
+        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         loading="lazy"
         placeholder="blur"
         blurDataURL={dataURL}

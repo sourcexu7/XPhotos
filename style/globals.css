@@ -409,6 +409,21 @@
   }
 }
 
+/* 瀑布流骨架 shimmer 动画 */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* prefers-reduced-motion：全局禁用所有动画/过渡 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Ensure admin upload pages use the same font family and inherit sizing
    This forces Ant components and native inputs inside `.admin-upload` to
    inherit the surrounding font settings so labels, tags and inputs match. */

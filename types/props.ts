@@ -29,7 +29,6 @@ export interface ImageServerHandleProps {
 }
 
 export interface ImageFilters {
-  // 新增：前台作品画廊筛选条件（多选）
   cameras?: string[]
   lenses?: string[]
   tags?: string[]

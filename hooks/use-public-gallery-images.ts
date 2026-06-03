@@ -41,7 +41,21 @@ export function usePublicGalleryImages(params: Params) {
   ].join('|')
 
   return useSWRInfinite<PublicGalleryImagesResponse>(
-    (index) => {
+    (index, previousPageData) => {
+      // 修复无限滚动死循环：当上一页明确无更多数据时，停止请求
+      if (previousPageData !== null) {
+        if (
+          typeof previousPageData.pageTotal === 'number' &&
+          typeof previousPageData.page === 'number' &&
+          previousPageData.page >= previousPageData.pageTotal
+        ) {
+          return null
+        }
+        if (Array.isArray(previousPageData.items) && previousPageData.items.length === 0) {
+          return null
+        }
+      }
+
       const q = new URLSearchParams()
       q.set('page', String(index + 1))
       q.set('album', params.album)
@@ -63,7 +77,7 @@ export function usePublicGalleryImages(params: Params) {
       revalidateIfStale: false,
       revalidateOnReconnect: false,
       keepPreviousData: true,
-      dedupingInterval: 60_000,
-    }
+      dedupingInterval: 120_000, // 延长去重窗口，防止重复请求引发 OOM
+    },
   )
 }

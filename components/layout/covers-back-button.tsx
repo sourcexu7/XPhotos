@@ -13,7 +13,7 @@ export default function CoversBackButton() {
     <Button
       type="button"
       variant="ghost"
-      className="gap-2 pl-0 hover:bg-transparent hover:text-gray-900"
+      className="gap-2 pl-0 hover:bg-transparent hover:text-foreground"
       onClick={() => {
         // iOS/弱网/冷启动场景：可能没有可回退历史，直接回到 covers
         if (typeof window !== 'undefined' && window.history.length <= 1) {

@@ -30,8 +30,8 @@ export default function GalleryImage({ photo, configData }: { photo: ImageType, 
   const isDesktop = screens.lg === true
   const showTags = screens.md === true || screens.lg === true
 
-  const exifIconClass = 'dark:text-gray-50 text-gray-500'
-  const actionIconClass = 'dark:text-gray-50 text-gray-500 cursor-pointer hover:opacity-70 transition-opacity'
+  const exifIconClass = 'text-muted-foreground'
+  const actionIconClass = 'text-muted-foreground cursor-pointer hover:opacity-70 transition-opacity'
 
   const { data: download = false, mutate: setDownload } = useSWR(['masonry/download', photo?.url ?? ''], null)
 
@@ -93,14 +93,14 @@ export default function GalleryImage({ photo, configData }: { photo: ImageType, 
           <MotionImage
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 0.3 }}
             src={customIndexOriginEnable ? photo.url || photo.preview_url : photo.preview_url || photo.url}
             overrideSrc={customIndexOriginEnable ? photo.url || photo.preview_url : photo.preview_url || photo.url}
             alt={photo.title}
             width={photo.width}
             height={photo.height}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 60vw"
             loading="lazy"
-            unoptimized
             placeholder="blur"
             blurDataURL={dataURL}
             onClick={() => router.push(`/preview/${photo?.id}`)}
@@ -153,7 +153,7 @@ export default function GalleryImage({ photo, configData }: { photo: ImageType, 
             {photo.labels.map((tag: string) => (
               <span
                 key={tag}
-                className="cursor-pointer select-none px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-400 hover:text-gray-200 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
+                className="cursor-pointer select-none px-3 py-1 rounded-full bg-muted/60 border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-muted hover:border-border/80 transition-all duration-200"
                 onClick={() => router.push(`/tag/${tag}`)}
               >
                 #{tag}
@@ -322,7 +322,7 @@ export default function GalleryImage({ photo, configData }: { photo: ImageType, 
               {photo.labels.map((tag: string) => (
                 <span
                   key={tag}
-                  className="cursor-pointer select-none px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-400 hover:text-gray-200 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
+                  className="cursor-pointer select-none px-3 py-1 rounded-full bg-muted/60 border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-muted hover:border-border/80 transition-all duration-200"
                   onClick={() => router.push(`/tag/${tag}`)}
                 >
                   #{tag}
@@ -409,14 +409,14 @@ export default function GalleryImage({ photo, configData }: { photo: ImageType, 
             <MotionImage
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 1 }}
+              transition={{ duration: 0.3 }}
               src={customIndexOriginEnable ? photo.url || photo.preview_url : photo.preview_url || photo.url}
               overrideSrc={customIndexOriginEnable ? photo.url || photo.preview_url : photo.preview_url || photo.url}
               alt={photo.title}
               width={photo.width}
               height={photo.height}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 60vw"
               loading="lazy"
-              unoptimized
               placeholder="blur"
               blurDataURL={dataURL}
               onClick={() => router.push(`/preview/${photo?.id}`)}

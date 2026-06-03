@@ -68,12 +68,19 @@ app.get('/images', async (c) => {
       tags && tags.length > 0 ? (q.tagsOperator ?? 'and') : 'and'
     )
 
-    return c.json({
+    const res = c.json({
       page: q.page,
       pageSize: 16,
       pageTotal,
       items: list,
     })
+
+    // 公共读取路径缓存：stale-while-revalidate 降低 TTFB
+    // 标签/相册筛选参数变化时，s-maxage 短一些让 CDN 快速失效
+    const hasFilters = q.cameras || q.lenses || q.tags
+    const maxAge = hasFilters ? 30 : 60
+    res.headers.set('Cache-Control', `public, s-maxage=${maxAge}, stale-while-revalidate=300`)
+    return res
   } catch (e) {
     if (e instanceof HTTPException) throw e
     throw new HTTPException(500, { message: 'Failed to fetch public gallery images', cause: e })

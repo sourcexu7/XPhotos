@@ -36,7 +36,7 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
             className="w-full"
           >
             <ImageAutoSlider images={images} />
@@ -47,7 +47,7 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
             className="text-[28px] sm:text-[32px] md:text-[48px] font-bold tracking-tight mb-4"
             aria-label="到最深处 纵然那只是瞬间"
           >
