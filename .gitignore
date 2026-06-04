@@ -1,6 +1,8 @@
 # Dependencies
 node_modules
 .pnpm-store
+.pnp
+.pnp.js
 
 # Build outputs
 .next
@@ -16,8 +18,11 @@ tsconfig.tsbuildinfo
 .env
 .env.local
 .env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# IDE
+# IDE and Editor
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -30,6 +35,7 @@ tsconfig.tsbuildinfo
 *~
 .DS_Store
 .trae
+.claude
 
 # Logs
 *.log
@@ -46,9 +52,9 @@ coverage
 # Prisma
 prisma/dev.db
 prisma/dev.db-journal
-prisma.zip
+prisma/migrations/migration_lock.toml
 
-# PWA
+# PWA (Service Worker)
 public/sw.js
 public/workbox-*.js
 public/worker-*.js
@@ -57,27 +63,50 @@ public/fallback-*.js
 # HTTPS certificates
 certificates
 
-# Claude
-.claude
-
 # Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Archive files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Project-specific temporary files
 checklist.json
 expense.json
 expense_utf8.bin
 expense_utf8.json
 itinerary.json
 response.json
+transport.json
+token.txt
+get-token.ps1
 performance-report-*.json
 performance-test.js
 test-build.tsx
-script.sh
+test-featured-images.ts
 hero-prompt.md
-*.zip
-get-token.ps1
 
-# Database backup files
+# Prisma backup/archive files
+prisma.zip
 prisma/migrations.zip
 
-# Local project directories
+# Local project directories (skills/archives)
 design-system
 ui-ux-pro-max-skill
+攻略合集
+
+# Miscellaneous
+*.pid
+*.seed
+*.pid.lock
+.cache/
+.parcel-cache/
+.eslintcache
+.prettiercache
+*.tsbuildinfo
