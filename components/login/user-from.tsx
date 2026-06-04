@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import { resolveLoginApiErrorMessage } from '~/lib/i18n/login-api-error'
+import { Button } from '~/components/ui/button'
+import { cn } from '~/lib/utils'
 
 export const UserFrom = () => {
   const router = useRouter()
@@ -77,24 +79,24 @@ export const UserFrom = () => {
 
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 font-sans relative">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 font-sans relative bg-background">
       <Link 
         href="/" 
-        className="absolute top-6 left-6 md:top-8 md:left-8 flex items-center gap-2 text-gray-500 hover:text-[#2A4365] transition-colors text-sm font-medium z-20"
+        className="absolute top-6 left-6 md:top-8 md:left-8 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium z-20"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>{t('Login.goHome')}</span>
       </Link>
 
-      <div className="w-full max-w-sm bg-white/90 backdrop-blur-sm rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-10 flex flex-col items-center border border-white/50 text-gray-800 relative z-10">
+      <div className="w-full max-w-sm bg-background backdrop-blur-sm rounded-3xl shadow-lg p-10 flex flex-col items-center border border-border text-foreground relative z-10">
         
-        <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-[#F7FAFC] mb-8 shadow-inner">
+        <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-muted mb-8 shadow-inner">
           {logoError ? (
-            <span className="text-sm font-semibold text-[#2A4365]">PI</span>
+            <span className="text-sm font-semibold text-foreground">PI</span>
           ) : (
             <Image
               src="/favicon.svg"
-              alt="PicImpact"
+              alt="XPhotos"
               width={32}
               height={32}
               className="object-contain"
@@ -104,35 +106,35 @@ export const UserFrom = () => {
           )}
         </div>
         
-        <h2 className="text-2xl font-semibold mb-3 text-center text-[#2A4365]">
+        <h2 className="text-2xl font-semibold mb-3 text-center text-foreground font-serif">
           XPhotos
         </h2>
-        <p className="text-gray-500 text-sm mb-10 text-center">
+        <p className="text-muted-foreground text-sm mb-10 text-center">
           专业风光摄影作品集管理系统
         </p>
         
         <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6 mb-6">
           <div className="relative group">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#2A4365] transition-colors">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-foreground transition-colors">
               <Mail className="w-4 h-4" />
             </span>
             <input
               placeholder={t('Login.usernameOrEmail')}
               type="text"
               value={username}
-              className="w-full pl-10 pr-3 py-4 rounded-xl border border-transparent bg-[#F7FAFC] focus:bg-white focus:border-[#2A4365]/30 focus:outline-none focus:ring-4 focus:ring-[#2A4365]/5 text-sm transition-all text-gray-900 placeholder:text-gray-400"
+              className="w-full pl-10 pr-3 py-4 rounded-xl border border-border bg-muted focus:bg-background focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm transition-all text-foreground placeholder:text-muted-foreground"
               onChange={(e) => setUsername(e.target.value)}
             />
           </div>
           <div className="relative group">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#2A4365] transition-colors">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-foreground transition-colors">
               <Lock className="w-4 h-4" />
             </span>
             <input
               placeholder={t('Login.password')}
               type="password"
               value={password}
-              className="w-full pl-10 pr-3 py-4 rounded-xl border border-transparent bg-[#F7FAFC] focus:bg-white focus:border-[#2A4365]/30 focus:outline-none focus:ring-4 focus:ring-[#2A4365]/5 text-sm transition-all text-gray-900 placeholder:text-gray-400"
+              className="w-full pl-10 pr-3 py-4 rounded-xl border border-border bg-muted focus:bg-background focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm transition-all text-foreground placeholder:text-muted-foreground"
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
@@ -141,15 +143,14 @@ export const UserFrom = () => {
             <div className="text-xs text-red-500 text-left pl-1">{error}</div>
           )}
           
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#2A4365] hover:bg-[#1A2E4B] !text-white font-medium py-3.5 rounded-xl shadow-lg shadow-[#2A4365]/10 hover:shadow-[#2A4365]/20 cursor-pointer transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-4 flex items-center justify-center gap-2"
-            style={{ color: '#ffffff' }}
+            className="w-full font-medium py-3.5 rounded-xl transition-all active:scale-[0.98] mt-4 flex items-center justify-center gap-2"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             {loading ? t('Login.loggingIn') : t('Login.signIn')}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

@@ -1,8 +1,8 @@
 import { fetchAlbumsShow } from '~/lib/db/query/albums'
-import type { AlbumType, Config } from '~/types'
 import { fetchConfigsByKeys } from '~/lib/db/query/configs'
 import UnifiedNav from '~/components/layout/unified-nav'
 import ScrollRestoration from '~/components/layout/scroll-restoration'
+import { Footer } from '~/components/layout/footer'
 
 const DEFAULT_STYLE = '0'
 const DEFAULT_TITLE = 'XPhotos'
@@ -29,7 +29,10 @@ export default async function DefaultLayout({
         siteTitle={siteTitle}
       />
       <ScrollRestoration />
-      <div className="pt-4 sm:pt-6 md:pt-8">{children}</div>
+      <div className="pt-4 sm:pt-6 md:pt-8">
+        {children}
+      </div>
+      <Footer />
     </>
   )
 }

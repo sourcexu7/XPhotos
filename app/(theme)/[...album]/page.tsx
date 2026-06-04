@@ -1,10 +1,12 @@
 import { fetchClientImagesListByAlbum, fetchClientImagesPageTotalByAlbum } from '~/lib/db/query/images'
+import { fetchAlbumsShow } from '~/lib/db/query/albums'
 import type { ImageHandleProps } from '~/types/props.ts'
 import { fetchConfigsByKeys } from '~/lib/db/query/configs'
 import 'react-photo-album/masonry.css'
 import type { Config } from '~/types'
 import ThemeGalleryClient from '~/components/layout/theme-gallery-client'
 import CoversBackButton from '~/components/layout/covers-back-button'
+import AlbumNav from '~/components/layout/album-nav'
 import Link from 'next/link'
 
 export default async function Page({
@@ -56,6 +58,7 @@ export default async function Page({
 
   const configs: Config[] = await getConfig()
   const systemStyle = configs.find(a => a.config_key === 'custom_index_style')?.config_value || '0'
+  const albums = await fetchAlbumsShow()
 
   const props: ImageHandleProps = {
     handle: getData,
@@ -71,6 +74,9 @@ export default async function Page({
         <CoversBackButton />
       </div>
       <ThemeGalleryClient systemStyle={systemStyle} preferredStyle={preferredStyle} {...props} />
+      <div className="container mx-auto px-4 py-6 mt-4">
+        <AlbumNav currentAlbumValue={`/${album}`} albums={albums} />
+      </div>
     </div>
   )
 }

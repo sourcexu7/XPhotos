@@ -36,6 +36,7 @@ tsconfig.tsbuildinfo
 .DS_Store
 .trae
 .claude
+.agents
 
 # Logs
 *.log

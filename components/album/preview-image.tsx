@@ -23,6 +23,7 @@ import { ExpandIcon } from '~/components/icons/expand'
 import { useTranslations } from 'next-intl'
 import ProgressiveImage from '~/components/album/progressive-image.tsx'
 import { Row, Col, Space, Typography, Tag, Tooltip } from 'antd'
+import { Button } from '~/components/ui/button'
 
 const { Title, Text } = Typography
 
@@ -34,8 +35,6 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
 
   const exifIconClass = 'text-muted-foreground'
   const actionIconClass = 'text-muted-foreground hover:opacity-70 transition-opacity'
-  const actionButtonClass =
-    'p-1 rounded-md text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60'
 
   const exifProps: ImageDataProps = {
     data: props.data,
@@ -169,14 +168,16 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
               <Title level={4} style={{ margin: 0, fontWeight: 500, flex: 1, fontSize: '16px', color: 'var(--foreground)' }}>
                 {props.data?.title || '未命名'}
               </Title>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleClose}
                 aria-label={t('Button.goBack')}
                 style={{ marginLeft: '8px', flexShrink: 0 }}
-                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md hover:bg-muted/60 transition-colors touch-manipulation"
+                className="min-h-[44px] min-w-[44px] hover:bg-muted/60 transition-colors touch-manipulation"
               >
                 <XIcon className={exifIconClass} size={20} />
-              </button>
+              </Button>
             </div>
 
             {/* 图片描述 */}
@@ -274,9 +275,9 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
             {/* 操作按钮区域 */}
             <div style={{ marginTop: '16px', paddingLeft: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <Tooltip title="复制图片直链">
-                <button
-                  type="button"
-                  className={actionButtonClass}
+                <Button
+                  variant="ghost"
+                  size="icon"
                   aria-label="复制图片直链"
                   onClick={async () => {
                     try {
@@ -308,14 +309,15 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
                     }
                   }}
                   disabled={!props.data?.url}
+                  className="min-h-[44px] min-w-[44px]"
                 >
                   <CopyIcon className={actionIconClass} size={18} />
-                </button>
+                </Button>
               </Tooltip>
               <Tooltip title="复制分享链接">
-                <button
-                  type="button"
-                  className={actionButtonClass}
+                <Button
+                  variant="ghost"
+                  size="icon"
                   aria-label="复制分享链接"
                   onClick={async () => {
                     try {
@@ -343,38 +345,41 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
                     }
                   }}
                   disabled={!props.id}
+                  className="min-h-[44px] min-w-[44px]"
                 >
                   <LinkIcon className={actionIconClass} size={18} />
-                </button>
+                </Button>
               </Tooltip>
               {configData?.find((item: any) => item.config_key === 'custom_index_download_enable')?.config_value.toString() === 'true'
                 && <>
                   <Tooltip title="下载">
-                    <button
-                      type="button"
-                      className={actionButtonClass}
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       aria-label="下载"
                       disabled={downloading}
                       onClick={() => handleDownload()}
+                      className="min-h-[44px] min-w-[44px]"
                     >
                       {downloading ? (
                         <RefreshCWIcon className={cn(actionIconClass, 'animate-spin')} size={18} />
                       ) : (
                         <DownloadIcon className={actionIconClass} size={18} />
                       )}
-                    </button>
+                    </Button>
                   </Tooltip>
                 </>
               }
               <Tooltip title="全屏查看">
-                <button
-                  type="button"
-                  className={actionButtonClass}
+                <Button
+                  variant="ghost"
+                  size="icon"
                   aria-label="全屏查看"
                   onClick={() => setLightboxPhoto(true)}
+                  className="min-h-[44px] min-w-[44px]"
                 >
                   <ExpandIcon className={actionIconClass} size={18} />
-                </button>
+                </Button>
               </Tooltip>
             </div>
 

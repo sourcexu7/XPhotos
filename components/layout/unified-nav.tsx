@@ -9,6 +9,7 @@ import { authClient } from '~/lib/auth-client'
 import { useTheme } from 'next-themes'
 import { cn } from '~/lib/utils'
 import type { AlbumType } from '~/types'
+import { Button } from '~/components/ui/button'
 import { 
   SunIcon, 
   MoonIcon, 
@@ -75,18 +76,15 @@ export default function UnifiedNav({
     <>
       <nav
         className={cn(
-          'w-full fixed top-0 left-0 z-50 transition-all duration-300 h-16',
-          'backdrop-blur-[12px] bg-background/15 border-b border-transparent',
-          isScrolled && 'border-b-[1px] border-white/10 shadow-lg'
+          'w-full fixed top-0 left-0 z-50 transition-all duration-200 h-16',
+          'backdrop-blur-[16px] bg-background/70 border-b border-border/50',
+          isScrolled && 'border-b border-border shadow-md'
         )}
-        style={{
-          borderBottomImage: isScrolled ? 'linear-gradient(to right, var(--primary), var(--secondary)) 1' : 'none'
-        }}
       >
-        <div className="max-w-[1200px] mx-auto h-full flex items-center justify-between px-5">
+        <div className="max-w-[1280px] mx-auto h-full flex items-center justify-between px-6">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0 group">
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] tracking-tight group-hover:opacity-80 transition-opacity">
+            <span className="text-xl font-semibold text-foreground tracking-tight group-hover:opacity-70 transition-opacity">
               {siteTitle}
             </span>
           </Link>
@@ -129,9 +127,11 @@ export default function UnifiedNav({
 
             {/* Dark Mode Toggle */}
             {mounted && (
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-                className="p-2 hover:bg-muted rounded-md transition-colors"
+                className="min-h-[44px] min-w-[44px]"
                 aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               >
                 {resolvedTheme === 'dark' ? (
@@ -139,7 +139,7 @@ export default function UnifiedNav({
                 ) : (
                   <MoonIcon className="w-5 h-5 text-foreground/70" />
                 )}
-              </button>
+              </Button>
             )}
           </div>
 

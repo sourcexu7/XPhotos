@@ -4,6 +4,7 @@ import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
 import { Github, Instagram, Book, MessagesSquare, AlertCircle, RefreshCw } from 'lucide-react'
 import { FramerCarousel, CarouselItem } from '~/components/ui/framer-carousel'
+import { Button } from '~/components/ui/button'
 import { cn } from '~/lib/utils'
 
 interface AboutConfig {
@@ -67,14 +68,16 @@ export default function AboutPage() {
               网络波动或服务器暂时不可用，请检查网络后重试。
             </p>
           </div>
-          <button
+          <Button
             type="button"
+            variant="default"
+            size="default"
             onClick={() => mutate()}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:bg-foreground/90 transition-colors"
+            className="rounded-full"
           >
             <RefreshCw className="h-4 w-4" />
             重新加载
-          </button>
+          </Button>
         </div>
       </div>
     )
@@ -164,26 +167,24 @@ export default function AboutPage() {
                 </h2>
                 <div className="flex flex-wrap items-center gap-3">
                   {socialLinks.map((link) => (
-                    <a
+                    <Button
                       key={link.key}
-                      href={link.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={cn(
-                        "group inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-all duration-300",
-                        "hover:scale-105 hover:shadow-md",
-                        link.key === 'instagram' && "bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100 dark:bg-pink-950/30 dark:border-pink-800 dark:text-pink-400",
-                        link.key === 'twitter' && "bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100 dark:bg-sky-950/30 dark:border-sky-800 dark:text-sky-400",
-                        link.key === 'github' && "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-300",
-                        link.key === 'weibo' && "bg-red-50 border-red-200 text-red-700 hover:bg-red-100 dark:bg-red-950/30 dark:border-red-800 dark:text-red-400",
-                        !['instagram', 'twitter', 'github', 'weibo'].includes(link.key) && "bg-foreground/5 border-foreground/10 text-foreground/80 hover:text-foreground hover:bg-foreground/10 hover:border-foreground/20"
-                      )}
+                      asChild
+                      variant="outline"
+                      size="default"
+                      className="rounded-full"
                     >
-                      <span className="transform group-hover:rotate-12 transition-transform">
-                        {link.icon}
-                      </span>
-                      <span>{link.label}</span>
-                    </a>
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <span className="opacity-80">
+                          {link.icon}
+                        </span>
+                        <span>{link.label}</span>
+                      </a>
+                    </Button>
                   ))}
                 </div>
               </nav>

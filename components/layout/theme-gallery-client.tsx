@@ -326,82 +326,74 @@ export default function ThemeGalleryClient({
       </div>
 
       {/* ── 悬浮工具组（桌面 + 移动共用，右下角） ── */}
-      {enableFilters && (
-        <div className="fixed bottom-6 right-5 z-40 flex flex-col items-end gap-2">
+      <div className="fixed bottom-6 right-5 z-40 flex flex-col items-end gap-2">
+        {/* 激活筛选 pill 摘要（有筛选时向上展开） */}
+        {enableFilters && activeCount > 0 && (
+          <div className="flex flex-col items-end gap-1.5 max-w-[200px]">
+            {cameraFilter.map((v) => (
+              <Pill key={`cam:${v}`} label={v} onRemove={() => setCameraFilter(cameraFilter.filter((c) => c !== v))} />
+            ))}
+            {lensFilter.map((v) => (
+              <Pill key={`lens:${v}`} label={v} onRemove={() => setLensFilter(lensFilter.filter((l) => l !== v))} />
+            ))}
+            {tagsFilter.map((v) => (
+              <Pill key={`tag:${v}`} label={`#${v}`} onRemove={() => setTagsFilter(tagsFilter.filter((t) => t !== v))} />
+            ))}
+          </div>
+        )}
 
-          {/* 激活筛选 pill 摘要（有筛选时向上展开） */}
-          {activeCount > 0 && (
-            <div className="flex flex-col items-end gap-1.5 max-w-[200px]">
-              {cameraFilter.map((v) => (
-                <Pill key={`cam:${v}`} label={v} onRemove={() => setCameraFilter(cameraFilter.filter((c) => c !== v))} />
-              ))}
-              {lensFilter.map((v) => (
-                <Pill key={`lens:${v}`} label={v} onRemove={() => setLensFilter(lensFilter.filter((l) => l !== v))} />
-              ))}
-              {tagsFilter.map((v) => (
-                <Pill key={`tag:${v}`} label={`#${v}`} onRemove={() => setTagsFilter(tagsFilter.filter((t) => t !== v))} />
-              ))}
-            </div>
-          )}
-
-          {/* 工具按钮组 */}
-          <div className="flex items-center gap-1.5 rounded-2xl border border-border/40 bg-background/80 backdrop-blur-[12px] p-1.5 shadow-lg">
-
-            {/* 排序（仅 /albums 页） */}
-            {props.album === '/' && (
-              <>
-                
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label={sortByShootTime === 'desc' ? '最新优先' : sortByShootTime === 'asc' ? '最早优先' : '默认排序'}
-                        onClick={() => setSortByShootTime(
-                          sortByShootTime === undefined ? 'desc' : sortByShootTime === 'desc' ? 'asc' : undefined
-                        )}
-                        className={cn(
-                          'relative flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl transition-all duration-200',
-                          sortByShootTime !== undefined
-                            ? 'bg-primary/15 text-primary'
-                            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                        )}
-                      >
-                        <ArrowUpDown className="h-4 w-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" sideOffset={8} className="text-xs">
-                      {sortByShootTime === 'desc' ? '最新优先（点击切换）' : sortByShootTime === 'asc' ? '最早优先（点击切换）' : '默认排序'}
-                    </TooltipContent>
-                  </Tooltip>
-                
-
-                <div className="h-6 w-px bg-border/60" />
-              </>
-            )}
-
-            {/* 布局切换 */}
-            
+        {/* 工具按钮组 */}
+        <div className="flex items-center gap-1.5 rounded-2xl border border-border/40 bg-background/80 backdrop-blur-[12px] p-1.5 shadow-lg">
+          {/* 排序（仅 /albums 页且启用筛选时） */}
+          {enableFilters && props.album === '/' && (
+            <>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    aria-label={currentStyle === 'waterfall' ? '切换到单列' : '切换到瀑布流'}
-                    onClick={toggleTheme}
-                    className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200"
+                    aria-label={sortByShootTime === 'desc' ? '最新优先' : sortByShootTime === 'asc' ? '最早优先' : '默认排序'}
+                    onClick={() => setSortByShootTime(
+                      sortByShootTime === undefined ? 'desc' : sortByShootTime === 'desc' ? 'asc' : undefined
+                    )}
+                    className={cn(
+                      'relative flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl transition-all duration-200',
+                      sortByShootTime !== undefined
+                        ? 'bg-primary/15 text-primary'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                    )}
                   >
-                    {currentStyle === 'waterfall' ? <Rows className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                    <ArrowUpDown className="h-4 w-4" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" sideOffset={8} className="text-xs">
-                  {currentStyle === 'waterfall' ? '切换到单列' : '切换到瀑布流'}
+                  {sortByShootTime === 'desc' ? '最新优先（点击切换）' : sortByShootTime === 'asc' ? '最早优先（点击切换）' : '默认排序'}
                 </TooltipContent>
               </Tooltip>
-            
+              <div className="h-6 w-px bg-border/60" />
+            </>
+          )}
 
-            <div className="h-6 w-px bg-border/60" />
+          {/* 布局切换（始终显示） */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={currentStyle === 'waterfall' ? '切换到单列' : '切换到瀑布流'}
+                onClick={toggleTheme}
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200"
+              >
+                {currentStyle === 'waterfall' ? <Rows className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" sideOffset={8} className="text-xs">
+              {currentStyle === 'waterfall' ? '切换到单列' : '切换到瀑布流'}
+            </TooltipContent>
+          </Tooltip>
 
-            {/* 筛选 */}
-            
+          {/* 筛选按钮（仅启用筛选时显示） */}
+          {enableFilters && (
+            <>
+              <div className="h-6 w-px bg-border/60" />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -429,16 +421,9 @@ export default function ThemeGalleryClient({
                   {activeCount > 0 ? `筛选（已选 ${activeCount} 项）` : '筛选'}
                 </TooltipContent>
               </Tooltip>
-            
-          </div>
+            </>
+          )}
         </div>
-      )}
-
-      {/* ── 画廊内容 ── */}
-      <div>
-        {currentStyle === 'waterfall'
-          ? <WaterfallGallery {...galleryProps} />
-          : <SimpleGallery {...galleryProps} />}
       </div>
 
       {/* ── 筛选面板（Sheet）── */}

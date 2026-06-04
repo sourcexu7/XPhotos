@@ -46,7 +46,7 @@ export function VirtualWaterfallGallery({
   )
   const prefersReducedMotion = usePrefersReducedMotion()
 
-  const columnCount = isMobile ? 2 : 3
+  const columnCount = isMobile ? 3 : 5
   const GAP = 16
 
   // 监听容器宽度
@@ -221,7 +221,7 @@ const WaterfallCard = React.memo(function WaterfallCard({
     return () => io.disconnect()
   }, [])
 
-  const transition = prefersReducedMotion ? 'none' : 'opacity 0.4s ease, transform 0.4s ease'
+  const transition = prefersReducedMotion ? 'none' : 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
 
   return (
     <div
@@ -235,13 +235,14 @@ const WaterfallCard = React.memo(function WaterfallCard({
         top: y,
         width: w,
         height: h,
-        borderRadius: 12,
+        borderRadius: 16,
         overflow: 'hidden',
-        transform: hovered && !prefersReducedMotion ? 'scale(1.02)' : 'scale(1)',
-        boxShadow: hovered ? '0 8px 24px rgba(0,0,0,0.25)' : '0 2px 8px rgba(0,0,0,0.1)',
+        transform: hovered && !prefersReducedMotion ? 'translateY(-4px) scale(1.02)' : 'translateY(0) scale(1)',
+        boxShadow: hovered 
+          ? '0 20px 40px -12px rgba(0,0,0,0.35), 0 8px 20px -8px rgba(0,0,0,0.25)'
+          : '0 2px 8px rgba(0,0,0,0.08)',
         transition,
-        // m5：只在 hover 时激活 willChange，避免非交互时浪费 GPU 合成层
-        willChange: hovered ? 'transform' : 'auto',
+        willChange: hovered ? 'transform, box-shadow' : 'auto',
       }}
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
@@ -271,29 +272,50 @@ const WaterfallCard = React.memo(function WaterfallCard({
         />
       )}
 
+      {/* 精致的渐变叠加层 */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{
+          background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 40%, transparent 70%)',
+        }}
+      />
+
       {/* LivePhoto 标识 */}
       {image.type === 2 && (
-        <div className="absolute top-2 left-2 z-10">
-          <div className="w-6 h-6 rounded-full bg-black/50 flex items-center justify-center">
-            <span className="text-white text-[10px] font-bold">L</span>
+        <div className="absolute top-3 left-3 z-10 opacity-80 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center border border-white/20">
+            <span className="text-white text-xs font-semibold tracking-wider">LIVE</span>
           </div>
         </div>
       )}
 
-      {/* 悬停遮罩 */}
-      {image.title && (
-        <div
-          className="absolute inset-x-0 bottom-0 pointer-events-none"
-          style={{
-            background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)',
-            opacity: hovered ? 1 : 0,
-            transition: prefersReducedMotion ? 'none' : 'opacity 0.3s ease',
-            padding: '16px 12px 10px',
-          }}
-        >
-          <p className="text-white text-sm font-medium line-clamp-2">{image.title}</p>
+      {/* 悬停信息层 */}
+      <div
+        className="absolute inset-x-0 bottom-0 p-4 pointer-events-none translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500 ease-out"
+      >
+        {(image.title || image.detail) && (
+          <div className="space-y-1">
+            {image.title && (
+              <p className="text-white text-sm font-medium line-clamp-2 drop-shadow-md">
+                {image.title}
+              </p>
+            )}
+            {image.detail && !image.title && (
+              <p className="text-white/90 text-xs line-clamp-2 drop-shadow-md">
+                {image.detail}
+              </p>
+            )}
+          </div>
+        )}
+        <div className="mt-3 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 })

@@ -112,10 +112,6 @@ export default async function RootLayout({
                         <main className="flex-1">
                           {children}
                         </main>
-                        {/* 全局底部版权标注，始终贴底 */}
-                        <footer className="w-full border-t border-white/10 bg-background/70 backdrop-blur-md text-center text-[12px] md:text-[13px] text-muted-foreground py-4">
-                          © 2026 Source 禁止商用
-                        </footer>
                       </div>
                       {modal}
                     </LoadingAnimationProviders>

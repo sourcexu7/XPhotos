@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* 高级字体组合：Geist Sans + 优雅的展示字体 */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -7,7 +8,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
   --font-mono: 'Fira Code', monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -241,89 +243,91 @@
   animation-delay: 5s;
 }
 
-/* 优化：合并重复的 CSS 变量定义，减少代码冗余 */
+/* SamAlive 摄影风格 - 优雅青橙色调 */
 :root {
-  --radius: 0.625rem;
-  /* Elegant Light Mode */
-  --background: #F5F7FA;    /* 柔和浅灰 */
-  --foreground: #1A1F2E;  /* 深灰蓝 */
+  --radius: 0.75rem;
+  /* 浅色模式 - 温暖胶片风格 */
+  --background: #FAF8F5;    /* 柔和米白色 */
+  --foreground: #1A1A1A;  /* 深灰黑 */
   
   --card: #FFFFFF;
-  --card-foreground: #1A1F2E;
+  --card-foreground: #1A1A1A;
   
   --popover: #FFFFFF;
-  --popover-foreground: #1A1F2E;
+  --popover-foreground: #1A1A1A;
   
-  /* Elegant Blue Primary */
-  --primary: #2563EB;  /* 深蓝 */
+  /* SamAlive 标志性暖橙色主色 */
+  --primary: #D97706;  /* 温暖琥珀橙 */
   --primary-foreground: #FFFFFF;
   
-  /* Sophisticated Secondary */
-  --secondary: #475569;
+  /* SamAlive 标志性青蓝色次色 */
+  --secondary: #0891B2;  /* 优雅青色 */
   --secondary-foreground: #FFFFFF;
   
-  --muted: #F1F5F9;
-  --muted-foreground: #64748B;
+  --muted: #F5F0E8;
+  --muted-foreground: #78716C;
   
-  --accent: #EFF6FF;
-  --accent-foreground: #1E40AF;
+  --accent: #FEF3C7;
+  --accent-foreground: #92400E;
   
-  --border: #E2E8F0;
-  --input: #E2E8F0;
-  --ring: #2563EB;
+  --border: #E7E5E4;
+  --input: #E7E5E4;
+  --ring: #D97706;
   
-  --chart-1: #2563EB; /* Blue */
-  --chart-2: #059669;  /* Deep Green */
+  --chart-1: #D97706; /* 暖橙色 */
+  --chart-2: #0891B2; /* 青蓝色 */
   
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #1A1F2E;
-  --sidebar-primary: #2563EB;
+  --sidebar-foreground: #1A1A1A;
+  --sidebar-primary: #D97706;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F1F5F9;
-  --sidebar-accent-foreground: #1A1F2E;
-  --sidebar-border: #E2E8F0;
-  --sidebar-ring: #2563EB;
+  --sidebar-accent: #FEF3C7;
+  --sidebar-accent-foreground: #92400E;
+  --sidebar-border: #E7E5E4;
+  --sidebar-ring: #D97706;
 }
 
 .dark {
-  --radius: 0.625rem;
-  /* Elegant Dark Mode */
-  --background: #121826;
-  --foreground: #F8FAFC;
+  --radius: 0.75rem;
+  /* 深色模式 - 深邃电影风格 */
+  --background: #050505;    /* 深黑背景 */
+  --foreground: #F5F5F5;  /* 浅灰白 */
   
-  --card: #1E293B;
-  --card-foreground: #F8FAFC;
+  --card: #111111;
+  --card-foreground: #F5F5F5;
   
-  --popover: #1E293B;
-  --popover-foreground: #F8FAFC;
+  --popover: #111111;
+  --popover-foreground: #F5F5F5;
   
-  --primary: #3B82F6;
-  --primary-foreground: #121826;
+  /* SamAlive 标志性暖橙色主色 - 深色模式 */
+  --primary: #F59E0B;  /* 亮暖橙色 */
+  --primary-foreground: #050505;
   
-  --secondary: #94A3B8;
-  --secondary-foreground: #121826;
+  /* SamAlive 标志性青蓝色次色 - 深色模式 */
+  --secondary: #06B6D4;  /* 亮青色 */
+  --secondary-foreground: #050505;
   
-  --muted: #334155;
-  --muted-foreground: #94A3B8;
+  --muted: #1A1A1A;
+  --muted-foreground: #A8A29E;
   
-  --accent: #475569;
-  --accent-foreground: #F8FAFC;
+  --accent: #292524;
+  --accent-foreground: #F5F5F5;
   
-  --border: #334155;
-  --input: #334155;
-  --ring: #3B82F6;
+  --border: #262626;
+  --input: #262626;
+  --ring: #F59E0B;
   
-  --chart-1: #3B82F6; /* Blue */
-  --chart-2: #34D399;  /* Green */
+  --chart-1: #F59E0B; /* 亮暖橙 */
+  --chart-2: #06B6D4; /* 亮青色 */
   
-  --sidebar: #1E293B;
-  --sidebar-foreground: #F8FAFC;
-  --sidebar-primary: #3B82F6;
-  --sidebar-primary-foreground: #121826;
-  --sidebar-accent: #475569;
-  --sidebar-accent-foreground: #F8FAFC;
-  --sidebar-border: #334155;
-  --sidebar-ring: #3B82F6;
+  --sidebar: #111111;
+  --sidebar-foreground: #F5F5F5;
+  --sidebar-primary: #F59E0B;
+  --sidebar-primary-foreground: #050505;
+  --sidebar-accent: #292524;
+  --sidebar-accent-foreground: #F5F5F5;
+  --sidebar-border: #262626;
+  --sidebar-ring: #F59E0B;
 }
 
 :root {

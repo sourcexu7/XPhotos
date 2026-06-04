@@ -1,13 +1,11 @@
-
 'use client'
 
-import { motion } from 'framer-motion'
-import { ImageAutoSlider } from '~/components/ui/image-auto-slider'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { ImageType } from '~/types'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { safePush } from '~/lib/router/safe-navigation'
-import DynamicBackground from './dynamic-background'
+import { ChevronDown, ArrowRight } from 'lucide-react'
 
 interface HeroSectionProps {
   images?: ImageType[]
@@ -15,133 +13,199 @@ interface HeroSectionProps {
 
 export default function HeroSection({ images = [] }: HeroSectionProps) {
   const router = useRouter()
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [direction, setDirection] = useState(0)
+
   useEffect(() => {
-    // 需求修改：预取「城隅寻迹」路由，减少跳转闪屏
     router.prefetch('/covers')
   }, [router])
-  // 需求修改：Start 按钮改为路由跳转到「城隅寻迹」页面
+
   const handleStartClick = () => {
     safePush(router, '/covers?from=hero', { scroll: true })
   }
 
+  // Auto slide
+  useEffect(() => {
+    if (images.length === 0) return
+    
+    const timer = setInterval(() => {
+      setDirection(1)
+      setCurrentIndex((prev) => (prev + 1) % images.length)
+    }, 5000)
+    
+    return () => clearInterval(timer)
+  }, [images.length])
+
+  const handleNext = useCallback(() => {
+    if (images.length === 0) return
+    setDirection(1)
+    setCurrentIndex((prev) => (prev + 1) % images.length)
+  }, [images.length])
+
+  const handlePrev = useCallback(() => {
+    if (images.length === 0) return
+    setDirection(-1)
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
+  }, [images.length])
+
+  const currentImage = images[currentIndex]
+
   return (
-    <div className="relative w-full min-h-[100vh] flex flex-col items-center justify-center px-4 py-12 overflow-hidden bg-background">
-      {/* Dynamic Background */}
-      <DynamicBackground />
-
-      {/* Content */}
-      <div className="relative z-10 text-center flex flex-col items-center w-full max-w-7xl">
-        {/* Image Slider */}
-        {images.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-            className="w-full"
-          >
-            <ImageAutoSlider images={images} />
-          </motion.div>
-        )}
-
-        <div className="mt-8 md:mt-16 flex flex-col items-center gap-6">
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-            className="text-[28px] sm:text-[32px] md:text-[48px] font-bold tracking-tight mb-4"
-            aria-label="到最深处 纵然那只是瞬间"
-          >
-            <span
-              className="bg-clip-text text-transparent"
-              style={{ backgroundImage: 'linear-gradient(to right, var(--primary), var(--secondary))' }}
+    <section className="relative w-full h-screen overflow-hidden">
+      {/* Full-screen Image Background */}
+      <div className="absolute inset-0 z-0">
+        <AnimatePresence mode="wait">
+          {currentImage && (
+            <motion.div
+              key={currentImage.id}
+              initial={{ opacity: 0, scale: 1.1 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 1.2, ease: 'easeOut' }}
+              className="absolute inset-0"
             >
-              到最深处 纵然那只是瞬间
-            </span>
-          </motion.h1>
+              <div 
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ 
+                  backgroundImage: `url(${currentImage.preview_url || currentImage.url})`,
+                }}
+              />
+              {/* Gradient Overlay for readability */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/20" />
+              {/* Vignette effect */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
-            className="text-[14px] sm:text-[16px] md:text-[20px] text-foreground/90 font-normal tracking-wide leading-relaxed max-w-2xl"
+      {/* Content Overlay */}
+      <div className="relative z-10 h-full flex flex-col justify-between px-4 sm:px-6 md:px-8 lg:px-12 py-8">
+        {/* Top Section - Minimal Header */}
+        <div className="flex justify-between items-center">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+            className="text-white/90 font-light tracking-[0.2em] text-sm uppercase"
           >
-            往事的光圈每一瞬间都很绝
-          </motion.p>
+            Photography
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="flex gap-4"
+          >
+            {images.length > 0 && (
+              <>
+                <button
+                  onClick={handlePrev}
+                  className="text-white/70 hover:text-white transition-colors p-2"
+                  aria-label="Previous"
+                >
+                  <svg className="w-6 h-6 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleNext}
+                  className="text-white/70 hover:text-white transition-colors p-2"
+                  aria-label="Next"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </>
+            )}
+          </motion.div>
+        </div>
 
-          {/* 占位空间，使按钮在手机端更靠下 */}
-          <div className="h-8 sm:h-12 md:h-16"></div>
+        {/* Center - Main Title */}
+        <div className="flex flex-col items-center justify-center text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 1, ease: 'easeOut' }}
+          >
+            <p className="text-white/60 text-sm md:text-base tracking-[0.3em] uppercase mb-4">
+              Visual Storytelling
+            </p>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light text-white mb-4 leading-tight">
+              <span className="block">Every Moment</span>
+              <span className="block bg-gradient-to-r from-amber-400 via-orange-400 to-cyan-400 bg-clip-text text-transparent">
+                Tells a Story
+              </span>
+            </h1>
+            <p className="text-white/70 text-base md:text-lg max-w-xl mx-auto font-light leading-relaxed">
+              捕捉光影，定格永恒 — 用镜头记录生活的美好瞬间
+            </p>
+          </motion.div>
+        </div>
 
-          {/* 毛玻璃 Start 按钮 */}
+        {/* Bottom Section - CTA & Indicator */}
+        <div className="flex flex-col items-center gap-8">
+          {/* Slide Indicators */}
+          {images.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8, duration: 0.8 }}
+              className="flex gap-2"
+            >
+              {images.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setDirection(idx > currentIndex ? 1 : -1)
+                    setCurrentIndex(idx)
+                  }}
+                  className={`h-1 rounded-full transition-all duration-500 ${
+                    idx === currentIndex 
+                      ? 'w-8 bg-gradient-to-r from-amber-400 to-orange-400' 
+                      : 'w-2 bg-white/30 hover:bg-white/50'
+                  }`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
+              ))}
+            </motion.div>
+          )}
+
+          {/* Main CTA Button */}
           <motion.button
             type="button"
             onClick={handleStartClick}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
-            whileHover={{ scale: 1.06, y: -2 }}
-            whileTap={{ scale: 0.96 }}
-            className="
-              group relative
-              inline-flex items-center justify-center gap-2.5
-              min-h-[52px] px-10
-              rounded-full
-              font-semibold text-sm md:text-base tracking-widest uppercase
-              text-white/95 dark:text-white/90
-              transition-all duration-500 ease-out
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2
-              cursor-pointer
-            "
-            style={{
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%)',
-              backdropFilter: 'blur(20px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-              border: '1px solid rgba(255,255,255,0.25)',
-              boxShadow: `
-                0 8px 32px rgba(0,0,0,0.12),
-                inset 0 1px 0 rgba(255,255,255,0.3),
-                inset 0 -1px 0 rgba(0,0,0,0.05)
-              `,
-            }}
-            onMouseEnter={(e) => {
-              ;(e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, var(--primary), var(--secondary))'
-              ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.4)'
-              ;(e.currentTarget as HTMLElement).style.boxShadow = `
-                0 12px 40px rgba(37,99,235,0.35),
-                inset 0 1px 0 rgba(255,255,255,0.3),
-                inset 0 -1px 0 rgba(0,0,0,0.05)
-              `
-            }}
-            onMouseLeave={(e) => {
-              ;(e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%)'
-              ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.25)'
-              ;(e.currentTarget as HTMLElement).style.boxShadow = `
-                0 8px 32px rgba(0,0,0,0.12),
-                inset 0 1px 0 rgba(255,255,255,0.3),
-                inset 0 -1px 0 rgba(0,0,0,0.05)
-              `
-            }}
-            aria-label="Start"
+            transition={{ delay: 1, duration: 0.8 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
+            className="group relative overflow-hidden px-8 py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white font-medium tracking-wide hover:bg-white/20 transition-all duration-300"
           >
-            {/* 内部高光层 */}
-            <span className="absolute inset-0 rounded-full pointer-events-none" 
-              style={{
-                background: 'linear-gradient(105deg, rgba(255,255,255,0.25) 0%, transparent 45%, transparent)',
-              }}
-            />
-            <span className="relative flex items-center gap-2.5">
-              Start
-              <motion.span
-                initial={{ x: 0 }}
-                animate={{ x: [0, 5, 0] }}
-                transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-                className="text-base"
-              >
-                →
-              </motion.span>
+            <span className="relative z-10 flex items-center gap-2">
+              探索作品集
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </span>
           </motion.button>
+
+          {/* Scroll Indicator */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.5, duration: 1 }}
+            className="text-white/50 flex flex-col items-center gap-2"
+          >
+            <span className="text-xs tracking-widest uppercase">Scroll</span>
+            <motion.div
+              animate={{ y: [0, 8, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <ChevronDown className="w-5 h-5" />
+            </motion.div>
+          </motion.div>
         </div>
       </div>
-    </div>
+    </section>
   )
 }
