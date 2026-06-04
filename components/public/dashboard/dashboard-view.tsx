@@ -39,7 +39,7 @@ export function DashboardView({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -47,7 +47,7 @@ export function DashboardView({
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-500 dark:text-slate-400">加载失败，请稍后重试</p>
+        <p className="text-muted-foreground">加载失败，请稍后重试</p>
       </div>
     )
   }
@@ -55,7 +55,7 @@ export function DashboardView({
   if (!data) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-500 dark:text-slate-400">暂无数据</p>
+        <p className="text-muted-foreground">暂无数据</p>
       </div>
     )
   }

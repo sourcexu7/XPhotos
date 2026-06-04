@@ -39,7 +39,7 @@ export default async function ThemeAlbumLayout({
   return (
     <>
       <UnifiedNav albums={dataList} currentAlbum={currentAlbum} currentTheme={currentTheme} siteTitle={siteTitle} />
-      <div className="pt-2">
+      <div className="pt-14">
         {children}
       </div>
     </>

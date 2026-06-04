@@ -1,11 +1,11 @@
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import type { ImageType } from '~/types'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
 import { safePush } from '~/lib/router/safe-navigation'
-import { ChevronDown, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 interface HeroSectionProps {
   images?: ImageType[]
@@ -13,6 +13,7 @@ interface HeroSectionProps {
 
 export default function HeroSection({ images = [] }: HeroSectionProps) {
   const router = useRouter()
+  const reduceMotion = useReducedMotion()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [direction, setDirection] = useState(0)
 
@@ -54,14 +55,14 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
     <section className="relative w-full h-screen overflow-hidden">
       {/* Full-screen Image Background */}
       <div className="absolute inset-0 z-0">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="crossfade">
           {currentImage && (
             <motion.div
               key={currentImage.id}
-              initial={{ opacity: 0, scale: 1.1 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 1.2, ease: 'easeOut' }}
+              initial={reduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduceMotion ? 0 : 1.8, ease: [0.25, 0.1, 0.25, 1] }}
               className="absolute inset-0"
             >
               <div 
@@ -80,28 +81,28 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
       </div>
 
       {/* Content Overlay */}
-      <div className="relative z-10 h-full flex flex-col justify-between px-4 sm:px-6 md:px-8 lg:px-12 py-8">
+      <div className="relative z-10 h-full flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 lg:px-12 py-8">
         {/* Top Section - Minimal Header */}
-        <div className="flex justify-between items-center">
+        <div className="absolute top-0 left-0 right-0 flex justify-between items-center px-4 sm:px-6 md:px-8 lg:px-12 py-6 sm:py-8">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
+            initial={reduceMotion ? false : { opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2, duration: 0.8 }}
+            transition={{ delay: reduceMotion ? 0 : 0.2, duration: reduceMotion ? 0 : 0.8 }}
             className="text-white/90 font-light tracking-[0.2em] text-sm uppercase"
           >
             Photography
           </motion.div>
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={reduceMotion ? false : { opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3, duration: 0.8 }}
+            transition={{ delay: reduceMotion ? 0 : 0.3, duration: reduceMotion ? 0 : 0.8 }}
             className="flex gap-4"
           >
             {images.length > 0 && (
               <>
                 <button
                   onClick={handlePrev}
-                  className="text-white/70 hover:text-white transition-colors p-2"
+                  className="text-white/70 hover:text-white transition-colors p-2 btn-press"
                   aria-label="Previous"
                 >
                   <svg className="w-6 h-6 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +111,7 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
                 </button>
                 <button
                   onClick={handleNext}
-                  className="text-white/70 hover:text-white transition-colors p-2"
+                  className="text-white/70 hover:text-white transition-colors p-2 btn-press"
                   aria-label="Next"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,9 +126,9 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
         {/* Center - Main Title */}
         <div className="flex flex-col items-center justify-center text-center">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 1, ease: 'easeOut' }}
+            transition={{ delay: reduceMotion ? 0 : 0.5, duration: reduceMotion ? 0 : 1, ease: 'easeOut' }}
           >
             <p className="text-white/60 text-sm md:text-base tracking-[0.3em] uppercase mb-4">
               Visual Storytelling
@@ -145,13 +146,13 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
         </div>
 
         {/* Bottom Section - CTA & Indicator */}
-        <div className="flex flex-col items-center gap-8">
+        <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center gap-4 sm:gap-6 pb-6 sm:pb-8">
           {/* Slide Indicators */}
           {images.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.8 }}
+              transition={{ delay: reduceMotion ? 0 : 0.8, duration: reduceMotion ? 0 : 0.8 }}
               className="flex gap-2"
             >
               {images.map((_, idx) => (
@@ -176,10 +177,10 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
           <motion.button
             type="button"
             onClick={handleStartClick}
-            initial={{ opacity: 0, y: 20 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, duration: 0.8 }}
-            whileHover={{ scale: 1.05 }}
+            transition={{ delay: reduceMotion ? 0 : 1, duration: reduceMotion ? 0 : 0.8 }}
+            whileHover={reduceMotion ? {} : { scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
             className="group relative overflow-hidden px-8 py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white font-medium tracking-wide hover:bg-white/20 transition-all duration-300"
           >
@@ -189,21 +190,6 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
             </span>
           </motion.button>
 
-          {/* Scroll Indicator */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.5, duration: 1 }}
-            className="text-white/50 flex flex-col items-center gap-2"
-          >
-            <span className="text-xs tracking-widest uppercase">Scroll</span>
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <ChevronDown className="w-5 h-5" />
-            </motion.div>
-          </motion.div>
         </div>
       </div>
     </section>

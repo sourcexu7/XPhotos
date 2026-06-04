@@ -37,7 +37,7 @@ export function DashboardView({ stats }: DashboardViewProps) {
       label: t('totalAlbums'),
       value: stats.albums.total,
       icon: 'albums',
-      color: 'blue',
+      color: 'amber',
       route: '/admin/album',
     },
     {

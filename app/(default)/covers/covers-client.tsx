@@ -47,7 +47,7 @@ export default function CoversClient() {
 
   return (
     <div className="pt-[80px] min-h-screen bg-background">
-      <div className="container mx-auto px-4 mb-8">
+      <div className="container mx-auto px-4 mb-12">
         <Link href="/albums">
           <Button variant="ghost" className="gap-2 pl-0 hover:bg-transparent hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />

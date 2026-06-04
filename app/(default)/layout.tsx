@@ -29,7 +29,7 @@ export default async function DefaultLayout({
         siteTitle={siteTitle}
       />
       <ScrollRestoration />
-      <div className="pt-4 sm:pt-6 md:pt-8">
+      <div className="pt-14">
         {children}
       </div>
       <Footer />

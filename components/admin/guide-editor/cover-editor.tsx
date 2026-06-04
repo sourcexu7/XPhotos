@@ -405,7 +405,7 @@ export default function GuideCoverEditor({
                     <div
                       key={img.id}
                       className="relative aspect-square cursor-pointer rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition-colors"
-                      onClick={() => handleCoverSelect(img.url)}
+                      onClick={() => handleCoverSelect(img.preview_url || img.url)}
                     >
                       <Image
                         src={img.preview_url || img.url}

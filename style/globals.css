@@ -249,34 +249,34 @@
   /* 浅色模式 - 温暖胶片风格 */
   --background: #FAF8F5;    /* 柔和米白色 */
   --foreground: #1A1A1A;  /* 深灰黑 */
-  
+
   --card: #FFFFFF;
   --card-foreground: #1A1A1A;
-  
+
   --popover: #FFFFFF;
   --popover-foreground: #1A1A1A;
-  
+
   /* SamAlive 标志性暖橙色主色 */
   --primary: #D97706;  /* 温暖琥珀橙 */
   --primary-foreground: #FFFFFF;
-  
+
   /* SamAlive 标志性青蓝色次色 */
   --secondary: #0891B2;  /* 优雅青色 */
   --secondary-foreground: #FFFFFF;
-  
+
   --muted: #F5F0E8;
   --muted-foreground: #78716C;
-  
+
   --accent: #FEF3C7;
   --accent-foreground: #92400E;
-  
+
   --border: #E7E5E4;
   --input: #E7E5E4;
   --ring: #D97706;
-  
+
   --chart-1: #D97706; /* 暖橙色 */
   --chart-2: #0891B2; /* 青蓝色 */
-  
+
   --sidebar: #FFFFFF;
   --sidebar-foreground: #1A1A1A;
   --sidebar-primary: #D97706;
@@ -292,34 +292,34 @@
   /* 深色模式 - 深邃电影风格 */
   --background: #050505;    /* 深黑背景 */
   --foreground: #F5F5F5;  /* 浅灰白 */
-  
+
   --card: #111111;
   --card-foreground: #F5F5F5;
-  
+
   --popover: #111111;
   --popover-foreground: #F5F5F5;
-  
+
   /* SamAlive 标志性暖橙色主色 - 深色模式 */
   --primary: #F59E0B;  /* 亮暖橙色 */
   --primary-foreground: #050505;
-  
+
   /* SamAlive 标志性青蓝色次色 - 深色模式 */
   --secondary: #06B6D4;  /* 亮青色 */
   --secondary-foreground: #050505;
-  
+
   --muted: #1A1A1A;
   --muted-foreground: #A8A29E;
-  
+
   --accent: #292524;
   --accent-foreground: #F5F5F5;
-  
+
   --border: #262626;
   --input: #262626;
   --ring: #F59E0B;
-  
+
   --chart-1: #F59E0B; /* 亮暖橙 */
   --chart-2: #06B6D4; /* 亮青色 */
-  
+
   --sidebar: #111111;
   --sidebar-foreground: #F5F5F5;
   --sidebar-primary: #F59E0B;
@@ -392,6 +392,14 @@
 @layer utilities {
   .show-up-motion {
     animation: showUp 0.8s 0.5s backwards;
+  }
+
+  /* 按钮 :active 触觉反馈 */
+  .btn-press {
+    transition: transform 0.1s ease;
+  }
+  .btn-press:active {
+    transform: scale(0.98);
   }
 
   .scrollbar-hide {

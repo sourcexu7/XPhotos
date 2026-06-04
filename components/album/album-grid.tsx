@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { safePush } from '~/lib/router/safe-navigation'
 import type { AlbumType } from '~/types'
@@ -12,6 +12,7 @@ interface AlbumGridProps {
 
 export function AlbumGrid({ albums }: AlbumGridProps) {
   const router = useRouter()
+  const reduceMotion = useReducedMotion()
 
   const filteredAlbums = albums.filter((a) => a.cover && a.show)
 
@@ -22,10 +23,10 @@ export function AlbumGrid({ albums }: AlbumGridProps) {
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={reduceMotion ? false : { opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
+          transition={{ duration: reduceMotion ? 0 : 0.6, ease: 'easeOut' }}
           className="mb-16 text-center"
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-light mb-4">
@@ -42,11 +43,11 @@ export function AlbumGrid({ albums }: AlbumGridProps) {
           {filteredAlbums.slice(0, 6).map((album, index) => (
             <motion.div
               key={album.id}
-              initial={{ opacity: 0, y: 30 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6, ease: 'easeOut', delay: index * 0.1 }}
-              whileHover={{ y: -8 }}
+              transition={{ duration: reduceMotion ? 0 : 0.6, ease: 'easeOut', delay: reduceMotion ? 0 : index * 0.1 }}
+              whileHover={reduceMotion ? {} : { y: -8 }}
             >
               <AlbumCard album={album} onClick={() => safePush(router, `${album.album_value}?style=1`)} />
             </motion.div>
@@ -56,15 +57,15 @@ export function AlbumGrid({ albums }: AlbumGridProps) {
         {/* View All Button */}
         {filteredAlbums.length > 6 && (
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={reduceMotion ? false : { opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.6 }}
+            transition={{ duration: reduceMotion ? 0 : 0.6, delay: reduceMotion ? 0 : 0.6 }}
             className="mt-16 text-center"
           >
             <button
               onClick={() => safePush(router, '/covers')}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-foreground text-background rounded-full font-medium hover:bg-foreground/90 transition-all duration-300 group"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-foreground text-background rounded-full font-medium hover:bg-foreground/90 transition-all duration-300 group btn-press"
             >
               查看全部相册
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

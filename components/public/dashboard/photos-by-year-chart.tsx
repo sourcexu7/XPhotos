@@ -23,12 +23,12 @@ export function PhotosByYearChart({ data }: PhotosByYearChartProps) {
   const sortedData = [...data].sort((a, b) => a.year - b.year)
 
   return (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
-      <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50 mb-6">
+    <div className="bg-card p-6 rounded-xl border border-border">
+      <h3 className="text-base font-semibold text-foreground mb-6">
         年份照片分布
       </h3>
       {data.length === 0 ? (
-        <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+        <div className="text-center py-8 text-muted-foreground">
           <p className="text-sm">暂无数据</p>
         </div>
       ) : (
