@@ -64,7 +64,7 @@ app.post('/module', jwtAuth, async (c) => {
       _max: { sort: true },
     })
     
-    const module = await db.guideModules.create({
+    const guideModule = await db.guideModules.create({
       data: {
         guide_id: guide_id,
         name: name,
@@ -74,7 +74,7 @@ app.post('/module', jwtAuth, async (c) => {
       },
     })
     
-    return c.json({ data: module })
+    return c.json({ data: guideModule })
   } catch (error) {
     console.error(error)
     return c.json({ error: 'Failed to create module' }, 500 )
@@ -110,7 +110,7 @@ app.put('/module/:id', jwtAuth, async (c) => {
     const id = c.req.param('id')
     const body = await c.req.json()
     
-    const module = await db.guideModules.update({
+    const guideModule = await db.guideModules.update({
       where: { id: id },
       data: {
         name: body.name,
@@ -119,7 +119,7 @@ app.put('/module/:id', jwtAuth, async (c) => {
       },
     })
     
-    return c.json({ data: module })
+    return c.json({ data: guideModule })
   } catch (error) {
     console.error(error)
     return c.json({ error: 'Failed to update module' }, 500)

@@ -7,9 +7,9 @@ export function Footer() {
 
   return (
     <footer className="border-t border-border/40">
-      <div className="max-w-[1400px] mx-auto px-8 py-16">
+      <div className="max-w-[1400px] mx-auto px-8 py-12">
         {/* Top section — brand + links */}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-10">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
           {/* Brand */}
           <div className="max-w-sm">
             <Link href="/" className="group">
@@ -17,7 +17,7 @@ export function Footer() {
                 XPhotos
               </span>
             </Link>
-            <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
+            <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
               用镜头捕捉生活的美好瞬间，用照片讲述动人的故事。
             </p>
           </div>
@@ -48,7 +48,7 @@ export function Footer() {
         </div>
 
         {/* Bottom — copyright + legal */}
-        <div className="mt-14 pt-6 border-t border-border/30 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <div className="mt-4 pt-4 border-t border-border/30 flex flex-col sm:flex-row justify-between items-center gap-3">
           <p className="text-[12px] text-muted-foreground/50">
             © {currentYear} XPhotos. All rights reserved.
           </p>

@@ -129,8 +129,8 @@ export function ParticleEffect({
             scale: 0,
           }}
           animate={{
-            x: `${50 + (Math.random() - 0.5) * 200}%,
-            y: `${50 + (Math.random() - 0.5) * 200}%,
+            x: `${50 + (Math.random() - 0.5) * 200}%`,
+            y: `${50 + (Math.random() - 0.5) * 200}%`,
             opacity: [0, 1, 0],
             scale: [0, 1, 0],
           }}

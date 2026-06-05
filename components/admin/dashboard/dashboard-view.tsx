@@ -45,7 +45,7 @@ export function DashboardView({ stats }: DashboardViewProps) {
       label: t('camerasUsed'),
       value: stats.cameras.total,
       icon: 'cameras',
-      color: 'amber',
+      color: 'blue',
     },
     {
       id: 'lenses',
@@ -88,11 +88,13 @@ export function DashboardView({ stats }: DashboardViewProps) {
           data={cameraData}
           title={t('topCameras')}
           color="#F59E0B"
+          variant="camera"
         />
         <HorizontalBarChart
           data={lensData}
           title={t('topLenses')}
           color="#F43F5E"
+          variant="lens"
         />
       </div>
     </div>

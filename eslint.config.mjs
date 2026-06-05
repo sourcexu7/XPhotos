@@ -64,6 +64,17 @@ const eslintConfig = [
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },
+  // 忽略不需要 lint 的文件夹
+  {
+    ignores: [
+      'node_modules/',
+      '.next/',
+      'components/ui/',
+      'components/ui/origin/',
+      'scripts/',
+      'prisma/',
+    ],
+  },
 ]
 
 export default eslintConfig

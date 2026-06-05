@@ -4,59 +4,33 @@ import { useState, useEffect } from 'react'
 import { SunMoonIcon } from '~/components/icons/sun-moon.tsx'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip.tsx'
 import { useTranslations } from 'next-intl'
+import { useTheme } from 'next-themes'
 
 export default function DarkModeToggle() {
   const t = useTranslations()
-  const [isDark, setIsDark] = useState(false)
+  const { theme, setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
-  // 初始化深色模式状态
+  // 避免水合不匹配
   useEffect(() => {
-    const savedMode = localStorage.getItem('darkMode')
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    const initialMode = savedMode ? savedMode === 'true' : systemPrefersDark
-    setIsDark(initialMode)
-    if (initialMode) {
-      document.documentElement.classList.add('dark')
-    }
+    setMounted(true)
   }, [])
 
-  // 监听系统主题变化
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    
-    const handleChange = (e: MediaQueryListEvent) => {
-      const savedMode = localStorage.getItem('darkMode')
-      if (!savedMode) {
-        setIsDark(e.matches)
-        if (e.matches) {
-          document.documentElement.classList.add('dark')
-        } else {
-          document.documentElement.classList.remove('dark')
-        }
-      }
-    }
-    
-    mediaQuery.addEventListener('change', handleChange)
-    return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [])
+  if (!mounted) {
+    return (
+      <button
+        className="p-2 rounded-full opacity-0"
+        aria-label="加载中"
+        disabled
+      >
+        <SunMoonIcon size={18} />
+      </button>
+    )
+  }
 
-  // 切换深色模式
+  const isDark = resolvedTheme === 'dark'
   const toggleDarkMode = () => {
-    const newMode = !isDark
-    setIsDark(newMode)
-    
-    // 更新 DOM 类
-    if (newMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-    
-    // 保存到 localStorage
-    localStorage.setItem('darkMode', newMode.toString())
-    
-    // 触发自定义事件
-    window.dispatchEvent(new CustomEvent('darkModeChanged', { detail: newMode }))
+    setTheme(isDark ? 'light' : 'dark')
   }
 
   return (

@@ -58,7 +58,11 @@ function InlineMultiSelect({ label, placeholder, options, selected, onChange }: 
 
   const toggle = (v: string) => {
     const next = new Set(selected)
-    next.has(v) ? next.delete(v) : next.add(v)
+    if (next.has(v)) {
+      next.delete(v)
+    } else {
+      next.add(v)
+    }
     onChange(Array.from(next))
   }
 

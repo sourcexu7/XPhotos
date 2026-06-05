@@ -1,14 +1,12 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { Avatar, Dropdown, Space } from 'antd'
 import { UserOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { authClient } from '~/lib/auth-client'
 import { clearAllAuthData } from '~/lib/utils/auth-utils'
-
-// using Input + Button inside Space.Compact instead of Input.Search
+import DarkModeToggle from '~/components/ui/dark-mode-toggle'
 
 export default function AdminAntTopbar() {
   const t = useTranslations()
@@ -33,6 +31,9 @@ export default function AdminAntTopbar() {
 
   return (
     <div style={{display: 'flex', alignItems: 'center', gap:12}}>
+      {/* 黑夜模式切换按钮 */}
+      <DarkModeToggle />
+      
       <Dropdown menu={{ items: menuItems }} placement="bottomRight">
         <Space style={{cursor:'pointer'}}>
           <Avatar icon={<UserOutlined />} />
