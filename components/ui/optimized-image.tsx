@@ -4,14 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '~/lib/utils'
 import { ImageLoadingAnimation } from './image-loading-animation'
 
-const ALLOWED_WIDTHS = [16, 32, 48, 64, 96, 128, 160, 200, 256, 320, 384, 480, 560, 640, 750, 828, 1080, 1200, 1920, 2048, 3840]
-function snapWidth(w: number): number {
-  for (const allowed of ALLOWED_WIDTHS) {
-    if (allowed >= Math.ceil(w)) return allowed
-  }
-  return ALLOWED_WIDTHS[ALLOWED_WIDTHS.length - 1]
-}
-
 interface OptimizedImageProps {
   src: string
   alt: string
@@ -46,8 +38,6 @@ export function OptimizedImage({
   containerClassName,
   priority = false,
   sizes,
-  quality = 85,
-  placeholder = 'blur',
   blurDataURL,
   onLoad,
   onClick,

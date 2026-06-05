@@ -5,7 +5,7 @@ import { useBlurImageDataUrl } from '~/hooks/use-blurhash'
 import { MotionImage } from '~/components/album/motion-image'
 
 import type { ImageType } from '~/types'
-export default function BlurImage({ photo, dataList }: { photo: ImageType, dataList: ImageType[] }) {
+export default function BlurImage({ photo }: { photo: ImageType }) {
   const router = useRouter()
 
   const dataURL = useBlurImageDataUrl(photo.blurhash)
@@ -17,9 +17,9 @@ export default function BlurImage({ photo, dataList }: { photo: ImageType, dataL
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
-        src={photo.src}
-        overrideSrc={photo.src}
-        alt={photo.alt}
+        src={photo.url}
+        overrideSrc={photo.url}
+        alt={photo.title}
         width={photo.width}
         height={photo.height}
         sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"

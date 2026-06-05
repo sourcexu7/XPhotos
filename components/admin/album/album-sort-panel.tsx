@@ -24,7 +24,6 @@ import {
   SheetTitle,
 } from '~/components/ui/sheet'
 import { Badge } from '~/components/ui/badge'
-import { Skeleton } from '~/components/ui/skeleton'
 import { useTranslations } from 'next-intl'
 import { FixedSizeList as List } from 'react-window'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
@@ -218,14 +217,14 @@ export default function AlbumSortPanel({
   onClose,
 }: AlbumSortPanelProps) {
   const t = useTranslations()
-  const listRef = useRef<List>(null)
+  const listRef = useRef<typeof List>(null)
   const [images, setImages] = useState<AlbumSortImage[]>([])
   const [originalImages, setOriginalImages] = useState<AlbumSortImage[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [hasChanges, setHasChanges] = useState(false)
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
   const [sortingIndex, setSortingIndex] = useState<number | null>(null)
   const reduce = useReducedMotion()
 

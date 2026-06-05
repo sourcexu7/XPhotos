@@ -83,7 +83,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [moduleContentData, setModuleContentData] = useState<any>(null)
-  const [modulesWithData, setModulesWithData] = useState<Module[]>([])
+  const [, setModulesWithData] = useState<Module[]>([])
   const [isLoadingModuleData, setIsLoadingModuleData] = useState(false)
   const [guide, setGuide] = useState<Guide | null>(null)
   const [coverImage, setCoverImage] = useState<string>('')
@@ -353,6 +353,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
         <TableOfContentsManager 
           guideId={guideId} 
           modules={modules || []}
+          onModuleSelect={() => {}}
         />
       </Drawer>
 

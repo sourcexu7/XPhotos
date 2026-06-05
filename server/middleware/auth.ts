@@ -5,10 +5,10 @@ import { HTTPException } from 'hono/http-exception'
 
 export async function jwtAuth(c: Context, next: Next) {
   const authHeader = c.req.header('Authorization')
-  let token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+  let token: string | null = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
 
   if (!token) {
-    token = getCookie(c, 'auth_token')
+    token = getCookie(c, 'auth_token') ?? null
   }
 
   if (!token) {

@@ -17,6 +17,7 @@ import {
   HomeOutlined,
   BarChartOutlined,
   BookOutlined,
+  PieChartOutlined,
 } from '@ant-design/icons'
 import { authClient } from '~/lib/auth-client'
 import { clearAllAuthData } from '~/lib/utils/auth-utils'
@@ -44,6 +45,11 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
       key: '/admin',
       icon: <DashboardOutlined />,
       label: t('Link.dashboard'),
+    },
+    {
+      key: '/admin/data-overview',
+      icon: <PieChartOutlined />,
+      label: '数据一览',
     },
     {
       key: '/admin/upload',

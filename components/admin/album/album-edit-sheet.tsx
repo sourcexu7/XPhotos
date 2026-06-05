@@ -80,7 +80,7 @@ export default function AlbumEditSheet(props : Readonly<HandleProps>) {
     <Drawer
       title={t('Album.editAlbum')}
       placement="left"
-      size={{ xs: '100%', sm: 420 }}
+      size="large"
       open={albumEdit}
       onClose={() => setAlbumEdit(false)}
       mask={false}
@@ -94,21 +94,21 @@ export default function AlbumEditSheet(props : Readonly<HandleProps>) {
           label={t('Album.name')} 
           id="name" 
           value={data?.name || ''} 
-          onChange={(e) => setData({...data, name: e.target.value})} 
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setData({...data, name: e.target.value})} 
           placeholder={t('Album.inputName')} 
         />
         <InputField 
           label={t('Album.router')} 
           id="album_value" 
           value={data?.album_value || ''} 
-          onChange={(e) => setData({...data, album_value: e.target.value})} 
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setData({...data, album_value: e.target.value})} 
           placeholder={t('Album.inputRouter')} 
         />
         <InputField 
           label={t('Album.detail')} 
           id="detail" 
           value={data?.detail || ''} 
-          onChange={(e) => setData({...data, detail: e.target.value})} 
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setData({...data, detail: e.target.value})} 
           placeholder={t('Album.inputDetail')} 
         />
         <InputField 
@@ -116,14 +116,14 @@ export default function AlbumEditSheet(props : Readonly<HandleProps>) {
           id="sort" 
           type="number" 
           value={data?.sort} 
-          onChange={(e) => setData({...data, sort: Number(e.target.value)})} 
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setData({...data, sort: Number(e.target.value)})} 
           placeholder="0" 
         />
         <InputField 
           label={t('Album.license')} 
           id="license" 
           value={data?.license || ''} 
-          onChange={(e) => setData({...data, license: e.target.value})} 
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setData({...data, license: e.target.value})} 
           placeholder={t('Album.licensePlaceholder')} 
         />
 
@@ -133,7 +133,7 @@ export default function AlbumEditSheet(props : Readonly<HandleProps>) {
             <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-border group transition-all duration-200 hover:shadow-sm">
               <img 
                 src={data.cover} 
-                alt={data.title ? `${data.title} 封面` : '封面预览'} 
+                alt="封面预览" 
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
                 decoding="async" 
                 draggable={false} 

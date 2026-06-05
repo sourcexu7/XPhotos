@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useMemo, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import { cn } from '~/lib/utils'
 import type { ImageType } from '~/types'
@@ -102,6 +102,9 @@ export const MagicImageCard = React.memo(function MagicImageCard({
         height: h,
         transformStyle: 'preserve-3d',
         perspective: '1000px',
+        rotateX: rotateX as any,
+        rotateY: rotateY as any,
+        scale: scale as any,
       }}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(image.id) } }}
       onClick={() => onClick(image.id)}
@@ -109,11 +112,6 @@ export const MagicImageCard = React.memo(function MagicImageCard({
       onMouseLeave={handleMouseLeave}
       onMouseEnter={handleMouseEnter}
       whileHover={{ zIndex: 50 }}
-      animate={{
-        rotateX,
-        rotateY,
-        scale,
-      }}
       transition={{
         type: 'spring',
         stiffness: 400,

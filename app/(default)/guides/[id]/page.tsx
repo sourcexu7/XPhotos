@@ -56,15 +56,6 @@ interface Guide {
   albums: GuideAlbumsRelation[]
 }
 
-const tipStyles: Record<string, string> = {
-  warning: 'border-l-amber-400 bg-amber-50/80 dark:bg-amber-900/20 text-amber-900 dark:text-amber-200',
-  info: 'border-l-amber-400 bg-amber-50/80 dark:bg-amber-900/20 text-amber-900 dark:text-amber-200',
-  success: 'border-l-emerald-400 bg-emerald-50/80 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-200',
-  weather: 'border-l-cyan-400 bg-cyan-50/80 dark:bg-cyan-900/20 text-cyan-900 dark:text-cyan-200',
-  emergency: 'border-l-pink-400 bg-pink-50/80 dark:bg-pink-900/20 text-pink-900 dark:text-pink-200',
-  safety: 'border-l-red-400 bg-red-50/80 dark:bg-red-900/20 text-red-900 dark:text-red-200',
-}
-
 export default function GuideDetailPage() {
   const params = useParams()
   const id = params.id as string

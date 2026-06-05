@@ -4,8 +4,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
-import type { ExifType, AlbumType, ImageType } from '~/types'
-import { App as AntApp, Upload as AntUpload, Button as AntButton, Input as AntInput, Form as AntForm, Modal as AntModal, AutoComplete as AntAutoComplete, Tag as AntTag, Card as AntCard, Space as AntSpace, Progress as AntProgress, InputNumber as AntInputNumber, DatePicker as AntDatePicker, Select } from 'antd'
+import type { ExifType, AlbumType } from '~/types'
+import { App as AntApp, Upload as AntUpload, Button as AntButton, Input as AntInput, Form as AntForm, Modal as AntModal, Tag as AntTag, Card as AntCard, Progress as AntProgress, InputNumber as AntInputNumber, DatePicker as AntDatePicker, Select } from 'antd'
 import MultipleSelector from '~/components/ui/origin/multiselect'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
@@ -13,6 +13,7 @@ import zhCN from 'antd/es/date-picker/locale/zh_CN'
 import { CloseOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { encodeBrowserThumbHash } from '~/lib/utils/blurhash-client'
+import { exifReader } from '~/lib/utils/file'
 
 // 导入我们新创建的自定义 Hooks 和工具函数
 import { useStorageConfig } from '~/hooks/useStorageConfig'
@@ -21,7 +22,6 @@ import { useExifData } from '~/hooks/useExifData'
 import { useExifPresets } from '~/hooks/useExifPresets'
 import { useFileUpload } from '~/hooks/useFileUpload'
 import { verifyUrlAccessible, fetchWithTimeout, checkDuplicate } from '~/lib/utils/uploadUtils'
-import { getImageDimensions, applyReferenceExif } from '~/lib/utils/exifUtils'
 import { UploadIcon } from '~/components/icons/upload'
 
 const { Dragger } = AntUpload
@@ -82,7 +82,7 @@ export default function SimpleFileUpload() {
     previewCompressQuality,
     previewImageMaxWidthLimitSwitchOn,
     previewImageMaxWidthLimit,
-    onProgress: (progress, stage) => {
+    onProgress: () => {
     },
     onSuccess: (result) => {
       setUrl(result.url)
@@ -168,12 +168,12 @@ export default function SimpleFileUpload() {
         type: 1,
         lat,
         lon,
-      } as ImageType & { tagCategoryMap?: Record<string, string> }
+      }
 
       if (tagManagement.primarySelect && tagManagement.secondarySelect && tagManagement.secondarySelect.length > 0) {
         const tagCategoryMap: Record<string, string> = {}
         tagManagement.secondarySelect.forEach(s => { tagCategoryMap[s] = tagManagement.primarySelect! })
-        data.tagCategoryMap = tagCategoryMap
+        ;(data as any).tagCategoryMap = tagCategoryMap
       }
 
       // 检查 URL 可访问性
@@ -237,7 +237,7 @@ export default function SimpleFileUpload() {
     } finally {
       setIsSubmitting(false)
     }
-  }, [url, album, height, width, title, previewUrl, videoUrl, hash, exif, lat, lon, detail, imageId, imageName, originalKey, previewKey, tagManagement, files])
+  }, [url, album, height, width, title, previewUrl, videoUrl, hash, exif, lat, lon, detail, imageId, imageName, originalKey, previewKey, tagManagement.labels, tagManagement.primarySelect, tagManagement.secondarySelect, files])
 
   // 辅助函数
   const uploadFileWithRetry = async (file: File, existingImageId?: string) => {
@@ -276,7 +276,7 @@ export default function SimpleFileUpload() {
     setPreviewKey('')
     tagManagement.clearTags()
     setFiles([])
-  }, [originalKey, storageConfig.storage, tagManagement])
+  }, [originalKey, storageConfig.storage, tagManagement.clearTags])
 
   const onBeforeUpload = useCallback(() => {
     setTitle('')
@@ -285,7 +285,7 @@ export default function SimpleFileUpload() {
     setPreviewUrl('')
     setVideoUrl('')
     tagManagement.clearTags()
-  }, [tagManagement])
+  }, [tagManagement.clearTags])
 
   // 文件选择处理
   const handleFileSelection = useCallback(async (file: File) => {
@@ -314,7 +314,7 @@ export default function SimpleFileUpload() {
       console.error(error)
       toast.error(t('Upload.uploadError'))
     }
-  }, [album, storageConfig.storage, exifDataHook, onBeforeUpload])
+  }, [album, storageConfig.storage, exifDataHook.loadExifData, onBeforeUpload])
 
   // 当文件选择变化时
   React.useEffect(() => {
@@ -466,7 +466,7 @@ export default function SimpleFileUpload() {
                 const fileList = info.fileList || []
                 const last = fileList.length > 0 ? (fileList[fileList.length - 1].originFileObj as File) : undefined
                 if (last) {
-                  if (!last.__key) {
+                  if (!(last as any).__key) {
                     (last as any).__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
                   }
                   setFiles([last])
@@ -499,7 +499,7 @@ export default function SimpleFileUpload() {
                   percent={Math.round(fileUploadHook.uploadProgress)}
                   status="active"
                   strokeColor="var(--primary)"
-                  strokeWidth={8}
+                  size={8}
                   showInfo={false}
                   className="mb-2"
                 />
@@ -571,7 +571,7 @@ export default function SimpleFileUpload() {
                       />
                       <AntInput
                         value={exif?.f_number || ''}
-                        onChange={(e) => setExif({ ...(exif || {}), f_number: e.target.value })}
+                        onChange={(e) => setExif({ ...(exif || {}), f_number: parseFloat(e.target.value) || null })}
                         placeholder={t('Upload.orManualInputPlaceholder')}
                       />
                     </div>
@@ -605,7 +605,7 @@ export default function SimpleFileUpload() {
                       />
                       <AntInput
                         value={exif?.iso_speed_rating || ''}
-                        onChange={(e) => setExif({ ...(exif || {}), iso_speed_rating: e.target.value })}
+                        onChange={(e) => setExif({ ...(exif || {}), iso_speed_rating: parseInt(e.target.value) || null })}
                         placeholder={t('Upload.orManualInputPlaceholder')}
                       />
                     </div>
@@ -614,7 +614,7 @@ export default function SimpleFileUpload() {
                   <AntForm.Item label={t('Upload.exifFocalLengthLabel')}>
                     <AntInput
                       value={exif?.focal_length || ''}
-                      onChange={(e) => setExif({ ...(exif || {}), focal_length: e.target.value })}
+                      onChange={(e) => setExif({ ...(exif || {}), focal_length: parseFloat(e.target.value) || null })}
                     />
                   </AntForm.Item>
 

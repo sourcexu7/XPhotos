@@ -24,7 +24,7 @@ export default function FileUpload() {
     {
       key: 'multiple',
       label: t('Upload.multiple'),
-      children: <MultipleFileUpload idPrefix="admin-multiple-upload" />,
+      children: <MultipleFileUpload />,
     },
   ]
 
@@ -40,20 +40,11 @@ export default function FileUpload() {
         items={modeItems}
         onChange={(key) => setMode(key)}
         className="rounded-lg border border-border bg-background-alt"
-        tabBarStyle={{
-          borderBottom: '1px solid var(--border)',
-          padding: '0 16px',
-        }}
-        tabStyle={{
-          padding: '12px 16px',
-          borderRadius: '8px 8px 0 0',
-          marginRight: '8px',
-        }}
-        activeTabStyle={{
-          backgroundColor: 'var(--background)',
-          border: '1px solid var(--border)',
-          borderBottom: '1px solid var(--background-alt)',
-        }}
+        style={{
+          '--tabs-tab-padding': '12px 16px',
+          '--tabs-tab-border-radius': '8px 8px 0 0',
+          '--tabs-tab-margin-right': '8px',
+        } as React.CSSProperties}
       />
     </div>
   )

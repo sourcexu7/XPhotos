@@ -11,6 +11,7 @@ export interface ExifData {
   lon: string
   width: number
   height: number
+  tags: any
 }
 
 export function useExifData() {
@@ -25,6 +26,7 @@ export function useExifData() {
       lon,
       width,
       height,
+      tags,
     }
   }, [])
 

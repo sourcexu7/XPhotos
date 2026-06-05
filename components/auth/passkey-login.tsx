@@ -28,9 +28,7 @@ export const PasskeyLogin: React.FC<PasskeyLoginProps> = ({
   const handlePasskeyLogin = async () => {
     setIsLoading(true)
     try {
-      const { data, error } = await authClient.signIn.passkey({
-        email: 'user@example.com', // 可选参数，不强制
-      })
+      const { data, error } = await authClient.signIn.passkey()
 
       if (error) {
         const errorMessage = error.message || '未知错误'
@@ -55,11 +53,12 @@ export const PasskeyLogin: React.FC<PasskeyLoginProps> = ({
       }
     } catch (error: unknown) {
       // 捕获可能的网络或其他错误
-      if (error.name === 'NotAllowedError') {
+      const err = error as { name?: string }
+      if (err.name === 'NotAllowedError') {
         toast.error(t('loginRejected'))
-      } else if (error.name === 'InvalidStateError') {
+      } else if (err.name === 'InvalidStateError') {
         toast.error(t('loginInUse'))
-      } else if (error.name === 'NotSupportedError') {
+      } else if (err.name === 'NotSupportedError') {
         toast.error(t('loginNotSupported'))
       } else {
         toast.error(t('loginError'))

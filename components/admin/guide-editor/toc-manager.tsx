@@ -38,11 +38,10 @@ interface Module {
 interface TocManagerProps {
   guideId: string
   modules: Module[]
-  activeModule: string | null
   onModuleSelect: (moduleId: string) => void
 }
 
-export default function TocManager({ guideId, modules, activeModule, onModuleSelect }: TocManagerProps) {
+export default function TocManager({ guideId, modules, onModuleSelect }: TocManagerProps) {
   const [tocItems, setTocItems] = useState<TocItem[]>([])
   const [modalVisible, setModalVisible] = useState(false)
   const [form] = Form.useForm()

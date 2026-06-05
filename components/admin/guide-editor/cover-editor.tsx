@@ -37,7 +37,6 @@ interface GuideCoverEditorProps {
 }
 
 export default function GuideCoverEditor({
-  guideId,
   guideTitle,
   coverImage,
   albums = [],

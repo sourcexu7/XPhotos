@@ -14,12 +14,6 @@ import { uploadFile } from '~/lib/utils/file'
 
 const { Compact } = Space
 
-// 拖拽排序相关类型
-interface DragItem {
-  index: number
-  url: string
-}
-
 export default function Preferences() {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
@@ -29,9 +23,6 @@ export default function Preferences() {
   // 拖拽排序状态
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
-  // 「关于我」个人照片上传状态
-  const [aboutUploading, setAboutUploading] = useState(false)
-  const [aboutPreviewUrl, setAboutPreviewUrl] = useState<string>('')
   
   const { token } = theme.useToken()
   const t = useTranslations()
@@ -191,85 +182,6 @@ export default function Preferences() {
     }
   }, [data, form])
 
-  // 「关于我」个人照片上传逻辑（限制 JPG/PNG + 粗略校验 16:9 比例）
-  const handleAboutPhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-      toast.error('仅支持 JPG / PNG 格式的图片')
-      return
-    }
-
-    setAboutUploading(true)
-
-    try {
-      // 先读取尺寸进行比例校验
-      const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          const img = new Image()
-          img.onload = () => resolve({ width: img.width, height: img.height })
-          img.onerror = reject
-          // @ts-expect-error - FileReader result typing
-          img.src = e.target?.result
-        }
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-      })
-
-      const ratio = dimensions.width / dimensions.height
-      // 要求横屏 16:9（宽/高）
-      const target = 16 / 9
-      const diff = Math.abs(ratio - target)
-      if (diff > 0.15) {
-        toast.warning('建议上传接近 16:9 比例的横图，以获得最佳展示效果')
-      }
-
-      // 上传原图
-      const originalResp = await uploadFile(file, '/about/original', 's3', '')
-      if (originalResp.code !== 200 || !originalResp.data?.url) {
-        throw new Error('原图上传失败')
-      }
-
-      // 生成压缩预览图（用于前台 About 展示）
-      const previewFile: File = await new Promise((resolve, reject) => {
-        // @ts-expect-error - compressorjs constructor typing
-        new Compressor(file, {
-          quality: 0.8,
-          maxWidth: 1080,
-          maxHeight: 1920,
-          success(result: Blob | File) {
-            const f = result instanceof File ? result : new File([result], file.name, { type: file.type })
-            resolve(f)
-          },
-          error(err: Error) {
-            reject(err)
-          },
-        })
-      })
-
-      const previewResp = await uploadFile(previewFile, '/about/preview', 's3', '')
-      if (previewResp.code !== 200 || !previewResp.data?.url) {
-        throw new Error('预览图上传失败')
-      }
-
-      form.setFieldsValue({
-        aboutPhotoOriginalUrl: originalResp.data.url,
-        aboutPhotoPreviewUrl: previewResp.data.url,
-      })
-      setAboutPreviewUrl(previewResp.data.url)
-
-      toast.success('个人照片上传成功')
-    } catch (e) {
-      console.error(e)
-      toast.error('个人照片上传失败，请稍后重试')
-    } finally {
-      setAboutUploading(false)
-      // 重置 input，避免选择同一文件时不触发 change
-      event.target.value = ''
-    }
-  }
-
   // 多图画廊上传逻辑
   const handleGalleryUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
@@ -282,7 +194,7 @@ export default function Preferences() {
     }
 
     setGalleryUploading(true)
-    const newUrls: string[] = []
+    const newUrls: Array<{ original: string; preview: string }> = []
 
     try {
       for (let i = 0; i < files.length; i++) {
@@ -294,7 +206,6 @@ export default function Preferences() {
 
         // 压缩图片
         const compressedFile: File = await new Promise((resolve, reject) => {
-          // @ts-expect-error - compressorjs constructor typing
           new Compressor(file, {
             quality: 0.85,
             maxWidth: 1920,
@@ -312,7 +223,7 @@ export default function Preferences() {
         // 上传到画廊目录
         const resp = await uploadFile(compressedFile, '/about/gallery', 's3', '')
         if (resp.code === 200 && resp.data?.url) {
-          newUrls.push(resp.data.url)
+          newUrls.push({ original: resp.data.url, preview: resp.data.url })
           toast.success(`上传成功: ${file.name}`)
         } else {
           toast.error(`上传失败: ${file.name}`)
@@ -698,7 +609,7 @@ export default function Preferences() {
                         {/* 上传按钮 */}
                         <div className="flex items-center gap-2">
                           <input
-                            ref={el => (galleryInputRef.current = el)}
+                            ref={el => { galleryInputRef.current = el }}
                             type="file"
                             accept="image/jpeg,image/png,image/webp"
                             multiple

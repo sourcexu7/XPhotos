@@ -40,7 +40,7 @@ const CleanMinimalSignIn = () => {
   }
 
   const handleLogin = async () => {
-    const { data, error } = await authClient.signIn.email({ 
+    const { error } = await authClient.signIn.email({ 
       email, 
       password, 
       // 不依赖 callbackURL 自动跳转，手动控制以确保刷新

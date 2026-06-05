@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import { useTheme } from 'next-themes'
 import { motion, useReducedMotion } from 'motion/react'
 import { Camera, Aperture } from 'lucide-react'
 
@@ -20,8 +19,6 @@ export function HorizontalBarChart({
   maxCount,
   variant = 'camera'
 }: HorizontalBarChartProps) {
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
   const reduce = useReducedMotion()
   
   const actualMaxCount = maxCount || Math.max(...data.map(d => d.count), 1)

@@ -9,13 +9,6 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import { motion, useReducedMotion } from 'motion/react'
-import { useTheme } from 'next-themes'
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
 
 const BackgroundElements = () => {
   const reduce = useReducedMotion()
@@ -62,7 +55,6 @@ const BackgroundElements = () => {
 export const UserFrom = () => {
   const router = useRouter()
   const t = useTranslations()
-  const { theme } = useTheme()
   const reduce = useReducedMotion()
   
   const [username, setUsername] = useState('')
@@ -70,10 +62,8 @@ export const UserFrom = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [logoError, setLogoError] = useState(false)
-  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
     const usernameField = document.querySelector('input[type="text"]') as HTMLInputElement | null
     usernameField?.focus()
   }, [])

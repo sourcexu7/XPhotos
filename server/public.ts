@@ -219,7 +219,7 @@ app.post('/visit-log', async (c) => {
   } catch (error) {
     console.error('Error writing visit log:', error)
     // 不把错误暴露给前端，只返回 204，避免影响前台体验
-    return c.json({ ok: false }, 204)
+    return c.json({ ok: false }, 500)
   }
 })
 

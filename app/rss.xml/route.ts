@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 
   const images = await getRSSImages()
   if (Array.isArray(images) && images.length > 0) {
-    images?.map(item => {
+    images?.map((item: any) => {
       feed.item({
         title: item.title || '图片',
         description: `
@@ -54,21 +54,12 @@ export async function GET(request: Request) {
         `,
         url: url.origin + (item.album_value === '/' ? '/preview/' : item.album_value + '/preview/') + item.id,
         guid: item.id,
-        date: item.created_at,
+        date: item.created_at || new Date().toUTCString(),
         enclosure: {
           url: item.preview_url || item.url,
           type: 'image/jpeg',
         },
-        media: {
-          content: {
-            url: item.preview_url || item.url,
-            type: 'image/jpeg',
-          },
-          thumbnail: {
-            url: item.preview_url || item.url,
-          },
-        },
-      })
+      } as any)
     })
   }
 

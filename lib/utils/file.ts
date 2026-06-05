@@ -18,22 +18,22 @@ export async function exifReader(file: ArrayBuffer | SharedArrayBuffer | Buffer 
   }
 
   const exifObj: ExifType = {
-    make: tags?.Make?.description || '',
-    model: tags?.Model?.description || '',
-    bits: tags?.['Bits Per Sample']?.description || '',
-    data_time: dateTime, // 与数据库字段保持一致
-    exposure_time: tags?.ExposureTime?.description || '',
-    f_number: tags?.FNumber?.description || '',
-    exposure_program: tags?.ExposureProgram?.description || '',
-    iso_speed_rating: tags?.ISOSpeedRatings?.description || '',
-    focal_length: tags?.FocalLength?.description || '',
-    lens_specification: tags?.LensSpecification?.description || '',
-    lens_model: tags?.LensModel?.description || '',
-    exposure_mode: tags?.ExposureMode?.description || '',
+    make: tags?.Make?.description || null,
+    model: tags?.Model?.description || null,
+    bits: tags?.['Bits Per Sample']?.description ? parseInt(tags?.['Bits Per Sample']?.description) || null : null,
+    data_time: dateTime || null, // 与数据库字段保持一致
+    exposure_time: tags?.ExposureTime?.description || null,
+    f_number: tags?.FNumber?.description ? parseFloat(tags?.FNumber?.description) || null : null,
+    exposure_program: tags?.ExposureProgram?.description || null,
+    iso_speed_rating: tags?.ISOSpeedRatings?.description ? parseInt(tags?.ISOSpeedRatings?.description) || null : null,
+    focal_length: tags?.FocalLength?.description ? parseFloat(tags?.FocalLength?.description) || null : null,
+    lens_specification: tags?.LensSpecification?.description || null,
+    lens_model: tags?.LensModel?.description || null,
+    exposure_mode: tags?.ExposureMode?.description || null,
     // @ts-expect-error CFAPattern is not included in the ExifReader types
-    cfa_pattern: tags?.CFAPattern?.description || '',
-    color_space: tags?.ColorSpace?.description || '',
-    white_balance: tags?.WhiteBalance?.description || '',
+    cfa_pattern: tags?.CFAPattern?.description || null,
+    color_space: tags?.ColorSpace?.description || null,
+    white_balance: tags?.WhiteBalance?.description || null,
   }
 
   return { tags, exifObj }

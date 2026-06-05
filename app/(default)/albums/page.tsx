@@ -18,10 +18,10 @@ export default async function AlbumsPage() {
     lenses?: string[],
     tags?: string[],
     tagsOperator: 'and' | 'or' = 'and',
-    sortByShootTime?: 'desc' | 'asc'
+    _sortByShootTime?: 'desc' | 'asc'
   ) => {
     'use server'
-    return await fetchClientImagesListByAlbum(pageNum, album, cameras, lenses, tags, tagsOperator, sortByShootTime)
+    return await fetchClientImagesListByAlbum(pageNum, album, cameras, lenses, tags, tagsOperator, _sortByShootTime)
   }
 
   const getPageTotal = async (
@@ -30,7 +30,7 @@ export default async function AlbumsPage() {
     lenses?: string[],
     tags?: string[],
     tagsOperator: 'and' | 'or' = 'and',
-    sortByShootTime?: 'desc' | 'asc'
+    _sortByShootTime?: 'desc' | 'asc'
   ) => {
     'use server'
     // 总数查询不需要排序参数，但为了保持接口一致性，接收但不使用

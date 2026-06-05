@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
-import { ChevronDown } from 'lucide-react'
 
 interface ThemeSelectorProps {
   currentTheme: string

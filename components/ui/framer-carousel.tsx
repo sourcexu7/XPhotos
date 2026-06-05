@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, useMotionValue, animate, PanInfo } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 

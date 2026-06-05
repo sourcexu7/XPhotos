@@ -1,9 +1,6 @@
 'use client'
 
-import { LoaderPinwheelIcon } from '~/components/icons/loader-pinwheel.tsx'
-import { GalleryThumbnailsIcon } from '~/components/icons/gallery-thumbnails.tsx'
 import { CompassIcon } from '~/components/icons/compass.tsx'
-import { useRouter } from 'next-nprogress-bar'
 import { useButtonStore } from '~/app/providers/button-store-providers.tsx'
 import Command from '~/components/layout/command.tsx'
 import type { AlbumDataProps } from '~/types/props.ts'
@@ -13,7 +10,6 @@ import { useTranslations } from 'next-intl'
 import DarkModeToggle from '~/components/ui/dark-mode-toggle.tsx'
 
 export default function HeaderIconGroup(props: Readonly<AlbumDataProps>) {
-  const router = useRouter()
   const t = useTranslations()
   const { setCommand } = useButtonStore(
     (state) => state,

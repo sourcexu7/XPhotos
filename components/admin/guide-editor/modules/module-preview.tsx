@@ -3,15 +3,13 @@
 import React from 'react'
 import {
   Card,
-  Space,
   Typography,
   Tag,
-  Divider,
   Badge,
   Empty,
 } from 'antd'
 
-const { Title, Text, Paragraph } = Typography
+const { Text, Paragraph } = Typography
 
 interface ItineraryItem {
   id: string

@@ -21,7 +21,7 @@ export default function S3EditModal() {
     if (s3Edit) {
       form.setFieldsValue(initialValues)
     }
-  }, [s3Edit, initialValues, form])
+  }, [s3Edit, initialValues])
 
   async function onOk() {
     setLoading(true)
@@ -77,13 +77,6 @@ export default function S3EditModal() {
       maskClosable={!loading}
       className="admin-storage-edit-modal"
       styles={{
-        content: {
-          background: 'var(--admin-bg)',
-          border: '1px solid rgba(15, 23, 42, 0.08)',
-          boxShadow: '0 12px 40px rgba(15, 23, 42, 0.18)',
-          borderRadius: 12,
-          padding: 16,
-        },
         header: {
           background: 'var(--admin-bg)',
           borderBottom: '1px solid rgba(15, 23, 42, 0.08)',

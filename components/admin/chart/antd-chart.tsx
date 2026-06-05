@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Card, Row, Col, Statistic, Button, Skeleton, Empty, theme } from 'antd'
+import { Card, Row, Col, Statistic, Button, Skeleton } from 'antd'
 import {
   LineChart,
   Line,
@@ -23,7 +23,6 @@ export function AdminAnalyticsClient({ initialData }: AdminAnalyticsClientProps)
   const t = useTranslations('AdminAnalytics')
   const [data, setData] = useState<VisitSummary>(initialData)
   const [loading, setLoading] = useState(false)
-  const { token } = theme.useToken()
 
   const fetchData = async () => {
     setLoading(true)
@@ -86,7 +85,7 @@ export function AdminAnalyticsClient({ initialData }: AdminAnalyticsClientProps)
 
   const trendData = data.last7Days.map((item) => {
     // 将 "YYYY-MM-DD" 转换为 "MM/DD" 格式
-    const [year, month, day] = item.date.split('-')
+    const [, month, day] = item.date.split('-')
     return {
       name: `${month}/${day}`,
       value: item.count,

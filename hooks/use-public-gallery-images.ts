@@ -71,7 +71,7 @@ export function usePublicGalleryImages(params: Params) {
 
       return [`public-gallery-images:${keyBase}:${index}`, `/api/v1/public/gallery/images?${q.toString()}`] as const
     },
-    ([_, url]) => fetcher(url),
+    ([_, url]) => fetcher(url as string),
     {
       revalidateOnFocus: false,
       revalidateIfStale: false,

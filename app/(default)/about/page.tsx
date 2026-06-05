@@ -5,7 +5,6 @@ import { fetcher } from '~/lib/utils/fetcher'
 import { Github, Instagram, Book, MessagesSquare, AlertCircle, RefreshCw } from 'lucide-react'
 import { FramerCarousel, CarouselItem } from '~/components/ui/framer-carousel'
 import { Button } from '~/components/ui/button'
-import { cn } from '~/lib/utils'
 
 interface AboutConfig {
   config_key: string

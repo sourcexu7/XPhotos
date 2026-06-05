@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import type { AlbumType } from '~/types'
 import AlbumSelector from './album-selector'
 import HeaderIconGroup from '~/components/layout/header-icon-group.tsx'
 import type { AlbumDataProps } from '~/types/props.ts'
@@ -11,7 +10,7 @@ interface WaterfallNavProps extends AlbumDataProps {
 }
 
 export default function WaterfallNav({ data, currentAlbum = '/' }: WaterfallNavProps) {
-  const albums = data?.albums || []
+  const albums = data || []
   const [isScrolled, setIsScrolled] = useState(false)
 
   useEffect(() => {

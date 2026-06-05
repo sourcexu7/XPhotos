@@ -1,12 +1,12 @@
 'use client'
 
-import type { HandleProps, ImageHandleProps } from '~/types/props'
+import type { ImageHandleProps } from '~/types/props'
 import { useSwrPageTotalHook } from '~/hooks/use-swr-page-total-hook'
 import useSWRInfinite from 'swr/infinite'
 import { useTranslations } from 'next-intl'
 import type { ImageType } from '~/types'
 import { ReloadIcon } from '@radix-ui/react-icons'
-import React, { useEffect, useRef, useMemo, useCallback } from 'react'
+import React, { useEffect, useMemo, useCallback } from 'react'
 import { VirtualImageGallery } from '~/components/ui/virtual-image-gallery'
 import { SparklesIcon } from '~/components/icons/sparkles'
 import { UndoIcon } from '~/components/icons/undo'
@@ -26,7 +26,7 @@ export default function TagGallery(props: Readonly<ImageHandleProps>) {
   )
 
   const dataList: ImageType[] = useMemo(
-    () => (data ? ([] as ImageType[]).concat(...data) : []),
+    () => (data ? ([] as ImageType[]).concat(...(data as ImageType[][])) : []),
     [data],
   )
 

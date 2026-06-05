@@ -1,19 +1,10 @@
 'use client'
 
 import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react'
-import { cn } from '~/lib/utils'
 import type { ImageType } from '~/types'
 import { useIsMobile } from '~/hooks/use-mobile'
 import { useRouter } from 'next-nprogress-bar'
 import { MagicImageCard } from '~/components/ui/magic-image-card'
-
-const ALLOWED_WIDTHS = [16, 32, 48, 64, 96, 128, 160, 200, 256, 320, 384, 480, 560, 640, 750, 828, 1080, 1200, 1920, 2048, 3840]
-function snapWidth(w: number): number {
-  for (const allowed of ALLOWED_WIDTHS) {
-    if (allowed >= Math.ceil(w)) return allowed
-  }
-  return ALLOWED_WIDTHS[ALLOWED_WIDTHS.length - 1]
-}
 
 interface VirtualImageGalleryProps {
   images: ImageType[]

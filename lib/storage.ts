@@ -3,8 +3,7 @@ import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { fetchConfigsByKeys } from '~/lib/db/query/configs'
 import { getClient } from '~/lib/s3'
 import { getR2Client } from '~/lib/r2'
-import ExifReader from 'exifreader'
-import type { Image, Config } from '~/types'
+import type { Config, ImageType } from '~/types'
 import { Readable } from 'stream'
 
 function detectStorageByUrl(url: string): 's3' | 'r2' | 'alist' | 'local' {
@@ -23,7 +22,7 @@ function detectStorageByUrl(url: string): 's3' | 'r2' | 'alist' | 'local' {
   return 's3'
 }
 
-function getKeyFromImage(image: { id: string; url: string; original_key: string | null }): string | null {
+function getKeyFromImage(image: { id: string; url: string; original_key?: string | null }): string | null {
   if (image.original_key) {
     return image.original_key.startsWith('/') ? image.original_key.slice(1) : image.original_key
   }
@@ -36,7 +35,7 @@ function getKeyFromImage(image: { id: string; url: string; original_key: string 
   }
 }
 
-export async function streamImage(imageMeta: Image): Promise<{ stream: Readable; exif: null }> {
+export async function streamImage(imageMeta: ImageType): Promise<{ stream: Readable; exif: null }> {
   const storageType = detectStorageByUrl(imageMeta.url)
 
   // For non-S3/R2 storage, we buffer the whole file

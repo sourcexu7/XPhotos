@@ -77,13 +77,13 @@ app.post('/logout', (c) => {
 })
 
 app.get('/me', jwtAuth, (c) => {
-  const user = c.get('user')
+  const user = (c.var as any).user as { id: string }
   return c.json({ user })
 })
 
 app.post('/change-password', jwtAuth, async (c) => {
   const { currentPassword, newPassword } = await c.req.json()
-  const user = c.get('user')
+  const user = (c.var as any).user as { id: string }
 
   if (!currentPassword || !newPassword) {
     throw new HTTPException(400, { message: 'Current password and new password are required' })
@@ -126,7 +126,7 @@ app.post('/change-password', jwtAuth, async (c) => {
 
 app.post('/update-user', jwtAuth, async (c) => {
   const { image } = await c.req.json()
-  const user = c.get('user')
+  const user = (c.var as any).user as { id: string }
 
   await db.user.update({
     where: { id: user.id },

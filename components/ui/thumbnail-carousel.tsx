@@ -14,8 +14,7 @@ const COLLAPSED_WIDTH_PX = 35
 const GAP_PX = 2
 const MARGIN_PX = 2
 
-import type { ImageType } from '~/types'
-function Thumbnails({ index, setIndex, items }: { index: number, setIndex: (i: number) => void, items: ImageType[] }) {
+function Thumbnails({ index, setIndex, items }: { index: number, setIndex: (i: number) => void, items: { id: string; url: string; title: string }[] }) {
   const thumbnailsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -125,7 +124,7 @@ export default function ThumbnailCarousel({ images }: ThumbnailCarouselProps) {
             dragElastic={0.2}
             dragMomentum={false}
             onDragStart={() => setIsDragging(true)}
-            onDragEnd={(e, info) => {
+            onDragEnd={(_, info) => {
               setIsDragging(false)
               const containerWidth = containerRef.current?.offsetWidth || 1
               const offset = info.offset.x

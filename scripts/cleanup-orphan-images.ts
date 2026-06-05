@@ -4,7 +4,6 @@ import { getClient } from '~/lib/s3'
 import { HeadObjectCommand } from '@aws-sdk/client-s3'
 import { fetchConfigsByKeys } from '~/lib/db/query/configs'
 import type { Config } from '~/types'
-import { Prisma } from '@prisma/client'
 
 // --- 配置 ---
 // 是否真的执行删除操作。false = 只检查并报告 (安全模式), true = 检查并删除
@@ -23,7 +22,7 @@ function toConfigMap(configs: Config[]): Record<string, string> {
 }
 
 // 从图片URL或original_key中解析出S3的key
-function getKeyFromImage(image: { url: string; original_key: string | null }, s3StorageFolder: string): string | null {
+function getKeyFromImage(image: { id: string; url: string; original_key: string | null }, s3StorageFolder: string): string | null {
   if (image.original_key) {
     return image.original_key.startsWith('/') ? image.original_key.slice(1) : image.original_key
   }
@@ -68,7 +67,7 @@ async function main() {
   const orphanIds: string[] = []
 
   while (true) {
-    const images = await db.image.findMany({
+    const images: { id: string; url: string | null; original_key: string | null }[] = await db.images.findMany({
       take: BATCH_SIZE,
       ...(cursor && { skip: 1, cursor: { id: cursor } }),
       orderBy: {
@@ -82,7 +81,7 @@ async function main() {
       break
     }
 
-    const checkPromises = images.map(async (image) => {
+    const checkPromises = images.map(async (image: { id: string; url: string | null; original_key: string | null }) => {
       const key = getKeyFromImage(image as any, s3StorageFolder)
       if (!key) {
         orphanIds.push(image.id)
@@ -121,7 +120,7 @@ async function main() {
     if (!DRY_RUN) {
       console.log('\n- Deleting orphan records from the database...')
       try {
-        const { count } = await db.image.deleteMany({
+        const { count } = await db.images.deleteMany({
           where: {
             id: { in: orphanIds },
           },

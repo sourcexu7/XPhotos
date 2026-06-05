@@ -11,7 +11,6 @@ import {
   Popconfirm,
   Table,
   Tag,
-  Divider,
   Statistic,
   Row,
   Col,
@@ -30,8 +29,6 @@ import {
   MoreOutlined,
   DollarOutlined,
 } from '@ant-design/icons'
-
-const { TextArea } = Input
 
 interface ExpenseItem {
   id: string
@@ -139,10 +136,6 @@ export default function ExpenseModule({ value, onChange }: ExpenseModuleProps) {
   const handleSaveAll = () => {
     onChange(items)
     message.success('保存成功')
-  }
-
-  const getCategoryInfo = (category: string) => {
-    return categories.find(c => c.value === category) || categories[6]
   }
 
   const totalExpense = useMemo(() => {

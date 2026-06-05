@@ -1,4 +1,4 @@
-import { Badge, Tag } from 'antd'
+import { Tag } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import React from 'react'
 

@@ -5,6 +5,6 @@ import { Table } from 'antd'
 
 export default function AntdTable<T>({ columns, dataSource, loading, rowKey = 'id' }: { columns: unknown; dataSource: T[]; loading?: boolean; rowKey?: string }) {
   return (
-    <Table columns={columns} dataSource={dataSource} loading={loading} rowKey={rowKey} pagination={{ pageSize: 10 }} />
+    <Table columns={columns as any} dataSource={dataSource} loading={loading} rowKey={rowKey} pagination={{ pageSize: 10 }} />
   )
 }

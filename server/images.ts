@@ -92,9 +92,6 @@ async function verifyImageObjectsExist(image: any) {
 
   if (urls.length === 0) return
 
-  const hasCos = urls.some((x) => (x.url || '').includes('cos'))
-  const hasS3 = !hasCos // fallback
-
   // heuristic routing based on config endpoints
   const s3Configs = await fetchConfigsByKeys(['endpoint', 'bucket', 'accesskey_id', 'accesskey_secret', 'region', 'force_path_style'])
   const cosConfigs = await fetchConfigsByKeys(['cos_endpoint', 'cos_bucket', 'cos_secret_id', 'cos_secret_key', 'cos_region', 'cos_force_path_style'])

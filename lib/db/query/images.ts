@@ -67,14 +67,14 @@ function buildClientFilters(options: FilterOptions) {
   const cameraFilter = camerasArray.length > 0
     ? Prisma.sql`AND (${Prisma.join(
         camerasArray.map(c => Prisma.sql`COALESCE(image.exif->>'model', 'Unknown') = ${c}`),
-        Prisma.sql` OR `
+        ' OR '
       )})`
     : Prisma.empty
 
   const lensFilter = lensesArray.length > 0
     ? Prisma.sql`AND (${Prisma.join(
         lensesArray.map(l => Prisma.sql`COALESCE(image.exif->>'lens_model', 'Unknown') = ${l}`),
-        Prisma.sql` OR `
+        ' OR '
       )})`
     : Prisma.empty
 
@@ -83,7 +83,7 @@ function buildClientFilters(options: FilterOptions) {
       ? Prisma.sql`AND image.labels::jsonb @> ${JSON.stringify(tagsArray)}::jsonb`
       : Prisma.sql`AND (${Prisma.join(
           tagsArray.map(t => Prisma.sql`image.labels::jsonb @> ${JSON.stringify([t])}::jsonb`),
-          Prisma.sql` OR `
+          ' OR '
         )})`
     : Prisma.empty
 
@@ -126,7 +126,7 @@ function buildServerFilters(options: FilterOptions) {
       ? Prisma.sql`AND image.labels::jsonb @> ${JSON.stringify(labelsArray)}::jsonb`
       : Prisma.sql`AND (${Prisma.join(
           labelsArray.map(l => Prisma.sql`image.labels::jsonb @> ${JSON.stringify([l])}::jsonb`),
-          Prisma.sql` OR `
+          ' OR '
         )})`
     : Prisma.empty
 
@@ -628,7 +628,7 @@ export const fetchClientImagesListByAlbum = cache(async (
   `
 
   let result: ImageType[]
-  let albumData: { random_show: number } | null = null
+  let albumData: { random_show: number; image_sorting?: number } | null = null
 
   if (album === '/') {
     if (sortByShootTime === 'desc') {
@@ -930,10 +930,11 @@ export async function fetchImagesAnalysis():
     show_total: number;
   }[]
 
-  // @ts-expect-error -- prisma raw result uses snake_case keys without type guard; coerce to numbers
-  ;(result as any).total = Number((result as any).total)
-  // @ts-expect-error -- prisma raw result uses snake_case keys without type guard; coerce to numbers
-  ;(result as any).show_total = Number((result as any).show_total)
+  // Coerce snake_case keys to numbers
+  for (const item of result) {
+    item.total = Number(item.total)
+    item.show_total = Number(item.show_total)
+  }
 
   return {
     total: Number(counts[0].images_total),

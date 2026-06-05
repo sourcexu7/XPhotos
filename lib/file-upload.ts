@@ -18,8 +18,9 @@ export async function alistUpload(file: File | Blob, type: string, mountPath: st
   ])
   const alistToken = findConfig.find((item: Config) => item.config_key === 'alist_token')?.config_value || ''
   const alistUrl = findConfig.find((item: Config) => item.config_key === 'alist_url')?.config_value || ''
+  const fileName = 'name' in file ? file.name : `upload_${Date.now()}.bin`
   const filePath = encodeURIComponent(`${mountPath && mountPath.toString() === '/' ? '' : mountPath}${
-    type && type !== '/' ? `${type}/${file?.name}` : `/${file?.name}`}`)
+    type && type !== '/' ? `${type}/${fileName}` : `/${fileName}`}`)
   const data = await fetch(`${alistUrl}/api/fs/put`, {
     method: 'PUT',
     headers: {

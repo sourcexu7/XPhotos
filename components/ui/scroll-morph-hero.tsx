@@ -22,8 +22,6 @@ const IMG_HEIGHT = 85 // Reduced from 140
 function FlipCard({
     src,
     index,
-    total,
-    phase,
     target,
 }: FlipCardProps) {
     return (

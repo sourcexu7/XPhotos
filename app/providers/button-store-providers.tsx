@@ -16,7 +16,7 @@ export interface ButtonStoreProviderProps {
 export const ButtonStoreProvider = ({
   children,
 }: ButtonStoreProviderProps) => {
-  const storeRef = useRef<StoreApi<ButtonStore>>()
+  const storeRef = useRef<StoreApi<ButtonStore> | undefined>(undefined)
   if (!storeRef.current) {
     storeRef.current = createButtonStore(initButtonStore())
   }

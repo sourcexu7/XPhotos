@@ -24,11 +24,6 @@ import { UploadIcon } from '~/components/icons/upload'
 
 const { Dragger } = AntUpload
 
-interface TagNode {
-  category: string
-  children: { name: string }[]
-}
-
 interface UploadFile extends File {
   __key?: string
   id?: string
@@ -48,6 +43,7 @@ interface UploadFile extends File {
   uploadStage?: string
   isUploading?: boolean
   isUploaded?: boolean
+  [key: string]: any
 }
 
 export default function MultipleFileUpload() {
@@ -73,29 +69,19 @@ export default function MultipleFileUpload() {
   const [missingFiles, setMissingFiles] = useState<UploadFile[]>([])
   const [missingSelection, setMissingSelection] = useState<Record<string, boolean>>({})
   const [expandedFileKeys, setExpandedFileKeys] = useState<Set<string>>(new Set())
-  const [batchExif, setBatchExif] = useState<Partial<Record<keyof ExifType, string>>>({})
+  const [batchExif, setBatchExif] = useState<Partial<ExifType>>({})
   const [batchLabels, setBatchLabels] = useState<string[]>([])
   const [showBatchEdit, setShowBatchEdit] = useState(false)
   const [presetTags, setPresetTags] = useState<string[]>([])
-  const [tagTree, setTagTree] = useState<TagNode[]>([])
 
   // 获取配置值
-  const previewImageMaxWidthLimitSwitchOn = configs?.find(config => config.config_key === 'preview_max_width_limit_switch')?.config_value === '1'
-  const previewImageMaxWidthLimit = parseInt(configs?.find(config => config.config_key === 'preview_max_width_limit')?.config_value || '0')
-  const previewCompressQuality = parseFloat(configs?.find(config => config.config_key === 'preview_quality')?.config_value || '0.2')
   const maxUploadFiles = parseInt(configs?.find(config => config.config_key === 'max_upload_files')?.config_value || '20')
 
-  // 拉取后端预设标签 + 树形结构
+  // 拉取后端预设标签
   useEffect(() => {
     fetcher('/api/v1/settings/tags/get')
       .then((res: { data: { name: string }[] }) => {
         if (res?.data) setPresetTags(res.data.map((t) => t.name))
-      })
-      .catch(() => {})
-
-    fetcher('/api/v1/settings/tags/get?tree=true')
-      .then((res: { data: TagNode[] }) => {
-        if (res?.data) setTagTree(res.data)
       })
       .catch(() => {})
   }, [])
@@ -250,10 +236,12 @@ export default function MultipleFileUpload() {
 
   // 应用批量 EXIF
   const applyBatchExif = useCallback(() => {
-    setFiles(prev => prev.map(f => ({
-      ...f,
-      exif: { ...(f.exif || {}), ...batchExif }
-    })))
+    setFiles(prev => prev.map(f => {
+      const newFile = Object.create(f) as UploadFile
+      Object.assign(newFile, f)
+      newFile.exif = { ...(f.exif || {}), ...batchExif }
+      return newFile
+    }))
     toast.success(t('Upload.batchExifApplied'))
   }, [batchExif])
 
@@ -545,7 +533,7 @@ export default function MultipleFileUpload() {
               percent={totalProgress}
               status={totalProgress === 100 ? 'success' : 'active'}
               strokeColor="var(--primary)"
-              strokeWidth={8}
+              size={8}
               showInfo={false}
             />
           </div>
@@ -580,7 +568,7 @@ export default function MultipleFileUpload() {
                   <label className="block text-xs text-text-secondary mb-1">{t('Upload.exifApertureLabel')}</label>
                   <AntInput
                     value={batchExif.f_number?.toString() || ''}
-                    onChange={(e) => setBatchExif({ ...batchExif, f_number: e.target.value })}
+                    onChange={(e) => setBatchExif({ ...batchExif, f_number: parseFloat(e.target.value) || null })}
                     placeholder={t('Upload.input')}
                   />
                 </div>
@@ -596,7 +584,7 @@ export default function MultipleFileUpload() {
                   <label className="block text-xs text-text-secondary mb-1">ISO</label>
                   <AntInput
                     value={batchExif.iso_speed_rating?.toString() || ''}
-                    onChange={(e) => setBatchExif({ ...batchExif, iso_speed_rating: e.target.value })}
+                    onChange={(e) => setBatchExif({ ...batchExif, iso_speed_rating: parseInt(e.target.value) || null })}
                     placeholder={t('Upload.input')}
                   />
                 </div>

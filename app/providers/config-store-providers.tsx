@@ -16,7 +16,7 @@ export interface ConfigStoreProviderProps {
 export const ConfigStoreProvider = ({
   children,
 }: ConfigStoreProviderProps) => {
-  const storeRef = useRef<StoreApi<ConfigStore>>()
+  const storeRef = useRef<StoreApi<ConfigStore> | undefined>(undefined)
   if (!storeRef.current) {
     storeRef.current = createConfigStore(initConfigStore())
   }

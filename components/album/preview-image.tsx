@@ -1,6 +1,6 @@
 'use client'
 
-import type { HandleProps, ImageDataProps, PreviewImageHandleProps } from '~/types/props'
+import type { HandleProps, PreviewImageHandleProps } from '~/types/props'
 import LivePhoto from '~/components/album/live-photo'
 import { toast } from 'sonner'
 import { LinkIcon } from '~/components/icons/link'
@@ -12,7 +12,6 @@ import { CameraIcon } from '~/components/icons/camera'
 import { ApertureIcon } from '~/components/icons/aperture'
 import { CrosshairIcon } from '~/components/icons/crosshair'
 import { GaugeIcon } from '~/components/icons/gauge'
-import { XIcon } from '~/components/icons/x'
 import { CopyIcon } from '~/components/icons/copy'
 import { RefreshCWIcon } from '~/components/icons/refresh-cw'
 import { cn } from '~/lib/utils'
@@ -37,7 +36,7 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
   const { data: configData } = useSwrHydrated(configProps)
 
   const downloadEnabled =
-    configData?.find((item: any) => item.config_key === 'custom_index_download_enable')?.config_value?.toString() === 'true'
+    (configData as any[] | undefined)?.find((item: any) => item.config_key === 'custom_index_download_enable')?.config_value?.toString() === 'true'
 
   const handleClose = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {

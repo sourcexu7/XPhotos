@@ -23,7 +23,7 @@ export default function DefaultGallery(props: Readonly<ImageHandleProps>) {
   )
 
   const dataList: ImageType[] = useMemo(
-    () => (data ? ([] as ImageType[]).concat(...data) : []),
+    () => (data ? ([] as ImageType[]).concat(...(data as ImageType[][])) : []),
     [data],
   )
 

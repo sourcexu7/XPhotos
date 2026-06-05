@@ -21,14 +21,18 @@ interface UnifiedNavProps {
   currentAlbum?: string
   currentTheme?: string
   siteTitle?: string
+  hideThemeToggle?: boolean
 }
 
 export default function UnifiedNav({
   albums,
-  currentAlbum = '/',
-  currentTheme = '2',
   siteTitle = 'XPhotos',
-}: UnifiedNavProps) {
+  hideThemeToggle = false,
+}: UnifiedNavProps & {
+  albums: any[]
+  siteTitle?: string
+  hideThemeToggle?: boolean
+}) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -38,6 +42,8 @@ export default function UnifiedNav({
   const { data: session } = authClient.useSession()
   const { resolvedTheme, setTheme } = useTheme()
   const navRef = useRef<HTMLElement>(null)
+  const isHomePage = pathname === '/'
+  const shouldHideThemeToggle = hideThemeToggle || isHomePage
 
   useEffect(() => {
     setMounted(true)
@@ -60,7 +66,6 @@ export default function UnifiedNav({
     { name: '城隅寻迹', href: '/covers' },
     { name: '景行集', href: '/albums' },
     { name: '攻略路书', href: '/guides' },
-    { name: '数据一览', href: '/dashboard' },
     { name: '关于我', href: '/about' },
   ]
 
@@ -137,7 +142,7 @@ export default function UnifiedNav({
             </Link>
 
             {/* Dark Mode Toggle — minimal icon */}
-            {mounted && (
+            {mounted && !shouldHideThemeToggle && (
               <button
                 onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
                 className="ml-2 inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-muted/60 transition-all duration-300"
@@ -154,7 +159,7 @@ export default function UnifiedNav({
 
           {/* Mobile Menu Toggle */}
           <div className="lg:hidden flex items-center gap-0.5">
-            {mounted && (
+            {mounted && !shouldHideThemeToggle && (
               <button
                 onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
                 className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-muted/60 transition-all duration-300"

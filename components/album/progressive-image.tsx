@@ -128,7 +128,6 @@ export default function ProgressiveImage(props: Readonly<ProgressiveImageProps>)
           closeOnBackdropClick: true,
           closeOnPullUp: true,
           closeOnPullDown: true,
-          closeOnEscape: true,
         }}
       />
     </div>

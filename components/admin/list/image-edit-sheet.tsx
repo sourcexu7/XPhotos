@@ -8,7 +8,7 @@ import React, { useState, useRef } from 'react'
 import { toast } from 'sonner'
 import { ReloadIcon } from '@radix-ui/react-icons'
 import { Button, Switch, Drawer } from 'antd'
-import { Tag, TagInput } from 'emblor'
+import { TagInput } from 'emblor'
 import { exifReader } from '~/lib/utils/file'
 
 export default function ImageEditSheet(props : Readonly<ImageServerHandleProps & { pageNum: number } & { album: string }>) {
@@ -78,7 +78,7 @@ export default function ImageEditSheet(props : Readonly<ImageServerHandleProps &
     <Drawer
       title="编辑图片信息"
       placement="left"
-      size={{ xs: '100%', sm: 420 }}
+      size="large"
       open={imageEdit}
       onClose={() => { setImageEdit(false); setImageEditData({} as ImageType) }}
       mask={false}
@@ -110,8 +110,8 @@ export default function ImageEditSheet(props : Readonly<ImageServerHandleProps &
             <div className="mb-4">
               <label className="block text-xs font-medium text-muted-foreground mb-2">标签</label>
               <TagInput
-                tags={!image.labels ? [] : image.labels.map((label: string) => ({ id: Math.floor(Math.random() * 1000), text: label }))}
-                setTags={(newTags: any) => setImageEditData({...image, labels: newTags?.map((label: Tag) => label.text)})}
+                tags={!image.labels ? [] : image.labels.map((label: string) => ({ id: Math.floor(Math.random() * 1000).toString(), text: label }))}
+                setTags={(newTags: any) => setImageEditData({...image, labels: newTags?.map((label: any) => label.text)})}
                 placeholder="输入标签回车添加"
                 styleClasses={{
                   inlineTagsContainer: 'border border-border rounded-lg bg-card p-2 gap-2 min-h-[44px] transition-all duration-200 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20',

@@ -21,13 +21,7 @@ import {
   EditOutlined,
   CheckCircleOutlined,
   CheckCircleFilled,
-  ShopOutlined,
-  SkinOutlined,
-  CameraOutlined,
-  EnvironmentOutlined,
 } from '@ant-design/icons'
-
-const { TextArea } = Input
 
 interface ChecklistItem {
   id: string
@@ -45,13 +39,6 @@ interface ChecklistCategory {
 interface ChecklistModuleProps {
   value: ChecklistCategory[]
   onChange: (data: ChecklistCategory[]) => void
-}
-
-const categoryIcons: Record<string, { icon: React.ReactNode; color: string }> = {
-  '衣物准备': { icon: <SkinOutlined />, color: '#ec4899' },
-  '日常用品': { icon: <ShopOutlined />, color: '#f59e0b' },
-  '摄影设备': { icon: <CameraOutlined />, color: '#8b5cf6' },
-  '导航': { icon: <EnvironmentOutlined />, color: '#10b981' },
 }
 
 export default function ChecklistModule({ value, onChange }: ChecklistModuleProps) {

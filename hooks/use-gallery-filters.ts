@@ -3,7 +3,7 @@
  * 提取 simple-gallery 和 waterfall-gallery 的重复逻辑
  */
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import type { ImageType } from '~/types'
 import { useDebounce } from './use-debounce'
 

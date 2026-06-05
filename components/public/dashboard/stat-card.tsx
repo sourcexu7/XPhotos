@@ -39,7 +39,7 @@ const colorMap = {
   },
 }
 
-export function StatCard({ id, label, value, icon, color }: StatCardProps) {
+export function StatCard({ label, value, icon, color }: StatCardProps) {
   const Icon = iconMap[icon]
   const colors = colorMap[color]
 

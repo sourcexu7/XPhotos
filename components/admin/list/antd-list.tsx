@@ -3,7 +3,7 @@
 import React from 'react'
 import { List, Card } from 'antd'
 
-export default function AntdList<T>({
+export default function AntdList({
   dataSource,
   renderItem,
   ...rest
@@ -14,7 +14,7 @@ export default function AntdList<T>({
       dataSource={dataSource}
       renderItem={(item: any) => (
         <List.Item>
-          {renderItem ? renderItem(item) : <Card title={item.title}>{item.content}</Card>}
+          {renderItem ? renderItem(item, 0) : <Card title={item.title}>{item.content}</Card>}
         </List.Item>
       )}
       {...rest}

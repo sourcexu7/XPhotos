@@ -11,7 +11,6 @@ import {
   Tag,
   Timeline,
   Badge,
-  Divider,
   Empty,
   Modal,
   App,
@@ -26,7 +25,6 @@ import {
   BulbOutlined,
   CalendarOutlined,
   SaveOutlined,
-  CloseOutlined,
 } from '@ant-design/icons'
 
 const { TextArea } = Input

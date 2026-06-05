@@ -8,7 +8,7 @@ interface HoverButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>
 }
 
 const HoverButton = React.forwardRef<HTMLButtonElement, HoverButtonProps>(
-  ({ className, children, ...props }, ref) => {
+  ({ className, children, ...props }, _ref) => {
     const buttonRef = React.useRef<HTMLButtonElement>(null)
     const [isListening, setIsListening] = React.useState(false)
     const [circles, setCircles] = React.useState<Array<{
@@ -104,9 +104,9 @@ const HoverButton = React.forwardRef<HTMLButtonElement, HoverButtonProps>(
         onPointerLeave={handlePointerLeave}
         {...props}
         style={{
-          '--circle-start': 'var(--tw-gradient-from, #a0d9f8)',
-          '--circle-end': 'var(--tw-gradient-to, #3a5bbf)',
-        }}
+          '--circle-start': 'var(--tw-gradient-from, #a0d9f8)' as string,
+          '--circle-end': 'var(--tw-gradient-to, #3a5bbf)' as string,
+        } as React.CSSProperties}
       >
         {circles.map(({ id, x, y, color, fadeState }) => (
           <div

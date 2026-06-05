@@ -15,7 +15,6 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
   const router = useRouter()
   const reduceMotion = useReducedMotion()
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [direction, setDirection] = useState(0)
 
   useEffect(() => {
     router.prefetch('/covers')
@@ -28,7 +27,6 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
   useEffect(() => {
     if (images.length === 0) return
     const timer = setInterval(() => {
-      setDirection(1)
       setCurrentIndex((prev) => (prev + 1) % images.length)
     }, 5000)
     return () => clearInterval(timer)
@@ -36,13 +34,11 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
 
   const handleNext = useCallback(() => {
     if (images.length === 0) return
-    setDirection(1)
     setCurrentIndex((prev) => (prev + 1) % images.length)
   }, [images.length])
 
   const handlePrev = useCallback(() => {
     if (images.length === 0) return
-    setDirection(-1)
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
   }, [images.length])
 
@@ -52,7 +48,7 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
     <section className="relative w-full h-[100dvh] min-h-[480px] overflow-hidden -mt-14">
       {/* Full-screen Image Background */}
       <div className="absolute inset-0 z-0">
-        <AnimatePresence mode="crossfade">
+        <AnimatePresence mode="sync">
           {currentImage && (
             <motion.div
               key={currentImage.id}

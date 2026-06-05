@@ -3,6 +3,7 @@ import { fetchConfigsByKeys } from '~/lib/db/query/configs'
 import UnifiedNav from '~/components/layout/unified-nav'
 import ScrollRestoration from '~/components/layout/scroll-restoration'
 import { Footer } from '~/components/layout/footer'
+import DarkThemeEnforcer from '~/components/layout/dark-theme-enforcer'
 
 const DEFAULT_STYLE = '0'
 const DEFAULT_TITLE = 'XPhotos'
@@ -21,7 +22,7 @@ export default async function DefaultLayout({
   const siteTitle = configs.find((c) => c.config_key === 'custom_title')?.config_value || DEFAULT_TITLE
 
   return (
-    <>
+    <DarkThemeEnforcer>
       <UnifiedNav
         albums={albums}
         currentAlbum="/"
@@ -33,6 +34,6 @@ export default async function DefaultLayout({
         {children}
       </div>
       <Footer />
-    </>
+    </DarkThemeEnforcer>
   )
 }

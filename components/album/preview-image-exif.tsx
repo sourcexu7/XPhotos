@@ -119,7 +119,6 @@ export default function PreviewImageExif(props: Readonly<ImageDataProps>) {
               onClick={async () => {
                 try {
                   const exif = JSON.stringify(props.data?.exif)
-                  // @ts-expect-error - clipboard API typing varies
                   await navigator.clipboard.writeText(exif)
                   toast.success('复制成功！', {duration: 1500})
                 } catch (error) {

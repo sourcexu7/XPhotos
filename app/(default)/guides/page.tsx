@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MapPin, Calendar, Search, X, Compass, ArrowRight, ChevronRight } from 'lucide-react'
+import { MapPin, Calendar, Search, X, Compass, ArrowRight } from 'lucide-react'
 
 interface Guide {
   id: string
@@ -38,7 +38,7 @@ const itemVariants = {
     y: 0,
     transition: {
       duration: 0.6,
-      ease: [0.25, 0.46, 0.45, 0.94]
+      ease: [0.25, 0.46, 0.45, 0.94] as const
     }
   }
 }

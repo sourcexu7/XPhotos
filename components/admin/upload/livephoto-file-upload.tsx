@@ -4,9 +4,9 @@ import React, { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
-import type { ExifType, AlbumType, ImageType } from '~/types'
+import type { ExifType, AlbumType } from '~/types'
 import Compressor from 'compressorjs'
-import { App as AntApp, Upload as AntUpload, Button as AntButton, Input as AntInput, Form as AntForm, Modal as AntModal, message as AntMessage, AutoComplete as AntAutoComplete, Tag as AntTag, Card as AntCard, Space as AntSpace, Progress as AntProgress, InputNumber as AntInputNumber, DatePicker as AntDatePicker, theme, Select } from 'antd'
+import { App as AntApp, Upload as AntUpload, Button as AntButton, Input as AntInput, Form as AntForm, Modal as AntModal, message as AntMessage, Tag as AntTag, Card as AntCard, Progress as AntProgress, InputNumber as AntInputNumber, DatePicker as AntDatePicker, Select } from 'antd'
 import MultipleSelector from '~/components/ui/origin/multiselect'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
@@ -47,7 +47,6 @@ export default function LivephotoFileUpload() {
   dayjs.locale('zh-cn')
   const { modal } = AntApp.useApp()
   const referenceInputRef = useRef<HTMLInputElement | null>(null)
-  const videoInputRef = useRef<HTMLInputElement | null>(null)
   const [alistStorage, setAlistStorage] = useState<AlistStorage[]>([])
   const [storageSelect, setStorageSelect] = useState(false)
   const [storage, setStorage] = useState('s3')
@@ -65,8 +64,6 @@ export default function LivephotoFileUpload() {
   const [videoKey, setVideoKey] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [uploadStage, setUploadStage] = useState('')
   const [totalUploadProgress, setTotalUploadProgress] = useState(0)
   const [currentUploadStage, setCurrentUploadStage] = useState('')
   const [width, setWidth] = useState(0)
@@ -85,7 +82,7 @@ export default function LivephotoFileUpload() {
 
   const t = useTranslations()
 
-  const { data, isLoading } = useSWR('/api/v1/albums/get', fetcher)
+  const { data } = useSWR('/api/v1/albums/get', fetcher)
   const { data: configs } = useSWR<{ config_key: string, config_value: string }[]>('/api/v1/settings/get-custom-info', fetcher)
 
   const defaultStorage = configs?.find(config => config.config_key === 'default_storage')?.config_value || 's3'
@@ -298,14 +295,13 @@ export default function LivephotoFileUpload() {
         type: 2, // LivePhoto type
         lat,
         lon,
-      } as ImageType & { tagCategoryMap?: Record<string, string> }
+      }
 
       if (primarySelect && secondarySelect && Array.isArray(secondarySelect) && secondarySelect.length > 0) {
         // map each secondary -> primary for backend upsert
         const map: Record<string, string> = {}
         secondarySelect.forEach(s => { map[s] = primarySelect })
-        // @ts-expect-error - attach stable key on File
-        ;(data as { tagCategoryMap?: Record<string, string> }).tagCategoryMap = map
+        ;(data as any).tagCategoryMap = map
       }
 
       // 提交前，对现有 URL 做一次远端可访问性校验；若失败且仍有本地文件，则尝试自动重传，尽量避免「数据库有 URL 但 COS/S3 中无对象」的情况
@@ -426,10 +422,8 @@ export default function LivephotoFileUpload() {
       toast.error(t('Tips.saveFailed'))
     } finally {
       setIsSubmitting(false)
-      setUploadProgress(0)
       setTotalUploadProgress(0)
       setCurrentUploadStage('')
-      setUploadStage('')
     }
   }
 
@@ -484,15 +478,12 @@ export default function LivephotoFileUpload() {
         maxWidth: previewImageMaxWidthLimitSwitchOn && previewImageMaxWidthLimit > 0 ? previewImageMaxWidthLimit : undefined,
         async success(compressedFile) {
           try {
-            setUploadStage('压缩预览图中')
             setCurrentUploadStage('压缩预览图中')
             const res = await uploadFile(compressedFile as File, type, storage, alistMountPath, {
               onProgress: (p: number) => {
-                setUploadProgress(p)
                 setTotalUploadProgress(50 + (p * 0.4))
               },
               onStageChange: (stage: string) => {
-                setUploadStage(stage)
                 setCurrentUploadStage(stage)
               }
             })
@@ -533,15 +524,15 @@ export default function LivephotoFileUpload() {
     }
     await loadExif(file)
     setHash(await encodeBrowserThumbHash(file))
-    setUrl(res?.data?.url)
-    setImageId(res?.data?.imageId)
-    setImageName(res?.data?.fileName)
+    setUrl(res?.data?.url ?? '')
+    setImageId(res?.data?.imageId ?? '')
+    setImageName(res?.data?.fileName ?? '')
     if (res?.data?.key) setOriginalKey(res.data.key)
   }, [album, loadExif, uploadPreviewImage])
 
   const resHandleVideo = React.useCallback(async (res: UploadResponse) => {
     if (res?.code === 200) {
-      setVideoUrl(res?.data?.url)
+      setVideoUrl(res?.data?.url ?? '')
       if (res?.data?.key) setVideoKey(res.data.key)
       setVideoUploadStage('完成')
       setVideoUploadProgress(100)
@@ -584,11 +575,9 @@ export default function LivephotoFileUpload() {
         await uploadFile(outputFile, album, storage, alistMountPath, {
           existingImageId,
           onProgress: (p:number) => {
-            setUploadProgress(p)
             setTotalUploadProgress(10 + (p * 0.4))
           },
           onStageChange: (stage: string) => {
-            setUploadStage(stage)
             setCurrentUploadStage(stage)
           }
         }).then(async (res) => {
@@ -604,11 +593,9 @@ export default function LivephotoFileUpload() {
         await uploadFile(file, album, storage, alistMountPath, {
           existingImageId,
           onProgress: (p:number) => {
-            setUploadProgress(p)
             setTotalUploadProgress(10 + (p * 0.4))
           },
           onStageChange: (stage: string) => {
-            setUploadStage(stage)
             setCurrentUploadStage(stage)
           }
         }).then(async (res) => {
@@ -703,30 +690,6 @@ export default function LivephotoFileUpload() {
     setVideoUploadStage('')
   }
 
-  function onRemoveAll() {
-    onRemoveImage()
-    onRemoveVideo()
-    setImageLabels([])
-    setCascaderValue([])
-    setPrimarySelect(null)
-    setSecondarySelect([])
-  }
-
-  const onBeforeUploadImage = React.useCallback(async () => {
-    setTitle('')
-    setImageId('')
-    setImageName('')
-    setPreviewUrl('')
-    setImageLabels([])
-    setCascaderValue([])
-    setPrimarySelect(null)
-    setSecondarySelect([])
-  }, [])
-
-  const onBeforeUploadVideo = React.useCallback(async () => {
-    setVideoUrl('')
-  }, [])
-
   // When an image file is selected, only read EXIF/preview/hash locally and prefill the form.
   // Actual upload to storage will happen when the user clicks Submit.
   React.useEffect(() => {
@@ -746,7 +709,6 @@ export default function LivephotoFileUpload() {
           const reader = new FileReader()
           reader.onload = (e) => {
             if (cancelled) return
-            // @ts-expect-error - conditional preview key reading
             setPreviewUrl(typeof e.target?.result === 'string' ? e.target.result : '')
           }
           reader.readAsDataURL(imageFile)
@@ -780,6 +742,7 @@ export default function LivephotoFileUpload() {
 
         // 已选择相册 => 自动上传视频到存储
         await onRequestUploadVideo(videoFile)
+        if (cancelled) return
       } catch (e) {
         console.error('Video auto-upload failed', e)
       }
@@ -1000,7 +963,7 @@ export default function LivephotoFileUpload() {
                   percent={Math.round(totalUploadProgress)}
                   status="active"
                   strokeColor="var(--primary)"
-                  strokeWidth={8}
+                  size={8}
                   showInfo={false}
                   className="mb-2"
                 />
@@ -1023,7 +986,7 @@ export default function LivephotoFileUpload() {
                   percent={Math.round(videoUploadProgress)}
                   status="active"
                   strokeColor="var(--primary)"
-                  strokeWidth={8}
+                  size={8}
                   showInfo={false}
                   className="mb-2"
                 />
@@ -1142,7 +1105,7 @@ export default function LivephotoFileUpload() {
                         className="min-w-[120px]"
                         options={exifPresets.apertures.map((a: string) => ({ label: a, value: a }))}
                       />
-                      <AntInput value={exif?.f_number || ''} onChange={(e) => setExif({ ...(exif || {}), f_number: e.target.value })} placeholder={t('Upload.orManualInputPlaceholder')} />
+                      <AntInput value={exif?.f_number || ''} onChange={(e) => setExif({ ...(exif || {}), f_number: parseFloat(e.target.value) || null })} placeholder={t('Upload.orManualInputPlaceholder')} />
                     </div>
                   </AntForm.Item>
                   <AntForm.Item label={t('Upload.exifShutterLabel')}>
@@ -1166,11 +1129,11 @@ export default function LivephotoFileUpload() {
                         className="min-w-[120px]"
                         options={exifPresets.isos.map((i: string) => ({ label: i, value: i }))}
                       />
-                      <AntInput value={exif?.iso_speed_rating || ''} onChange={(e) => setExif({ ...(exif || {}), iso_speed_rating: e.target.value })} placeholder={t('Upload.orManualInputPlaceholder')} />
+                      <AntInput value={exif?.iso_speed_rating || ''} onChange={(e) => setExif({ ...(exif || {}), iso_speed_rating: parseInt(e.target.value) || null })} placeholder={t('Upload.orManualInputPlaceholder')} />
                     </div>
                   </AntForm.Item>
                   <AntForm.Item label={t('Upload.exifFocalLengthLabel')}>
-                    <AntInput value={exif?.focal_length || ''} onChange={(e) => setExif({ ...(exif || {}), focal_length: e.target.value })} />
+                    <AntInput value={exif?.focal_length || ''} onChange={(e) => setExif({ ...(exif || {}), focal_length: parseFloat(e.target.value) || null })} />
                   </AntForm.Item>
                   <AntForm.Item label={t('Upload.exifShootDateLabel')}>
                     <AntDatePicker

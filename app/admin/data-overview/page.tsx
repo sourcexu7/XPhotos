@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import { DashboardView, type PublicDashboardStats } from '~/components/public/dashboard/dashboard-view'
+import AdminPageHeader from '~/components/admin/layout/page-header'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
-export default function DashboardPage() {
+export default function DataOverviewPage() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -23,19 +24,13 @@ export default function DashboardPage() {
     }
   )
 
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <DashboardView data={data} isLoading={isLoading} error={error} />
-      </div>
+    <div className="p-6">
+      <AdminPageHeader 
+        title="数据一览" 
+        description="公开统计数据展示" 
+      />
+      <DashboardView data={data} isLoading={isLoading} error={error} />
     </div>
   )
 }

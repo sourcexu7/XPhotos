@@ -28,7 +28,7 @@ export default async function ThemeAlbumLayout({
   }
 
   const dataList: AlbumType[] = await getData()
-  const data: AlbumType = await getAlbum(`/${album}`)
+  const data: AlbumType | null = await getAlbum(`/${album}`)
   const configs: Config[] = await getConfig()
   
   // 使用系统配置的主题，而不是相册的主题字段

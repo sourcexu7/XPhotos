@@ -117,7 +117,7 @@ function AlbumCard({ album, onClick }: AlbumCardProps) {
             {album.name}
           </h4>
           <p className="text-sm text-muted-foreground mt-1">
-            {album.description || '探索精彩瞬间'}
+            探索精彩瞬间
           </p>
         </div>
         <div className="flex items-center gap-1 text-primary opacity-0 group-hover:opacity-100 transition-opacity">

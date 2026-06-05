@@ -9,7 +9,6 @@ import { getR2Client } from '~/lib/r2'
 import { generatePresignedUrl } from '~/lib/s3api'
 import { getClient } from '~/lib/s3'
 import { getCOSClient } from '~/lib/cos'
-import { db } from '~/lib/db'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { createId } from '@paralleldrive/cuid2'
 
@@ -141,7 +140,7 @@ app.post('/presigned-url', async (c) => {
 
         const client = getClient(configs)
         const presignedUrl = await generatePresignedUrl(
-          client as unknown as Record<string, unknown>,
+          client,
           bucket,
           filePath,
           contentType,
@@ -203,7 +202,7 @@ app.post('/presigned-url', async (c) => {
         throw new HTTPException(400, { message: 'Unsupported storage type' })
     }
   } catch (e: unknown) {
-    const msg = (e && e.message) ? e.message : 'Failed to generate presigned URL'
+    const msg = e instanceof Error ? e.message : 'Failed to generate presigned URL'
     throw new HTTPException(500, { message: msg, cause: e })
   }
 })
@@ -391,7 +390,7 @@ app.post('/getObjectUrl', async (c) => {
         try {
           const client = getClient(configs)
           const signed = await generatePresignedUrl(
-            client as unknown as Record<string, unknown>,
+            client,
             bucket,
             key,
             '',

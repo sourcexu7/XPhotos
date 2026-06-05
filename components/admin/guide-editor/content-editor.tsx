@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { Card, Button, Dropdown, Spin, Empty, Modal, Input, Select, App } from 'antd'
+import { Button, Dropdown, Spin, Empty, Modal, Input, Select, App } from 'antd'
 import { 
   PlusOutlined,
   HolderOutlined,

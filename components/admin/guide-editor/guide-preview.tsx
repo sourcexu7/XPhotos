@@ -1,10 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Card, Spin, Typography } from 'antd'
-import { ArrowLeftOutlined } from '@ant-design/icons'
+import { Spin, Typography } from 'antd'
 
-const { Title, Paragraph, Text } = Typography
+const { Title } = Typography
 
 interface Guide {
   id: string

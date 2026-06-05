@@ -1,6 +1,6 @@
 'use client'
 
-import { useMotionValue } from 'framer-motion'
+import { useMotionValue, type MotionValue } from 'framer-motion'
 import React, { useState, useEffect } from 'react'
 import { useMotionTemplate, motion } from 'framer-motion'
 import { cn } from '~/lib/utils'
@@ -75,8 +75,8 @@ export function CardPattern({
   mouseY,
   randomString,
 }: {
-  mouseX: ReturnType<typeof useMotionValue>
-  mouseY: ReturnType<typeof useMotionValue>
+  mouseX: MotionValue<number>
+  mouseY: MotionValue<number>
   randomString: string
 }) {
   const maskImage = useMotionTemplate`radial-gradient(250px at ${mouseX}px ${mouseY}px, white, transparent)`

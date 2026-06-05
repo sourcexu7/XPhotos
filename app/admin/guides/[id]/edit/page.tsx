@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Card, Button, Space, Spin, message, App, Typography, Tag, Tooltip } from 'antd'
+import { Button, Space, Spin, App, Typography, Tag, Tooltip } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined, EyeOutlined, LockOutlined, GlobalOutlined } from '@ant-design/icons'
 import GuideEditor from '~/components/admin/guide-editor'
 import { useTranslations } from 'next-intl'

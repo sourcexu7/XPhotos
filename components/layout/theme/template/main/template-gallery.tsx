@@ -1,11 +1,7 @@
 'use client'
 
-import type { HandleProps, ImageHandleProps } from '~/types/props.ts'
-import { useSwrPageTotalHook } from '~/hooks/use-swr-page-total-hook.ts'
+import type { ImageHandleProps } from '~/types/props.ts'
 import useSWRInfinite from 'swr/infinite'
-import { useSwrHydrated } from '~/hooks/use-swr-hydrated.ts'
-import { useTranslations } from 'next-intl'
-import type { ImageType } from '~/types'
 import React from 'react'
 
 /**
@@ -13,10 +9,8 @@ import React from 'react'
  * @param props 组件参数
  */
 export default function TemplateGallery(props : Readonly<ImageHandleProps>) {
-  // 总数
-  const { data: pageTotal } = useSwrPageTotalHook(props)
   // data->数据; isLoading->状态; size->页码; setSize->设置页码;
-  const { data, isLoading, isValidating, size, setSize } = useSWRInfinite((index) => {
+  useSWRInfinite((index) => {
       return [`client-${props.args}-${index}-${props.album}`, index]
     },
     ([_, index]) => {
@@ -26,16 +20,6 @@ export default function TemplateGallery(props : Readonly<ImageHandleProps>) {
       revalidateIfStale: false,
       revalidateOnReconnect: false,
     })
-  const configProps: HandleProps = {
-    handle: props.configHandle,
-    args: 'system-config',
-  }
-  // config 配置信息
-  const { data: configData } = useSwrHydrated(configProps)
-  // 处理好的数据，直接用这个即可
-  const dataList: ImageType[] = data ? [].concat(...data) : []
-  // i18n
-  const t = useTranslations()
 
   return (
     <>

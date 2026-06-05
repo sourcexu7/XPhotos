@@ -3,15 +3,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 
-type Entry = { key: string; at: number }
-
-const WINDOW_MS = 2000
-const MAX_SAME_ROUTE = 8
-
 export function RouteLoopGuard() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const [logs, setLogs] = useState<Entry[]>([])
   const [stuck, setStuck] = useState(false)
 
   const currentKey = useMemo(
@@ -21,18 +15,6 @@ export function RouteLoopGuard() {
 
   useEffect(() => {
     if (!currentKey) return
-    const now = Date.now()
-
-    setLogs((prev) => {
-      const next = [...prev, { key: currentKey, at: now }].filter(
-        (e) => now - e.at <= WINDOW_MS,
-      )
-      const sameCount = next.filter((e) => e.key === currentKey).length
-      if (sameCount >= MAX_SAME_ROUTE) {
-        setStuck(true)
-      }
-      return next
-    })
   }, [currentKey])
 
   if (!stuck) return null

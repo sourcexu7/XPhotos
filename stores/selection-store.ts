@@ -10,7 +10,7 @@ interface SelectionState {
   setSelectionMode: (isActive: boolean) => void;
 }
 
-export const useSelectionStore = create<SelectionState>((set, get) => ({
+export const useSelectionStore = create<SelectionState>((set) => ({
   selectedIds: new Set(),
   isSelectionMode: false,
 

@@ -13,7 +13,6 @@ export default async function List() {
   const tLink = await getTranslations('Link')
   const tAdminHeader = await getTranslations('AdminHeader')
 
-  // @ts-expect-error - We are passing a new function signature to ListProps, which will be handled inside the component.
   const props: ImageServerHandleProps = {
     handle: getPage,
     args: 'getImages-server',

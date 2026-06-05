@@ -7,7 +7,6 @@
 
 import React, { useEffect, useRef, useCallback } from 'react'
 import { cn } from '~/lib/utils'
-import { AdminButton } from './button'
 import { X } from 'lucide-react'
 
 export interface AdminModalProps {

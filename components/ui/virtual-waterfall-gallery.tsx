@@ -1,24 +1,13 @@
 'use client'
 
-import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react'
-import { cn } from '~/lib/utils'
+import React, { useMemo, useRef, useEffect, useState } from 'react'
 import type { ImageType } from '~/types'
 import { useRouter } from 'next-nprogress-bar'
 import { useIsMobile } from '~/hooks/use-mobile'
 
-/** Next.js imageSizes + deviceSizes 完整白名单，动态宽度向上 snap */
-const ALLOWED_WIDTHS = [16, 32, 48, 64, 96, 128, 160, 200, 256, 320, 384, 480, 560, 640, 750, 828, 1080, 1200, 1920, 2048, 3840]
-function snapWidth(w: number): number {
-  for (const allowed of ALLOWED_WIDTHS) {
-    if (allowed >= Math.ceil(w)) return allowed
-  }
-  return ALLOWED_WIDTHS[ALLOWED_WIDTHS.length - 1]
-}
-
 interface VirtualWaterfallGalleryProps {
   images: ImageType[]
   overscan?: number
-  threshold?: number
 }
 
 /**
@@ -34,7 +23,6 @@ interface VirtualWaterfallGalleryProps {
 export function VirtualWaterfallGallery({
   images,
   overscan = 5,
-  threshold = 40,
 }: VirtualWaterfallGalleryProps) {
   const isMobile = useIsMobile()
   const router = useRouter()

@@ -37,7 +37,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
     setUploadStage(stage)
     options.onProgress?.(progress, stage)
     options.onStageChange?.(stage)
-  }, [options])
+  }, [options.onProgress, options.onStageChange])
 
   const upload = useCallback(async (file: File, existingImageId?: string): Promise<UploadResult> => {
     setIsUploading(true)
@@ -127,7 +127,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
     } finally {
       setIsUploading(false)
     }
-  }, [options, handleProgress])
+  }, [options.album, options.storage, options.alistMountPath, options.previewCompressQuality, options.previewImageMaxWidthLimitSwitchOn, options.previewImageMaxWidthLimit, options.onSuccess, options.onError, handleProgress])
 
   return {
     isUploading,

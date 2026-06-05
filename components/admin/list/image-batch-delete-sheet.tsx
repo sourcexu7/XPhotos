@@ -1,6 +1,5 @@
 'use client'
 
-import type { ImageType } from '~/types'
 import type { ImageListDataProps, ImageServerHandleProps } from '~/types/props'
 import React, { useState } from 'react'
 import { useButtonStore } from '~/app/providers/button-store-providers'

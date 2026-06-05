@@ -94,7 +94,7 @@ const colorMap = {
   },
 }
 
-export function StatCard({ id, label, value, icon, color, route }: StatCardProps) {
+export function StatCard({ label, value, icon, color, route }: StatCardProps) {
   const router = useRouter()
   const Icon = iconMap[icon]
   const colors = colorMap[color]

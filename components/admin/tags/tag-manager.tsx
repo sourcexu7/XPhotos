@@ -333,7 +333,7 @@ export default function TagManager() {
                                 <Button type="link" size="small" icon={<SwapOutlined />} onClick={(e) => { e.stopPropagation(); openMoveModal(node) }}>移动</Button>
                                 <Popconfirm
                                   title={node.children && node.children.length > 0 ? '删除该一级标签会同时删除其所有二级标签，确定吗？' : '确认删除该一级标签吗？'}
-                                  onConfirm={async (e: React.MouseEvent) => {
+                                  onConfirm={async (e?: React.MouseEvent) => {
                                     e?.stopPropagation?.()
                                     try {
                                       if (node.id) {
@@ -471,7 +471,7 @@ export default function TagManager() {
               if (isSecondaryTag) {
                 return (
                   <div style={{ marginTop: 8 }}>
-                    <Typography.Text type="info" style={{ fontSize: 12 }}>
+                    <Typography.Text style={{ fontSize: 12 }}>
                       提示：这是二级标签，可以升级为一级标签或移动到其他一级标签下
                     </Typography.Text>
                   </div>

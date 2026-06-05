@@ -19,7 +19,6 @@ import {
   Row,
   Col,
   Upload,
-  Divider,
   Empty,
   App,
 } from 'antd'
@@ -39,9 +38,8 @@ import {
   SortAscendingOutlined,
 } from '@ant-design/icons'
 import AdminPageHeader from '~/components/admin/layout/page-header'
-import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import type { UploadFile, UploadProps } from 'antd'
+import type { UploadFile } from 'antd'
 import GuideSortPanel from '~/components/admin/guide-editor/guide-sort-panel'
 
 const { Title, Text } = Typography
@@ -101,7 +99,6 @@ const ComponentEditor = ({
 }) => {
   const [componentType, setComponentType] = useState<string>('text')
   const [componentData, setComponentData] = useState<any>({})
-  const [editingComponent, setEditingComponent] = useState<GuideComponent | null>(null)
   const [loading, setLoading] = useState(false)
   const [imageFiles, setImageFiles] = useState<UploadFile[]>([])
 
@@ -135,28 +132,6 @@ const ComponentEditor = ({
       console.error(error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  // 更新组件
-  const updateComponent = async (id: string, updates: any) => {
-    try {
-      const res = await fetch(`/api/v1/guides/${guideId}/components/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      })
-
-      if (res.ok) {
-        message.success('组件更新成功')
-        setEditingComponent(null)
-        onUpdate()
-      } else {
-        message.error('组件更新失败')
-      }
-    } catch (error) {
-      message.error('组件更新失败')
-      console.error(error)
     }
   }
 
@@ -403,7 +378,6 @@ const ComponentEditor = ({
 
 export default function GuidesAdminPage() {
   const { message } = App.useApp()
-  const tAdminHeader = useTranslations('AdminHeader')
   const router = useRouter()
   const [guides, setGuides] = useState<Guide[]>([])
   const [loading, setLoading] = useState(false)
@@ -793,7 +767,7 @@ export default function GuidesAdminPage() {
                           </Select>
                         </div>
                         <Card title="已关联相册" size="small">
-                          {selectedGuide?.albums?.length > 0 ? (
+                          {selectedGuide?.albums && selectedGuide.albums.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                               {selectedGuide.albums.map((relation) => (
                                 <Tag

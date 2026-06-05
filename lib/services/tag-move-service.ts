@@ -6,8 +6,7 @@
 'use server'
 
 import { db } from '~/lib/db'
-import type { TagMoveOperation, TagMoveValidationResult } from '~/types/tags'
-import type { PrismaClient } from '@prisma/client'
+import type { TagMoveValidationResult } from '~/types/tags'
 
 /**
  * 验证标签移动操作的合法性
@@ -108,7 +107,7 @@ async function checkCircularReference(
     const currentTag = await db.tags.findUnique({
       where: { id: currentId },
       select: { parentId: true }
-    })
+    }) as { parentId: string | null } | null
 
     currentId = currentTag?.parentId ?? null
   }

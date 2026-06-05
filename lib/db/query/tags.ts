@@ -29,27 +29,25 @@ export async function fetchTagsList(): Promise<{ id: string; name: string; categ
  */
 export async function fetchTagsTree(): Promise<Array<{ id?: string; category: string | null; children: { id: string; name: string }[] }>> {
   const tags = await db.tags.findMany({ orderBy: [{ parentId: 'asc' }, { name: 'asc' }] })
-  type TagWithParent = { id: string; name: string; category?: string; parentId?: string | null };
-  const hasParentField = tags.some((t: TagWithParent) => t.parentId !== undefined)
+  const hasParentField = tags.some((t) => t.parentId !== null)
   if (hasParentField) {
     const parentsMap: Record<string, { id: string; category: string | null; children: { id: string; name: string }[] }> = {}
     const orphans: { id: string; name: string }[] = []
-    for (const t of tags as TagWithParent[]) {
+    for (const t of tags) {
       const pid = t.parentId
       if (!pid) {
         // parent node
-        const key = t.category ?? t.name
         parentsMap[t.id] = { id: t.id, category: t.category ?? t.name, children: [] }
       }
     }
-    for (const t of tags as TagWithParent[]) {
+    for (const t of tags) {
       const pid = t.parentId
       if (pid) {
         if (parentsMap[pid]) parentsMap[pid].children.push({ id: t.id, name: t.name })
         else orphans.push({ id: t.id, name: t.name })
       }
     }
-    const result: Array<{ category: string | null; children: { id: string; name: string }[] }> = []
+    const result: Array<{ id?: string; category: string | null; children: { id: string; name: string }[] }> = []
     for (const k of Object.keys(parentsMap)) {
       const v = parentsMap[k]
       result.push({ id: v.id, category: v.category, children: v.children })

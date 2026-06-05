@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
-import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '~/lib/utils'
 
@@ -56,8 +55,6 @@ export function MagicButton({
   children,
   ...props
 }: MagicButtonProps) {
-  const Comp = asChild ? Slot : 'button'
-  
   // 3D 倾斜效果
   const x = useMotionValue(0)
   const y = useMotionValue(0)
@@ -106,14 +103,14 @@ export function MagicButton({
         transformStyle: 'preserve-3d',
         rotateX,
         rotateY,
-      }}
+      } as React.CSSProperties}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onMouseEnter={handleMouseEnter}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-      {...props}
+      {...props as any}
     >
       {glow && (
         <motion.div
@@ -145,4 +142,4 @@ export function MagicButton({
   )
 }
 
-export { MagicButton, magicButtonVariants }
+export { magicButtonVariants }

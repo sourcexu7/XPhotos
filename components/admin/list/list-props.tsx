@@ -53,7 +53,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
   const [layout, setLayout] = useState<'card' | 'list'>('card')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
-  const { data: pageData, error: pageError, isLoading, mutate } = useSWR(
+  const { data: pageData, mutate } = useSWR(
     [
       props.args,
       pageNum,

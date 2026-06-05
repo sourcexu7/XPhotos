@@ -7,7 +7,6 @@
 import React, { useState, useEffect } from 'react'
 import { AdminSidebar } from './sidebar'
 import { AdminHeader } from './header'
-import { cn } from '~/lib/utils'
 
 interface AdminMainLayoutProps {
   children: React.ReactNode

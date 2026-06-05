@@ -14,66 +14,7 @@ import type {
   BatchImageTagSyncResult,
   TagCompletenessCheckResult
 } from '~/types/tags'
-import type { PrismaClient } from '@prisma/client'
-
-/**
- * 获取标签的父标签（一级标签）
- * @param tx 数据库事务客户端
- * @param tagId 标签ID
- * @returns 父标签，如果不存在则返回null
- */
-async function getParentTag(
-  tx: PrismaClient,
-  tagId: string
-): Promise<{ id: string; name: string } | null> {
-  const tag = await tx.tags.findUnique({
-    where: { id: tagId },
-    include: { parent: true }
-  })
-
-  if (!tag || !tag.parentId) {
-    return null
-  }
-
-  return {
-    id: tag.parent.id,
-    name: tag.parent.name
-  }
-}
-
-/**
- * 获取标签的所有父标签（递归向上查找，直到一级标签）
- * @param tx 数据库事务客户端
- * @param tagId 标签ID
- * @returns 父标签数组，从直接父标签到一级标签
- */
-async function getAllParentTags(
-  tx: PrismaClient,
-  tagId: string
-): Promise<Array<{ id: string; name: string }>> {
-  const parents: Array<{ id: string; name: string }> = []
-  let currentTagId: string | null = tagId
-
-  while (currentTagId) {
-    const tag = await tx.tags.findUnique({
-      where: { id: currentTagId },
-      include: { parent: true }
-    })
-
-    if (!tag || !tag.parentId) {
-      break
-    }
-
-    parents.push({
-      id: tag.parent.id,
-      name: tag.parent.name
-    })
-
-    currentTagId = tag.parentId
-  }
-
-  return parents
-}
+import type { Prisma } from '@prisma/client'
 
 /**
  * 同步单个图片的标签关联（确保二级标签对应的一级标签也被关联）
@@ -82,7 +23,7 @@ async function getAllParentTags(
  * @returns 同步结果
  */
 export async function syncImageTagsForImage(
-  tx: PrismaClient,
+  tx: Prisma.TransactionClient,
   imageId: string
 ): Promise<ImageTagSyncResult> {
   // 获取图片当前关联的所有标签

@@ -1,6 +1,5 @@
 'use client'
 
-import { type LucideIcon } from 'lucide-react'
 import { Collapsible } from '~/components/ui/collapsible'
 import {
   SidebarGroup,
@@ -19,7 +18,7 @@ export function NavMain({
   items: {
     title: string
     url: string
-    icon?: LucideIcon
+    icon?: React.ComponentType<{ size?: number }>
     isActive?: boolean
     items?: {
       title: string

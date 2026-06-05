@@ -12,7 +12,7 @@ import {
 
 const { TextArea } = Input
 
-export default function AntdForm<T = unknown>({ onFinish, initialValues }: { onFinish?: (v: T) => void; initialValues?: T }) {
+export default function AntdForm({ onFinish, initialValues }: { onFinish?: (v: any) => void; initialValues?: any }) {
   return (
     <Form layout="vertical" onFinish={onFinish} initialValues={initialValues}>
       <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}> 
@@ -23,7 +23,7 @@ export default function AntdForm<T = unknown>({ onFinish, initialValues }: { onF
       </Form.Item>
       <Form.Item name="category" label="分类">
         {/* Adapter: Form.Item provides `value` and `onChange` — map to Select's `value` and `onValueChange` */}
-        {(fieldProps) => (
+        {(fieldProps: any) => (
           <Select value={fieldProps.value ?? undefined} onValueChange={fieldProps.onChange}>
             <SelectTrigger className="w-full h-9 bg-white text-gray-900 border-gray-200"><SelectValue placeholder="请选择" /></SelectTrigger>
             <SelectContent>

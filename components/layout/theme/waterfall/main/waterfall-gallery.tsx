@@ -3,14 +3,11 @@
 import type { ImageHandleProps } from '~/types/props.ts'
 import { usePublicGalleryImages } from '~/hooks/use-public-gallery-images'
 import { useGalleryPageCache } from '~/hooks/use-gallery-page-cache'
-import { useTranslations } from 'next-intl'
-import { Button } from '~/components/ui/button.tsx'
-import React, { useEffect, useRef, useMemo, useCallback, useState } from 'react'
+import React, { useEffect, useMemo, useCallback, useState, useRef } from 'react'
 import { VirtualWaterfallGallery } from '~/components/ui/virtual-waterfall-gallery'
 import { useGalleryFilters } from '~/hooks/use-gallery-filters'
 import { EmptyState, ErrorState } from '~/components/ui/empty-state'
 import { ImageIcon } from 'lucide-react'
-import type { ImageType } from '~/types'
 
 export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
   const cameras = useMemo(() => props.filters?.cameras ?? [], [props.filters?.cameras])
@@ -62,8 +59,6 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
     setSize,
     mutate,
   })
-
-  const t = useTranslations()
 
   // hasMore：优先用后端分页信息判断，防止无限滚动死循环
   const hasMore = useMemo(() => {

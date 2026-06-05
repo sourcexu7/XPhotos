@@ -4,6 +4,7 @@ import { fetchConfigsByKeys } from '~/lib/db/query/configs'
 import type { Config } from '~/types'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
+import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { updateAListConfig, updateCustomInfo, updateR2Config, updateS3Config, updateCOSConfig } from '~/lib/db/operate/configs'
 
 import { fetchTagsList, fetchTagsTree, fetchTagsByCategory } from '~/lib/db/query/tags'
@@ -15,6 +16,36 @@ import { getCOSClient } from '~/lib/cos'
 import { HeadBucketCommand, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 
 const app = new Hono()
+
+const getErrorMessage = (e: unknown): string => {
+  if (e instanceof Error) {
+    return e.message
+  }
+  if (typeof e === 'object' && e !== null && 'message' in e) {
+    return String((e as Record<string, unknown>).message)
+  }
+  return 'unknown'
+}
+
+const getErrorName = (e: unknown): string => {
+  if (e instanceof Error) {
+    return e.name
+  }
+  if (typeof e === 'object' && e !== null && 'name' in e) {
+    return String((e as Record<string, unknown>).name)
+  }
+  return 'unknown'
+}
+
+const getErrorStatus = (e: unknown): ContentfulStatusCode => {
+  if (typeof e === 'object' && e !== null && 'status' in e) {
+    const status = (e as Record<string, unknown>).status
+    if (typeof status === 'number' && status >= 100 && status < 600) {
+      return status as ContentfulStatusCode
+    }
+  }
+  return 500
+}
 
 // tags 相关接口
 app.get('/tags/get', async (c) => {
@@ -245,7 +276,7 @@ app.get('/validate-s3', async (c) => {
       await client.send(new HeadBucketCommand({ Bucket: bucket }))
       checks.headBucket = 'ok'
     } catch (e: unknown) {
-      checks.headBucket = `error: ${e?.name || e?.message || 'unknown'}`
+      checks.headBucket = `error: ${getErrorName(e) || getErrorMessage(e) || 'unknown'}`
     }
 
     // 2) PutObject 一个小测试文件
@@ -255,7 +286,7 @@ app.get('/validate-s3', async (c) => {
       await client.send(new PutObjectCommand({ Bucket: bucket, Key: testKey, Body: 'picimpact-validation', ContentType: 'text/plain' }))
       checks.putObject = 'ok'
     } catch (e: unknown) {
-      checks.putObject = `error: ${e?.name || e?.message || 'unknown'}`
+      checks.putObject = `error: ${getErrorName(e) || getErrorMessage(e) || 'unknown'}`
     }
 
     // 3) GetObject 读取刚写入的内容
@@ -263,7 +294,7 @@ app.get('/validate-s3', async (c) => {
       await client.send(new GetObjectCommand({ Bucket: bucket, Key: testKey }))
       checks.getObject = 'ok'
     } catch (e: unknown) {
-      checks.getObject = `error: ${e?.name || e?.message || 'unknown'}`
+      checks.getObject = `error: ${getErrorName(e) || getErrorMessage(e) || 'unknown'}`
     }
 
     // 4) DeleteObject 删除测试文件
@@ -271,13 +302,13 @@ app.get('/validate-s3', async (c) => {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: testKey }))
       checks.deleteObject = 'ok'
     } catch (e: unknown) {
-      checks.deleteObject = `error: ${e?.name || e?.message || 'unknown'}`
+      checks.deleteObject = `error: ${getErrorName(e) || getErrorMessage(e) || 'unknown'}`
     }
 
     return c.json({ code: 200, data: { bucket, endpoint, testKey, checks } })
   } catch (e: unknown) {
-    const msg = e?.message || 'S3 配置验证失败'
-    throw new HTTPException(e?.status || 500, { message: msg, cause: e })
+    const msg = getErrorMessage(e) || 'S3 配置验证失败'
+    throw new HTTPException(getErrorStatus(e), { message: msg, cause: e })
   }
 })
 
@@ -324,7 +355,7 @@ app.get('/validate-cos', async (c) => {
       await client.send(new HeadBucketCommand({ Bucket: bucket }))
       checks.headBucket = 'ok'
     } catch (e: unknown) {
-      checks.headBucket = `error: ${e?.name || e?.message || 'unknown'}`
+      checks.headBucket = `error: ${getErrorName(e) || getErrorMessage(e) || 'unknown'}`
     }
 
     // 2) PutObject 一个小测试文件
@@ -334,7 +365,7 @@ app.get('/validate-cos', async (c) => {
       await client.send(new PutObjectCommand({ Bucket: bucket, Key: testKey, Body: 'picimpact-validation', ContentType: 'text/plain' }))
       checks.putObject = 'ok'
     } catch (e: unknown) {
-      checks.putObject = `error: ${e?.name || e?.message || 'unknown'}`
+      checks.putObject = `error: ${getErrorName(e) || getErrorMessage(e) || 'unknown'}`
     }
 
     // 3) GetObject 读取刚写入的内容
@@ -342,7 +373,7 @@ app.get('/validate-cos', async (c) => {
       await client.send(new GetObjectCommand({ Bucket: bucket, Key: testKey }))
       checks.getObject = 'ok'
     } catch (e: unknown) {
-      checks.getObject = `error: ${e?.name || e?.message || 'unknown'}`
+      checks.getObject = `error: ${getErrorName(e) || getErrorMessage(e) || 'unknown'}`
     }
 
     // 4) DeleteObject 删除测试文件
@@ -350,13 +381,13 @@ app.get('/validate-cos', async (c) => {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: testKey }))
       checks.deleteObject = 'ok'
     } catch (e: unknown) {
-      checks.deleteObject = `error: ${e?.name || e?.message || 'unknown'}`
+      checks.deleteObject = `error: ${getErrorName(e) || getErrorMessage(e) || 'unknown'}`
     }
 
     return c.json({ code: 200, data: { bucket, endpoint, testKey, checks } })
   } catch (e: unknown) {
-    const msg = e?.message || 'COS 配置验证失败'
-    throw new HTTPException(e?.status || 500, { message: msg, cause: e })
+    const msg = getErrorMessage(e) || 'COS 配置验证失败'
+    throw new HTTPException(getErrorStatus(e), { message: msg, cause: e })
   }
 })
 

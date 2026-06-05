@@ -10,7 +10,6 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Settings, LogOut, Menu, Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { cn } from '~/lib/utils'
 import { clearAllAuthData } from '~/lib/utils/auth-utils'
 
 interface AdminHeaderProps {
@@ -21,7 +20,7 @@ interface AdminHeaderProps {
 export function AdminHeader({ onMenuClick, showMenuButton = false }: AdminHeaderProps) {
   const t = useTranslations()
   const router = useRouter()
-  const { theme, setTheme, resolvedTheme } = useTheme()
+  const { setTheme, resolvedTheme } = useTheme()
   const [showUserMenu, setShowUserMenu] = useState(false)
   
   const handleLogout = async () => {

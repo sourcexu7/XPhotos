@@ -7,7 +7,6 @@ import type { Config } from '~/types'
 import ThemeGalleryClient from '~/components/layout/theme-gallery-client'
 import CoversBackButton from '~/components/layout/covers-back-button'
 import AlbumNav from '~/components/layout/album-nav'
-import Link from 'next/link'
 
 export default async function Page({
   params,

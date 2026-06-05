@@ -6,10 +6,9 @@ import { ArrowUp, ArrowDown, Pin, ArrowDownToLine, RotateCcw, Check, Move, Loade
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Badge } from '~/components/ui/badge'
-import { Skeleton } from '~/components/ui/skeleton'
 import { useTranslations } from 'next-intl'
 import { FixedSizeList as List } from 'react-window'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useRouter, useParams } from 'next/navigation'
 
 interface AlbumSortImage {
@@ -160,7 +159,7 @@ export default function AlbumSortPage() {
   // 确保albumValue不为空
   const albumValue = params.albumValue || ''
   const t = useTranslations()
-  const listRef = useRef<List>(null)
+  const listRef = useRef<typeof List>(null)
   const [images, setImages] = useState<AlbumSortImage[]>([])
   const [originalImages, setOriginalImages] = useState<AlbumSortImage[]>([])
   const [loading, setLoading] = useState(true)
@@ -168,7 +167,7 @@ export default function AlbumSortPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [hasChanges, setHasChanges] = useState(false)
   const [albumName, setAlbumName] = useState('')
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
   const [sortingIndex, setSortingIndex] = useState<number | null>(null)
 
   const fetchImages = useCallback(async () => {

@@ -33,9 +33,9 @@ export default function AlistTabs() {
     {
       title: 'Value',
       key: 'value',
-      render: (_: unknown, record: { renderValue: () => unknown }) => record.renderValue(),
+      render: (_: unknown, record: { renderValue: () => unknown }) => record.renderValue() as React.ReactNode,
     },
-  ]
+  ] as any[]
 
   const tableData = data ? TabsTableCell({ data }) : []
 

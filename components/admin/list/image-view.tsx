@@ -6,16 +6,13 @@ import type { ImageType } from '~/types'
 import type { ImageDataProps } from '~/types/props'
 import React from 'react'
 import ExifView from '~/components/admin/album/exif-view.tsx'
-import { Tooltip, Switch } from 'antd'
-import { SquarePenIcon } from '~/components/icons/square-pen'
+import { Switch } from 'antd'
 import LivePhoto from '~/components/album/live-photo'
 import { MotionImage } from '~/components/album/motion-image'
 import { Badge } from '~/components/ui/badge'
-import { useTranslations } from 'next-intl'
 import { useBlurImageDataUrl } from '~/hooks/use-blurhash'
 
 export default function ImageView() {
-  const t = useTranslations()
   const { imageView, imageViewData, setImageView, setImageViewData } = useButtonStore(
     (state) => state,
   )

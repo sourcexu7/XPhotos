@@ -21,6 +21,7 @@ const SimpleGallery = React.memo(function SimpleGallery(props: Readonly<ImageHan
   const sortByShootTime = props.sortByShootTime
   
   const { data: pageTotal } = useSwrPageTotalHook(props)
+  const pageTotalNumber: number = typeof pageTotal === 'number' ? pageTotal : 0
   
   // 优化：使用稳定的筛选键生成函数，避免 JSON.stringify 开销
   const filterKey = useMemo(
@@ -64,7 +65,7 @@ const SimpleGallery = React.memo(function SimpleGallery(props: Readonly<ImageHan
     tags,
     tagsOperator,
     sortByShootTime,
-    data,
+    data: data as ImageType[][] | undefined,
     isValidating,
     setSize,
     mutate,
@@ -77,6 +78,7 @@ const SimpleGallery = React.memo(function SimpleGallery(props: Readonly<ImageHan
   }), [props.configHandle])
   
   const { data: configData } = useSwrHydrated(configProps)
+  const configDataTyped = configData as { config_key: string; config_value: string }[] | undefined
   
   const t = useTranslations()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -97,7 +99,7 @@ const SimpleGallery = React.memo(function SimpleGallery(props: Readonly<ImageHan
 
   // 优化：使用 useCallback 缓存滚动处理函数，避免每次渲染都创建新函数
   const handleScroll = useCallback(() => {
-    if (!containerRef.current || isValidating || size >= pageTotal) return
+    if (!containerRef.current || isValidating || size >= pageTotalNumber) return
 
     const scrollTop = window.scrollY
     const windowHeight = window.innerHeight
@@ -105,7 +107,7 @@ const SimpleGallery = React.memo(function SimpleGallery(props: Readonly<ImageHan
 
     // 距离底部 100px 内触发加载
     if (scrollTop + windowHeight >= documentHeight - 100) {
-      setSize(size + 1)
+      setSize((size as number) + 1)
     }
   }, [isValidating, pageTotal, setSize, size])
 
@@ -158,7 +160,7 @@ const SimpleGallery = React.memo(function SimpleGallery(props: Readonly<ImageHan
       {!isFiltering && !isInitialLoading && (
         <>
           {renderedImages?.map((item: ImageType) => (
-            <GalleryImage key={item.id} photo={item} configData={configData} />
+            <GalleryImage key={item.id} photo={item} configData={configDataTyped || []} />
           ))}
 
           {/* 错误提示 */}
@@ -168,7 +170,7 @@ const SimpleGallery = React.memo(function SimpleGallery(props: Readonly<ImageHan
               <Button
                 variant="outline"
                 size="sm"
-                onClick={mutate}
+                onClick={() => mutate()}
                 className="text-xs"
               >
                 重试
