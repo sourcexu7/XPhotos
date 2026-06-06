@@ -408,7 +408,6 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
       [options, selected],
     )
 
-    /** Avoid Creatable Selector freezing or lagging when paste a long string. */
     const commandFilter = React.useCallback(() => {
       if (commandProps?.filter) {
         return commandProps.filter
@@ -416,6 +415,9 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
 
       if (creatable) {
         return (value: string, search: string) => {
+          if (!search) return 1
+          // 完全匹配得分更高，确保 CreatableItem 始终排在首位
+          if (value.toLowerCase() === search.toLowerCase()) return 2
           return value.toLowerCase().includes(search.toLowerCase()) ? 1 : -1
         }
       }

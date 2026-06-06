@@ -17,6 +17,10 @@ export default function DarkThemeEnforcer({ children }: DarkThemeEnforcerProps) 
     if (pathname === '/' && resolvedTheme && resolvedTheme !== 'dark') {
       setTheme('dark')
     }
+    // 其他页面强制切换为浅色主题
+    if (pathname !== '/' && resolvedTheme && resolvedTheme !== 'light') {
+      setTheme('light')
+    }
   }, [pathname, resolvedTheme, setTheme])
 
   return children

@@ -532,6 +532,7 @@ function renderContent(content: Content) {
 }
 
 // ==================== Itinerary with Timeline ====================
+
 function renderItinerary(data: any) {
   if (!data) return <EmptyState message="暂无行程安排" icon="🗓️" />
 
@@ -571,14 +572,15 @@ function renderItinerary(data: any) {
   // 统一设计规范组件
   // ==========================================
 
-  // Day Badge Component - 日期徽章
+  // Day Badge — 圆润胶囊：与页面 indigo 系风格统一
   const DayBadge = ({ dayIndex }: { dayIndex: number }) => (
-    <div className="relative flex-shrink-0">
-      <div className="absolute inset-0 bg-indigo-100/50 dark:bg-indigo-900/30 rounded-2xl blur-md" />
-      <div className="relative flex flex-col items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/40 dark:to-indigo-800/30 text-indigo-600 dark:text-indigo-300 shadow-sm border border-indigo-200/50 dark:border-indigo-700/30">
-        <span className="text-[10px] sm:text-xs font-medium text-indigo-400 dark:text-indigo-400 uppercase tracking-wider">Day</span>
-        <span className="text-lg sm:text-xl font-bold leading-none">{dayIndex + 1}</span>
-      </div>
+    <div className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-200/70 dark:border-indigo-700/50 shadow-sm">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-indigo-400 dark:text-indigo-400 leading-none">
+        Day
+      </span>
+      <span className="text-lg font-semibold tabular-nums text-indigo-600 dark:text-indigo-300 leading-none">
+        {dayIndex + 1}
+      </span>
     </div>
   )
 
@@ -618,14 +620,14 @@ function renderItinerary(data: any) {
     </div>
   )
 
-  // Timeline Dot - 时间轴节点
-  const TimelineDot = () => (
-    <div className="absolute -left-[25px] sm:-left-[29px] top-3 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-white dark:bg-slate-800 border-2 border-indigo-400 shadow-sm ring-2 ring-indigo-100 dark:ring-indigo-900/30" />
+  // Timeline Dot — 中性小圆点
+  const TimelineDot = ({ dayIndex: _ }: { dayIndex: number }) => (
+    <div className="absolute -left-[25px] sm:-left-[29px] top-3.5 w-2 h-2 rounded-full bg-foreground/25 dark:bg-white/25 ring-2 ring-background dark:ring-slate-900" />
   )
 
-  // Timeline Line - 时间轴线
-  const TimelineLine = () => (
-    <div className="absolute left-0 top-0 bottom-0 w-px bg-slate-200 dark:bg-slate-700" />
+  // Timeline Line — 细虚线
+  const TimelineLine = ({ dayIndex: _ }: { dayIndex: number }) => (
+    <div className="absolute left-0 top-0 bottom-0 w-px bg-foreground/10 dark:bg-white/10" />
   )
 
   // Tip Box - 提示框
@@ -642,23 +644,22 @@ function renderItinerary(data: any) {
     )
   }
 
-  // Day Header Component - 日期标题
+  // Day Header — 胶囊徽章 + 标题/日期 + 延伸线
   const DayHeader = ({ dayIndex, title, date }: { dayIndex: number; title?: string; date?: string }) => (
-    <div className="flex items-start gap-4 mb-5 sm:mb-6">
+    <div className="flex items-center gap-3 mb-6 sm:mb-8">
       <DayBadge dayIndex={dayIndex} />
-      <div className="flex-1 min-w-0 pt-1">
-        <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
+      <div className="min-w-0">
+        <h3 className="text-base sm:text-lg font-semibold tracking-tight text-foreground dark:text-white leading-tight truncate">
           {title || `第 ${dayIndex + 1} 天`}
         </h3>
         {date && (
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
-            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-            </svg>
-            <span className="truncate">{date}</span>
+          <p className="mt-0.5 text-[11px] text-indigo-400 dark:text-indigo-500 tabular-nums tracking-wider">
+            {date}
           </p>
         )}
       </div>
+      {/* 延伸到右侧的 indigo 细线 */}
+      <div className="hidden sm:block flex-1 h-px bg-indigo-100 dark:bg-indigo-900/50" />
     </div>
   )
 
@@ -704,11 +705,11 @@ function renderItinerary(data: any) {
           <div key={dayIndex}>
             <DayHeader dayIndex={dayIndex} title={day.title} date={day.date} />
             <div className="relative pl-7 sm:pl-8 ml-7 sm:ml-8">
-              <TimelineLine />
+              <TimelineLine dayIndex={dayIndex} />
               <div className="space-y-4 sm:space-y-5">
                 {day.activities.map((activity: any, idx: number) => (
                   <div key={idx} className="relative">
-                    <TimelineDot />
+                    <TimelineDot dayIndex={dayIndex} />
                     <ContentCard>
                       <ActivityTime time={activity.time} />
                       <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{activity.content}</p>
@@ -750,11 +751,11 @@ function renderItinerary(data: any) {
             <div key={dayKey}>
               <DayHeader dayIndex={dayIndex} title={dayTitle} date={dayDate} />
               <div className="relative pl-7 sm:pl-8 ml-7 sm:ml-8">
-                <TimelineLine />
+                <TimelineLine dayIndex={dayIndex} />
                 <div className="space-y-4 sm:space-y-5">
                   {dayItems.map((item: any) => (
                     <div key={item.id} className="relative">
-                      <TimelineDot />
+                      <TimelineDot dayIndex={dayIndex} />
                       <ContentCard>
                         {item.location && <LocationInfo location={item.location} />}
                         {item.description && (

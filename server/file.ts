@@ -504,4 +504,28 @@ app.post('/delete', async (c) => {
   }
 })
 
+// 服务端代理验证 URL 可访问性（绕开浏览器 CORS 限制）
+app.post('/verify-url', async (c) => {
+  const { url } = await c.req.json()
+  if (!url || typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+    return c.json({ code: 400, data: { accessible: false } })
+  }
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 10000)
+    const res = await fetch(url, { method: 'HEAD', signal: controller.signal })
+    clearTimeout(timer)
+    if (res.ok) return c.json({ code: 200, data: { accessible: true } })
+
+    // HEAD 失败时用 GET 再探一次（部分 CDN 不支持 HEAD）
+    const controller2 = new AbortController()
+    const timer2 = setTimeout(() => controller2.abort(), 10000)
+    const res2 = await fetch(url, { method: 'GET', signal: controller2.signal })
+    clearTimeout(timer2)
+    return c.json({ code: 200, data: { accessible: res2.ok } })
+  } catch {
+    return c.json({ code: 200, data: { accessible: false } })
+  }
+})
+
 export default app

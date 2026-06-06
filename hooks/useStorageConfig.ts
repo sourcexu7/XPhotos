@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import useSWR from 'swr'
+import { fetcher } from '~/lib/utils/fetcher'
 import { getAlistStorage } from '~/lib/utils/uploadUtils'
 
 interface AlistStorage {
@@ -14,13 +16,33 @@ interface StorageConfig {
   isStorageSelect: boolean
 }
 
+const VALID_STORAGES = new Set(['s3', 'cos', 'r2', 'alist'])
+
 export function useStorageConfig() {
+  const { data: configs } = useSWR<{ config_key: string, config_value: string }[]>(
+    '/api/v1/settings/get-custom-info',
+    fetcher,
+  )
+
+  const defaultStorage =
+    configs?.find((c) => c.config_key === 'default_storage')?.config_value?.trim().toLowerCase() || ''
+  const initialStorage = VALID_STORAGES.has(defaultStorage) ? defaultStorage : 's3'
+
   const [config, setConfigState] = useState<StorageConfig>({
-    storage: 's3',
+    storage: '',
     alistMountPath: '',
     alistStorage: [],
     isStorageSelect: false,
   })
+
+  // 用接口返回的 default_storage 作为默认值（只在接口第一次返回后写入一次，避免覆盖用户手动选择）
+  useEffect(() => {
+    if (!initialStorage) return
+    setConfigState((prev) => {
+      if (prev.storage) return prev
+      return { ...prev, storage: initialStorage }
+    })
+  }, [initialStorage])
 
   const loadAlistStorage = useCallback(async () => {
     if (config.alistStorage.length > 0) {

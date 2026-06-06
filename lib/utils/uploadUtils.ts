@@ -23,43 +23,23 @@ export interface UploadPreviewImageOptions {
 }
 
 /**
- * 校验 URL 是否可访问
+ * 校验 URL 是否可访问（走服务端代理，绕开浏览器 CORS 限制）
  * @param targetUrl 目标 URL
  * @returns 是否可访问
  */
 export async function verifyUrlAccessible(targetUrl: string): Promise<boolean> {
   if (!targetUrl || typeof targetUrl !== 'string') return false
-
-  // dataURL 或非 http(s) 地址不做远端校验
   if (!/^https?:\/\//i.test(targetUrl)) return true
 
   try {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 8000)
-
-    const res = await fetch(targetUrl, {
-      method: 'HEAD',
-      mode: 'cors',
-      signal: controller.signal,
+    const res = await fetch('/api/v1/file/verify-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: targetUrl }),
     })
-
-    clearTimeout(timer)
-
-    if (!res.ok) {
-      const getController = new AbortController()
-      const getTimer = setTimeout(() => getController.abort(), 8000)
-
-      const probe = await fetch(targetUrl, {
-        method: 'GET',
-        mode: 'cors',
-        signal: getController.signal,
-      })
-
-      clearTimeout(getTimer)
-      return probe.ok
-    }
-
-    return true
+    if (!res.ok) return false
+    const json = await res.json()
+    return json?.data?.accessible === true
   } catch {
     return false
   }

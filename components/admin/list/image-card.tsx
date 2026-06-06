@@ -73,7 +73,8 @@ export default function ImageCard({
   onSetCover,
 }: ImageCardProps) {
   const t = useTranslations()
-  const [localAlbumId, setLocalAlbumId] = useState(image.album_value || '')
+  const [localAlbumId, setLocalAlbumId] = useState('')
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   return (
     <Card className="group relative flex h-auto flex-col overflow-hidden border-2 border-transparent bg-card rounded-2xl transition-all duration-300 ease-out hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-0.5">
@@ -190,7 +191,7 @@ export default function ImageCard({
         </ShadcnTooltip>
 
         {/* 绑定相册 */}
-        <AlertDialog>
+        <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <ShadcnTooltip>
             <TooltipTrigger asChild>
               <AlertDialogTrigger asChild>
@@ -198,7 +199,11 @@ export default function ImageCard({
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8 rounded-lg text-muted-foreground transition-all duration-200 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
-                  onClick={() => setLocalAlbumId(image.album_value || '')}
+                  onClick={() => {
+                    const currentAlbum = albums?.find(a => a.album_value === image.album_value)
+                    setLocalAlbumId(currentAlbum?.id || '')
+                    setDialogOpen(true)
+                  }}
                   aria-label={t('List.bindAlbum')}
                 >
                   <Replace size={16} />
@@ -209,42 +214,57 @@ export default function ImageCard({
               {t('List.bindAlbum')}
             </TooltipContent>
           </ShadcnTooltip>
-          <AlertDialogContent className="sm:max-w-[420px] border-2 border-border/50 rounded-2xl shadow-2xl bg-card p-0 overflow-hidden">
-            <div className="px-6 pt-6 pb-4">
-              <AlertDialogHeader className="text-center space-y-1">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 dark:bg-blue-900/30">
-                  <Replace size={24} className="text-blue-600 dark:text-blue-400" />
-                </div>
-                <AlertDialogTitle className="text-lg font-bold text-foreground">
+          <AlertDialogContent className="sm:max-w-[400px] rounded-2xl border border-border/60 shadow-2xl bg-card p-0 overflow-hidden gap-0">
+            {/* 顶部图标 + 标题 */}
+            <div className="flex flex-col items-center pt-8 pb-5 px-6 gap-3">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-900/30 ring-4 ring-blue-100 dark:ring-blue-900/20">
+                <Replace size={26} className="text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="text-center space-y-1">
+                <AlertDialogTitle className="text-base font-semibold text-foreground">
                   {t('List.bindAlbum')}
                 </AlertDialogTitle>
-              </AlertDialogHeader>
+                {image.album_name && (
+                  <p className="text-xs text-muted-foreground">
+                    当前：<span className="font-medium text-foreground">{image.album_name}</span>
+                  </p>
+                )}
+              </div>
             </div>
-            
-            <div className="px-6 pb-4">
+
+            {/* 选择器 */}
+            <div className="px-6 pb-5" id={`album-select-container-${image.id}`}>
               <Select
-                defaultValue={localAlbumId || undefined}
-                onChange={setLocalAlbumId}
+                value={localAlbumId || undefined}
+                onChange={(val) => setLocalAlbumId(val)}
                 placeholder={t('List.selectAlbum')}
                 className="w-full"
+                getPopupContainer={() => document.getElementById(`album-select-container-${image.id}`) || document.body}
                 options={albums?.map((a: AlbumType) => ({
                   label: a.name,
-                  value: a.id
+                  value: a.id,
                 }))}
               />
             </div>
 
-            <AlertDialogFooter className="px-6 pb-6 pt-2 gap-2">
-              <AlertDialogCancel className="h-10 flex-1 rounded-xl border-border bg-muted/50 font-medium text-foreground hover:bg-muted transition-colors">
+            {/* 底部按钮 */}
+            <AlertDialogFooter className="px-6 pb-6 gap-2 flex-row">
+              <AlertDialogCancel
+                className="h-9 flex-1 rounded-xl border-border/60 bg-muted/60 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                onClick={() => setDialogOpen(false)}
+              >
                 {t('Button.canal')}
               </AlertDialogCancel>
-              <AlertDialogAction 
-                className="h-10 flex-1 rounded-xl bg-primary font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-                disabled={updateImageAlbumLoading}
-                onClick={() => onBindAlbum(image, localAlbumId)}
+              <AlertDialogAction
+                className="h-9 flex-1 rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+                disabled={updateImageAlbumLoading || !localAlbumId}
+                onClick={async () => {
+                  await onBindAlbum(image, localAlbumId)
+                  setDialogOpen(false)
+                }}
               >
                 {updateImageAlbumLoading && (
-                  <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                  <ReloadIcon className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 )}
                 {t('Button.update')}
               </AlertDialogAction>

@@ -5,17 +5,16 @@ import { toast } from 'sonner'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
 import type { ExifType, AlbumType } from '~/types'
-import { App as AntApp, Upload as AntUpload, Button as AntButton, Input as AntInput, Form as AntForm, Modal as AntModal, Tag as AntTag, Card as AntCard, Progress as AntProgress, InputNumber as AntInputNumber, DatePicker as AntDatePicker, Select } from 'antd'
+import { Upload as AntUpload, Button as AntButton, Input as AntInput, Form as AntForm, Modal as AntModal, Tag as AntTag, Card as AntCard, Progress as AntProgress, InputNumber as AntInputNumber, DatePicker as AntDatePicker, Select } from 'antd'
 import MultipleSelector from '~/components/ui/origin/multiselect'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import zhCN from 'antd/es/date-picker/locale/zh_CN'
-import { CloseOutlined } from '@ant-design/icons'
+import { CloseOutlined, CheckCircleOutlined, ExclamationCircleOutlined, LoadingOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { encodeBrowserThumbHash } from '~/lib/utils/blurhash-client'
 import { exifReader } from '~/lib/utils/file'
 
-// 导入我们新创建的自定义 Hooks 和工具函数
 import { useStorageConfig } from '~/hooks/useStorageConfig'
 import { useTagManagement } from '~/hooks/useTagManagement'
 import { useExifData } from '~/hooks/useExifData'
@@ -26,6 +25,8 @@ import { UploadIcon } from '~/components/icons/upload'
 
 const { Dragger } = AntUpload
 
+type PostUploadStatus = 'none' | 'verifying' | 'done' | 'error'
+
 interface TagNode {
   category: string
   children: { name: string }[]
@@ -33,17 +34,14 @@ interface TagNode {
 
 export default function SimpleFileUpload() {
   dayjs.locale('zh-cn')
-  const { modal } = AntApp.useApp()
   const t = useTranslations()
   const referenceInputRef = useRef<HTMLInputElement>(null)
 
-  // 使用自定义 Hooks
   const storageConfig = useStorageConfig()
   const tagManagement = useTagManagement()
   const exifDataHook = useExifData()
   const exifPresets = useExifPresets()
 
-  // 相册和配置数据
   const { data: albums } = useSWR('/api/v1/albums/get', fetcher)
   const { data: configs } = useSWR<{ config_key: string, config_value: string }[]>('/api/v1/settings/get-custom-info', fetcher)
 
@@ -65,16 +63,20 @@ export default function SimpleFileUpload() {
   const [lon, setLon] = useState('')
   const [detail, setDetail] = useState('')
   const [autoUploadedFor, setAutoUploadedFor] = useState<string | null>(null)
-  const [showMissingModal, setShowMissingModal] = useState(false)
   const [presetTags, setPresetTags] = useState<string[]>([])
   const [tagTree, setTagTree] = useState<TagNode[]>([])
   const [files, setFiles] = useState<File[]>([])
 
-  // 初始化上传 Hook
+  // 上传后状态
+  const [postUploadStatus, setPostUploadStatus] = useState<PostUploadStatus>('none')
+  const [originVerified, setOriginVerified] = useState<boolean | null>(null)
+  const [previewVerified, setPreviewVerified] = useState<boolean | null>(null)
+  const [isDuplicate, setIsDuplicate] = useState(false)
+
   const previewCompressQuality = parseFloat(configs?.find(config => config.config_key === 'preview_quality')?.config_value || '0.2')
   const previewImageMaxWidthLimitSwitchOn = configs?.find(config => config.config_key === 'preview_max_width_limit_switch')?.config_value === '1'
   const previewImageMaxWidthLimit = parseInt(configs?.find(config => config.config_key === 'preview_max_width_limit')?.config_value || '0')
-  
+
   const fileUploadHook = useFileUpload({
     album,
     storage: storageConfig.storage,
@@ -82,8 +84,7 @@ export default function SimpleFileUpload() {
     previewCompressQuality,
     previewImageMaxWidthLimitSwitchOn,
     previewImageMaxWidthLimit,
-    onProgress: () => {
-    },
+    onProgress: () => {},
     onSuccess: (result) => {
       setUrl(result.url)
       setPreviewUrl(result.previewUrl)
@@ -94,11 +95,10 @@ export default function SimpleFileUpload() {
     },
     onError: (error) => {
       console.error(error)
-      toast.error(t('Upload.uploadError'))
-    }
+      setPostUploadStatus('error')
+    },
   })
 
-  // 拉取后端预设标签 + 树形结构
   useEffect(() => {
     fetcher('/api/v1/settings/tags/get')
       .then((res: { data: { name: string }[] }) => {
@@ -113,7 +113,6 @@ export default function SimpleFileUpload() {
       .catch(() => {})
   }, [])
 
-  // 应用参考 EXIF
   const handleApplyReferenceExif = useCallback(async (file: File) => {
     try {
       const { tags, exifObj } = await exifReader(file)
@@ -127,16 +126,58 @@ export default function SimpleFileUpload() {
     }
   }, [])
 
-  // 处理提交
-  const handleSubmit = useCallback(async () => {
+  // 提交成功后重置上传相关状态，保留 album 和存储配置供连续上传使用
+  const resetAfterSubmit = useCallback(() => {
+    setExif({} as ExifType)
+    setUrl('')
+    setHash('')
+    setTitle('')
+    setImageId('')
+    setImageName('')
+    setDetail('')
+    setWidth(0)
+    setHeight(0)
+    setLat('')
+    setLon('')
+    setPreviewUrl('')
+    setVideoUrl('')
+    setOriginalKey('')
+    setPreviewKey('')
+    setPostUploadStatus('none')
+    setOriginVerified(null)
+    setPreviewVerified(null)
+    setIsDuplicate(false)
+    tagManagement.clearTags()
+    setFiles([])
+    setAutoUploadedFor(null)
+  }, [tagManagement.clearTags])
+
+  // 上传 + 验证 + 入库的统一流程
+  const handleUploadThenSubmit = useCallback(async (forceSubmit = false) => {
+    if (fileUploadHook.isUploading || isSubmitting) return
     setIsSubmitting(true)
     try {
-      if (!url || url === '') {
-        setIsSubmitting(false)
-        setShowMissingModal(true)
+      // ① 上传（如果还没上传）
+      let finalUrl = url
+      let finalPreviewUrl = previewUrl
+      let finalImageId = imageId
+      let finalImageName = imageName
+
+      if (files.length > 0 && !finalUrl) {
+        const result = await fileUploadHook.upload(files[0], imageId || undefined)
+        finalUrl = result.url
+        finalPreviewUrl = result.previewUrl
+        finalImageId = result.imageId
+        finalImageName = result.fileName
+      }
+
+      // ② 基本校验
+      if (!finalUrl) {
+        toast.error(t('Upload.uploadError'))
+        setPostUploadStatus('error')
         return
       }
-      if (album === '') {
+      if (!album) {
         toast.warning(t('Tips.selectAlbumFirst'))
         return
       }
@@ -149,15 +190,34 @@ export default function SimpleFileUpload() {
         return
       }
 
-      const labels = [...tagManagement.labels]
+      // ③ 验证存储可访问性
+      setPostUploadStatus('verifying')
+      const [originOk, previewOk] = await Promise.all([
+        verifyUrlAccessible(finalUrl),
+        finalPreviewUrl ? verifyUrlAccessible(finalPreviewUrl) : Promise.resolve(true),
+      ])
+      setOriginVerified(originOk)
+      setPreviewVerified(previewOk)
+      setPostUploadStatus('done')
 
-      const data = {
+      // ④ 重复检测（非强制提交时）
+      if (!forceSubmit) {
+        const dup = await checkDuplicate(hash, finalUrl)
+        if (dup) {
+          setIsDuplicate(true)
+          return
+        }
+      }
+
+      // ⑤ 写库
+      const labels = [...tagManagement.labels]
+      const data: Record<string, unknown> = {
         album,
-        url,
-        client_image_id: imageId,
-        image_name: imageName,
+        url: finalUrl,
+        client_image_id: finalImageId,
+        image_name: finalImageName,
         title,
-        preview_url: previewUrl,
+        preview_url: finalPreviewUrl,
         video_url: videoUrl,
         blurhash: hash,
         exif,
@@ -173,52 +233,7 @@ export default function SimpleFileUpload() {
       if (tagManagement.primarySelect && tagManagement.secondarySelect && tagManagement.secondarySelect.length > 0) {
         const tagCategoryMap: Record<string, string> = {}
         tagManagement.secondarySelect.forEach(s => { tagCategoryMap[s] = tagManagement.primarySelect! })
-        ;(data as any).tagCategoryMap = tagCategoryMap
-      }
-
-      // 检查 URL 可访问性
-      if (url) {
-        const originOk = await verifyUrlAccessible(url)
-        let previewUrlOk = true
-        if (previewUrl) {
-          previewUrlOk = await verifyUrlAccessible(previewUrl)
-        }
-
-        if (!originOk || !previewUrlOk) {
-          if (files && files.length > 0) {
-            try {
-              await uploadFileWithRetry(files[0], imageId || undefined)
-            } catch (e) {
-              console.error('Re-upload after failed remote verification error', e)
-              toast.error(t('Tips.cloudRemoteFileAnomalyRetryFailed'))
-              setIsSubmitting(false)
-              return
-            }
-          } else {
-            toast.error(t('Tips.remoteOriginOrPreviewMissing'))
-            setIsSubmitting(false)
-            return
-          }
-        }
-      }
-
-      // 检查重复
-      const isDuplicate = await checkDuplicate(hash, url)
-      if (isDuplicate) {
-        const shouldContinue = await new Promise<boolean>((resolve) => {
-          modal.confirm({
-            title: t('Upload.duplicateImageTitle'),
-            content: t('Upload.duplicateImageContent'),
-            okText: t('Upload.duplicateImageContinue'),
-            cancelText: t('Button.canal'),
-            onOk: () => resolve(true),
-            onCancel: () => resolve(false),
-          })
-        })
-        if (!shouldContinue) {
-          setIsSubmitting(false)
-          return
-        }
+        data.tagCategoryMap = tagCategoryMap
       }
 
       const res = await fetchWithTimeout('/api/v1/images/add', {
@@ -229,34 +244,36 @@ export default function SimpleFileUpload() {
 
       if (res?.code === 200) {
         toast.success(t('Tips.saveSuccess'))
+        resetAfterSubmit()
       } else {
         toast.error(t('Tips.saveFailed'))
       }
     } catch {
-      toast.error(t('Tips.saveFailed'))
+      setPostUploadStatus('error')
+      toast.error(t('Upload.uploadError'))
     } finally {
       setIsSubmitting(false)
     }
-  }, [url, album, height, width, title, previewUrl, videoUrl, hash, exif, lat, lon, detail, imageId, imageName, originalKey, previewKey, tagManagement.labels, tagManagement.primarySelect, tagManagement.secondarySelect, files])
-
-  // 辅助函数
-  const uploadFileWithRetry = async (file: File, existingImageId?: string) => {
-    try {
-      const result = await fileUploadHook.upload(file, existingImageId)
-      return result
-    } catch (e) {
-      console.error(e)
-      throw e
-    }
-  }
+  }, [
+    url, previewUrl, imageId, imageName, album, height, width,
+    title, videoUrl, hash, exif, lat, lon, detail,
+    tagManagement.labels, tagManagement.primarySelect, tagManagement.secondarySelect,
+    files, fileUploadHook, isSubmitting, resetAfterSubmit,
+  ])
 
   const onRemoveFile = useCallback(() => {
-    // 清理文件相关状态
     if (originalKey && storageConfig.storage) {
       fetch('/api/v1/file/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storage: storageConfig.storage, key: originalKey })
+        body: JSON.stringify({ storage: storageConfig.storage, key: originalKey }),
+      }).catch(() => {})
+    }
+    if (previewKey && storageConfig.storage) {
+      fetch('/api/v1/file/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storage: storageConfig.storage, key: previewKey }),
       }).catch(() => {})
     }
     setExif({} as ExifType)
@@ -274,20 +291,36 @@ export default function SimpleFileUpload() {
     setVideoUrl('')
     setOriginalKey('')
     setPreviewKey('')
+    setPostUploadStatus('none')
+    setOriginVerified(null)
+    setPreviewVerified(null)
+    setIsDuplicate(false)
     tagManagement.clearTags()
     setFiles([])
-  }, [originalKey, storageConfig.storage, tagManagement.clearTags])
+  }, [originalKey, previewKey, storageConfig.storage, tagManagement.clearTags])
 
   const onBeforeUpload = useCallback(() => {
+    setUrl('')
     setTitle('')
     setImageId('')
     setImageName('')
     setPreviewUrl('')
     setVideoUrl('')
+    setHash('')
+    setWidth(0)
+    setHeight(0)
+    setLat('')
+    setLon('')
+    setDetail('')
+    setOriginalKey('')
+    setPreviewKey('')
+    setPostUploadStatus('none')
+    setOriginVerified(null)
+    setPreviewVerified(null)
+    setIsDuplicate(false)
     tagManagement.clearTags()
   }, [tagManagement.clearTags])
 
-  // 文件选择处理
   const handleFileSelection = useCallback(async (file: File) => {
     onBeforeUpload()
     try {
@@ -297,39 +330,34 @@ export default function SimpleFileUpload() {
       setLon(exifLon)
       setWidth(imgWidth)
       setHeight(imgHeight)
-      
+
       const blurhash = await encodeBrowserThumbHash(file)
       setHash(blurhash)
-      
+
       const reader = new FileReader()
       reader.onload = (e) => {
         setPreviewUrl(typeof e.target?.result === 'string' ? e.target.result : '')
       }
       reader.readAsDataURL(file)
-      
-      if (album && storageConfig.storage) {
-        await uploadFileWithRetry(file)
-      }
     } catch (error) {
       console.error(error)
       toast.error(t('Upload.uploadError'))
     }
-  }, [album, storageConfig.storage, exifDataHook.loadExifData, onBeforeUpload])
+  }, [exifDataHook.loadExifData, onBeforeUpload])
 
-  // 当文件选择变化时
   React.useEffect(() => {
     if (!files || files.length === 0) return
     const file = files[0]
     if (!file) return
-    
-    if (autoUploadedFor === file.name) return
+    const fileKey = (file as any).__key || file.name
+    if (autoUploadedFor === fileKey) return
 
     let cancelled = false
     ;(async () => {
       try {
         if (!cancelled) {
           await handleFileSelection(file)
-          setAutoUploadedFor(file.name)
+          setAutoUploadedFor(fileKey)
         }
       } catch (e) {
         console.error(e)
@@ -338,6 +366,82 @@ export default function SimpleFileUpload() {
 
     return () => { cancelled = true }
   }, [files, handleFileSelection, autoUploadedFor])
+
+  const isUploading = fileUploadHook.isUploading
+  const isBusy = isUploading || isSubmitting
+
+  const btnText = isUploading
+    ? t('Upload.uploading')
+    : isSubmitting
+      ? '提交中...'
+      : isDuplicate
+        ? '仍然提交'
+        : t('Button.submit')
+
+  // 文件行内联状态
+  const renderFileStatus = () => {
+    if (isUploading) {
+      return (
+        <div className="mt-2">
+          <div className="flex items-center gap-1 text-xs text-text-secondary mb-1">
+            <LoadingOutlined className="text-primary" />
+            <span>{fileUploadHook.uploadStage || '上传中...'}</span>
+          </div>
+          <AntProgress
+            percent={Math.round(fileUploadHook.uploadProgress)}
+            status="active"
+            strokeColor="var(--primary)"
+            size={4}
+            showInfo={false}
+          />
+          <div className="text-xs text-text-secondary mt-0.5">{Math.round(fileUploadHook.uploadProgress)}%</div>
+        </div>
+      )
+    }
+
+    if (postUploadStatus === 'verifying') {
+      return (
+        <div className="mt-2 flex items-center gap-1 text-xs text-text-secondary">
+          <LoadingOutlined />
+          <span>验证存储可访问性...</span>
+        </div>
+      )
+    }
+
+    if (postUploadStatus === 'done') {
+      const allOk = originVerified !== false && previewVerified !== false
+      return (
+        <div className="mt-2 space-y-1">
+          <div className={`flex items-center gap-1 text-xs font-medium ${allOk ? 'text-green-600' : 'text-orange-500'}`}>
+            {allOk
+              ? <><CheckCircleOutlined /><span>已上传并验证可访问</span></>
+              : <><ExclamationCircleOutlined /><span>上传完成，部分 URL 暂时无法访问</span></>
+            }
+          </div>
+          <div className="flex items-center gap-3 text-xs text-text-secondary">
+            <span>原图 {originVerified === false ? <span className="text-red-500">✗</span> : <span className="text-green-600">✓</span>}</span>
+            <span>预览图 {previewVerified === false ? <span className="text-red-500">✗</span> : <span className="text-green-600">✓</span>}</span>
+          </div>
+          {isDuplicate && (
+            <AntTag color="warning" icon={<ExclamationCircleOutlined />} className="mt-1">
+              疑似重复图片，确认提交请再次点击按钮
+            </AntTag>
+          )}
+        </div>
+      )
+    }
+
+    if (postUploadStatus === 'error') {
+      return (
+        <div className="mt-2 flex items-center gap-1 text-xs text-red-500">
+          <CloseCircleOutlined />
+          <span>上传或验证失败，请重试</span>
+        </div>
+      )
+    }
+
+    return null
+  }
 
   return (
     <div className="admin-upload flex flex-col space-y-4 h-full flex-1 font-sans text-sm">
@@ -392,57 +496,27 @@ export default function SimpleFileUpload() {
               className="h-10 px-6 flex items-center justify-center w-full sm:w-auto"
               size="middle"
               type="primary"
-              loading={isSubmitting || fileUploadHook.isUploading}
-              onClick={async () => {
-                if (fileUploadHook.isUploading) return
-                try {
-                  if (files.length > 0 && (!url || url === '')) {
-                    await uploadFileWithRetry(files[0], imageId || undefined)
-                  }
-                  await handleSubmit()
-                } catch (e) {
-                  console.error(e)
-                }
-              }}
-              disabled={(files.length === 0 && (!url || url === '')) || album === '' || storageConfig.storage === '' || (storageConfig.storage === 'alist' && storageConfig.alistMountPath === '') || fileUploadHook.isUploading}
+              loading={isBusy}
+              onClick={() => handleUploadThenSubmit(isDuplicate)}
+              disabled={
+                (files.length === 0 && (!url || url === '')) ||
+                album === '' ||
+                storageConfig.storage === '' ||
+                (storageConfig.storage === 'alist' && storageConfig.alistMountPath === '') ||
+                isBusy
+              }
               style={{
-                backgroundColor: 'var(--primary)',
-                borderColor: 'var(--primary)',
+                backgroundColor: isDuplicate ? 'var(--warning, #faad14)' : 'var(--primary)',
+                borderColor: isDuplicate ? 'var(--warning, #faad14)' : 'var(--primary)',
                 borderRadius: '8px',
                 fontWeight: '500',
               }}
             >
-              {fileUploadHook.isUploading ? t('Upload.uploading') : t('Button.submit')}
+              {btnText}
             </AntButton>
           </div>
         </div>
       </div>
-
-      {/* 未上传文件提示弹窗 */}
-      <AntModal
-        title={t('Upload.fileNotUploadedTitle')}
-        open={showMissingModal}
-        onCancel={() => setShowMissingModal(false)}
-        footer={[
-          <AntButton key="cancel" onClick={() => setShowMissingModal(false)}>{t('Button.canal')}</AntButton>,
-          <AntButton key="upload" type="primary" onClick={async () => {
-            setShowMissingModal(false)
-            if (files.length === 0) return
-            try {
-              setIsSubmitting(true)
-              await uploadFileWithRetry(files[0], imageId || undefined)
-              await handleSubmit()
-            } catch (e) {
-              console.error(e)
-              toast.error(t('Upload.uploadError'))
-            } finally {
-              setIsSubmitting(false)
-            }
-          }}>{t('Upload.uploadAndSubmit')}</AntButton>,
-        ]}
-      >
-        <div>{t('Upload.singleFileNotUploadedBody')}</div>
-      </AntModal>
 
       {/* 主内容区域 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
@@ -488,26 +562,6 @@ export default function SimpleFileUpload() {
                 )}
               </div>
             </Dragger>
-
-            {/* 上传进度 */}
-            {fileUploadHook.uploadProgress > 0 && (
-              <div className="mt-4 pt-4 border-t">
-                {fileUploadHook.uploadStage && (
-                  <div className="text-sm text-text-secondary mb-3 font-medium">{fileUploadHook.uploadStage}</div>
-                )}
-                <AntProgress
-                  percent={Math.round(fileUploadHook.uploadProgress)}
-                  status="active"
-                  strokeColor="var(--primary)"
-                  size={8}
-                  showInfo={false}
-                  className="mb-2"
-                />
-                <div className="text-sm text-text-secondary">
-                  {Math.round(fileUploadHook.uploadProgress)}%
-                </div>
-              </div>
-            )}
 
             {/* EXIF 编辑区域 */}
             <div className="mt-6 pt-4 border-t">
@@ -659,11 +713,11 @@ export default function SimpleFileUpload() {
                   <div>
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.url')}</label>
                     <AntInput disabled value={url} style={{ borderRadius: '8px', borderColor: 'var(--border)', backgroundColor: 'var(--background)' }} />
-                    {!url && <p className="mt-2 text-xs text-error">{t('Upload.originNotUploadedHint')}</p>}
+                    {!url && files.length > 0 && <p className="mt-2 text-xs text-text-secondary">{t('Upload.originNotUploadedHint')}</p>}
                   </div>
                   <div>
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.previewUrl')}</label>
-                    <AntInput disabled value={previewUrl} style={{ borderRadius: '8px', borderColor: 'var(--border)', backgroundColor: 'var(--background)' }} />
+                    <AntInput disabled value={previewUrl.startsWith('data:') ? '（本地预览）' : previewUrl} style={{ borderRadius: '8px', borderColor: 'var(--border)', backgroundColor: 'var(--background)' }} />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -674,7 +728,6 @@ export default function SimpleFileUpload() {
                         onChange={(val) => setWidth(Number(val) || 0)}
                         style={{ width: '100%', borderRadius: '8px', borderColor: 'var(--border)', backgroundColor: 'var(--background)' }}
                       />
-                      {!width && <p className="mt-2 text-xs text-error">{t('Tips.imageWidthRequired')}</p>}
                     </div>
                     <div>
                       <label className="block text-sm text-text-secondary mb-2">{t('Upload.height')}</label>
@@ -684,7 +737,6 @@ export default function SimpleFileUpload() {
                         onChange={(val) => setHeight(Number(val) || 0)}
                         style={{ width: '100%', borderRadius: '8px', borderColor: 'var(--border)', backgroundColor: 'var(--background)' }}
                       />
-                      {!height && <p className="mt-2 text-xs text-error">{t('Tips.imageHeightRequired')}</p>}
                     </div>
                   </div>
                 </div>
@@ -739,7 +791,7 @@ export default function SimpleFileUpload() {
                               fontSize: '12px',
                               backgroundColor: isSelected ? 'var(--primary)' : undefined,
                               color: isSelected ? '#FFFFFF' : undefined,
-                              borderColor: isSelected ? 'var(--primary)' : undefined
+                              borderColor: isSelected ? 'var(--primary)' : undefined,
                             }}
                             onClick={() => tagManagement.togglePresetTag(tag)}
                           >
@@ -790,7 +842,7 @@ export default function SimpleFileUpload() {
         </div>
       </div>
 
-      {/* 文件列表 */}
+      {/* 文件列表（含内联状态） */}
       {files.length > 0 && (
         <div className="w-full">
           <div className="rounded-lg border border-border bg-background-alt">
@@ -799,30 +851,30 @@ export default function SimpleFileUpload() {
             </div>
             <div className="p-4">
               {files.map((file, index) => (
-                <div key={((file as any).__key || file.name || index)} className="flex items-center justify-between p-3 border border-border rounded-lg mb-3 bg-background">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <UploadIcon className="w-5 h-5 text-primary" />
+                <div key={((file as any).__key || file.name || index)} className="p-3 border border-border rounded-lg mb-3 bg-background">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <UploadIcon className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-text-primary">{file.name}</div>
+                        <div className="text-sm text-text-secondary">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-medium text-text-primary">{file.name}</div>
-                      <div className="text-sm text-text-secondary">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
-                    </div>
-                  </div>
-                  <div>
                     <AntButton
                       type="text"
                       danger
                       icon={<CloseOutlined />}
+                      disabled={isBusy}
                       onClick={() => {
                         const k = (file && (file as any).__key) || file.name
-                        if (k) {
-                          onRemoveFile()
-                        }
+                        if (k) onRemoveFile()
                       }}
-                      className="hover:bg-error/10 rounded-full p-2"
+                      className="hover:bg-error/10 rounded-full p-2 flex-shrink-0"
                     />
                   </div>
+                  {renderFileStatus()}
                 </div>
               ))}
             </div>
@@ -847,7 +899,7 @@ export default function SimpleFileUpload() {
           </AntButton>,
           <AntButton key="save" type="primary" onClick={() => exifPresets.savePresets()}>
             {t('Button.save')}
-          </AntButton>
+          </AntButton>,
         ]}
       >
         <div className="space-y-4">

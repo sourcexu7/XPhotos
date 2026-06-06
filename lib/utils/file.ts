@@ -23,7 +23,7 @@ export async function exifReader(file: ArrayBuffer | SharedArrayBuffer | Buffer 
     bits: tags?.['Bits Per Sample']?.description ? parseInt(tags?.['Bits Per Sample']?.description) || null : null,
     data_time: dateTime || null, // 与数据库字段保持一致
     exposure_time: tags?.ExposureTime?.description || null,
-    f_number: tags?.FNumber?.description ? parseFloat(tags?.FNumber?.description) || null : null,
+    f_number: tags?.FNumber?.description ? parseFloat(tags.FNumber.description.replace(/^f\//i, '')) || null : null,
     exposure_program: tags?.ExposureProgram?.description || null,
     iso_speed_rating: tags?.ISOSpeedRatings?.description ? parseInt(tags?.ISOSpeedRatings?.description) || null : null,
     focal_length: tags?.FocalLength?.description ? parseFloat(tags?.FocalLength?.description) || null : null,

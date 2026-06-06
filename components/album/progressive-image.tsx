@@ -1,18 +1,18 @@
 'use client'
 
 import { ProgressiveImageProps } from '~/types/props.ts'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import Lightbox from 'yet-another-react-lightbox'
 import { useTranslations } from 'next-intl'
 import { useBlurImageDataUrl } from '~/hooks/use-blurhash'
-import { XIcon } from '~/components/icons/x'
-import { ArrowLeftIcon } from 'lucide-react'
+import { ArrowLeftIcon, X } from 'lucide-react'
 
 export default function ProgressiveImage(props: Readonly<ProgressiveImageProps>) {
   const t = useTranslations()
   const [showLightbox, setShowLightbox] = useState(Boolean(props.showLightbox))
   const [fullresSrc, setFullresSrc] = useState<string | null>(null)
   const openedRef = useRef(false)
+  const lightboxRef = useRef<any>(null)
 
   useEffect(() => {
     setShowLightbox(Boolean(props.showLightbox))
@@ -27,11 +27,21 @@ export default function ProgressiveImage(props: Readonly<ProgressiveImageProps>)
 
   const dataURL = useBlurImageDataUrl(props.blurhash)
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setShowLightbox(false)
     openedRef.current = false
     props.onShowLightboxChange?.(false)
-  }
+  }, [props.onShowLightboxChange])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showLightbox) {
+        handleClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showLightbox, handleClose])
 
   if (!props.previewUrl || props.previewUrl.trim() === '') {
     return (
@@ -61,74 +71,72 @@ export default function ProgressiveImage(props: Readonly<ProgressiveImageProps>)
         onClick={() => setShowLightbox(true)}
       />
 
-      <Lightbox
-        open={showLightbox}
-        close={handleClose}
-        slides={[{ src: slideSrc, alt: props.alt || 'image', width: props.width, height: props.height }]}
-        plugins={[]}
-        carousel={{ finite: true }}
-        render={{
-          buttonPrev: () => null,
-          buttonNext: () => null,
-          // render.buttonClose 渲染在 YARL toolbar 内，用 fixed 逃出父容器定位到视口角落
-          buttonClose: () => (
-            <>
-              {/* 左上角返回按钮 — 移动端习惯 */}
-              <button
-                onClick={handleClose}
-                style={{ position: 'fixed', top: 'max(env(safe-area-inset-top), 12px)', left: '12px', zIndex: 9999 }}
-                className="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-black/55 hover:bg-black/80 active:bg-black/90 text-white backdrop-blur-sm touch-manipulation transition-colors"
-                aria-label={t('Button.goBack') || '返回'}
-              >
-                <ArrowLeftIcon size={20} />
-              </button>
+      {/* 全屏遮罩层 - 独立于 Lightbox 渲染，确保能接收点击事件 */}
+      {showLightbox && (
+        <>
+          {/* 背景遮罩层 - 点击关闭 */}
+          <div
+            className="fixed inset-0 z-[9998] bg-black/97"
+            onClick={handleClose}
+            style={{ touchAction: 'none' }}
+          />
 
-              {/* 右上角关闭按钮 */}
-              <button
-                onClick={handleClose}
-                style={{ position: 'fixed', top: 'max(env(safe-area-inset-top), 12px)', right: '12px', zIndex: 9999 }}
-                className="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-black/55 hover:bg-black/80 active:bg-black/90 text-white backdrop-blur-sm touch-manipulation transition-colors"
-                aria-label={t('Button.close') || '关闭'}
-              >
-                <XIcon size={20} />
-              </button>
-            </>
-          ),
-          slide: ({ slide }) => (
-            // 背景区域点击关闭，图片本身阻止冒泡
-            <div
-              className="w-full h-full flex items-center justify-center cursor-pointer"
+          {/* 关闭按钮 - 置于最高层级 */}
+          <div className="fixed inset-x-0 top-0 z-[9999] flex justify-between p-3 pointer-events-none">
+            <button
               onClick={handleClose}
+              className="pointer-events-auto w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-black/55 hover:bg-black/80 active:bg-black/90 text-white backdrop-blur-sm touch-manipulation transition-colors"
+              aria-label={t('Button.goBack') || '返回'}
+              type="button"
             >
-              <img
-                src={slide.src}
-                alt={slide.alt ?? 'image'}
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  // 留出顶部按钮空间（约 60px），底部安全区
-                  maxHeight: 'calc(100dvh - 80px)',
-                  maxWidth: '96vw',
-                  width: 'auto',
-                  height: 'auto',
-                  objectFit: 'contain',
-                  cursor: 'default',
-                  // 防止 iOS 长按菜单干扰
-                  WebkitTouchCallout: 'none',
-                  userSelect: 'none',
-                }}
-              />
-            </div>
-          ),
-        }}
-        styles={{
-          root: { '--yarl__color_backdrop': 'rgba(0,0,0,0.97)' },
-          container: { cursor: 'pointer' },
-        }}
-        controller={{
-          closeOnBackdropClick: true,
-          closeOnPullUp: true,
-          closeOnPullDown: true,
-        }}
+              <ArrowLeftIcon size={20} />
+            </button>
+
+            <button
+              onClick={handleClose}
+              className="pointer-events-auto w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-black/55 hover:bg-black/80 active:bg-black/90 text-white backdrop-blur-sm touch-manipulation transition-colors"
+              aria-label={t('Button.close') || '关闭'}
+              type="button"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* 图片内容 - 置于遮罩层之上 */}
+          <div
+            className="fixed inset-0 z-[9998] flex items-center justify-center p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                handleClose()
+              }
+            }}
+          >
+            <img
+              src={slideSrc}
+              alt={props.alt || 'image'}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxHeight: 'calc(100dvh - 80px)',
+                maxWidth: '96vw',
+                width: 'auto',
+                height: 'auto',
+                objectFit: 'contain',
+                cursor: 'default',
+                WebkitTouchCallout: 'none',
+                userSelect: 'none',
+              }}
+            />
+          </div>
+        </>
+      )}
+
+      {/* 保持 Lightbox 组件但禁用其默认行为，避免重复渲染 */}
+      <Lightbox
+        ref={lightboxRef}
+        open={false}
+        close={() => {}}
+        slides={[]}
+        plugins={[]}
       />
     </div>
   )
