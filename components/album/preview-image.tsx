@@ -155,53 +155,28 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
           onShowLightboxChange={(v) => setLightboxPhoto(v)}
         />
       ) : (
-        <LivePhoto url={props.data.preview_url || props.data.url} videoUrl={props.data.video_url} className="max-h-[90vh]" />
+        <LivePhoto url={props.data.preview_url || props.data.url || ''} videoUrl={props.data.video_url || ''} className="max-h-[90vh]" />
       )}
     </div>
   )
 
   return (
-    <div className="w-full h-full flex flex-col lg:flex-row overflow-hidden bg-background" style={{ maxWidth: 1440, margin: '0 auto' }}>
+    <div
+      className="fixed inset-x-0 bottom-0 flex flex-col lg:flex-row bg-background z-10"
+      style={{ top: 56 }}
+    >
 
-      {/* ── Mobile: image on top ── */}
-      <div className="lg:hidden w-full flex-shrink-0" style={{ minHeight: 280 }}>
-        {ImageSlot}
-      </div>
-
-      {/* ── Sidebar ── */}
-      <aside
-        className="
-          w-full lg:w-[300px] xl:w-[320px] flex-shrink-0
-          flex flex-col
-          border-t lg:border-t-0 lg:border-r border-border
-          bg-card
-          overflow-y-auto
-        "
-      >
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b border-border px-5 py-4 flex items-start justify-between gap-3">
-          <h1 className="text-base font-semibold text-card-foreground leading-snug line-clamp-2 flex-1">
-            {props.data.title || '未命名'}
-          </h1>
-          <button
-            onClick={handleClose}
-            className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted transition-colors touch-manipulation text-muted-foreground hover:text-foreground"
-            aria-label={t('Button.goBack')}
-          >
-            <ArrowLeftIcon size={18} />
-          </button>
+      {/* ── Mobile: 整体可滚动，图片在上内容在下 ── */}
+      <div className="lg:hidden w-full flex-1 overflow-y-auto overscroll-contain">
+        <div style={{ minHeight: 280 }}>
+          {ImageSlot}
         </div>
 
-        <div className="flex-1 px-5 py-4 space-y-5">
-
-          {/* Description */}
+        {/* 移动端侧边栏内容直接跟在图片下方 */}
+        <div className="px-5 py-4 space-y-5 border-t border-border">
           {props.data.detail && (
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {props.data.detail}
-            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">{props.data.detail}</p>
           )}
-
-          {/* EXIF block */}
           {exifRows.length > 0 && (
             <section>
               <div className="flex items-center gap-2 mb-3">
@@ -210,13 +185,7 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
               </div>
               <div className="rounded-xl overflow-hidden border border-border divide-y divide-border">
                 {exifRows.map(({ icon: Icon, label, value }, i) => (
-                  <div
-                    key={label}
-                    className={cn(
-                      'flex items-center gap-3 px-4 py-2.5',
-                      i % 2 === 0 ? 'bg-card' : 'bg-muted/40',
-                    )}
-                  >
+                  <div key={label} className={cn('flex items-center gap-3 px-4 py-2.5', i % 2 === 0 ? 'bg-card' : 'bg-muted/40')}>
                     <Icon size={14} className="flex-shrink-0 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground w-14 flex-shrink-0">{label}</span>
                     <span className="text-xs font-medium text-foreground truncate">{String(value)}</span>
@@ -225,8 +194,6 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
               </div>
             </section>
           )}
-
-          {/* Tags */}
           {props.data.labels && props.data.labels.length > 0 && (
             <section>
               <div className="flex items-center gap-2 mb-3">
@@ -235,48 +202,119 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {props.data.labels.map((tag: string) => (
-                  <button
-                    key={tag}
-                    onClick={() => router.push(`/tag/${tag}`)}
-                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-foreground border border-border hover:bg-accent hover:text-accent-foreground hover:border-accent transition-all duration-150 touch-manipulation"
-                  >
+                  <button key={tag} onClick={() => router.push(`/tag/${tag}`)}
+                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-foreground border border-border hover:bg-accent hover:text-accent-foreground hover:border-accent transition-all duration-150 touch-manipulation">
                     # {tag}
                   </button>
                 ))}
               </div>
             </section>
           )}
-
-          {/* Actions */}
           <section>
             <div className="flex items-center gap-2 mb-3">
               <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">操作</span>
               <div className="flex-1 h-px bg-border" />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 pb-8">
               <ActionButton icon={<CopyIcon size={15} />} label="复制直链" onClick={handleCopyUrl} disabled={!props.data.url} />
               <ActionButton icon={<LinkIcon size={15} />} label="分享链接" onClick={handleCopyShare} disabled={!props.id} />
               {downloadEnabled && (
                 <ActionButton
                   icon={downloading ? <RefreshCWIcon size={15} className="animate-spin" /> : <DownloadIcon size={15} />}
-                  label="下载原图"
-                  onClick={handleDownload}
-                  disabled={downloading}
+                  label="下载原图" onClick={handleDownload} disabled={downloading}
                 />
               )}
-              <ActionButton
-                icon={<ExpandIcon size={15} />}
-                label="全屏查看"
-                onClick={() => setLightboxPhoto(true)}
-              />
+              <ActionButton icon={<ExpandIcon size={15} />} label="全屏查看" onClick={() => setLightboxPhoto(true)} />
             </div>
           </section>
+        </div>
+      </div>
 
+      {/* 移动端顶部标题栏 + 返回按钮（fixed within the fixed container） */}
+      <div className="lg:hidden absolute top-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-sm px-4 py-3 flex items-center justify-between border-b border-border/50">
+        <h1 className="text-sm font-semibold text-foreground leading-snug line-clamp-1 flex-1 mr-3">
+          {props.data.title || '未命名'}
+        </h1>
+        <button onClick={handleClose}
+          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors touch-manipulation text-muted-foreground"
+          aria-label={t('Button.goBack')}>
+          <ArrowLeftIcon size={16} />
+        </button>
+      </div>
+
+      {/* ── Desktop: 左侧信息栏，独立滚动 ── */}
+      <aside className="hidden lg:flex w-[300px] xl:w-[340px] flex-shrink-0 flex-col border-r border-border bg-card overflow-y-auto">
+        {/* 标题栏 sticky */}
+        <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b border-border px-5 py-4 flex items-start justify-between gap-3">
+          <h1 className="text-base font-semibold text-card-foreground leading-snug line-clamp-2 flex-1">
+            {props.data.title || '未命名'}
+          </h1>
+          <button onClick={handleClose}
+            className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted transition-colors touch-manipulation text-muted-foreground hover:text-foreground"
+            aria-label={t('Button.goBack')}>
+            <ArrowLeftIcon size={18} />
+          </button>
+        </div>
+
+        <div className="flex-1 px-5 py-4 space-y-5 overflow-y-auto">
+          {props.data.detail && (
+            <p className="text-sm text-muted-foreground leading-relaxed">{props.data.detail}</p>
+          )}
+          {exifRows.length > 0 && (
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">拍摄参数</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              <div className="rounded-xl overflow-hidden border border-border divide-y divide-border">
+                {exifRows.map(({ icon: Icon, label, value }, i) => (
+                  <div key={label} className={cn('flex items-center gap-3 px-4 py-2.5', i % 2 === 0 ? 'bg-card' : 'bg-muted/40')}>
+                    <Icon size={14} className="flex-shrink-0 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground w-14 flex-shrink-0">{label}</span>
+                    <span className="text-xs font-medium text-foreground truncate">{String(value)}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+          {props.data.labels && props.data.labels.length > 0 && (
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">标签</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {props.data.labels.map((tag: string) => (
+                  <button key={tag} onClick={() => router.push(`/tag/${tag}`)}
+                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-foreground border border-border hover:bg-accent hover:text-accent-foreground hover:border-accent transition-all duration-150 touch-manipulation">
+                    # {tag}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">操作</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            <div className="grid grid-cols-2 gap-2 pb-4">
+              <ActionButton icon={<CopyIcon size={15} />} label="复制直链" onClick={handleCopyUrl} disabled={!props.data.url} />
+              <ActionButton icon={<LinkIcon size={15} />} label="分享链接" onClick={handleCopyShare} disabled={!props.id} />
+              {downloadEnabled && (
+                <ActionButton
+                  icon={downloading ? <RefreshCWIcon size={15} className="animate-spin" /> : <DownloadIcon size={15} />}
+                  label="下载原图" onClick={handleDownload} disabled={downloading}
+                />
+              )}
+              <ActionButton icon={<ExpandIcon size={15} />} label="全屏查看" onClick={() => setLightboxPhoto(true)} />
+            </div>
+          </section>
         </div>
       </aside>
 
-      {/* ── Desktop: image area ── */}
-      <div className="hidden lg:flex flex-1 min-w-0 items-center justify-center bg-muted/20 p-4">
+      {/* ── Desktop: 右侧图片区 ── */}
+      <div className="hidden lg:flex flex-1 min-w-0 min-h-0 items-center justify-center bg-muted/20 p-6 overflow-hidden">
         {ImageSlot}
       </div>
 

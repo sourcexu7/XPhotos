@@ -330,8 +330,8 @@ export default function MultipleFileUpload() {
       width: file.width || 0,
       height: file.height || 0,
       type: 1,
-      lat: file.lat || '',
-      lon: file.lon || '',
+      lat: Number(file.lat) || 0,
+      lon: Number(file.lon) || 0,
       tagCategoryMap: Object.keys(tagCategoryMap).length ? tagCategoryMap : undefined,
     }
 

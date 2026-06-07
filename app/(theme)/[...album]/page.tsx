@@ -1,15 +1,14 @@
 import { redirect } from 'next/navigation'
 import React from 'react'
-import { fetchClientImagesListByAlbum, fetchClientImagesPageTotalByAlbum } from '~/lib/db/query/images'
 import { fetchAlbumByRouter, fetchAlbumsShow } from '~/lib/db/query/albums'
 import type { ImageHandleProps } from '~/types/props.ts'
-import { fetchConfigsByKeys } from '~/lib/db/query/configs'
 import 'react-photo-album/masonry.css'
 import type { Config } from '~/types'
 import CoversBackButton from '~/components/layout/covers-back-button'
 import AlbumNav from '~/components/layout/album-nav'
 import SharedAlbumsPage from '~/components/layout/shared-albums-page'
 import { ThemeGalleryClient } from '~/components/layout/theme-gallery-client-dynamic'
+import { getImagesByAlbum, getImageCountByAlbum, getGalleryConfig } from '~/lib/actions/gallery'
 
 // 不属于相册动态路由的保留路径。
 // theme 路由组使用了 catch-all `[...album]`，所以 /albums、/covers 等静态 URL
@@ -59,51 +58,20 @@ export default async function Page({
     redirect('/covers')
   }
 
-  const getData = async (
-    pageNum: number,
-    album: string,
-    cameras?: string[],
-    lenses?: string[],
-    tags?: string[],
-    tagsOperator: 'and' | 'or' = 'and'
-  ) => {
-    'use server'
-    return await fetchClientImagesListByAlbum(pageNum, album, cameras, lenses, tags, tagsOperator)
-  }
-
-  const getPageTotal = async (
-    album: string,
-    cameras?: string[],
-    lenses?: string[],
-    tags?: string[],
-    tagsOperator: 'and' | 'or' = 'and'
-  ) => {
-    'use server'
-    return await fetchClientImagesPageTotalByAlbum(album, cameras, lenses, tags, tagsOperator)
-  }
-
-  const getConfig = async () => {
-    'use server'
-    return await fetchConfigsByKeys([
-      'custom_index_download_enable',
-      'custom_index_style'
-    ])
-  }
-
-  const configs: Config[] = await getConfig()
+  const configs: Config[] = await getGalleryConfig()
   const systemStyle = configs.find(a => a.config_key === 'custom_index_style')?.config_value || '0'
   const albums = await fetchAlbumsShow()
 
   const props: ImageHandleProps = {
-    handle: getData,
+    handle: getImagesByAlbum,
     args: 'getImages-client',
     album: albumSlash,
-    totalHandle: getPageTotal,
-    configHandle: getConfig
+    totalHandle: getImageCountByAlbum,
+    configHandle: getGalleryConfig,
   }
 
   return (
-    <div className="pt-16">
+    <div>
       <div className="container mx-auto px-4 mb-4">
         <CoversBackButton />
       </div>

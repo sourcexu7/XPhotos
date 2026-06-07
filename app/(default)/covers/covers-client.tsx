@@ -46,9 +46,9 @@ export default function CoversClient() {
   const albums = Array.isArray(data) ? data.filter((a) => a.cover) : []
 
   return (
-    <div className="pt-[80px] min-h-screen bg-background">
-      <div className="container mx-auto px-4 mb-12">
-        <Link href="/albums">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 pt-4 mb-12">
+        <Link href="/albums" className="inline-block mb-6">
           <Button variant="ghost" className="gap-2 pl-0 hover:bg-transparent hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />
             返回作品合集

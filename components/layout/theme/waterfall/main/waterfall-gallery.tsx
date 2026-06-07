@@ -1,175 +1,154 @@
 'use client'
 
+import React, { useEffect, useRef, useMemo } from 'react'
 import type { ImageHandleProps } from '~/types/props.ts'
-import { usePublicGalleryImages } from '~/hooks/use-public-gallery-images'
-import { useGalleryPageCache } from '~/hooks/use-gallery-page-cache'
-import React, { useEffect, useMemo, useCallback, useState, useRef } from 'react'
 import { VirtualWaterfallGallery } from '~/components/ui/virtual-waterfall-gallery'
-import { useGalleryFilters } from '~/hooks/use-gallery-filters'
 import { EmptyState, ErrorState } from '~/components/ui/empty-state'
 import { ImageIcon } from 'lucide-react'
+import { useIsMobile } from '~/hooks/use-mobile'
+import { useGalleryPages } from '~/hooks/use-gallery-pages'
+import { useFilterStore } from '~/lib/store/filter-store'
 
 export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
-  const cameras = useMemo(() => props.filters?.cameras ?? [], [props.filters?.cameras])
-  const lenses = useMemo(() => props.filters?.lenses ?? [], [props.filters?.lenses])
-  const tags = useMemo(() => props.filters?.tags ?? [], [props.filters?.tags])
-  const tagsOperator = props.filters?.tagsOperator || 'and'
-  const sortByShootTime = props.sortByShootTime
+  const isMobile = useIsMobile()
+  const { cameraFilter, lensFilter, tagsFilter, tagsOperator, sortByShootTime } = useFilterStore()
+  const isHome = (props.album ?? '/') === '/'
+
+  const params = useMemo(() => ({
+    album: props.album ?? '/',
+    cameras: cameraFilter.length > 0 ? cameraFilter : undefined,
+    lenses: lensFilter.length > 0 ? lensFilter : undefined,
+    tags: tagsFilter.length > 0 ? tagsFilter : undefined,
+    tagsOperator: tagsFilter.length > 0 ? tagsOperator : undefined,
+    sortByShootTime: isHome ? sortByShootTime : undefined,
+  }), [props.album, cameraFilter, lensFilter, tagsFilter, tagsOperator, sortByShootTime, isHome])
 
   const filterKey = useMemo(
-    () => [cameras.join(','), lenses.join(','), tags.join(','), tagsOperator, sortByShootTime || ''].join('|'),
-    [cameras, lenses, tags, tagsOperator, sortByShootTime],
+    () => [
+      params.album,
+      params.cameras?.join(',') ?? '',
+      params.lenses?.join(',') ?? '',
+      params.tags?.join(',') ?? '',
+      params.tagsOperator ?? '',
+      params.sortByShootTime ?? '',
+    ].join('|'),
+    [params],
   )
 
-  const cacheKey = useMemo(() => `waterfall:${props.album}:${filterKey}`, [props.album, filterKey])
-  const { cached, save } = useGalleryPageCache<any>(cacheKey)
+  // 移动端软上限低一些，避免 Safari 内存积压
+  const softLimit = isMobile ? 160 : 480
+  const {
+    allImages, isLoading, error, hasMore, shouldLoadNext, atSoftLimit,
+    loadNext, reset, setLayoutParams, allLayoutSlots, lastLayout,
+  } = useGalleryPages(params, softLimit)
 
-  const { data, error, isLoading, isValidating, size, setSize, mutate } = usePublicGalleryImages({
-    album: props.album,
-    cameras: cameras.length > 0 ? cameras : undefined,
-    lenses: lenses.length > 0 ? lenses : undefined,
-    tags: tags.length > 0 ? tags : undefined,
-    tagsOperator: tags.length > 0 ? tagsOperator : undefined,
-    sortByShootTime,
-  })
+  const hasMoreRef = useRef(hasMore)
+  const shouldLoadNextRef = useRef(shouldLoadNext)
+  const isLoadingRef = useRef(isLoading)
+  hasMoreRef.current = hasMore
+  shouldLoadNextRef.current = shouldLoadNext
+  isLoadingRef.current = isLoading
 
-  // 恢复已加载页数（返回时不重拉）
+  // 筛选条件变化时 reset + 加载第一页
+  const prevFilterKeyRef = useRef<string | null>(null)
   useEffect(() => {
-    if (cached?.size && cached.size > size) {
-      setSize(cached.size)
+    if (prevFilterKeyRef.current === filterKey) return
+    prevFilterKeyRef.current = filterKey
+    reset()
+    loadNext()
+  }, [filterKey, reset, loadNext])
+
+  // sentinel 哨兵（始终在 DOM）
+  const sentinelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMoreRef.current && shouldLoadNextRef.current && !isLoadingRef.current) {
+          loadNext()
+        }
+      },
+      { rootMargin: isMobile ? '300px' : '600px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile])
+
+  // 加载完成后检查 sentinel 是否还在视口内（连续填充）
+  const prevIsLoadingRef = useRef(false)
+  useEffect(() => {
+    const wasLoading = prevIsLoadingRef.current
+    prevIsLoadingRef.current = isLoading
+    if (wasLoading && !isLoading && shouldLoadNext && hasMore) {
+      const el = sentinelRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      if (rect.top < window.innerHeight + (isMobile ? 300 : 600)) {
+        loadNext()
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cacheKey])
+  }, [isLoading, shouldLoadNext, hasMore, isMobile, loadNext])
 
-  useEffect(() => {
-    if (!data) return
-    save({ size, setAt: Date.now(), pages: data.map((p: any) => (p?.items ? p.items : p)) as any })
-  }, [data, size, save])
+  const isInitialLoading = isLoading && allImages.length === 0
 
-  const apiData = useMemo(() => (data ? data.map((p) => p.items) : undefined), [data])
-
-  const { dataList, isFiltering } = useGalleryFilters({
-    cameras,
-    lenses,
-    tags,
-    tagsOperator,
-    sortByShootTime,
-    data: apiData,
-    isValidating,
-    setSize,
-    mutate,
-  })
-
-  // hasMore：优先用后端分页信息判断，防止无限滚动死循环
-  const hasMore = useMemo(() => {
-    if (!data || data.length === 0) return false
-    const lastPage = data[data.length - 1]
-    if (!lastPage) return false
-    if (typeof lastPage.pageTotal === 'number' && typeof lastPage.page === 'number') {
-      return lastPage.page < lastPage.pageTotal
-    }
-    // 没有分页元数据时，靠最后一页 items 数量判断
-    return Array.isArray(lastPage.items) && lastPage.items.length >= 16
-  }, [data])
-
-  // 无限滚动：节流 + 防止在已到最后一页时再触发
-  const lastLoadAtRef = useRef(0)
-  const THROTTLE_MS = 500
-
-  const handleScroll = useCallback(() => {
-    if (isValidating || !hasMore) return
-    const now = Date.now()
-    if (now - lastLoadAtRef.current < THROTTLE_MS) return
-
-    const scrollTop = window.scrollY
-    const windowH = window.innerHeight
-    const docH = document.documentElement.scrollHeight
-    const threshold = window.innerWidth < 768 ? 400 : 800
-
-    if (scrollTop + windowH >= docH - threshold) {
-      lastLoadAtRef.current = now
-      setSize((prev) => prev + 1)
-    }
-  }, [isValidating, hasMore, setSize])
-
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [handleScroll])
-
-  const isInitialLoading = isLoading && dataList.length === 0
-
-  // 分批渲染，防止大量挂载
-  const BATCH_SIZE = 20
-  const [renderedCount, setRenderedCount] = useState(BATCH_SIZE)
-
-  useEffect(() => {
-    setRenderedCount(BATCH_SIZE)
-  }, [filterKey])
-
-  const renderedImages = useMemo(() => dataList.slice(0, renderedCount), [dataList, renderedCount])
-
-  useEffect(() => {
-    if (isFiltering || isInitialLoading) return
-    if (renderedCount >= dataList.length) return
-    const timer = window.setTimeout(() => {
-      setRenderedCount((prev) => Math.min(prev + BATCH_SIZE, dataList.length))
-    }, 50)
-    return () => window.clearTimeout(timer)
-  }, [renderedCount, dataList.length, isFiltering, isInitialLoading])
+  // 桌面端 overscan 更大，减少来回滚动时的卡片闪烁
+  const overscanPx = isMobile ? 600 : 1200
 
   return (
-    <div className="w-full min-h-screen bg-background text-foreground px-4 pt-5 pb-10">
+    <div className="w-full min-h-screen bg-background px-3 pt-2 pb-16">
       {isInitialLoading && (
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-            <span className="text-sm text-muted-foreground">正在加载图片...</span>
-          </div>
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <div className="h-8 w-8 rounded-full border-2 border-muted border-t-foreground/50 animate-spin" />
         </div>
       )}
 
-      {isFiltering && !isInitialLoading && (
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-muted-foreground">正在筛选图片...</span>
+      <div style={{ display: isInitialLoading ? 'none' : 'block' }}>
+        <VirtualWaterfallGallery
+          images={allImages}
+          overscanPx={overscanPx}
+          layoutSlots={allLayoutSlots}
+          totalHeight={lastLayout ? Math.max(0, ...lastLayout.nextColHeights) : undefined}
+          onLayoutParamsReady={setLayoutParams}
+        />
+
+        {error && !isLoading && (
+          <ErrorState title="加载失败" message={error.message} onRetry={loadNext} />
+        )}
+
+        {!error && !isLoading && allImages.length === 0 && (
+          <EmptyState
+            icon={ImageIcon}
+            title="暂无匹配的图片"
+            description="尝试调整筛选条件"
+          />
+        )}
+
+        {/* 达到软上限，改为手动触发 */}
+        {atSoftLimit && hasMore && (
+          <div className="flex justify-center py-6">
+            <button
+              type="button"
+              onClick={loadNext}
+              disabled={isLoading}
+              className="rounded-full border border-border bg-card px-5 py-2 text-sm text-foreground hover:bg-muted disabled:opacity-50"
+            >
+              {isLoading ? '加载中…' : '加载更多'}
+            </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {!isFiltering && !isInitialLoading && (
-        <>
-          <VirtualWaterfallGallery images={renderedImages} overscan={5} />
+        {isLoading && allImages.length > 0 && !atSoftLimit && (
+          <div className="flex justify-center py-6">
+            <div className="h-5 w-5 rounded-full border-2 border-muted border-t-foreground/50 animate-spin" />
+          </div>
+        )}
+      </div>
 
-          {error && !isValidating && (
-            <ErrorState
-              title="加载失败"
-              message={error.message || '获取图片列表时遇到错误'}
-              onRetry={() => mutate()}
-            />
-          )}
-
-          {!error && !isValidating && dataList.length === 0 && (
-            <EmptyState
-              icon={ImageIcon}
-              title="暂无匹配的图片"
-              description="尝试调整筛选条件或清空所有筛选器"
-              actionLabel="清除筛选条件"
-              onAction={() => {
-                // 由父组件通过 props 控制，此处不再直接调用未定义的 setter
-              }}
-            />
-          )}
-
-          {/* 加载更多 spinner */}
-          {isValidating && !isInitialLoading && (
-            <div className="flex justify-center py-8">
-              <div className="w-8 h-8 border-2 border-muted-foreground border-t-primary rounded-full animate-spin" />
-            </div>
-          )}
-        </>
-      )}
+      {/* sentinel 始终挂载，observer 不会因条件渲染失效 */}
+      <div ref={sentinelRef} style={{ height: 1 }} />
     </div>
   )
 }

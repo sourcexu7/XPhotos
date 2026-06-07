@@ -357,7 +357,7 @@ export default function ScrollMorphHero({ images }: ScrollMorphHeroProps) {
                         return (
                             <FlipCard
                                 key={i}
-                                src={image.url}
+                                src={image.url || ''}
                                 index={i}
                                 total={TOTAL_IMAGES}
                                 phase={introPhase} // Pass intro phase for initial animations

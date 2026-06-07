@@ -14,7 +14,7 @@ export default function TemplateGallery(props : Readonly<ImageHandleProps>) {
       return [`client-${props.args}-${index}-${props.album}`, index]
     },
     ([_, index]) => {
-      return props.handle(index + 1, props.album)
+      return props.handle?.(index + 1, props.album) || Promise.resolve([])
     }, {
       revalidateOnFocus: false,
       revalidateIfStale: false,

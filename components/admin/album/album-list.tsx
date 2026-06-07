@@ -255,7 +255,7 @@ export default function AlbumList(props : Readonly<HandleProps>) {
                       disabled={updateAlbumLoading && updateAlbumId === album.id}
                       size="small"
                       onChange={(checked: boolean) => {
-                        updateAlbumShow(album.id, checked ? 0 : 1)
+                        if (album.id) updateAlbumShow(album.id, checked ? 0 : 1)
                       }}
                     />
                   </div>

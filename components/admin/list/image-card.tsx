@@ -279,7 +279,7 @@ export default function ImageCard({
               size="icon"
               variant="ghost"
               className="h-8 w-8 rounded-lg text-muted-foreground transition-all duration-200 hover:bg-emerald-100 hover:text-emerald-600 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400"
-              onClick={() => onSetCover(image.album_value, image.preview_url || image.url)}
+              onClick={() => onSetCover(image.album_value || '', image.preview_url || image.url || '')}
               aria-label={t('List.setAlbumCover')}
             >
               <Palette size={16} />

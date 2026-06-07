@@ -3,11 +3,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ImageType } from '~/types'
 
+export type LayoutSlot = {
+  id: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+export type GalleryPageLayout = {
+  containerWidth: number
+  cols: number
+  gap: number
+  slots: LayoutSlot[]
+  nextColHeights: number[]
+}
+
 export type GalleryPage = {
   page: number
   pageSize: number
   pageTotal: number
   items: ImageType[]
+  layout?: GalleryPageLayout
 }
 
 type Params = {
@@ -19,7 +36,14 @@ type Params = {
   sortByShootTime?: 'asc' | 'desc'
 }
 
-function buildUrl(params: Params, page: number): string {
+/** 布局参数：由前端测量后传入，后端用于预计算每张图的绝对定位 */
+export type LayoutParams = {
+  containerWidth: number
+  cols: number
+  gap: number
+}
+
+function buildUrl(params: Params, page: number, layoutParams?: LayoutParams, colHeights?: number[]): string {
   const q = new URLSearchParams()
   q.set('page', String(page))
   q.set('album', params.album)
@@ -30,6 +54,15 @@ function buildUrl(params: Params, page: number): string {
     if (params.tagsOperator) q.set('tagsOperator', params.tagsOperator)
   }
   if (params.sortByShootTime) q.set('sortByShootTime', params.sortByShootTime)
+  // 布局参数
+  if (layoutParams) {
+    q.set('containerWidth', String(layoutParams.containerWidth))
+    q.set('cols', String(layoutParams.cols))
+    q.set('gap', String(layoutParams.gap))
+    if (colHeights && colHeights.length > 0) {
+      q.set('colHeights', JSON.stringify(colHeights))
+    }
+  }
   return `/api/v1/public/gallery/images?${q.toString()}`
 }
 
@@ -39,29 +72,28 @@ async function fetchPage(url: string): Promise<GalleryPage> {
   return res.json() as Promise<GalleryPage>
 }
 
-/**
- * 手动分页 hook，不依赖 SWR 缓存累积。
- * 所有可变状态用 ref 跟踪，避免 stale closure 导致重复请求或停止加载。
- *
- * 为了避免移动端 Safari 因无限加载导致内存/解码崩溃，
- * 提供 `softLimit` 软上限：超过后 `hasMore` 仍为 true，但
- * `shouldLoadNext` 变为 false，页面应切换到"点击加载更多"。
- */
 export function useGalleryPages(params: Params, softLimit = 400) {
   const [pages, setPages] = useState<GalleryPage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  // 用 ref 避免 callbacks 频繁重建
   const paramsRef = useRef(params)
   paramsRef.current = params
   const isLoadingRef = useRef(false)
   const loadedPageRef = useRef(0)
   const totalPagesRef = useRef<number | null>(null)
-  // 服务器是否明确响应过一次（用于区分“尚未加载”和“真的无数据”）
-  const hasRespondedRef = useRef(false)
 
-  // loadNext 引用稳定，永不重建（内部通过 ref 读最新状态）
+  // 布局参数：前端测量后通过 setLayoutParams 传入
+  const layoutParamsRef = useRef<LayoutParams | undefined>(undefined)
+  // 上一页计算出的列高，传给后端做下一页的起点
+  const lastColHeightsRef = useRef<number[] | undefined>(undefined)
+
+  const [layoutParams, setLayoutParamsState] = useState<LayoutParams | undefined>(undefined)
+  const setLayoutParams = useCallback((lp: LayoutParams) => {
+    layoutParamsRef.current = lp
+    setLayoutParamsState(lp)
+  }, [])
+
   const loadNext = useCallback(async () => {
     if (isLoadingRef.current) return
     const next = loadedPageRef.current + 1
@@ -73,11 +105,21 @@ export function useGalleryPages(params: Params, softLimit = 400) {
     setError(null)
 
     try {
-      const url = buildUrl(paramsRef.current, next)
+      const url = buildUrl(
+        paramsRef.current,
+        next,
+        layoutParamsRef.current,
+        lastColHeightsRef.current,
+      )
       const data = await fetchPage(url)
       totalPagesRef.current = data.pageTotal
       loadedPageRef.current = next
-      hasRespondedRef.current = true
+
+      // 保存本页结尾的列高，供下一页使用
+      if (data.layout?.nextColHeights) {
+        lastColHeightsRef.current = data.layout.nextColHeights
+      }
+
       setPages((prev) => {
         if (prev.some((p) => p.page === data.page)) return prev
         return [...prev, data]
@@ -88,7 +130,7 @@ export function useGalleryPages(params: Params, softLimit = 400) {
       isLoadingRef.current = false
       setIsLoading(false)
     }
-  }, []) // 空依赖：所有可变值通过 ref 访问
+  }, [])
 
   const reset = useCallback(() => {
     setPages([])
@@ -97,7 +139,7 @@ export function useGalleryPages(params: Params, softLimit = 400) {
     isLoadingRef.current = false
     loadedPageRef.current = 0
     totalPagesRef.current = null
-    hasRespondedRef.current = false
+    lastColHeightsRef.current = undefined
   }, [])
 
   const hasMore = totalPagesRef.current === null
@@ -105,18 +147,20 @@ export function useGalleryPages(params: Params, softLimit = 400) {
     : loadedPageRef.current < totalPagesRef.current
 
   const allImages = pages.flatMap((p) => p.items)
-  // softLimit：达到软上限后，停止自动继续，提示用户点击"加载更多"
   const atSoftLimit = allImages.length >= softLimit
   const shouldLoadNext = hasMore && !atSoftLimit
 
-  // 首次请求是否已经完成（用于空态/错误态的显示时机判断）
+  // 所有页的 layout slots 合并（当后端返回了布局数据时使用）
+  const allLayoutSlots: LayoutSlot[] | undefined = pages.every((p) => p.layout)
+    ? pages.flatMap((p) => p.layout!.slots)
+    : undefined
+
+  // 最新一页的布局元数据（用于获取 totalHeight 等）
+  const lastLayout = pages.length > 0 ? pages[pages.length - 1].layout : undefined
+
   const [hasRespondedOnce, setHasRespondedOnce] = useState(false)
-  // 副作用：同步到 state，避免依赖 SSR 时 ref 与 state 不同步
-  // 这里直接暴露 ref 并不合适（ref 不触发渲染），所以改用 state
   useEffect(() => {
-    if (pages.length > 0 || error) {
-      setHasRespondedOnce(true)
-    }
+    if (pages.length > 0 || error) setHasRespondedOnce(true)
   }, [pages, error])
 
   return {
@@ -130,5 +174,11 @@ export function useGalleryPages(params: Params, softLimit = 400) {
     hasRespondedOnce,
     loadNext,
     reset,
+    // 布局相关
+    setLayoutParams,
+    layoutParams,
+    allLayoutSlots,
+    lastLayout,
+    lastColHeights: lastColHeightsRef.current,
   }
 }

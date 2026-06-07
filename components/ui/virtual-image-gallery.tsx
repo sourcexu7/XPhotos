@@ -73,7 +73,7 @@ export function VirtualImageGallery({
 
     for (let i = 0; i < images.length; i++) {
       const img = images[i]
-      const ratio = img.width > 0 && img.height > 0 ? img.width / img.height : 4 / 3
+      const ratio = (img.width || 0) > 0 && (img.height || 0) > 0 ? (img.width as number) / (img.height as number) : 4 / 3
       const itemH = Math.round(colWidth / ratio)
 
       let col = 0

@@ -40,7 +40,7 @@ const SimpleGallery = React.memo(function SimpleGallery(props: Readonly<ImageHan
       return [`client-${props.args}-${index}-${props.album}-${filterKey}`, index]
     },
     ([_, index]) => {
-      return props.handle(
+      return props.handle?.(
         index + 1,
         props.album,
         cameras.length > 0 ? cameras : undefined,
@@ -49,7 +49,7 @@ const SimpleGallery = React.memo(function SimpleGallery(props: Readonly<ImageHan
         // Bug修复：只有当 tags 有值时才传递 tagsOperator，避免后端查询错误
         tags.length > 0 ? tagsOperator : 'and',
         sortByShootTime
-      )
+      ) || Promise.resolve([])
     },
     {
       revalidateOnFocus: false,

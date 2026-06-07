@@ -42,7 +42,6 @@ export default function UnifiedNav({
   const { data: session } = authClient.useSession()
   const { resolvedTheme, setTheme } = useTheme()
   const navRef = useRef<HTMLElement>(null)
-  const isHomePage = pathname === '/'
   // 首页也允许切换主题（默认仍会是 dark，但用户可以主动切 light）
   const shouldHideThemeToggle = hideThemeToggle
 

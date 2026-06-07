@@ -17,7 +17,7 @@ export default function TagGallery(props: Readonly<ImageHandleProps>) {
 
   const { data, isLoading, isValidating, size, setSize } = useSWRInfinite(
     (index) => [`client-${props.args}-${index}-${props.album}`, index],
-    ([_, index]) => props.handle(index + 1, props.album),
+    ([_, index]) => props.handle?.(index + 1, props.album) || Promise.resolve([]),
     {
       revalidateOnFocus: false,
       revalidateIfStale: false,

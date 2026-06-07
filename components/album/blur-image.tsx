@@ -8,7 +8,7 @@ import type { ImageType } from '~/types'
 export default function BlurImage({ photo }: { photo: ImageType }) {
   const router = useRouter()
 
-  const dataURL = useBlurImageDataUrl(photo.blurhash)
+  const dataURL = useBlurImageDataUrl(photo.blurhash || '')
 
   return (
     <div className="relative inline-block select-none shadow-sm shadow-gray-200 dark:shadow-gray-800">

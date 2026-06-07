@@ -36,13 +36,17 @@ function getKeyFromImage(image: { id: string; url: string; original_key?: string
 }
 
 export async function streamImage(imageMeta: ImageType): Promise<{ stream: Readable; exif: null }> {
-  const storageType = detectStorageByUrl(imageMeta.url)
+  if (!imageMeta.url) {
+    throw new Error(`Image ${imageMeta.id} has no URL`)
+  }
+  const url = imageMeta.url
+  const storageType = detectStorageByUrl(url)
 
   // For non-S3/R2 storage, we buffer the whole file
   if (storageType !== 's3' && storageType !== 'r2') {
     console.warn(`Buffering download for storage type: ${storageType}`)
-    const response = await fetch(imageMeta.url)
-    if (!response.ok) throw new Error(`Failed to fetch image from ${imageMeta.url}`)
+    const response = await fetch(url)
+    if (!response.ok) throw new Error(`Failed to fetch image from ${url}`)
     const buffer = Buffer.from(await response.arrayBuffer())
     const stream = new Readable()
     stream.push(buffer)
@@ -52,7 +56,7 @@ export async function streamImage(imageMeta: ImageType): Promise<{ stream: Reada
   }
 
   // S3/R2 true streaming logic
-  const key = getKeyFromImage(imageMeta)
+  const key = getKeyFromImage({ id: imageMeta.id, url, original_key: imageMeta.original_key })
   if (!key) {
     throw new Error(`Could not determine file key for image ID ${imageMeta.id}`)
   }

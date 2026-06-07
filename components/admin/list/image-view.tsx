@@ -21,7 +21,7 @@ export default function ImageView() {
     data: imageViewData,
   }
 
-  const dataURL = useBlurImageDataUrl(imageViewData.blurhash)
+  const dataURL = useBlurImageDataUrl(imageViewData.blurhash || '')
 
   return (
     <Sheet
@@ -57,7 +57,7 @@ export default function ImageView() {
                 blurDataURL={dataURL}
               />
               :
-              <LivePhoto url={imageViewData.preview_url || imageViewData.url} videoUrl={imageViewData.video_url} />
+              <LivePhoto url={imageViewData.preview_url || imageViewData.url || ''} videoUrl={imageViewData.video_url || ''} />
             }
           </div>
           

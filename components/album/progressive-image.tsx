@@ -24,7 +24,7 @@ export default function ProgressiveImage(props: Readonly<ProgressiveImageProps>)
     }
   }, [showLightbox, props.previewUrl])
 
-  const dataURL = useBlurImageDataUrl(props.blurhash)
+  const dataURL = useBlurImageDataUrl(props.blurhash || '')
 
   const handleClose = useCallback(() => {
     setShowLightbox(false)

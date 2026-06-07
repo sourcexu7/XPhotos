@@ -21,7 +21,7 @@ export async function insertAlbums(album: AlbumType) {
       album_value: album.album_value,
       detail: album.detail,
       sort: normalizeSortValue(album.sort),
-      theme: album.theme,
+      theme: typeof album.theme === 'number' ? String(album.theme) : album.theme,
       show: album.show,
       license: album.license,
       del: 0,

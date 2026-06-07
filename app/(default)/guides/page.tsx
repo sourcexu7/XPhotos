@@ -70,7 +70,7 @@ export default function GuidesPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <section className="px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16 pb-8 sm:pb-10">
+      <section className="px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-8 sm:pb-10">
         <div className="max-w-6xl mx-auto flex items-end justify-between gap-8 flex-wrap sm:flex-nowrap">
           <div className="text-left">
             <h1 className="text-3xl sm:text-4xl font-light tracking-tight leading-none text-foreground">

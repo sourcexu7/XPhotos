@@ -7,7 +7,7 @@ export const useSwrInfiniteHook = (
 ) => {
   const { data, error, isLoading, isValidating, mutate } = useSWR(
     `${args}-${pageNum}-${album}`,
-    () => handle(pageNum, album),
+    () => handle?.(pageNum, album) || Promise.resolve([]),
     {
       revalidateOnFocus: false,
       revalidateIfStale: false,

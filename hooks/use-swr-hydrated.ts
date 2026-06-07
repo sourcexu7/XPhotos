@@ -4,7 +4,7 @@ import type { HandleProps } from '~/types/props'
 export const useSwrHydrated = ({ handle, args }: HandleProps)   => {
   const { data, error, isLoading, isValidating, mutate } = useSWR(args,
     () => {
-      return handle()
+      return handle?.() || Promise.resolve([])
     }, { revalidateOnFocus: false })
 
   return {

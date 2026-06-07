@@ -5,7 +5,7 @@ import { useBlurImageDataUrl } from '~/hooks/use-blurhash'
 import { MotionImage } from '~/components/album/motion-image'
 export default function ListImage({ image }: { image: ImageType }) {
 
-  const dataURL = useBlurImageDataUrl(image.blurhash)
+  const dataURL = useBlurImageDataUrl(image.blurhash || '')
   
   return (
     <MotionImage

@@ -10,7 +10,7 @@ export const useSwrPageTotalHook = ({ args, totalHandle, album, filters }: Image
   const { data, error, isLoading, isValidating, mutate } = useSWR(
     [args, album, cameras, lenses, tags, tagsOperator],
     () => {
-      return totalHandle(album, cameras.length > 0 ? cameras : undefined, lenses.length > 0 ? lenses : undefined, tags.length > 0 ? tags : undefined, tagsOperator)
+      return totalHandle?.(album, cameras.length > 0 ? cameras : undefined, lenses.length > 0 ? lenses : undefined, tags.length > 0 ? tags : undefined, tagsOperator) || Promise.resolve(0)
     },
     {
       revalidateOnFocus: false,

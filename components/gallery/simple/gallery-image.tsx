@@ -28,7 +28,7 @@ export default function GalleryImage({ photo, configData }: { photo: ImageType, 
 
   const { data: download = false, mutate: setDownload } = useSWR(['masonry/download', photo?.url ?? ''], null)
 
-  const dataURL = useBlurImageDataUrl(photo.blurhash)
+  const dataURL = useBlurImageDataUrl(photo.blurhash || '')
 
   const customIndexOriginEnable = configData?.find((item: { config_key: string; config_value: any }) => item.config_key === 'custom_index_origin_enable')?.config_value.toString() === 'true'
 

@@ -27,12 +27,12 @@ async function reviveDeletedImage(tx: Omit<PrismaClient, '$connect' | '$disconne
       exif: image.exif,
       shoot_at: (image as any)?.exif?.data_time && dayjs((image as any).exif.data_time).isValid() ? dayjs((image as any).exif.data_time).toDate() : null,
       labels: image.labels,
-      width: image.width,
-      height: image.height,
+      width: image.width ?? undefined,
+      height: image.height ?? undefined,
       detail: image.detail,
-      lat: String(image.lat),
-      lon: String(image.lon),
-      type: image.type,
+      lat: image.lat != null ? String(image.lat) : undefined,
+      lon: image.lon != null ? String(image.lon) : undefined,
+      type: image.type ?? undefined,
       show: 0,
       show_on_mainpage: 0,
       del: 0,
@@ -41,7 +41,7 @@ async function reviveDeletedImage(tx: Omit<PrismaClient, '$connect' | '$disconne
   })
 
   await tx.imagesAlbumsRelation.create({
-    data: { imageId: revived.id, album_value: image.album },
+    data: { imageId: revived.id, album_value: image.album ?? '' },
   })
 
   await syncImageTags(tx, revived.id, image)
@@ -189,15 +189,15 @@ export async function insertImage(image: ImageType) {
         exif: image.exif,
         shoot_at: shootAt,
         labels: image.labels,
-        width: image.width,
-        height: image.height,
+        width: image.width ?? undefined,
+        height: image.height ?? undefined,
         detail: image.detail,
-        lat: String(image.lat),
-        lon: String(image.lon),
-        type: image.type,
+        lat: image.lat != null ? String(image.lat) : undefined,
+        lon: image.lon != null ? String(image.lon) : undefined,
+        type: image.type ?? undefined,
         show: 0,
         show_on_mainpage: 0,
-        sort: image.sort,
+        sort: image.sort ?? undefined,
         del: 0,
       },
     })
@@ -205,13 +205,13 @@ export async function insertImage(image: ImageType) {
     await tx.imagesAlbumsRelation.create({
       data: {
         imageId: resultRow.id,
-        album_value: image.album,
+        album_value: image.album ?? '',
       },
     })
 
     // 检查相册是否有封面，如果没有则设置当前图片为封面
     const album = await tx.albums.findUnique({
-      where: { album_value: image.album },
+      where: { album_value: image.album ?? '' },
     })
 
     if (album && !album.cover) {
@@ -325,13 +325,13 @@ export async function updateImage(image: ImageType) {
         shoot_at: (image as any)?.exif?.data_time && dayjs((image as any).exif.data_time).isValid() ? dayjs((image as any).exif.data_time).toDate() : null,
         labels: image.labels,
         detail: image.detail,
-        sort: image.sort,
-        show: image.show,
-        show_on_mainpage: image.show_on_mainpage,
-        width: image.width,
-        height: image.height,
-        lat: image.lat,
-        lon: image.lon,
+        sort: image.sort ?? undefined,
+        show: image.show ?? undefined,
+        show_on_mainpage: image.show_on_mainpage ?? undefined,
+        width: image.width ?? undefined,
+        height: image.height ?? undefined,
+        lat: image.lat != null ? String(image.lat) : null,
+        lon: image.lon != null ? String(image.lon) : null,
         updatedAt: new Date(),
       },
     })
