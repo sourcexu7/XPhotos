@@ -18,28 +18,18 @@ services:
       - app
 
   app:
-    image: hackxu/xphotos:v2.0
+    image: hackxu/xphotos:v2.0.0
     container_name: xphotos-app
     restart: always
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - .env
-    networks:
-      - xphotos-net
-
-  redis:
-    image: redis:7-alpine
-    container_name: xphotos-redis
-    restart: always
-    command: >
-      redis-server
-      --requirepass ${REDIS_PASSWORD}
-      --maxmemory 128mb
-      --maxmemory-policy allkeys-lfu
-    volumes:
-      - redis_data:/data
+    environment:
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
     networks:
       - xphotos-net
 
@@ -47,32 +37,55 @@ services:
     image: postgres:16-alpine
     container_name: xphotos-db
     restart: always
-    # 新增端口映射：宿主机5432端口映射到容器5432（核心修复）
     ports:
       - "5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      # 新增：设置PostgreSQL编码和时区，避免中文/时间问题
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
       TZ: Asia/Shanghai
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - xphotos-net
-    # 新增：健康检查，确保数据库启动完成后再对外提供服务
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7.4-alpine
+    container_name: xphotos-redis
+    restart: always
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+      --save 60 1000
+      --tcp-keepalive 60
+      --loglevel warning
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - xphotos-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
 volumes:
   postgres_data:
-  redis_data:
   caddy_data:
   caddy_config:
+  redis_data:
 
 networks:
   xphotos-net:
