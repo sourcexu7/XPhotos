@@ -56,7 +56,7 @@ export default function GuideSortPanel({ open, onClose, onSuccess }: GuideSortPa
   const fetchGuides = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/v1/guides/list')
+      const res = await fetch('/api/v1/guides/list', { credentials: 'include' })
       const result = await res.json()
       if (result.data) {
         const sortedGuides = result.data.sort((a: Guide, b: Guide) => a.sort - b.sort)
@@ -145,6 +145,7 @@ export default function GuideSortPanel({ open, onClose, onSuccess }: GuideSortPa
 
       const res = await fetch('/api/v1/guides/batch-sort', {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sorts }),
       })
@@ -172,6 +173,7 @@ export default function GuideSortPanel({ open, onClose, onSuccess }: GuideSortPa
     try {
       const res = await fetch('/api/v1/guides/reset-sort', {
         method: 'POST',
+        credentials: 'include',
       })
 
       if (res.ok) {

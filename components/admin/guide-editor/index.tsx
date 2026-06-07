@@ -90,14 +90,14 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
   const [selectedAlbumIds, setSelectedAlbumIds] = useState<string[]>([])
 
   const { data: modules, isLoading, error } = useSWR<Module[]>(`${API_BASE}/module/${guideId}`, async (url: string) => {
-    const res = await fetch(url)
+    const res = await fetch(url, { credentials: 'include' })
     const json = await res.json()
     return json.data || []
   })
 
   const fetchGuide = useCallback(async () => {
     try {
-      const res = await fetch(`${GUIDES_API}/${guideId}`)
+      const res = await fetch(`${GUIDES_API}/${guideId}`, { credentials: 'include' })
       const result = await res.json()
       if (result.data) {
         setGuide(result.data)
@@ -123,7 +123,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
           if (mod.moduleData !== undefined) {
             return mod
           }
-          const res = await fetch(`${API_BASE}/module-data/${mod.id}`)
+          const res = await fetch(`${API_BASE}/module-data/${mod.id}`, { credentials: 'include' })
           const json = await res.json()
           return { ...mod, moduleData: json.data || [] }
         }
@@ -150,6 +150,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
       // 保存封面和相册关联
       await fetch(`${GUIDES_API}/${guideId}`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cover_image: coverImage,
@@ -158,6 +159,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
       
       await fetch(`${GUIDES_API}/${guideId}/albums`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           album_ids: selectedAlbumIds,
@@ -167,6 +169,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
       message.success('保存成功')
       onSave?.()
     } catch (error) {
+      console.error('handleSave error:', error)
       message.error('保存失败')
     }
   }

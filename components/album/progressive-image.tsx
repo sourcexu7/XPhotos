@@ -12,7 +12,6 @@ export default function ProgressiveImage(props: Readonly<ProgressiveImageProps>)
   const [showLightbox, setShowLightbox] = useState(Boolean(props.showLightbox))
   const [fullresSrc, setFullresSrc] = useState<string | null>(null)
   const openedRef = useRef(false)
-  const lightboxRef = useRef<any>(null)
 
   useEffect(() => {
     setShowLightbox(Boolean(props.showLightbox))
@@ -132,7 +131,6 @@ export default function ProgressiveImage(props: Readonly<ProgressiveImageProps>)
 
       {/* 保持 Lightbox 组件但禁用其默认行为，避免重复渲染 */}
       <Lightbox
-        ref={lightboxRef}
         open={false}
         close={() => {}}
         slides={[]}

@@ -57,6 +57,7 @@ interface Module {
 
 const contentTypeIcons: Record<string, React.ReactNode> = {
   text: <FontSizeOutlined />,
+  markdown: <FontSizeOutlined />,
   image: <PictureOutlined />,
   table: <TableOutlined />,
   video: <VideoCameraOutlined />,
@@ -72,6 +73,7 @@ const contentTypeIcons: Record<string, React.ReactNode> = {
 
 const contentTypeNames: Record<string, string> = {
   text: '文本',
+  markdown: 'Markdown',
   image: '图片',
   table: '表格',
   video: '视频',
@@ -122,9 +124,10 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
   const renderContentPreview = () => {
     switch (content.type) {
       case 'text':
+      case 'markdown':
         return (
           <div className="text-gray-700 text-sm line-clamp-3">
-            {content.content?.text?.slice(0, 100) || '空文本'}
+            {content.content?.text?.slice(0, 100) || content.content?.content?.slice(0, 100) || '空文本'}
           </div>
         )
       case 'image':
@@ -285,7 +288,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
   const { data: contents, isLoading, error } = useSWR<Content[]>(
     module ? `${API_BASE}/content/${module.id}` : null,
     async (url: string) => {
-      const res = await fetch(url)
+      const res = await fetch(url, { credentials: 'include' })
       const json = await res.json()
       return json.data || []
     }
@@ -302,7 +305,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
         onContentDataChange?.(data)
       } else {
         // 兼容旧逻辑：单独加载 moduleData
-        fetch(`${API_BASE}/module-data/${module.id}`)
+        fetch(`${API_BASE}/module-data/${module.id}`, { credentials: 'include' })
           .then(res => res.json())
           .then(json => {
             const data = json.data || []
@@ -323,6 +326,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
     try {
       await fetch(`${API_BASE}/module-data/${module.id}`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data }),
       })
@@ -338,6 +342,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
     try {
       const res = await fetch(`${API_BASE}/content`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           module_id: module.id,
@@ -346,14 +351,19 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
         }),
       })
 
-      if (!res.ok) throw new Error('Failed to create content')
+      if (!res.ok) {
+        const errText = await res.text()
+        console.error('handleAddContent failed:', res.status, errText)
+        throw new Error('Failed to create content')
+      }
 
-      message.success(t('createSuccess') || '创建成功')
+      message.success(t('addContent') || '创建成功')
       setIsAddModalOpen(false)
       setContentData({})
       setNewContentType('text')
       mutate(`${API_BASE}/content/${module.id}`)
     } catch (error) {
+      console.error('handleAddContent error:', error)
       message.error(t('createFailed') || '创建失败')
     } finally {
       setIsSubmitting(false)
@@ -367,13 +377,18 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
     try {
       const res = await fetch(`${API_BASE}/content/${editingContent.id}`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: contentData,
         }),
       })
 
-      if (!res.ok) throw new Error('Failed to update content')
+      if (!res.ok) {
+        const errText = await res.text()
+        console.error('handleEditContent failed:', res.status, errText)
+        throw new Error('Failed to update content')
+      }
 
       message.success(t('updateSuccess') || '更新成功')
       setIsEditModalOpen(false)
@@ -381,6 +396,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
       setContentData({})
       mutate(`${API_BASE}/content/${module.id}`)
     } catch (error) {
+      console.error('handleEditContent error:', error)
       message.error(t('updateFailed') || '更新失败')
     } finally {
       setIsSubmitting(false)
@@ -398,11 +414,15 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
-          const res = await fetch(`${API_BASE}/content/${contentId}`, { method: 'DELETE' })
+          const res = await fetch(`${API_BASE}/content/${contentId}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          })
           if (!res.ok) throw new Error('Failed to delete content')
           message.success(t('deleteSuccess') || '删除成功')
           mutate(`${API_BASE}/content/${module.id}`)
         } catch (error) {
+          console.error('handleDeleteContent error:', error)
           message.error(t('deleteFailed') || '删除失败')
         }
       },
@@ -422,10 +442,12 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
       try {
         await fetch(`${API_BASE}/content/sort`, {
           method: 'PUT',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ content_ids: newContents.map(c => c.id) }),
         })
-      } catch {
+      } catch (error) {
+        console.error('handleDragEnd error:', error)
         mutate(`${API_BASE}/content/${module.id}`)
       }
     }
@@ -433,6 +455,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
 
   const openEditModal = (content: Content) => {
     setEditingContent(content)
+    setNewContentType(content.type || 'text')
     setContentData(content.content || {})
     setIsEditModalOpen(true)
   }
@@ -446,6 +469,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
   const getDefaultContentData = (type: string): any => {
     switch (type) {
       case 'text':
+      case 'markdown':
         return { text: '' }
       case 'image':
         return { url: '', caption: '', alt: '' }
@@ -480,15 +504,25 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
   const renderContentEditor = () => {
     switch (newContentType) {
       case 'text':
+      case 'markdown':
         return (
-          <div>
-            <label className="block text-sm font-medium mb-2">文本内容</label>
-            <Input.TextArea
-              value={contentData.text || ''}
-              onChange={(e) => setContentData({ ...contentData, text: e.target.value })}
-              placeholder="请输入文本内容"
-              rows={8}
-            />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                {newContentType === 'markdown' ? 'Markdown 内容' : '文本内容'}
+              </label>
+              <Input.TextArea
+                rows={14}
+                placeholder={
+                  newContentType === 'markdown'
+                    ? '支持 Markdown 语法：# 标题、**加粗**、- 列表、> 引用、`代码`、[链接](...)等'
+                    : '请输入文本内容'
+                }
+                value={contentData.text || contentData.content || ''}
+                onChange={e => setContentData({ text: e.target.value })}
+                className="font-mono text-sm w-full"
+              />
+            </div>
           </div>
         )
       case 'image':

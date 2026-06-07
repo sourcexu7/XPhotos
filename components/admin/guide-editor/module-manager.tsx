@@ -170,7 +170,7 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
   )
 
   const { data: modules, isLoading, error } = useSWR<Module[]>(`${API_BASE}/module/${guideId}`, async (url: string) => {
-    const res = await fetch(url)
+    const res = await fetch(url, { credentials: 'include' })
     const json = await res.json()
     return json.data || []
   })
@@ -185,6 +185,7 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
     try {
       const res = await fetch(`${API_BASE}/module`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           guide_id: guideId,
@@ -193,7 +194,11 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
         }),
       })
 
-      if (!res.ok) throw new Error('Failed to create module')
+      if (!res.ok) {
+        const errText = await res.text()
+        console.error('handleAddModule failed:', res.status, errText)
+        throw new Error('Failed to create module')
+      }
 
       message.success(t('createSuccess') || '创建成功')
       setIsAddModalOpen(false)
@@ -201,6 +206,7 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
       setModuleTemplate(null)
       mutate(`${API_BASE}/module/${guideId}`)
     } catch (error) {
+      console.error('handleAddModule error:', error)
       message.error(t('createFailed') || '创建失败')
     } finally {
       setIsSubmitting(false)
@@ -217,6 +223,7 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
     try {
       const res = await fetch(`${API_BASE}/module/${editingModule.id}`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: moduleName.trim(),
@@ -224,7 +231,11 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
         }),
       })
 
-      if (!res.ok) throw new Error('Failed to update module')
+      if (!res.ok) {
+        const errText = await res.text()
+        console.error('handleEditModule failed:', res.status, errText)
+        throw new Error('Failed to update module')
+      }
 
       message.success(t('updateSuccess') || '更新成功')
       setIsEditModalOpen(false)
@@ -237,6 +248,7 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
         onModuleSelect({ ...editingModule, name: moduleName.trim(), template: moduleTemplate })
       }
     } catch (error) {
+      console.error('handleEditModule error:', error)
       message.error(t('updateFailed') || '更新失败')
     } finally {
       setIsSubmitting(false)
@@ -254,6 +266,7 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
         try {
           const res = await fetch(`${API_BASE}/module/${moduleId}`, {
             method: 'DELETE',
+            credentials: 'include',
           })
 
           if (!res.ok) throw new Error('Failed to delete module')
@@ -265,6 +278,7 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
             onModuleSelect(null)
           }
         } catch (error) {
+          console.error('handleDeleteModule error:', error)
           message.error(t('deleteFailed') || '删除失败')
         }
       },
@@ -284,12 +298,14 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
       try {
         await fetch(`${API_BASE}/module/sort`, {
           method: 'PUT',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             module_ids: newModules.map(m => m.id),
           }),
         })
       } catch (error) {
+        console.error('handleDragEnd error:', error)
         mutate(`${API_BASE}/module/${guideId}`)
       }
     }

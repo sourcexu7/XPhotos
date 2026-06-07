@@ -25,6 +25,8 @@ const moduleIcons: Record<string, string> = {
   tips: '💡',
   attraction: '📍',
   food: '🍜',
+  text: '📝',
+  markdown: '📝',
 }
 
 // SamAlive 风格的配色
@@ -84,6 +86,20 @@ const moduleColors: Record<string, { bg: string; border: string; text: string; g
     text: 'text-cyan-700 dark:text-cyan-300',
     gradient: 'from-cyan-400 to-cyan-600',
     accent: 'text-cyan-600 dark:text-cyan-400',
+  },
+  text: {
+    bg: 'bg-indigo-50/80 dark:bg-indigo-900/20',
+    border: 'border-l-indigo-500',
+    text: 'text-indigo-700 dark:text-indigo-300',
+    gradient: 'from-indigo-400 to-indigo-600',
+    accent: 'text-indigo-600 dark:text-indigo-400',
+  },
+  markdown: {
+    bg: 'bg-indigo-50/80 dark:bg-indigo-900/20',
+    border: 'border-l-indigo-500',
+    text: 'text-indigo-700 dark:text-indigo-300',
+    gradient: 'from-indigo-400 to-indigo-600',
+    accent: 'text-indigo-600 dark:text-indigo-400',
   },
 }
 

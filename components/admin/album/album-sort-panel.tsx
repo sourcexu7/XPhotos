@@ -217,7 +217,7 @@ export default function AlbumSortPanel({
   onClose,
 }: AlbumSortPanelProps) {
   const t = useTranslations()
-  const listRef = useRef<typeof List>(null)
+  const listRef = useRef<List>(null)
   const [images, setImages] = useState<AlbumSortImage[]>([])
   const [originalImages, setOriginalImages] = useState<AlbumSortImage[]>([])
   const [loading, setLoading] = useState(false)

@@ -65,7 +65,7 @@ export default function GuideCoverEditor({
   const fetchAlbums = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/v1/albums/get')
+      const res = await fetch('/api/v1/albums/get', { credentials: 'include' })
       const result = await res.json()
       setAllAlbums(Array.isArray(result) ? result : (result.data || []))
     } catch (error) {
@@ -145,6 +145,7 @@ export default function GuideCoverEditor({
     try {
       const res = await fetch('/api/v1/albums/update', {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: currentAlbumForCover.id,

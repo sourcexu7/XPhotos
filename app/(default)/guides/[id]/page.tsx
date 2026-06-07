@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { ArrowLeft, MapPin, Calendar, ChevronDown, ImageIcon } from 'lucide-react'
 import GuideGuideTOC, { moduleColors, moduleIcons } from '@/components/guides/guide-toc'
+import MarkdownRenderer from '@/components/guides/markdown-renderer'
 
 interface Content {
   id: string
@@ -431,7 +432,10 @@ function renderModuleWithRef(module: Module, moduleRefs: React.MutableRefObject<
           {module.template === 'transport' && renderTransport(moduleData)}
           {module.template === 'photo' && renderPhoto(moduleData)}
           {module.template === 'tips' && renderTips(moduleData)}
-          {!module.template && module.contents?.sort((a, b) => a.sort - b.sort).map(renderContent)}
+          {(module.template === 'text' || module.template === 'markdown' || module.template === null || module.template === undefined) && module.contents && module.contents.length > 0 && module.contents
+            .slice()
+            .sort((a, b) => a.sort - b.sort)
+            .map(renderContent)}
         </div>
       </div>
     </motion.section>
@@ -441,9 +445,10 @@ function renderModuleWithRef(module: Module, moduleRefs: React.MutableRefObject<
 function renderContent(content: Content) {
   switch (content.type) {
     case 'text':
+    case 'markdown':
       return (
-        <div key={content.id} className="mb-3 sm:mb-6 leading-relaxed text-xs sm:text-base text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
-          {content.content?.text}
+        <div key={content.id} className="mb-2 sm:mb-4">
+          <MarkdownRenderer content={content.content?.text || content.content?.content || ''} />
         </div>
       )
     case 'image':

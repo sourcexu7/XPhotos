@@ -50,7 +50,7 @@ export default function TocManager({ guideId, modules, onModuleSelect }: TocMana
   // 获取目录列表
   const fetchToc = useCallback(async () => {
     try {
-      const res = await fetch(`/api/v1/guide-modules/toc/${guideId}`)
+      const res = await fetch(`/api/v1/guide-modules/toc/${guideId}`, { credentials: 'include' })
       const result = await res.json()
       if (result.data) {
         setTocItems(result.data)
@@ -70,6 +70,7 @@ export default function TocManager({ guideId, modules, onModuleSelect }: TocMana
       
       const res = await fetch('/api/v1/guide-modules/toc', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           guide_id: guideId,
@@ -104,6 +105,7 @@ export default function TocManager({ guideId, modules, onModuleSelect }: TocMana
       
       const res = await fetch(`/api/v1/guide-modules/toc/${editingItem.id}`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: values.title,
@@ -133,6 +135,7 @@ export default function TocManager({ guideId, modules, onModuleSelect }: TocMana
     try {
       const res = await fetch(`/api/v1/guide-modules/toc/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
       if (res.ok) {
         message.success('目录项删除成功')
@@ -150,6 +153,7 @@ export default function TocManager({ guideId, modules, onModuleSelect }: TocMana
     try {
       const res = await fetch('/api/v1/guide-modules/toc/auto-generate', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ guide_id: guideId }),
       })
