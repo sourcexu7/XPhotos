@@ -1,6 +1,13 @@
 import { Hono } from 'hono'
 import { jwtAuth } from './middleware/auth'
 import { db } from '@/lib/db'
+import { cacheInvalidate } from '~/lib/redis'
+
+async function invalidateGuidesCache(id?: string) {
+  const keys: string[] = ['guides:list']
+  if (id) keys.push(`guide:${id}`)
+  await cacheInvalidate(...keys)
+}
 
 const app = new Hono()
 
@@ -142,6 +149,7 @@ app.post('/', jwtAuth, async (c) => {
         sort: body.sort ?? 0,
       },
     })
+    await invalidateGuidesCache()
     return c.json({ data: guide })
   } catch (error) {
     console.error(error)
@@ -155,10 +163,9 @@ app.delete('/:id', jwtAuth, async (c) => {
     const id = c.req.param('id')
     await db.guides.update({
       where: { id },
-      data: {
-        del: 1,
-      },
+      data: { del: 1 },
     })
+    await invalidateGuidesCache(id)
     return c.json({ message: 'Guide deleted successfully' })
   } catch (error) {
     console.error(error)
@@ -378,6 +385,7 @@ app.put('/:id', jwtAuth, async (c) => {
         sort: body.sort,
       },
     })
+    await invalidateGuidesCache(id)
     return c.json({ data: guide })
   } catch (error) {
     console.error(error)

@@ -39,12 +39,14 @@ export default function DarkModeToggle() {
         <button
           onClick={toggleDarkMode}
           className="p-2 rounded-full hover:bg-muted/50 transition-colors duration-200"
+          style={{ touchAction: 'manipulation' }}
+          type="button"
           aria-label={isDark ? t('Theme.lightMode') : t('Theme.darkMode')}
         >
-          <SunMoonIcon 
-            size={18} 
-            className={`transition-transform duration-300 ${isDark ? 'rotate-180' : ''}`} 
-          />
+          <SunMoonIcon
+            size={20}
+            className={`transition-transform duration-300 ${isDark ? 'rotate-180' : ''}`}
+        />
         </button>
       </TooltipTrigger>
       <TooltipContent>

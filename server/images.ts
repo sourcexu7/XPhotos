@@ -27,6 +27,15 @@ import { fetchConfigsByKeys } from '~/lib/db/query/configs'
 import type { Config } from '~/types'
 import { getClient } from '~/lib/s3'
 import { getCOSClient } from '~/lib/cos'
+import { cacheInvalidate } from '~/lib/redis'
+import { invalidateDashboardCache } from '~/lib/db/query/public-dashboard'
+
+async function invalidateImageRelatedCaches() {
+  await Promise.all([
+    invalidateDashboardCache(),
+    cacheInvalidate('images:camera_lens_list'),
+  ])
+}
 
 const app = new Hono()
 
@@ -177,6 +186,7 @@ app.post('/add', async (c) => {
     await verifyImageObjectsExist(image as any)
 
     const res = await insertImage(image)
+    await invalidateImageRelatedCaches()
     return c.json({ code: 200, data: res })
   } catch (e) {
     if (e instanceof HTTPException) throw e
@@ -234,7 +244,7 @@ app.delete('/batch-delete', async (c) => {
     }
 
     await deleteBatchImage(strIds)
-
+    await invalidateImageRelatedCaches()
     return c.json({ code: 200, message: 'Success' })
   } catch (e) {
     if (e instanceof HTTPException) throw e
@@ -246,6 +256,7 @@ app.delete('/delete/:id', async (c) => {
   try {
     const { id } = c.req.param()
     await deleteImage(id)
+    await invalidateImageRelatedCaches()
     return c.json({ code: 200, message: 'Success' })
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed to delete image', cause: e })

@@ -7,6 +7,7 @@ import gallery from '~/server/open/gallery'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import { db } from '~/lib/db'
+import { cacheWrap } from '~/lib/redis'
 
 const app = new Hono()
 
@@ -89,19 +90,13 @@ app.route('/gallery', gallery)
  */
 app.get('/guides', async (c) => {
   try {
-    const guides = await db.guides.findMany({
-      where: {
-        del: 0,
-        show: 1,
-      },
-      include: {
-        components: true,
-      },
-      orderBy: [
-        { sort: 'asc' },
-        { createdAt: 'desc' },
-      ],
-    })
+    const guides = await cacheWrap('guides:list', () =>
+      db.guides.findMany({
+        where: { del: 0, show: 1 },
+        include: { components: true },
+        orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
+      }),
+    )
     return c.json({ data: guides })
   } catch (error) {
     console.error('Error fetching guides:', error)
@@ -115,58 +110,43 @@ app.get('/guides', async (c) => {
 app.get('/guides/:id', async (c) => {
   try {
     const id = c.req.param('id')
-    const guide = await db.guides.findUnique({
-      where: {
-        id,
-        del: 0,
-        show: 1,
-      },
-      include: {
-        components: true,
-        albums: {
-          include: {
-            album: true,
+    const data = await cacheWrap(`guide:${id}`, async () => {
+      const guide = await db.guides.findUnique({
+        where: { id, del: 0, show: 1 },
+        include: {
+          components: true,
+          albums: { include: { album: true } },
+          modules: {
+            where: { is_hidden: false },
+            include: { contents: { orderBy: { sort: 'asc' } } },
+            orderBy: { sort: 'asc' },
           },
         },
-        modules: {
-          where: {
-            is_hidden: false,
-          },
-          include: {
-            contents: {
-              orderBy: { sort: 'asc' },
-            },
-          },
-          orderBy: { sort: 'asc' },
-        },
-      },
+      })
+      if (!guide) return null
+
+      const specialTemplates = ['itinerary', 'expense', 'checklist', 'transport', 'photo', 'tips']
+      const modulesWithData = await Promise.all(
+        (guide.modules || []).map(async (mod: any) => {
+          if (specialTemplates.includes(mod.template)) {
+            const moduleData = await db.guideModuleContents.findFirst({
+              where: { module_id: mod.id, type: 'module_data' },
+            })
+            return { ...mod, moduleData: moduleData?.content || [] }
+          }
+          return mod
+        }),
+      )
+      return { ...guide, modules: modulesWithData }
     })
-    if (!guide) {
+
+    if (!data) {
       throw new HTTPException(404, { message: 'Guide not found' })
     }
-    
-    const modulesWithData = await Promise.all(
-      (guide.modules || []).map(async (mod: any) => {
-        const specialTemplates = ['itinerary', 'expense', 'checklist', 'transport', 'photo', 'tips']
-        if (specialTemplates.includes(mod.template)) {
-          const moduleData = await db.guideModuleContents.findFirst({
-            where: {
-              module_id: mod.id,
-              type: 'module_data',
-            },
-          })
-          return { ...mod, moduleData: moduleData?.content || [] }
-        }
-        return mod
-      })
-    )
-    
-    return c.json({ data: { ...guide, modules: modulesWithData } })
+    return c.json({ data })
   } catch (error) {
     console.error('Error fetching guide:', error)
-    if (error instanceof HTTPException) {
-      throw error
-    }
+    if (error instanceof HTTPException) throw error
     throw new HTTPException(500, { message: 'Failed to fetch guide', cause: error })
   }
 })

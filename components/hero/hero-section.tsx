@@ -150,10 +150,11 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
               transition={{ delay: reduceMotion ? 0 : 0.9, duration: reduceMotion ? 0 : 0.8 }}
               whileHover={reduceMotion ? {} : { scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
-              className="group flex items-center gap-1.5 sm:gap-2 px-5 sm:px-7 py-2.5 sm:py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white text-xs sm:text-sm font-medium tracking-wide hover:bg-white/20 transition-all duration-300 whitespace-nowrap"
+              className="group flex items-center gap-1.5 sm:gap-2 px-5 sm:px-7 py-2.5 sm:py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-full !text-white text-xs sm:text-sm font-medium tracking-wide hover:bg-white/20 transition-all duration-300 whitespace-nowrap"
+              style={{ color: '#ffffff' }}
             >
               探索作品集
-              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
+              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white group-hover:translate-x-0.5 transition-transform duration-200" />
             </motion.button>
           </div>
 

@@ -7,6 +7,7 @@ import { db } from '~/lib/db'
 import type { ImageType } from '~/types'
 import { fetchConfigValue } from './configs'
 import { cache } from 'react'
+import { cacheWrap, cacheInvalidate } from '~/lib/redis'
 
 // 使用枚举替代魔法值，提升可维护性
 enum AlbumImageSorting {
@@ -1053,25 +1054,31 @@ export const fetchFeaturedImages = cache(async (): Promise<ImageType[]> => {
  * 获取所有相机和镜头型号列表
  */
 export const fetchCameraAndLensList = cache(async (): Promise<{ cameras: string[], lenses: string[] }> => {
-  const stats = await db.$queryRaw<Array<{ camera: string; lens: string }>>`
-    SELECT DISTINCT
-      COALESCE(exif->>'model', 'Unknown') as camera,
-      COALESCE(exif->>'lens_model', 'Unknown') as lens
-    FROM "public"."images"
-    WHERE del = 0
-    ORDER BY camera, lens
-  `
+  return cacheWrap('images:camera_lens_list', async () => {
+    const stats = await db.$queryRaw<Array<{ camera: string; lens: string }>>`
+      SELECT DISTINCT
+        COALESCE(exif->>'model', 'Unknown') as camera,
+        COALESCE(exif->>'lens_model', 'Unknown') as lens
+      FROM "public"."images"
+      WHERE del = 0
+      ORDER BY camera, lens
+    `
 
-  const cameraSet = new Set<string>()
-  const lensSet = new Set<string>()
+    const cameraSet = new Set<string>()
+    const lensSet = new Set<string>()
 
-  for (let i = 0; i < stats.length; i++) {
-    cameraSet.add(stats[i].camera)
-    lensSet.add(stats[i].lens)
-  }
+    for (let i = 0; i < stats.length; i++) {
+      cameraSet.add(stats[i].camera)
+      lensSet.add(stats[i].lens)
+    }
 
-  return {
-    cameras: Array.from(cameraSet),
-    lenses: Array.from(lensSet)
-  }
+    return {
+      cameras: Array.from(cameraSet),
+      lenses: Array.from(lensSet),
+    }
+  })
 })
+
+export async function invalidateCameraLensListCache(): Promise<void> {
+  await cacheInvalidate('images:camera_lens_list')
+}

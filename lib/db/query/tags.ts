@@ -1,73 +1,71 @@
-// ...existing code...
-import { db } from '~/lib/db'
+'use server'
 
-// 轻量缓存：tags 列表变化不频繁，缓存 60s 降低 /albums 首屏 TTFB
-let tagsListCache:
-  | { data: { id: string; name: string; category?: string }[]; expiresAt: number }
-  | null = null
-const TAGS_TTL = 60_000
+import { db } from '~/lib/db'
+import { cacheWrap, cacheInvalidate } from '~/lib/redis'
+
+const CACHE_KEY_TAGS_LIST = 'tags:list'
+const CACHE_KEY_TAGS_TREE = 'tags:tree'
+
+export async function invalidateTagsCache(): Promise<void> {
+  await cacheInvalidate(CACHE_KEY_TAGS_LIST, CACHE_KEY_TAGS_TREE)
+}
 
 export async function fetchTagsList(): Promise<{ id: string; name: string; category?: string }[]> {
-  const now = Date.now()
-  if (tagsListCache && tagsListCache.expiresAt > now) {
-    return tagsListCache.data
-  }
-
-  const tags = await db.tags.findMany({ orderBy: { name: 'asc' } })
-  const data = tags.map(tag => ({
-    id: tag.id,
-    name: tag.name,
-    category: tag.category ?? undefined,
-  }))
-
-  tagsListCache = { data, expiresAt: now + TAGS_TTL }
-  return data
+  return cacheWrap(CACHE_KEY_TAGS_LIST, async () => {
+    const tags = await db.tags.findMany({ orderBy: { name: 'asc' } })
+    return tags.map((tag) => ({
+      id: tag.id,
+      name: tag.name,
+      category: tag.category ?? undefined,
+    }))
+  })
 }
 
 /**
- * 返回按 category 分组的树形结构（临时兼容逻辑，使用现有 `category` 字段表示一级）
+ * 返回按 category 分组的树形结构
  */
 export async function fetchTagsTree(): Promise<Array<{ id?: string; category: string | null; children: { id: string; name: string }[] }>> {
-  const tags = await db.tags.findMany({ orderBy: [{ parentId: 'asc' }, { name: 'asc' }] })
-  const hasParentField = tags.some((t) => t.parentId !== null)
-  if (hasParentField) {
-    const parentsMap: Record<string, { id: string; category: string | null; children: { id: string; name: string }[] }> = {}
-    const orphans: { id: string; name: string }[] = []
-    for (const t of tags) {
-      const pid = t.parentId
-      if (!pid) {
-        // parent node
-        parentsMap[t.id] = { id: t.id, category: t.category ?? t.name, children: [] }
+  return cacheWrap(CACHE_KEY_TAGS_TREE, async () => {
+    const tags = await db.tags.findMany({ orderBy: [{ parentId: 'asc' }, { name: 'asc' }] })
+    const hasParentField = tags.some((t) => t.parentId !== null)
+
+    if (hasParentField) {
+      const parentsMap: Record<string, { id: string; category: string | null; children: { id: string; name: string }[] }> = {}
+      const orphans: { id: string; name: string }[] = []
+
+      for (const t of tags) {
+        if (!t.parentId) {
+          parentsMap[t.id] = { id: t.id, category: t.category ?? t.name, children: [] }
+        }
       }
-    }
-    for (const t of tags) {
-      const pid = t.parentId
-      if (pid) {
-        if (parentsMap[pid]) parentsMap[pid].children.push({ id: t.id, name: t.name })
-        else orphans.push({ id: t.id, name: t.name })
+      for (const t of tags) {
+        if (t.parentId) {
+          if (parentsMap[t.parentId]) parentsMap[t.parentId].children.push({ id: t.id, name: t.name })
+          else orphans.push({ id: t.id, name: t.name })
+        }
       }
+
+      const result = Object.values(parentsMap).map((v) => ({
+        id: v.id,
+        category: v.category,
+        children: v.children,
+      }))
+      if (orphans.length > 0) result.push({ id: '', category: null, children: orphans })
+      return result
     }
-    const result: Array<{ id?: string; category: string | null; children: { id: string; name: string }[] }> = []
-    for (const k of Object.keys(parentsMap)) {
-      const v = parentsMap[k]
-      result.push({ id: v.id, category: v.category, children: v.children })
+
+    // fallback: category grouping
+    const map: Record<string, { children: { id: string; name: string }[] }> = {}
+    for (const t of tags) {
+      const cat = t.category || ''
+      if (!map[cat]) map[cat] = { children: [] }
+      map[cat].children.push({ id: t.id, name: t.name })
     }
-    // attach orphans as unnamed category if any
-    if (orphans.length > 0) result.push({ category: null, children: orphans })
-    return result
-  }
-  // fallback: use category grouping
-  const map: Record<string, { children: { id: string; name: string }[] }> = {}
-  for (const t of tags) {
-    const cat = t.category || ''
-    if (!map[cat]) map[cat] = { children: [] }
-    map[cat].children.push({ id: t.id, name: t.name })
-  }
-  const result: Array<{ category: string | null; children: { id: string; name: string }[] }> = []
-  for (const k of Object.keys(map)) {
-    result.push({ category: k === '' ? null : k, children: map[k].children })
-  }
-  return result
+    return Object.entries(map).map(([k, v]) => ({
+      category: k === '' ? null : k,
+      children: v.children,
+    }))
+  })
 }
 
 export async function fetchTagsByCategory(category: string) {

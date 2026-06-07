@@ -4,12 +4,13 @@
 
 import { db } from '~/lib/db'
 import type { Config } from '~/types'
+import { cacheWrap, cacheInvalidate } from '~/lib/redis'
 
-// 优化点: 为常用配置结果增加轻量缓存，减少重复 DB 查询
-const CONFIG_CACHE = new Map<string, { data: Config[]; expiresAt: number }>()
-const CONFIG_TTL = 60_000
-// 并发去重：当相同 key 的查询正在进行时，复用同一个 Promise，避免短时间内触发大量相同的 DB 请求
 const INFLIGHT_QUERIES = new Map<string, Promise<Config[]>>()
+
+function configCacheKey(keys: string[]): string {
+  return `configs:${keys.slice().sort().join('|')}`
+}
 
 /**
  * 根据 key 获取配置
@@ -17,59 +18,29 @@ const INFLIGHT_QUERIES = new Map<string, Promise<Config[]>>()
  * @return {Promise<Config[]>} 配置列表
  */
 export async function fetchConfigsByKeys(keys: string[]): Promise<Config[]> {
-  const cacheKey = keys.slice().sort().join('|')
-  const now = Date.now()
-  const cached = CONFIG_CACHE.get(cacheKey)
-  if (cached && cached.expiresAt > now) {
-    return cached.data
-  }
+  const redisKey = configCacheKey(keys)
 
-  // 如果其他并发调用正在查询相同的 keys，直接复用该 Promise
-  const existingInflight = INFLIGHT_QUERIES.get(cacheKey)
+  // 并发去重：同一批 keys 正在查询时复用 Promise
+  const existingInflight = INFLIGHT_QUERIES.get(redisKey)
   if (existingInflight) {
     try {
       return await existingInflight
-    } catch (e) {
-      // 如果复用的请求失败，继续向下发起新的请求
+    } catch {
+      // 复用失败则继续发起新请求
     }
   }
 
-  const promise = (async () => {
-    try {
-      // 确保数据库连接正常
-      await db.$connect().catch(() => {
-        // 如果连接已存在，忽略错误
-      })
-      
-      const data = await db.configs.findMany({
-        where: {
-          config_key: {
-            in: keys,
-          },
-        },
-        select: {
-          id: true,
-          config_key: true,
-          config_value: true,
-          detail: true,
-        },
-      })
+  const promise = cacheWrap<Config[]>(redisKey, async () => {
+    await db.$connect().catch(() => {})
+    return await db.configs.findMany({
+      where: { config_key: { in: keys } },
+      select: { id: true, config_key: true, config_value: true, detail: true },
+    })
+  }).finally(() => {
+    INFLIGHT_QUERIES.delete(redisKey)
+  })
 
-      CONFIG_CACHE.set(cacheKey, { data, expiresAt: now + CONFIG_TTL })
-      return data
-    } catch (error) {
-      console.error('Failed to fetch configs:', error)
-      // 如果是连接错误，清理缓存，下次重试
-      if (error instanceof Error && error.message.includes('connection')) {
-        CONFIG_CACHE.delete(cacheKey)
-      }
-      return []
-    } finally {
-      INFLIGHT_QUERIES.delete(cacheKey)
-    }
-  })()
-
-  INFLIGHT_QUERIES.set(cacheKey, promise)
+  INFLIGHT_QUERIES.set(redisKey, promise)
   return await promise
 }
 
@@ -80,25 +51,22 @@ export async function fetchConfigsByKeys(keys: string[]): Promise<Config[]> {
  * @return {Promise<string>} 配置值
  */
 export async function fetchConfigValue(key: string, defaultValue: string = ''): Promise<string> {
-  // 优先尝试从缓存中读取单键值，降低 DB 访问频率
-  const cachedKey = key
-  const now = Date.now()
-  for (const [cacheKey, entry] of CONFIG_CACHE.entries()) {
-    if (cacheKey.split('|').includes(cachedKey) && entry.expiresAt > now) {
-      const found = entry.data.find(i => i.config_key === key)
-      if (found) return found.config_value || defaultValue
-    }
-  }
-
-  // 回退到单条查询
-  try {
+  const redisKey = `config:${key}`
+  const value = await cacheWrap<string | null>(redisKey, async () => {
     const config = await db.configs.findFirst({
       where: { config_key: key },
-      select: { config_value: true }
+      select: { config_value: true },
     })
-    return config?.config_value || defaultValue
-  } catch (error) {
-    console.error('Failed to fetch config value:', error)
-    return defaultValue
-  }
+    return config?.config_value ?? null
+  })
+  return value ?? defaultValue
+}
+
+/**
+ * 写操作后调用，使相关配置缓存失效
+ */
+export async function invalidateConfigsCache(...keys: string[]): Promise<void> {
+  const redisKeys = keys.map((k) => `config:${k}`)
+  // 同时清理批量 key 的复合缓存（逐一扫描不同组合开销高，直接清 single-key 缓存即可）
+  await cacheInvalidate(...redisKeys)
 }

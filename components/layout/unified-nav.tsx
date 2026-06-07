@@ -43,7 +43,8 @@ export default function UnifiedNav({
   const { resolvedTheme, setTheme } = useTheme()
   const navRef = useRef<HTMLElement>(null)
   const isHomePage = pathname === '/'
-  const shouldHideThemeToggle = hideThemeToggle || isHomePage
+  // 首页也允许切换主题（默认仍会是 dark，但用户可以主动切 light）
+  const shouldHideThemeToggle = hideThemeToggle
 
   useEffect(() => {
     setMounted(true)
@@ -145,30 +146,34 @@ export default function UnifiedNav({
             {mounted && !shouldHideThemeToggle && (
               <button
                 onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-                className="ml-2 inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-muted/60 transition-all duration-300"
+                className="ml-2 inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted/60 transition-all duration-300"
+                style={{ touchAction: 'manipulation' }}
                 aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                type="button"
               >
                 {resolvedTheme === 'dark' ? (
-                  <SunIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                  <SunIcon className="w-4 h-4 text-foreground" />
                 ) : (
-                  <MoonIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                  <MoonIcon className="w-4 h-4 text-foreground" />
                 )}
               </button>
             )}
           </div>
 
           {/* Mobile Menu Toggle */}
-          <div className="lg:hidden flex items-center gap-0.5">
+          <div className="lg:hidden flex items-center gap-1">
             {mounted && !shouldHideThemeToggle && (
               <button
                 onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
                 className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-muted/60 transition-all duration-300"
+                style={{ touchAction: 'manipulation' }}
                 aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                type="button"
               >
                 {resolvedTheme === 'dark' ? (
-                  <SunIcon className="w-4 h-4 text-muted-foreground" />
+                  <SunIcon className="w-4 h-4 text-foreground" />
                 ) : (
-                  <MoonIcon className="w-4 h-4 text-muted-foreground" />
+                  <MoonIcon className="w-4 h-4 text-foreground" />
                 )}
               </button>
             )}
