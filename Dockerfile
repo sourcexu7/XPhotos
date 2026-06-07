@@ -44,9 +44,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Prisma generate 需要一个 DATABASE_URL（只在构建期读取 schema；真实连接在运行时注入
-RUN echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/xphotos?schema=public" > .env
+# 同时禁用 Redis / 外部数据库连接，避免静态渲染期触发真实网络请求
+RUN echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/xphotos?schema=public" > .env \
+    && echo "REDIS_DISABLED=true" >> .env
 
-# Prisma engine 镜像：解决国内下载 query-engine 二进制超时/403 的问题
+ENV REDIS_DISABLED=true
 ENV PRISMA_ENGINES_MIRROR=https://registry.npmmirror.com/-/binary/prisma
 ENV PRISMA_SKIP_POSTINSTALL_GENERATE=true
 
