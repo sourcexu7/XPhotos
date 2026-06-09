@@ -96,6 +96,21 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-title" content={DEFAULT_TITLE} />
         <link rel="dns-prefetch" href="//xphotos7-1306526302.cos.ap-nanjing.myqcloud.com" />
         <link rel="preconnect" href="https://xphotos7-1306526302.cos.ap-nanjing.myqcloud.com" crossOrigin="" />
+        {/*
+          主题默认策略 inline 脚本：
+            - 首页 "/" 默认 dark；其它所有页面默认 light
+            - 用户显式切换主题后（写入 explicitThemePref），所有页面都优先遵循用户选择
+            - 此脚本在 next-themes / React 之前运行，避免主题闪烁 (FOUC)
+
+          协议关键字：
+            localStorage.explicitThemePref = 'dark' | 'light'  ← 用户手动点切换按钮产生
+            localStorage.theme                  = 'dark' | 'light'  ← next-themes 读写
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var e=window.location.pathname||"/",t=null,o=null;try{t=localStorage.getItem("explicitThemePref");o=localStorage.getItem("theme")}catch(e){}var r="dark",i="light",a=t?null:(e==="/"||e===""?r:i),n=a||o||i;try{localStorage.setItem("theme",n)}catch(e){}var l=document.documentElement;l.classList.remove(r,i);l.classList.add(n);var d=r===n?"#000000":"#ffffff";var c=document.querySelector('meta[name="theme-color"]');c&&c.setAttribute("content",d)}catch(e){}})();`,
+          }}
+        />
       </head>
       <body>
         <NextIntlClientProvider messages={messages}>

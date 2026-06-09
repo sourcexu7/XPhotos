@@ -12,6 +12,7 @@ import {
 import { useButtonStore } from '~/app/providers/button-store-providers.tsx'
 import { useRouter } from 'next-nprogress-bar'
 import { useTheme } from 'next-themes'
+import { useUserThemeToggle } from '~/lib/theme/use-user-theme-toggle'
 import { useTranslations } from 'next-intl'
 import type { AlbumDataProps } from '~/types/props.ts'
 import type { AlbumType } from '~/types'

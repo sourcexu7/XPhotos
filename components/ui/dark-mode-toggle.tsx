@@ -5,13 +5,15 @@ import { SunMoonIcon } from '~/components/icons/sun-moon.tsx'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip.tsx'
 import { useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
+import { useUserThemeToggle } from '~/lib/theme/use-user-theme-toggle'
 
 export default function DarkModeToggle() {
   const t = useTranslations()
-  const { setTheme, resolvedTheme } = useTheme()
+  const { resolvedTheme } = useTheme()
+  const { toggle } = useUserThemeToggle()
   const [mounted, setMounted] = useState(false)
 
-  // 避免水合不匹配
+  // 避免水合不匹配：客户端挂载前用占位按钮
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -29,15 +31,12 @@ export default function DarkModeToggle() {
   }
 
   const isDark = resolvedTheme === 'dark'
-  const toggleDarkMode = () => {
-    setTheme(isDark ? 'light' : 'dark')
-  }
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <button
-          onClick={toggleDarkMode}
+          onClick={toggle}
           className="p-2 rounded-full hover:bg-muted/50 transition-colors duration-200"
           style={{ touchAction: 'manipulation' }}
           type="button"
@@ -46,7 +45,7 @@ export default function DarkModeToggle() {
           <SunMoonIcon
             size={20}
             className={`transition-transform duration-300 ${isDark ? 'rotate-180' : ''}`}
-        />
+          />
         </button>
       </TooltipTrigger>
       <TooltipContent>

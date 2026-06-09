@@ -27,13 +27,21 @@ import { fetchConfigsByKeys } from '~/lib/db/query/configs'
 import type { Config } from '~/types'
 import { getClient } from '~/lib/s3'
 import { getCOSClient } from '~/lib/cos'
-import { cacheInvalidate } from '~/lib/redis'
 import { invalidateDashboardCache } from '~/lib/db/query/public-dashboard'
+import {
+  invalidateFeaturedCache,
+  invalidateGalleryCache,
+  invalidateCameraLensListCache,
+} from '~/lib/db/query/images'
+import { invalidateAlbumsListCache } from '~/lib/db/query/albums'
 
-async function invalidateImageRelatedCaches() {
+async function invalidateImageRelatedCaches(album?: string) {
   await Promise.all([
     invalidateDashboardCache(),
-    cacheInvalidate('images:camera_lens_list'),
+    invalidateFeaturedCache(),
+    invalidateGalleryCache(album),
+    invalidateCameraLensListCache(),
+    invalidateAlbumsListCache(),
   ])
 }
 
@@ -271,6 +279,7 @@ app.put('/update', async (c) => {
 
   try {
     await updateImage(image)
+    await invalidateImageRelatedCaches()
     return c.json({ code: 200, message: 'Success' })
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed to update image', cause: e })
@@ -281,6 +290,7 @@ app.put('/update-show', async (c) => {
   try {
     const image = await c.req.json<{ id: string; show: number }>()
     const data = await updateImageShow(image.id, image.show)
+    await invalidateImageRelatedCaches()
     return c.json(data)
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed to update image show status', cause: e })
@@ -291,6 +301,7 @@ app.put('/update-featured', async (c) => {
   try {
     const image = await c.req.json<{ id?: string; imageId?: string; featured: number }>()
     const data = await updateImageFeatured(image.imageId || (image.id as string), image.featured)
+    await invalidateImageRelatedCaches()
     return c.json({ code: 200, data })
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed to update image featured status', cause: e })
@@ -301,6 +312,7 @@ app.put('/update-Album', async (c) => {
   try {
     const image = await c.req.json<{ imageId: string; albumId: string }>()
     await updateImageAlbum(image.imageId, image.albumId)
+    await invalidateImageRelatedCaches()
     return c.json({ code: 200, message: 'Success' })
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed to update image album', cause: e })
@@ -326,6 +338,7 @@ app.put('/update-sort', async (c) => {
     }
 
     await updateImagesSort(orders as { id: string; sort: number }[])
+    await invalidateImageRelatedCaches()
     return c.json({ code: 200, message: 'Success' })
   } catch (e) {
     if (e instanceof HTTPException) throw e
@@ -356,6 +369,7 @@ app.put('/album-sort', async (c) => {
     }
 
     await updateImagesAlbumSort(albumValue, orders as { imageId: string; sort: number }[])
+    await invalidateImageRelatedCaches(albumValue)
     return c.json({ code: 200, message: 'Success' })
   } catch (e) {
     if (e instanceof HTTPException) throw e
@@ -387,6 +401,7 @@ app.put('/batch-album-sort', async (c) => {
     }
 
     await batchUpdateImagesAlbumSort(albumValue, operation, imageIds, targetPosition)
+    await invalidateImageRelatedCaches(albumValue)
     return c.json({ code: 200, message: 'Success' })
   } catch (e) {
     if (e instanceof HTTPException) throw e
@@ -435,6 +450,7 @@ app.post('/reset-album-sort/:albumValue', async (c) => {
     }
 
     await resetAlbumImagesSort(albumValue)
+    await invalidateImageRelatedCaches(albumValue)
     return c.json({ code: 200, message: 'Success' })
   } catch (e) {
     if (e instanceof HTTPException) throw e

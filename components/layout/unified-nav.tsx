@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import Command from '~/components/layout/command'
 import { authClient } from '~/lib/auth-client'
 import { useTheme } from 'next-themes'
+import { useUserThemeToggle } from '~/lib/theme/use-user-theme-toggle'
 import { cn } from '~/lib/utils'
 import type { AlbumType } from '~/types'
 import {
@@ -40,10 +41,15 @@ export default function UnifiedNav({
   const pathname = usePathname()
   const t = useTranslations()
   const { data: session } = authClient.useSession()
-  const { resolvedTheme, setTheme } = useTheme()
+  const { resolvedTheme } = useTheme()
+  const { toggle } = useUserThemeToggle()
   const navRef = useRef<HTMLElement>(null)
   // 首页也允许切换主题（默认仍会是 dark，但用户可以主动切 light）
   const shouldHideThemeToggle = hideThemeToggle
+
+  const handleToggle = useCallback(() => {
+    toggle()
+  }, [toggle])
 
   useEffect(() => {
     setMounted(true)
@@ -144,7 +150,7 @@ export default function UnifiedNav({
             {/* Dark Mode Toggle — minimal icon */}
             {mounted && !shouldHideThemeToggle && (
               <button
-                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                onClick={handleToggle}
                 className="ml-2 inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted/60 transition-all duration-300"
                 style={{ touchAction: 'manipulation' }}
                 aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -163,7 +169,7 @@ export default function UnifiedNav({
           <div className="lg:hidden flex items-center gap-1">
             {mounted && !shouldHideThemeToggle && (
               <button
-                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                onClick={handleToggle}
                 className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-muted/60 transition-all duration-300"
                 style={{ touchAction: 'manipulation' }}
                 aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}

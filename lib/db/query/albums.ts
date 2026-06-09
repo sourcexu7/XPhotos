@@ -13,10 +13,11 @@ const DEFAULT_ORDER_BY = [
 ]
 
 const CACHE_KEY_ALBUMS_LIST = 'albums:list'
+const CACHE_KEY_ALBUMS_SHOW = 'albums:show'
 const CACHE_KEY_ALBUMS_SHOW_WITH_COUNTS = 'albums:show_with_counts'
 
 export async function invalidateAlbumsListCache(): Promise<void> {
-  await cacheInvalidate(CACHE_KEY_ALBUMS_LIST, CACHE_KEY_ALBUMS_SHOW_WITH_COUNTS)
+  await cacheInvalidate(CACHE_KEY_ALBUMS_LIST, CACHE_KEY_ALBUMS_SHOW, CACHE_KEY_ALBUMS_SHOW_WITH_COUNTS)
 }
 
 /**
@@ -69,17 +70,19 @@ export async function fetchAlbumsList(): Promise<AlbumType[]> {
 }
 
 /**
- * 获取所有能显示的相册列表（除了首页路由外，且 show 为 0）
+ * 获取所有能显示的相册列表（除了首页路由外，且 show 为 0）——接入 Redis 缓存
  */
 export async function fetchAlbumsShow(): Promise<AlbumType[]> {
-  const albums = await db.albums.findMany({
-    where: {
-      del: 0,
-      show: 0,
-      album_value: { not: '/' },
-    },
-    orderBy: [{ sort: 'asc' }],
-  })
+  const albums = await cacheWrap<AlbumType[]>(CACHE_KEY_ALBUMS_SHOW, () =>
+    db.albums.findMany({
+      where: {
+        del: 0,
+        show: 0,
+        album_value: { not: '/' },
+      },
+      orderBy: [{ sort: 'asc' }],
+    }),
+  )
   return replaceCoverWithPreview(albums)
 }
 

@@ -7,7 +7,7 @@ import { db } from '~/lib/db'
 import type { ImageType } from '~/types'
 import { fetchConfigValue } from './configs'
 import { cache } from 'react'
-import { cacheWrap, cacheInvalidate } from '~/lib/redis'
+import { cacheWrap, cacheInvalidate, cacheInvalidateByPattern } from '~/lib/redis'
 
 // 使用枚举替代魔法值，提升可维护性
 enum AlbumImageSorting {
@@ -584,7 +584,33 @@ export async function fetchServerImagesPageTotalByAlbum(
 }
 
 /**
- * 根据相册获取图片分页列表（客户端）
+ * 构建图片列表/总数缓存的稳定 key
+ * ——过滤参数排序后拼接，等价参数命中同一 key
+ */
+function buildGalleryCacheKey(prefix: string, album: string, pageNum: number | null, filters: {
+  cameras?: string[]
+  lenses?: string[]
+  tags?: string[]
+  tagsOperator?: 'and' | 'or'
+  sortByShootTime?: 'asc' | 'desc'
+}): string {
+  const norm = (arr?: string[]) => (arr && arr.length > 0 ? [...arr].sort().join(',') : '')
+  const parts = [
+    norm(filters.cameras),
+    norm(filters.lenses),
+    norm(filters.tags),
+    filters.tagsOperator ?? 'and',
+    filters.sortByShootTime ?? '',
+  ]
+  const hasAny = parts.some(p => p && p !== 'and')
+  const pagePart = pageNum != null ? `:${pageNum}` : ''
+  const filterPart = hasAny ? `:${parts.map(p => p || '_').join('|')}` : ''
+  return `${prefix}:${album}${pagePart}${filterPart}`
+}
+
+/**
+ * 根据相册获取图片分页列表（客户端）——接入 Redis 缓存
+ * 注意：当相册启用随机展示时，为避免随机结果被固化，直接跳过缓存
  */
 export const fetchClientImagesListByAlbum = cache(async (
   pageNum: number,
@@ -599,132 +625,26 @@ export const fetchClientImagesListByAlbum = cache(async (
     pageNum = 1
   }
 
-  const { cameraFilter, lensFilter, tagsFilter } = buildClientFilters({
-    cameras,
-    lenses,
-    tags,
-    tagsOperator,
-  })
-
-  const selectFields = `
-    image.id,
-    image.image_name,
-    image.url,
-    image.preview_url,
-    image.video_url,
-    image.blurhash,
-    image.width,
-    image.height,
-    image.title,
-    image.detail,
-    image.type,
-    image.show,
-    image.show_on_mainpage,
-    image.featured,
-    image.sort,
-    image.created_at,
-    image.updated_at,
-    image.labels,
-    image.exif
-  `
-
-  let result: ImageType[]
+  // 1) 非根相册：先读取一次相册元数据判断是否启用随机展示
+  //    ——随机展示相册的结果不稳定，直接跳过 Redis 缓存，避免“随机结果被固化”
   let albumData: { random_show: number; image_sorting?: number } | null = null
-
-  if (album === '/') {
-    if (sortByShootTime === 'desc') {
-      result = await db.$queryRaw`
-      SELECT 
-          ${Prisma.raw(selectFields)}
-      FROM 
-          "public"."images" AS image
-      INNER JOIN "public"."images_albums_relation" AS relation
-          ON image.id = relation."imageId"
-      INNER JOIN "public"."albums" AS albums
-          ON relation.album_value = albums.album_value
-      WHERE
-          image.del = 0
-      AND
-          image.show = 0
-      AND
-          image.show_on_mainpage = 0
-      AND
-          albums.del = 0
-      AND
-          albums.show = 0
-          ${cameraFilter}
-          ${lensFilter}
-          ${tagsFilter}
-      ORDER BY 
-        image.shoot_at DESC NULLS LAST,
-        image.created_at DESC,
-        image.updated_at DESC
-      LIMIT 16 OFFSET ${(pageNum - 1) * 16}
-    `
-    } else if (sortByShootTime === 'asc') {
-      result = await db.$queryRaw`
-      SELECT 
-          ${Prisma.raw(selectFields)}
-      FROM 
-          "public"."images" AS image
-      INNER JOIN "public"."images_albums_relation" AS relation
-          ON image.id = relation."imageId"
-      INNER JOIN "public"."albums" AS albums
-          ON relation.album_value = albums.album_value
-      WHERE
-          image.del = 0
-      AND
-          image.show = 0
-      AND
-          image.show_on_mainpage = 0
-      AND
-          albums.del = 0
-      AND
-          albums.show = 0
-          ${cameraFilter}
-          ${lensFilter}
-          ${tagsFilter}
-      ORDER BY 
-        image.shoot_at ASC NULLS FIRST,
-        image.created_at ASC,
-        image.updated_at ASC
-      LIMIT 16 OFFSET ${(pageNum - 1) * 16}
-    `
-    } else {
-      result = await db.$queryRaw`
-      SELECT 
-          ${Prisma.raw(selectFields)}
-      FROM 
-          "public"."images" AS image
-      INNER JOIN "public"."images_albums_relation" AS relation
-          ON image.id = relation."imageId"
-      INNER JOIN "public"."albums" AS albums
-          ON relation.album_value = albums.album_value
-      WHERE
-          image.del = 0
-      AND
-          image.show = 0
-      AND
-          image.show_on_mainpage = 0
-      AND
-          albums.del = 0
-      AND
-          albums.show = 0
-          ${cameraFilter}
-          ${lensFilter}
-          ${tagsFilter}
-      ORDER BY image.created_at DESC, image.updated_at DESC, image.sort ASC
-      LIMIT 16 OFFSET ${(pageNum - 1) * 16}
-    `
+  let skipCache = false
+  if (album !== '/') {
+    albumData = await db.albums.findFirst({ where: { album_value: album } })
+    if (albumData && albumData.random_show === 0) {
+      skipCache = true
     }
-  } else {
-    albumData = await db.albums.findFirst({
-      where: {
-        album_value: album
-      }
+  }
+
+  const doQuery = async () => {
+    const { cameraFilter, lensFilter, tagsFilter } = buildClientFilters({
+      cameras,
+      lenses,
+      tags,
+      tagsOperator,
     })
 
-    const selectFieldsWithSort = `
+    const selectFields = `
       image.id,
       image.image_name,
       image.url,
@@ -743,55 +663,177 @@ export const fetchClientImagesListByAlbum = cache(async (
       image.created_at,
       image.updated_at,
       image.labels,
-      image.exif,
-      relation.sort AS album_sort
+      image.exif
     `
 
-    let orderBy = Prisma.sql`relation.sort ASC, image.created_at DESC, image.updated_at DESC`
-    if (albumData?.image_sorting && albumData.image_sorting !== 0 && ALBUM_IMAGE_SORTING_ORDER[albumData.image_sorting]) {
-      orderBy = Prisma.sql([`relation.sort ASC, ${ALBUM_IMAGE_SORTING_ORDER[albumData.image_sorting]}`])
+    let result: ImageType[]
+
+    if (album === '/') {
+      if (sortByShootTime === 'desc') {
+        result = await db.$queryRaw`
+        SELECT
+            ${Prisma.raw(selectFields)}
+        FROM
+            "public"."images" AS image
+        INNER JOIN "public"."images_albums_relation" AS relation
+            ON image.id = relation."imageId"
+        INNER JOIN "public"."albums" AS albums
+            ON relation.album_value = albums.album_value
+        WHERE
+            image.del = 0
+        AND
+            image.show = 0
+        AND
+            image.show_on_mainpage = 0
+        AND
+            albums.del = 0
+        AND
+            albums.show = 0
+            ${cameraFilter}
+            ${lensFilter}
+            ${tagsFilter}
+        ORDER BY
+          image.shoot_at DESC NULLS LAST,
+          image.created_at DESC,
+          image.updated_at DESC
+        LIMIT 16 OFFSET ${(pageNum - 1) * 16}
+      `
+      } else if (sortByShootTime === 'asc') {
+        result = await db.$queryRaw`
+        SELECT
+            ${Prisma.raw(selectFields)}
+        FROM
+            "public"."images" AS image
+        INNER JOIN "public"."images_albums_relation" AS relation
+            ON image.id = relation."imageId"
+        INNER JOIN "public"."albums" AS albums
+            ON relation.album_value = albums.album_value
+        WHERE
+            image.del = 0
+        AND
+            image.show = 0
+        AND
+            image.show_on_mainpage = 0
+        AND
+            albums.del = 0
+        AND
+            albums.show = 0
+            ${cameraFilter}
+            ${lensFilter}
+            ${tagsFilter}
+        ORDER BY
+          image.shoot_at ASC NULLS FIRST,
+          image.created_at ASC,
+          image.updated_at ASC
+        LIMIT 16 OFFSET ${(pageNum - 1) * 16}
+      `
+      } else {
+        result = await db.$queryRaw`
+        SELECT
+            ${Prisma.raw(selectFields)}
+        FROM
+            "public"."images" AS image
+        INNER JOIN "public"."images_albums_relation" AS relation
+            ON image.id = relation."imageId"
+        INNER JOIN "public"."albums" AS albums
+            ON relation.album_value = albums.album_value
+        WHERE
+            image.del = 0
+        AND
+            image.show = 0
+        AND
+            image.show_on_mainpage = 0
+        AND
+            albums.del = 0
+        AND
+            albums.show = 0
+            ${cameraFilter}
+            ${lensFilter}
+            ${tagsFilter}
+        ORDER BY image.created_at DESC, image.updated_at DESC, image.sort ASC
+        LIMIT 16 OFFSET ${(pageNum - 1) * 16}
+      `
+      }
+    } else {
+      const selectFieldsWithSort = `
+        image.id,
+        image.image_name,
+        image.url,
+        image.preview_url,
+        image.video_url,
+        image.blurhash,
+        image.width,
+        image.height,
+        image.title,
+        image.detail,
+        image.type,
+        image.show,
+        image.show_on_mainpage,
+        image.featured,
+        image.sort,
+        image.created_at,
+        image.updated_at,
+        image.labels,
+        image.exif,
+        relation.sort AS album_sort
+      `
+
+      let orderBy = Prisma.sql`relation.sort ASC, image.created_at DESC, image.updated_at DESC`
+      if (albumData?.image_sorting && albumData.image_sorting !== 0 && ALBUM_IMAGE_SORTING_ORDER[albumData.image_sorting]) {
+        orderBy = Prisma.sql([`relation.sort ASC, ${ALBUM_IMAGE_SORTING_ORDER[albumData.image_sorting]}`])
+      }
+
+      result = await db.$queryRaw`
+        SELECT
+            ${Prisma.raw(selectFieldsWithSort)},
+            albums.name AS album_name,
+            albums.id AS album_value,
+            albums.license AS album_license,
+            albums.image_sorting AS album_image_sorting
+        FROM
+            "public"."images" AS image
+        INNER JOIN "public"."images_albums_relation" AS relation
+            ON image.id = relation."imageId"
+        INNER JOIN "public"."albums" AS albums
+            ON relation.album_value = albums.album_value
+        WHERE
+            image.del = 0
+        AND
+            albums.del = 0
+        AND
+            image.show = 0
+        AND
+            albums.show = 0
+        AND
+            albums.album_value = ${album}
+            ${cameraFilter}
+            ${lensFilter}
+            ${tagsFilter}
+        ORDER BY ${orderBy}
+        LIMIT 16 OFFSET ${(pageNum - 1) * 16}
+      `
     }
 
-    result = await db.$queryRaw`
-      SELECT 
-          ${Prisma.raw(selectFieldsWithSort)},
-          albums.name AS album_name,
-          albums.id AS album_value,
-          albums.license AS album_license,
-          albums.image_sorting AS album_image_sorting
-      FROM 
-          "public"."images" AS image
-      INNER JOIN "public"."images_albums_relation" AS relation
-          ON image.id = relation."imageId"
-      INNER JOIN "public"."albums" AS albums
-          ON relation.album_value = albums.album_value
-      WHERE
-          image.del = 0
-      AND
-          albums.del = 0
-      AND
-          image.show = 0
-      AND
-          albums.show = 0
-      AND
-          albums.album_value = ${album}
-          ${cameraFilter}
-          ${lensFilter}
-          ${tagsFilter}
-      ORDER BY ${orderBy}
-      LIMIT 16 OFFSET ${(pageNum - 1) * 16}
-    `
+    // 仅在非缓存路径下执行 shuffle（缓存路径 random_show 不是 0，不会进入这个分支）
+    if (result && albumData && albumData.random_show === 0) {
+      result = shuffleArray(result)
+    }
+
+    return result
   }
 
-  if (result && albumData && albumData.random_show === 0) {
-    result = shuffleArray(result)
+  if (skipCache) {
+    return doQuery()
   }
 
-  return result
+  const cacheKey = buildGalleryCacheKey('images:list', album, pageNum, {
+    cameras, lenses, tags, tagsOperator, sortByShootTime,
+  })
+  return cacheWrap<ImageType[]>(cacheKey, doQuery)
 })
 
 /**
- * 根据相册获取图片分页总数（客户端）
+ * 根据相册获取图片分页总数（客户端）——接入 Redis 缓存
  */
 export async function fetchClientImagesPageTotalByAlbum(
   album: string,
@@ -800,15 +842,20 @@ export async function fetchClientImagesPageTotalByAlbum(
   tags?: string[],
   tagsOperator: 'and' | 'or' = 'and'
 ): Promise<number> {
-  const { cameraFilter, lensFilter, tagsFilter } = buildClientFilters({
-    cameras,
-    lenses,
-    tags,
-    tagsOperator,
+  const cacheKey = buildGalleryCacheKey('images:count', album, null, {
+    cameras, lenses, tags, tagsOperator,
   })
 
-  if (album === '/') {
-    const pageTotal = await db.$queryRaw`
+  return cacheWrap<number>(cacheKey, async () => {
+    const { cameraFilter, lensFilter, tagsFilter } = buildClientFilters({
+      cameras,
+      lenses,
+      tags,
+      tagsOperator,
+    })
+
+    if (album === '/') {
+      const pageTotal = await db.$queryRaw`
     SELECT COALESCE(COUNT(1),0) AS total
     FROM (
         SELECT DISTINCT ON (image.id)
@@ -834,10 +881,10 @@ export async function fetchClientImagesPageTotalByAlbum(
             ${tagsFilter}
     ) AS unique_images;
   `
-    // @ts-expect-error -- $queryRaw returns an untyped row object from SQL
-    return Number(pageTotal[0].total) > 0 ? Math.ceil(Number(pageTotal[0].total) / 16) : 0
-  }
-  const pageTotal = await db.$queryRaw`
+      // @ts-expect-error -- $queryRaw returns an untyped row object from SQL
+      return Number(pageTotal[0].total) > 0 ? Math.ceil(Number(pageTotal[0].total) / 16) : 0
+    }
+    const pageTotal = await db.$queryRaw`
     SELECT COALESCE(COUNT(1),0) AS total
     FROM (
         SELECT DISTINCT ON (image.id)
@@ -863,8 +910,9 @@ export async function fetchClientImagesPageTotalByAlbum(
             ${tagsFilter}
     ) AS unique_images;
   `
-  // @ts-expect-error -- $queryRaw returns an untyped row object from SQL; page total
-  return Number(pageTotal[0].total) > 0 ? Math.ceil(Number(pageTotal[0].total) / 16) : 0
+    // @ts-expect-error -- $queryRaw returns an untyped row object from SQL; page total
+    return Number(pageTotal[0].total) > 0 ? Math.ceil(Number(pageTotal[0].total) / 16) : 0
+  })
 }
 
 /**
@@ -1002,52 +1050,54 @@ export async function getRSSImages(): Promise<ImageType[]> {
 }
 
 /**
- * 获取精选图片列表
+ * 获取精选图片列表（接入 Redis 缓存，首页 SSR 高频访问）
  */
 export const fetchFeaturedImages = cache(async (): Promise<ImageType[]> => {
-  const selectFields = `
-    image.id,
-    image.image_name,
-    image.url,
-    image.preview_url,
-    image.video_url,
-    image.blurhash,
-    image.width,
-    image.height,
-    image.title,
-    image.detail,
-    image.type,
-    image.show,
-    image.show_on_mainpage,
-    image.featured,
-    image.sort,
-    image.created_at,
-    image.updated_at,
-    image.labels,
-    image.exif
-  `
+  return cacheWrap('images:featured', async () => {
+    const selectFields = `
+      image.id,
+      image.image_name,
+      image.url,
+      image.preview_url,
+      image.video_url,
+      image.blurhash,
+      image.width,
+      image.height,
+      image.title,
+      image.detail,
+      image.type,
+      image.show,
+      image.show_on_mainpage,
+      image.featured,
+      image.sort,
+      image.created_at,
+      image.updated_at,
+      image.labels,
+      image.exif
+    `
 
-  const data = await db.$queryRaw<ImageType[]>`
-    SELECT
-        ${Prisma.raw(selectFields)},
-        albums.name AS album_name,
-        albums.id AS album_value
-    FROM
-        "public"."images" AS image
-    LEFT JOIN "public"."images_albums_relation" AS relation
-        ON image.id = relation."imageId"
-    LEFT JOIN "public"."albums" AS albums
-        ON relation.album_value = albums.album_value
-    WHERE
-        image.del = 0
-    AND
-        image.show = 0
-    AND
-        image.featured = 1
-    ORDER BY image.sort DESC, image.created_at DESC
-  `
+    const data = await db.$queryRaw<ImageType[]>`
+      SELECT
+          ${Prisma.raw(selectFields)},
+          albums.name AS album_name,
+          albums.id AS album_value
+      FROM
+          "public"."images" AS image
+      LEFT JOIN "public"."images_albums_relation" AS relation
+          ON image.id = relation."imageId"
+      LEFT JOIN "public"."albums" AS albums
+          ON relation.album_value = albums.album_value
+      WHERE
+          image.del = 0
+      AND
+          image.show = 0
+      AND
+          image.featured = 1
+      ORDER BY image.sort DESC, image.created_at DESC
+    `
 
-  return data
+    return data
+  })
 })
 
 /**
@@ -1081,4 +1131,38 @@ export const fetchCameraAndLensList = cache(async (): Promise<{ cameras: string[
 
 export async function invalidateCameraLensListCache(): Promise<void> {
   await cacheInvalidate('images:camera_lens_list')
+}
+
+/**
+ * 写操作后失效图片列表/总数缓存
+ * ——传入 album 时只失效该相册的缓存；不传则全部失效（images:list:* / images:count:*）
+ */
+export async function invalidateGalleryCache(album?: string): Promise<void> {
+  if (album) {
+    await Promise.all([
+      cacheInvalidateByPattern(`images:list:${album}*`),
+      cacheInvalidateByPattern(`images:count:${album}*`),
+    ])
+  } else {
+    await Promise.all([
+      cacheInvalidateByPattern('images:list:*'),
+      cacheInvalidateByPattern('images:count:*'),
+    ])
+  }
+}
+
+/** 写操作后失效精选图缓存 */
+export async function invalidateFeaturedCache(): Promise<void> {
+  await cacheInvalidate('images:featured')
+}
+
+/**
+ * 统一的图片相关缓存失效入口（上传/删除/修改排序/修改展示状态等）
+ */
+export async function invalidateAllImageReadCaches(album?: string): Promise<void> {
+  await Promise.all([
+    invalidateFeaturedCache(),
+    invalidateGalleryCache(album),
+    invalidateCameraLensListCache(),
+  ])
 }

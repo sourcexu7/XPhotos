@@ -1,211 +1,188 @@
 'use client'
 
-import type { HandleProps, ImageHandleProps } from '~/types/props.ts'
+import { memo, useEffect, useMemo, useRef, useCallback } from 'react'
+import type { ImageHandleProps } from '~/types/props.ts'
 import { useSwrPageTotalHook } from '~/hooks/use-swr-page-total-hook.ts'
+import useSWR from 'swr'
 import useSWRInfinite from 'swr/infinite'
-import { useSwrHydrated } from '~/hooks/use-swr-hydrated.ts'
-import { useTranslations } from 'next-intl'
 import type { ImageType } from '~/types'
 import { ReloadIcon } from '@radix-ui/react-icons'
-import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
-import GalleryImage from '~/components/gallery/simple/gallery-image.tsx'
-import { Button } from '~/components/ui/button'
-import { useGalleryFilters } from '~/hooks/use-gallery-filters'
+import GalleryImage from '~/components/gallery/simple/gallery-image'
 
-const SimpleGallery = React.memo(function SimpleGallery(props: Readonly<ImageHandleProps>) {
-  // 避免 `props.filters?.xxx || []` 每次渲染都创建新数组，导致 hook deps 噪声
-  const cameras = useMemo(() => props.filters?.cameras ?? [], [props.filters?.cameras])
-  const lenses = useMemo(() => props.filters?.lenses ?? [], [props.filters?.lenses])
-  const tags = useMemo(() => props.filters?.tags ?? [], [props.filters?.tags])
-  const tagsOperator = props.filters?.tagsOperator || 'and'
-  const sortByShootTime = props.sortByShootTime
-  
+/**
+ * 单列画廊（Simple Gallery）—— 性能优化版
+ *
+ * 关键改进：
+ *  1) 用 IntersectionObserver sentinel 替代 window.scroll 监听，更省电、更稳定
+ *  2) 系统配置（下载开关/原图开关）整页只拉一次，不随每张图独立 useSWR
+ *  3) filterKey 稳定化：筛选变化时从第一页重取，避免旧数据残留
+ *  4) 保留原 GalleryImage 的完整信息：标题、EXIF、标签、复制/下载/分享按钮
+ */
+
+function flattenImageData(data: ImageType[][] | undefined): ImageType[] {
+  if (!data || data.length === 0) return []
+  const result: ImageType[] = []
+  for (let i = 0; i < data.length; i++) {
+    const page = data[i]
+    if (!Array.isArray(page)) continue
+    for (let j = 0; j < page.length; j++) result.push(page[j])
+  }
+  return result
+}
+
+function SimpleGalleryImpl(props: Readonly<ImageHandleProps>) {
   const { data: pageTotal } = useSwrPageTotalHook(props)
   const pageTotalNumber: number = typeof pageTotal === 'number' ? pageTotal : 0
-  
-  // 优化：使用稳定的筛选键生成函数，避免 JSON.stringify 开销
-  const filterKey = useMemo(
-    () => [
-      cameras.join(','),
-      lenses.join(','),
-      tags.join(','),
-      tagsOperator,
-      sortByShootTime || '',
-    ].join('|'),
-    [cameras, lenses, tags, tagsOperator, sortByShootTime]
-  )
-  
+
+  // 稳定的筛选键（服务于 SWR cache key）
+  const filterKey = useMemo(() => {
+    const cameras = (props.filters?.cameras ?? []).join(',')
+    const lenses = (props.filters?.lenses ?? []).join(',')
+    const tags = (props.filters?.tags ?? []).join(',')
+    const tagsOperator = props.filters?.tagsOperator ?? 'and'
+    const sort = props.sortByShootTime ?? ''
+    return [cameras, lenses, tags, tagsOperator, sort].join('|')
+  }, [props.filters, props.sortByShootTime])
+
   const { data, error, isLoading, isValidating, size, setSize, mutate } = useSWRInfinite(
-    (index) => {
-      return [`client-${props.args}-${index}-${props.album}-${filterKey}`, index]
-    },
-    ([_, index]) => {
-      return props.handle?.(
-        index + 1,
-        props.album,
-        cameras.length > 0 ? cameras : undefined,
-        lenses.length > 0 ? lenses : undefined,
-        tags.length > 0 ? tags : undefined,
-        // Bug修复：只有当 tags 有值时才传递 tagsOperator，避免后端查询错误
-        tags.length > 0 ? tagsOperator : 'and',
-        sortByShootTime
-      ) || Promise.resolve([])
+    (index) => [`client-simple-${props.args}-${index}-${props.album}-${filterKey}`, index] as const,
+    ([, pageIndex]) => {
+      const f = props.filters
+      return (
+        props.handle?.(
+          (pageIndex as number) + 1,
+          props.album,
+          f?.cameras,
+          f?.lenses,
+          f?.tags,
+          f?.tagsOperator ?? 'and',
+          props.sortByShootTime,
+        ) || Promise.resolve([])
+      )
     },
     {
       revalidateOnFocus: false,
-      revalidateIfStale: false,
+      // 允许过期数据在 sentinel 触发下一页时重新请求；revalidateIfStale 默认为 true，
+      // 之前关掉它会导致 key 变化后（比如筛选切换后）新页迟迟不发起请求。
+      revalidateIfStale: true,
       revalidateOnReconnect: false,
-    }
+      // 第一次滑到底时允许请求第一页；切换筛选后也允许触发新的请求。
+      revalidateFirstPage: false,
+    },
   )
-  
-  // 优化：使用公共 Hook 提取筛选逻辑，消除重复代码
-  const { dataList, isFiltering } = useGalleryFilters({
-    cameras,
-    lenses,
-    tags,
-    tagsOperator,
-    sortByShootTime,
-    data: data as ImageType[][] | undefined,
-    isValidating,
-    setSize,
-    mutate,
+
+  const dataList = useMemo(() => flattenImageData(data), [data])
+
+  // 系统配置：整页只拉一次，传给每张 GalleryImage，避免每张独立 useSWR
+  const configFetcher = useCallback(() => {
+    if (typeof props.configHandle !== 'function') return []
+    return props.configHandle()
+  }, [props.configHandle])
+  const { data: configData = [] } = useSWR(['simple-gallery-config'], configFetcher, {
+    revalidateOnFocus: false,
+    revalidateIfStale: false,
+    revalidateOnReconnect: false,
   })
-  
-  // 优化：使用 useMemo 稳定 configProps 引用，避免不必要的重新请求
-  const configProps: HandleProps = useMemo(() => ({
-    handle: props.configHandle,
-    args: 'system-config',
-  }), [props.configHandle])
-  
-  const { data: configData } = useSwrHydrated(configProps)
-  const configDataTyped = configData as { config_key: string; config_value: string }[] | undefined
-  
-  const t = useTranslations()
-  const containerRef = useRef<HTMLDivElement>(null)
-  
-  // 分批渲染：每次渲染 20 张图片
-  const BATCH_SIZE = 20
-  const [renderedCount, setRenderedCount] = useState(BATCH_SIZE)
-  
-  // 筛选条件变更时，重置渲染数量
+
+  // ========== Infinite Scroll：sentinel IO，替代原始 scroll+距离判断 ==========
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const isLoadingRef = useRef(isLoading || isValidating)
+  isLoadingRef.current = isLoading || isValidating
+
+  // 用 ref 保留最新的 loadNext 逻辑，避免 IO 因依赖变化反复重建。
+  const loadNextRef = useRef<() => void>(() => {})
+  loadNextRef.current = () => {
+    if (isLoadingRef.current) return
+    if (pageTotalNumber > 0 && size >= pageTotalNumber) return
+    setSize((s) => s + 1)
+  }
+
   useEffect(() => {
-    setRenderedCount(BATCH_SIZE)
-  }, [filterKey])
-  
-  // 逐步渲染：只渲染前 renderedCount 张图片
-  const renderedImages = useMemo(() => {
-    return dataList.slice(0, renderedCount)
-  }, [dataList, renderedCount])
+    const el = sentinelRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) loadNextRef.current()
+        }
+      },
+      { rootMargin: '400px 0px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, []) // 仅挂载一次，不再随任何依赖重建
 
-  // 优化：使用 useCallback 缓存滚动处理函数，避免每次渲染都创建新函数
-  const handleScroll = useCallback(() => {
-    if (!containerRef.current || isValidating || size >= pageTotalNumber) return
-
-    const scrollTop = window.scrollY
-    const windowHeight = window.innerHeight
-    const documentHeight = document.documentElement.scrollHeight
-
-    // 距离底部 100px 内触发加载
-    if (scrollTop + windowHeight >= documentHeight - 100) {
-      setSize((size as number) + 1)
-    }
-  }, [isValidating, pageTotalNumber, setSize, size])
-
-  // 自动触底加载更多（替换底部按钮）
+  // 筛选键变化时回到第一页
+  const prevFilterKeyRef = useRef<string>(filterKey)
   useEffect(() => {
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [handleScroll])
-  
-  // 逐步渲染：当已渲染的图片数量小于总数量时，继续渲染下一批
-  useEffect(() => {
-    if (renderedCount >= dataList.length || isFiltering) return
-    
-    const timer = setTimeout(() => {
-      setRenderedCount(prev => Math.min(prev + BATCH_SIZE, dataList.length))
-    }, 50) // 每 50ms 渲染一批，保证流畅
-    
-    return () => clearTimeout(timer)
-  }, [renderedCount, dataList.length, isFiltering])
+    if (prevFilterKeyRef.current === filterKey) return
+    prevFilterKeyRef.current = filterKey
+    setSize(1)
+  }, [filterKey, setSize])
 
-  // 初始加载状态：首次加载且没有数据时显示加载动画
   const isInitialLoading = isLoading && dataList.length === 0
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full mx-auto max-w-[1400px] px-3 pt-4 space-y-3 sm:px-4 sm:pt-5 sm:space-y-4 md:px-6 md:space-y-6"
-    >
-      {/* 初始加载态：首次加载时显示 */}
-      {isInitialLoading && (
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-            <span className="text-sm text-muted-foreground">正在加载图片...</span>
+    <>
+      {/* 注入 shimmer keyframes（只注入一次） */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: '@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}',
+        }}
+      />
+
+      <div className="w-full mx-auto max-w-[1400px] space-y-3 sm:space-y-4 md:space-y-6">
+        {isInitialLoading && (
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+              <span className="text-sm text-muted-foreground">正在加载图片...</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 筛选加载态：筛选触发时显示 */}
-      {isFiltering && !isInitialLoading && (
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-muted-foreground">正在筛选图片...</span>
+        {!isInitialLoading && dataList.length === 0 && !error && (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-gray-400 text-sm">暂无匹配的图片</p>
           </div>
-        </div>
-      )}
-      
-      {/* 图片列表：仅在非筛选加载态时显示 */}
-      {!isFiltering && !isInitialLoading && (
-        <>
-          {renderedImages?.map((item: ImageType) => (
-            <GalleryImage key={item.id} photo={item} configData={configDataTyped || []} />
-          ))}
+        )}
 
-          {/* 错误提示 */}
-          {error && !isValidating && (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <p className="text-sm text-red-400">筛选失败，请重试</p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => mutate()}
-                className="text-xs"
-              >
-                重试
-              </Button>
-            </div>
-          )}
+        {error && !isLoading && (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <p className="text-sm text-red-400">加载失败，请重试</p>
+            <button
+              type="button"
+              onClick={() => mutate()}
+              className="inline-flex items-center gap-2 text-xs text-red-400 hover:text-red-300"
+            >
+              <ReloadIcon className="h-3 w-3" />
+              重试
+            </button>
+          </div>
+        )}
 
-          {/* 无数据提示：仅在非加载态且无错误时显示 */}
-          {!error && !isValidating && dataList.length === 0 && (
-            <div className="flex items-center justify-center py-12">
-              <p className="text-gray-400 text-sm">暂无匹配的图片</p>
-            </div>
-          )}
+        {!isInitialLoading && dataList.length > 0 && (
+          <>
+            {dataList.map((photo, i) => (
+              <GalleryImage key={photo.id ?? i} photo={photo} configData={configData as { config_key: string; config_value: string }[]} />
+            ))}
 
-          {/* 加载状态 */}
-          {!error && dataList.length > 0 && isValidating && (
-            <div className="flex items-center justify-center my-4 pb-4 text-sm text-gray-400">
-              <span className="inline-flex items-center gap-2">
-                <ReloadIcon className="h-4 w-4 animate-spin" />
-                {t('Button.loading')}
-              </span>
-            </div>
-          )}
-        </>
-      )}
-    </div>
+            <div ref={sentinelRef} style={{ height: 1 }} aria-hidden />
+
+            {isValidating && dataList.length > 0 && (
+              <div className="flex items-center justify-center my-4 pb-4 text-sm text-gray-400">
+                <span className="inline-flex items-center gap-2">
+                  <ReloadIcon className="h-4 w-4 animate-spin" />
+                  加载中...
+                </span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </>
   )
-}, (prevProps, nextProps) => {
-  // 优化：自定义比较函数，只有关键 props 变化时才重渲染
-  return (
-    prevProps.album === nextProps.album &&
-    prevProps.args === nextProps.args &&
-    JSON.stringify(prevProps.filters) === JSON.stringify(nextProps.filters) &&
-    prevProps.sortByShootTime === nextProps.sortByShootTime
-  )
-})
+}
 
+export const SimpleGallery = memo(SimpleGalleryImpl)
 export default SimpleGallery
