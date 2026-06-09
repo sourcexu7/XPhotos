@@ -226,7 +226,9 @@
     "query": "查询",
     "close": "关闭",
     "save": "保存",
-    "saving": "保存中..."
+    "saving": "保存中...",
+    "prev": "上一张",
+    "next": "下一张"
   },
 
   "AdminAnalytics": {
@@ -307,8 +309,8 @@
     "referenceExifToastSuccess": "已从参考图提取 EXIF（未上传参考图）",
     "referenceExifToastError": "参考图无有效 EXIF 信息或解析失败",
     "duplicateImageTitle": "检测到重复图片",
-    "duplicateImageContent": "该图片已存在，是否仍然继续保存（可能会复用已有记录）？",
-    "duplicateImageContinue": "继续保存",
+    "duplicateImageContent": "该图片已存在，是否作为新图片重新上传？",
+    "duplicateImageAsNew": "作为新图片上传",
     "primaryTagLabel": "一级标签（Primary）",
     "primaryTagPlaceholderOptional": "选择一级标签（可选）",
     "tagUncategorized": "未分类",
@@ -836,5 +838,24 @@
       "autoGenerate": "自动生成",
       "noItems": "暂无目录项"
     }
+  },
+  "Exif": {
+    "title": "拍摄参数",
+    "camera": "相机型号",
+    "date": "拍摄日期",
+    "aperture": "光圈",
+    "focalLength": "焦距",
+    "shutter": "快门",
+    "lens": "镜头",
+    "iso": "ISO",
+    "resolution": "分辨率",
+    "location": "位置"
+  },
+  "Preview": {
+    "untitled": "未命名",
+    "copyLink": "复制直链",
+    "shareLink": "分享链接",
+    "download": "下载原图",
+    "fullscreen": "全屏查看"
   }
 }

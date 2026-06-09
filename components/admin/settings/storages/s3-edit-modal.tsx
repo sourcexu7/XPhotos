@@ -21,7 +21,7 @@ export default function S3EditModal() {
     if (s3Edit) {
       form.setFieldsValue(initialValues)
     }
-  }, [s3Edit, initialValues])
+  }, [s3Edit, initialValues, form])
 
   async function onOk() {
     setLoading(true)

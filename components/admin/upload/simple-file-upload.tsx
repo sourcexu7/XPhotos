@@ -124,7 +124,7 @@ export default function SimpleFileUpload() {
       console.error('Reference EXIF parse failed', err)
       toast.error(t('Upload.referenceExifToastError'))
     }
-  }, [])
+  }, [t])
 
   // 提交成功后重置上传相关状态，保留 album 和存储配置供连续上传使用
   const resetAfterSubmit = useCallback(() => {
@@ -150,7 +150,7 @@ export default function SimpleFileUpload() {
     tagManagement.clearTags()
     setFiles([])
     setAutoUploadedFor(null)
-  }, [tagManagement.clearTags])
+  }, [tagManagement])
 
   // 上传 + 验证 + 入库的统一流程
   const handleUploadThenSubmit = useCallback(async (forceSubmit = false) => {
@@ -236,6 +236,11 @@ export default function SimpleFileUpload() {
         data.tagCategoryMap = tagCategoryMap
       }
 
+      // 作为新图片上传（重复图片确认后），跳过幂等检查
+      if (forceSubmit && isDuplicate) {
+        data.force_new = true
+      }
+
       const res = await fetchWithTimeout('/api/v1/images/add', {
         headers: { 'Content-Type': 'application/json' },
         method: 'post',
@@ -258,7 +263,7 @@ export default function SimpleFileUpload() {
     url, previewUrl, imageId, imageName, album, height, width,
     title, videoUrl, hash, exif, lat, lon, detail,
     tagManagement.labels, tagManagement.primarySelect, tagManagement.secondarySelect,
-    files, fileUploadHook, isSubmitting, resetAfterSubmit,
+    files, fileUploadHook, isSubmitting, isDuplicate, resetAfterSubmit, t,
   ])
 
   const onRemoveFile = useCallback(() => {
@@ -297,7 +302,7 @@ export default function SimpleFileUpload() {
     setIsDuplicate(false)
     tagManagement.clearTags()
     setFiles([])
-  }, [originalKey, previewKey, storageConfig.storage, tagManagement.clearTags])
+  }, [originalKey, previewKey, storageConfig.storage, tagManagement])
 
   const onBeforeUpload = useCallback(() => {
     setUrl('')
@@ -319,7 +324,7 @@ export default function SimpleFileUpload() {
     setPreviewVerified(null)
     setIsDuplicate(false)
     tagManagement.clearTags()
-  }, [tagManagement.clearTags])
+  }, [tagManagement])
 
   const handleFileSelection = useCallback(async (file: File) => {
     onBeforeUpload()
@@ -343,7 +348,7 @@ export default function SimpleFileUpload() {
       console.error(error)
       toast.error(t('Upload.uploadError'))
     }
-  }, [exifDataHook.loadExifData, onBeforeUpload])
+  }, [exifDataHook, onBeforeUpload, t])
 
   React.useEffect(() => {
     if (!files || files.length === 0) return
@@ -375,7 +380,7 @@ export default function SimpleFileUpload() {
     : isSubmitting
       ? '提交中...'
       : isDuplicate
-        ? '仍然提交'
+        ? t('Upload.duplicateImageAsNew')
         : t('Button.submit')
 
   // 文件行内联状态
@@ -424,7 +429,7 @@ export default function SimpleFileUpload() {
           </div>
           {isDuplicate && (
             <AntTag color="warning" icon={<ExclamationCircleOutlined />} className="mt-1">
-              疑似重复图片，确认提交请再次点击按钮
+              {t('Upload.duplicateImageContent')}
             </AntTag>
           )}
         </div>

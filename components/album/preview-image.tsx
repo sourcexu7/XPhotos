@@ -1,6 +1,7 @@
 'use client'
 
 import type { HandleProps, PreviewImageHandleProps } from '~/types/props'
+import type { ImageType } from '~/types'
 import LivePhoto from '~/components/album/live-photo'
 import { toast } from 'sonner'
 import { LinkIcon } from '~/components/icons/link'
@@ -14,29 +15,86 @@ import { CrosshairIcon } from '~/components/icons/crosshair'
 import { GaugeIcon } from '~/components/icons/gauge'
 import { CopyIcon } from '~/components/icons/copy'
 import { RefreshCWIcon } from '~/components/icons/refresh-cw'
+import { CompassIcon } from '~/components/icons/compass'
+import { TimerIcon } from '~/components/icons/timer'
+import { TelescopeIcon } from '~/components/icons/telescope'
+import { ArrowLeftIcon } from '~/components/icons/arrow-left'
+import { ChevronLeftIcon } from '~/components/icons/chevron-left'
+import { ChevronRightIcon } from '~/components/icons/chevron-right'
+import { ExpandIcon } from '~/components/icons/expand'
 import { cn } from '~/lib/utils'
 import { useSwrHydrated } from '~/hooks/use-swr-hydrated'
 import 'yet-another-react-lightbox/styles.css'
-import { useState } from 'react'
-import { ExpandIcon } from '~/components/icons/expand'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import ProgressiveImage from '~/components/album/progressive-image.tsx'
-import { ArrowLeftIcon } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+
+const sidebarVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.06 } },
+} as const
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
+} as const
 
 export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
   const router = useRouter()
   const t = useTranslations()
   const [downloading, setDownloading] = useState(false)
   const [lightboxPhoto, setLightboxPhoto] = useState<boolean>(false)
+  const [imageList, setImageList] = useState<ImageType[]>([])
+  const [currentIndex, setCurrentIndex] = useState(-1)
 
   const configProps: HandleProps = {
     handle: props.configHandle,
     args: 'system-config',
   }
-  const { data: configData } = useSwrHydrated(configProps)
+  const { data: configData } = useSwrHydrated(configProps) as { data: { config_key: string; config_value: string }[] | undefined }
 
   const downloadEnabled =
-    (configData as any[] | undefined)?.find((item: any) => item.config_key === 'custom_index_download_enable')?.config_value?.toString() === 'true'
+    configData?.find((item) => item.config_key === 'custom_index_download_enable')?.config_value?.toString() === 'true'
+
+  // Fetch image list for prev/next navigation
+  useEffect(() => {
+    const album = props.data?.album_value || '/'
+    fetch(`/api/v1/public/gallery/images?page=1&album=${encodeURIComponent(album)}`)
+      .then(res => res.json())
+      .then((data: { items: ImageType[] }) => {
+        const items = data.items || []
+        setImageList(items)
+        const idx = items.findIndex((img: ImageType) => img.id === props.id)
+        setCurrentIndex(idx)
+      })
+      .catch(() => { setImageList([]); setCurrentIndex(-1) })
+  }, [props.id, props.data?.album_value])
+
+  const handlePrev = useCallback(() => {
+    if (currentIndex > 0) {
+      const prevImage = imageList[currentIndex - 1]
+      router.replace(`/preview/${prevImage.id}`)
+    }
+  }, [currentIndex, imageList, router])
+
+  const handleNext = useCallback(() => {
+    if (currentIndex < imageList.length - 1) {
+      const nextImage = imageList[currentIndex + 1]
+      router.replace(`/preview/${nextImage.id}`)
+    }
+  }, [currentIndex, imageList, router])
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (lightboxPhoto) return
+      if (e.key === 'ArrowLeft') handlePrev()
+      if (e.key === 'ArrowRight') handleNext()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handlePrev, handleNext, lightboxPhoto])
 
   const handleClose = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -112,10 +170,37 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
     }
   }
 
+  // Skeleton loading state
   if (!props.data) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">{t('Tips.loading')}</p>
+      <div className="w-full h-full flex flex-col lg:flex-row overflow-hidden bg-background" style={{ maxWidth: 1440, margin: '0 auto' }}>
+        {/* Desktop: image skeleton LEFT */}
+        <div className="hidden lg:flex flex-1 min-w-0 items-center justify-center">
+          <div className="w-3/4 h-3/4 rounded-xl bg-muted animate-pulse" />
+        </div>
+        {/* Mobile: image skeleton TOP */}
+        <div className="lg:hidden w-full flex-shrink-0 min-h-[50dvh] flex items-center justify-center">
+          <div className="w-3/4 h-3/4 rounded-xl bg-muted animate-pulse" />
+        </div>
+        {/* Sidebar skeleton RIGHT */}
+        <aside className="w-full lg:w-[320px] flex-shrink-0 flex flex-col bg-card overflow-y-auto">
+          <div className="px-6 py-5 border-b border-border">
+            <div className="h-6 w-3/4 rounded-lg bg-muted animate-pulse" />
+          </div>
+          <div className="px-6 py-5 space-y-4">
+            <div className="h-4 w-full rounded bg-muted animate-pulse" />
+            <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
+            <div className="space-y-3 mt-6">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-4 h-4 rounded bg-muted animate-pulse" />
+                  <div className="w-14 h-3 rounded bg-muted animate-pulse" />
+                  <div className="flex-1 h-3 rounded bg-muted animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
       </div>
     )
   }
@@ -128,17 +213,22 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
         : exif.data_time)
     : null
 
+  const hasLocation = props.data.lat && props.data.lon
+
   const exifRows = [
-    { icon: CameraIcon,    label: '相机型号', value: cam || null },
-    { icon: ClockIcon,     label: '拍摄日期', value: shotDate },
-    { icon: ApertureIcon,  label: '光圈',     value: exif?.f_number ?? null },
-    { icon: CrosshairIcon, label: '焦距',     value: exif?.focal_length ?? null },
-    { icon: GaugeIcon,     label: 'ISO',      value: exif?.iso_speed_rating ?? null },
+    { icon: CameraIcon,    label: t('Exif.camera'),    value: cam || null },
+    { icon: TelescopeIcon, label: t('Exif.lens'),      value: exif?.lens_model ?? null },
+    { icon: ClockIcon,     label: t('Exif.date'),      value: shotDate },
+    { icon: ApertureIcon,  label: t('Exif.aperture'),  value: exif?.f_number ?? null },
+    { icon: TimerIcon,     label: t('Exif.shutter'),   value: exif?.exposure_time ?? null },
+    { icon: CrosshairIcon, label: t('Exif.focalLength'), value: exif?.focal_length ?? null },
+    { icon: GaugeIcon,     label: t('Exif.iso'),       value: exif?.iso_speed_rating ?? null },
     {
       icon: ExpandIcon,
-      label: '分辨率',
+      label: t('Exif.resolution'),
       value: props.data.width && props.data.height ? `${props.data.width} × ${props.data.height}` : null,
     },
+    ...(hasLocation ? [{ icon: CompassIcon, label: t('Exif.location'), value: `${props.data.lat}, ${props.data.lon}` }] : []),
   ].filter((r) => r.value)
 
   const ImageSlot = (
@@ -160,163 +250,178 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
     </div>
   )
 
-  return (
-    <div
-      className="fixed inset-x-0 bottom-0 flex flex-col lg:flex-row bg-background z-10"
-      style={{ top: 56 }}
-    >
+  const hasPrev = currentIndex > 0
+  const hasNext = currentIndex < imageList.length - 1
 
-      {/* ── Mobile: 整体可滚动，图片在上内容在下 ── */}
-      <div className="lg:hidden w-full flex-1 overflow-y-auto overscroll-contain">
-        <div style={{ minHeight: 280 }}>
-          {ImageSlot}
-        </div>
-
-        {/* 移动端侧边栏内容直接跟在图片下方 */}
-        <div className="px-5 py-4 space-y-5 border-t border-border">
-          {props.data.detail && (
-            <p className="text-sm text-muted-foreground leading-relaxed">{props.data.detail}</p>
+  // Navigation arrows component
+  const NavigationArrows = ({ mobile }: { mobile: boolean }) => (
+    <>
+      {hasPrev && (
+        <button
+          onClick={handlePrev}
+          aria-label={t('Button.prev')}
+          className={cn(
+            'absolute top-1/2 -translate-y-1/2 z-20',
+            'w-11 h-11 rounded-xl bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm',
+            'flex items-center justify-center transition-colors touch-manipulation',
+            mobile ? 'left-3' : 'left-4'
           )}
-          {exifRows.length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">拍摄参数</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-              <div className="rounded-xl overflow-hidden border border-border divide-y divide-border">
-                {exifRows.map(({ icon: Icon, label, value }, i) => (
-                  <div key={label} className={cn('flex items-center gap-3 px-4 py-2.5', i % 2 === 0 ? 'bg-card' : 'bg-muted/40')}>
-                    <Icon size={14} className="flex-shrink-0 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground w-14 flex-shrink-0">{label}</span>
-                    <span className="text-xs font-medium text-foreground truncate">{String(value)}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-          {props.data.labels && props.data.labels.length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">标签</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {props.data.labels.map((tag: string) => (
-                  <button key={tag} onClick={() => router.push(`/tag/${tag}`)}
-                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-foreground border border-border hover:bg-accent hover:text-accent-foreground hover:border-accent transition-all duration-150 touch-manipulation">
-                    # {tag}
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-          <section>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">操作</span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-            <div className="grid grid-cols-2 gap-2 pb-8">
-              <ActionButton icon={<CopyIcon size={15} />} label="复制直链" onClick={handleCopyUrl} disabled={!props.data.url} />
-              <ActionButton icon={<LinkIcon size={15} />} label="分享链接" onClick={handleCopyShare} disabled={!props.id} />
-              {downloadEnabled && (
-                <ActionButton
-                  icon={downloading ? <RefreshCWIcon size={15} className="animate-spin" /> : <DownloadIcon size={15} />}
-                  label="下载原图" onClick={handleDownload} disabled={downloading}
-                />
-              )}
-              <ActionButton icon={<ExpandIcon size={15} />} label="全屏查看" onClick={() => setLightboxPhoto(true)} />
-            </div>
-          </section>
-        </div>
-      </div>
-
-      {/* 移动端顶部标题栏 + 返回按钮（fixed within the fixed container） */}
-      <div className="lg:hidden absolute top-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-sm px-4 py-3 flex items-center justify-between border-b border-border/50">
-        <h1 className="text-sm font-semibold text-foreground leading-snug line-clamp-1 flex-1 mr-3">
-          {props.data.title || '未命名'}
-        </h1>
-        <button onClick={handleClose}
-          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors touch-manipulation text-muted-foreground"
-          aria-label={t('Button.goBack')}>
-          <ArrowLeftIcon size={16} />
+        >
+          <ChevronLeftIcon size={20} className="!p-0" />
         </button>
+      )}
+      {hasNext && (
+        <button
+          onClick={handleNext}
+          aria-label={t('Button.next')}
+          className={cn(
+            'absolute top-1/2 -translate-y-1/2 z-20',
+            'w-11 h-11 rounded-xl bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm',
+            'flex items-center justify-center transition-colors touch-manipulation',
+            mobile ? 'right-3' : 'right-4'
+          )}
+        >
+          <ChevronRightIcon size={20} className="!p-0" />
+        </button>
+      )}
+    </>
+  )
+
+  // Sidebar content (shared between desktop and mobile)
+  const SidebarContent = () => (
+    <motion.div variants={sidebarVariants} initial="hidden" animate="visible" className="flex-1 px-6 py-5 space-y-6">
+      {props.data!.detail && (
+        <motion.p variants={itemVariants} className="text-sm text-muted-foreground leading-relaxed">{props.data!.detail}</motion.p>
+      )}
+      {exifRows.length > 0 && (
+        <motion.section variants={itemVariants}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              {t('Exif.title')}
+            </span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+          <div className="space-y-2">
+            {exifRows.map(({ icon: Icon, label, value }) => (
+              <div key={label} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/30">
+                <Icon size={14} className="flex-shrink-0 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground w-16 flex-shrink-0">{label}</span>
+                <span className="text-xs font-medium text-foreground truncate">{String(value)}</span>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+      )}
+      {props.data!.labels && props.data!.labels.length > 0 && (
+        <motion.section variants={itemVariants}>
+          <div className="flex flex-wrap gap-1.5">
+            {props.data!.labels.map((tag: string) => (
+              <button key={tag} onClick={() => router.push(`/tag/${tag}`)}
+                className="inline-flex items-center gap-0.5 px-2.5 py-1 rounded-lg text-xs font-medium
+                  bg-muted/60 text-muted-foreground border border-transparent
+                  hover:bg-accent hover:text-accent-foreground hover:border-accent
+                  active:scale-95
+                  transition-all duration-150 touch-manipulation">
+                <span className="text-muted-foreground/50 font-normal">#</span>{tag}
+              </button>
+            ))}
+          </div>
+        </motion.section>
+      )}
+      <motion.section variants={itemVariants}>
+        <div className="pt-2 border-t border-border/60">
+          <div className="grid grid-cols-2 gap-2 pt-4 pb-2">
+            <ActionButton icon={<CopyIcon size={14} />} label={t('Preview.copyLink')} onClick={handleCopyUrl} disabled={!props.data!.url} />
+            <ActionButton icon={<LinkIcon size={14} />} label={t('Preview.shareLink')} onClick={handleCopyShare} disabled={!props.id} />
+            {downloadEnabled && (
+              <ActionButton
+                icon={downloading ? <RefreshCWIcon size={14} className="animate-spin" /> : <DownloadIcon size={14} />}
+                label={t('Preview.download')} onClick={handleDownload} disabled={downloading}
+              />
+            )}
+            <ActionButton icon={<ExpandIcon size={14} />} label={t('Preview.fullscreen')} onClick={() => setLightboxPhoto(true)} />
+          </div>
+        </div>
+      </motion.section>
+    </motion.div>
+  )
+
+  return (
+    <div className="w-full h-full flex flex-col lg:flex-row overflow-hidden bg-background">
+
+      {/* ── Desktop: image LEFT ── */}
+      <div className="hidden lg:flex flex-1 min-w-0 items-center justify-center relative">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={props.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="w-full h-full flex items-center justify-center"
+          >
+            {ImageSlot}
+          </motion.div>
+        </AnimatePresence>
+        <NavigationArrows mobile={false} />
       </div>
 
-      {/* ── Desktop: 左侧信息栏，独立滚动 ── */}
-      <aside className="hidden lg:flex w-[300px] xl:w-[340px] flex-shrink-0 flex-col border-r border-border bg-card overflow-y-auto">
-        {/* 标题栏 sticky */}
-        <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b border-border px-5 py-4 flex items-start justify-between gap-3">
-          <h1 className="text-base font-semibold text-card-foreground leading-snug line-clamp-2 flex-1">
-            {props.data.title || '未命名'}
+      {/* ── Mobile: image TOP ── */}
+      <div className="lg:hidden w-full flex-shrink-0 min-h-[50dvh] relative">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={props.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="w-full h-full flex items-center justify-center"
+          >
+            {ImageSlot}
+          </motion.div>
+        </AnimatePresence>
+        <NavigationArrows mobile={true} />
+
+        {/* Mobile header */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
+          className="absolute top-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-sm px-4 py-3 flex items-center justify-between border-b border-border/50"
+        >
+          <h1 className="text-sm font-bold text-foreground leading-snug line-clamp-1 flex-1 mr-3">
+            {props.data.title || t('Preview.untitled')}
           </h1>
           <button onClick={handleClose}
-            className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted transition-colors touch-manipulation text-muted-foreground hover:text-foreground"
+            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors touch-manipulation text-muted-foreground"
             aria-label={t('Button.goBack')}>
-            <ArrowLeftIcon size={18} />
+            <ArrowLeftIcon size={16} className="!p-0" />
           </button>
-        </div>
-
-        <div className="flex-1 px-5 py-4 space-y-5 overflow-y-auto">
-          {props.data.detail && (
-            <p className="text-sm text-muted-foreground leading-relaxed">{props.data.detail}</p>
-          )}
-          {exifRows.length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">拍摄参数</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-              <div className="rounded-xl overflow-hidden border border-border divide-y divide-border">
-                {exifRows.map(({ icon: Icon, label, value }, i) => (
-                  <div key={label} className={cn('flex items-center gap-3 px-4 py-2.5', i % 2 === 0 ? 'bg-card' : 'bg-muted/40')}>
-                    <Icon size={14} className="flex-shrink-0 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground w-14 flex-shrink-0">{label}</span>
-                    <span className="text-xs font-medium text-foreground truncate">{String(value)}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-          {props.data.labels && props.data.labels.length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">标签</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {props.data.labels.map((tag: string) => (
-                  <button key={tag} onClick={() => router.push(`/tag/${tag}`)}
-                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-foreground border border-border hover:bg-accent hover:text-accent-foreground hover:border-accent transition-all duration-150 touch-manipulation">
-                    # {tag}
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-          <section>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">操作</span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-            <div className="grid grid-cols-2 gap-2 pb-4">
-              <ActionButton icon={<CopyIcon size={15} />} label="复制直链" onClick={handleCopyUrl} disabled={!props.data.url} />
-              <ActionButton icon={<LinkIcon size={15} />} label="分享链接" onClick={handleCopyShare} disabled={!props.id} />
-              {downloadEnabled && (
-                <ActionButton
-                  icon={downloading ? <RefreshCWIcon size={15} className="animate-spin" /> : <DownloadIcon size={15} />}
-                  label="下载原图" onClick={handleDownload} disabled={downloading}
-                />
-              )}
-              <ActionButton icon={<ExpandIcon size={15} />} label="全屏查看" onClick={() => setLightboxPhoto(true)} />
-            </div>
-          </section>
-        </div>
-      </aside>
-
-      {/* ── Desktop: 右侧图片区 ── */}
-      <div className="hidden lg:flex flex-1 min-w-0 min-h-0 items-center justify-center bg-muted/20 p-6 overflow-hidden">
-        {ImageSlot}
+        </motion.div>
       </div>
+
+      {/* ── Sidebar RIGHT ── */}
+      <aside className="w-full lg:w-[300px] xl:w-[320px] flex-shrink-0 flex flex-col border-t lg:border-t-0 lg:border-l border-border bg-card overflow-y-auto">
+        {/* Desktop header */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
+          className="hidden lg:flex sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-5 items-start justify-between gap-3"
+        >
+          <h1 className="text-lg font-bold text-card-foreground leading-snug line-clamp-2 flex-1">
+            {props.data.title || t('Preview.untitled')}
+          </h1>
+          <button onClick={handleClose}
+            className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors touch-manipulation text-muted-foreground hover:text-foreground"
+            aria-label={t('Button.goBack')}>
+            <ArrowLeftIcon size={18} className="!p-0" />
+          </button>
+        </motion.div>
+
+        {/* Sidebar content */}
+        <SidebarContent />
+      </aside>
 
     </div>
   )
@@ -338,18 +443,15 @@ function ActionButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="
-        flex items-center gap-2 px-3 py-2.5 rounded-lg
-        bg-muted hover:bg-accent
-        text-foreground hover:text-accent-foreground
-        border border-border hover:border-accent
-        text-xs font-medium
+      className="flex items-center gap-2 px-3 py-2.5 rounded-lg
+        bg-muted/60 hover:bg-accent text-muted-foreground hover:text-accent-foreground
+        border border-transparent hover:border-accent text-xs font-medium
+        active:scale-[0.98]
         transition-all duration-150
-        disabled:opacity-40 disabled:cursor-not-allowed
-        touch-manipulation select-none
-      "
+        disabled:text-muted-foreground/60 disabled:bg-muted/30 disabled:border-transparent disabled:cursor-not-allowed
+        touch-manipulation select-none"
     >
-      <span className="flex-shrink-0 text-muted-foreground group-hover:text-accent-foreground">{icon}</span>
+      <span className="flex-shrink-0 [&_svg]:transition-colors [&_svg]:duration-150">{icon}</span>
       {label}
     </button>
   )

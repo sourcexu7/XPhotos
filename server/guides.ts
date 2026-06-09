@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { jwtAuth } from './middleware/auth'
 import { db } from '@/lib/db'
 import { cacheInvalidate } from '~/lib/redis'
+import { replaceCoverWithPreview } from '~/lib/db/query/albums'
 
 async function invalidateGuidesCache(id?: string) {
   const keys: string[] = ['guides:list']
@@ -27,6 +28,22 @@ app.get('/public/list', async (c) => {
         { createdAt: 'desc' },
       ],
     })
+
+    // 将攻略 cover_image 中的原图 URL 替换为预览图 URL
+    const coverUrls = guides.map(g => g.cover_image).filter(Boolean) as string[]
+    if (coverUrls.length) {
+      const images = await db.images.findMany({
+        where: { url: { in: coverUrls }, del: 0 },
+        select: { url: true, preview_url: true },
+      })
+      const urlMap = new Map(images.map(img => [img.url, img.preview_url || img.url]))
+      for (const guide of guides) {
+        if (guide.cover_image) {
+          guide.cover_image = urlMap.get(guide.cover_image) || guide.cover_image
+        }
+      }
+    }
+
     return c.json({ data: guides })
   } catch (error) {
     console.error(error)
@@ -61,7 +78,29 @@ app.get('/public/:id', async (c) => {
     if (!guide) {
       return c.json({ error: 'Guide not found' }, 404)
     }
-    
+
+    // 将相册封面替换为预览图 URL（避免加载原图）
+    if (guide.albums?.length) {
+      const albums = guide.albums.map((a: any) => a.album).filter(Boolean)
+      const replaced = await replaceCoverWithPreview(albums)
+      guide.albums.forEach((relation: any, i: number) => {
+        if (relation.album && replaced[i]) {
+          relation.album.cover = replaced[i].cover
+        }
+      })
+    }
+
+    // 将攻略 cover_image 替换为预览图 URL
+    if (guide.cover_image) {
+      const img = await db.images.findFirst({
+        where: { url: guide.cover_image, del: 0 },
+        select: { preview_url: true },
+      })
+      if (img?.preview_url) {
+        guide.cover_image = img.preview_url
+      }
+    }
+
     // 处理 modules，添加 moduleData
     const guideWithModuleData = {
       ...guide,
@@ -73,7 +112,7 @@ app.get('/public/:id', async (c) => {
         }
       })
     }
-    
+
     return c.json({ data: guideWithModuleData })
   } catch (error) {
     console.error(error)
@@ -97,6 +136,22 @@ app.get('/list', jwtAuth, async (c) => {
         { createdAt: 'desc' },
       ],
     })
+
+    // 将攻略 cover_image 替换为预览图 URL
+    const coverUrls = guides.map(g => g.cover_image).filter(Boolean) as string[]
+    if (coverUrls.length) {
+      const images = await db.images.findMany({
+        where: { url: { in: coverUrls }, del: 0 },
+        select: { url: true, preview_url: true },
+      })
+      const urlMap = new Map(images.map(img => [img.url, img.preview_url || img.url]))
+      for (const guide of guides) {
+        if (guide.cover_image) {
+          guide.cover_image = urlMap.get(guide.cover_image) || guide.cover_image
+        }
+      }
+    }
+
     return c.json({ data: guides })
   } catch (error) {
     console.error(error)
@@ -124,6 +179,29 @@ app.get('/:id', jwtAuth, async (c) => {
     if (!guide) {
       return c.json({ error: 'Guide not found' }, 404)
     }
+
+    // 将相册封面替换为预览图 URL
+    if (guide.albums?.length) {
+      const albums = guide.albums.map((a: any) => a.album).filter(Boolean)
+      const replaced = await replaceCoverWithPreview(albums)
+      guide.albums.forEach((relation: any, i: number) => {
+        if (relation.album && replaced[i]) {
+          relation.album.cover = replaced[i].cover
+        }
+      })
+    }
+
+    // 将攻略 cover_image 替换为预览图 URL
+    if (guide.cover_image) {
+      const img = await db.images.findFirst({
+        where: { url: guide.cover_image, del: 0 },
+        select: { preview_url: true },
+      })
+      if (img?.preview_url) {
+        guide.cover_image = img.preview_url
+      }
+    }
+
     return c.json({ data: guide })
   } catch (error) {
     console.error(error)

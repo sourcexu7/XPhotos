@@ -5,8 +5,7 @@ import { toast } from 'sonner'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
 import type { ExifType, AlbumType } from '~/types'
-import Compressor from 'compressorjs'
-import { App as AntApp, Upload as AntUpload, Button as AntButton, Input as AntInput, Form as AntForm, Modal as AntModal, message as AntMessage, Tag as AntTag, Card as AntCard, Progress as AntProgress, InputNumber as AntInputNumber, DatePicker as AntDatePicker, Select } from 'antd'
+import { App as AntApp, Upload as AntUpload, Button as AntButton, Input as AntInput, Form as AntForm, Modal as AntModal, Tag as AntTag, Card as AntCard, Progress as AntProgress, InputNumber as AntInputNumber, DatePicker as AntDatePicker, Select } from 'antd'
 import MultipleSelector from '~/components/ui/origin/multiselect'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
@@ -17,6 +16,12 @@ import { exifReader, uploadFile } from '~/lib/utils/file'
 import { UploadIcon } from '~/components/icons/upload'
 import { heicTo, isHeic } from 'heic-to'
 import { encodeBrowserThumbHash } from '~/lib/utils/blurhash-client'
+import { compressImage, getCompressOptionsFromConfigs } from '~/lib/utils/compress'
+import { verifyUrlAccessible, fetchWithTimeout, checkDuplicate } from '~/lib/utils/uploadUtils'
+import { useStorageConfig } from '~/hooks/useStorageConfig'
+import { useTagManagement } from '~/hooks/useTagManagement'
+import { useExifData } from '~/hooks/useExifData'
+import { useExifPresets } from '~/hooks/useExifPresets'
 
 const { Dragger } = AntUpload
 
@@ -35,10 +40,6 @@ interface TagNode {
   children: { name: string }[]
 }
 
-interface AlistStorage {
-  mount_path: string
-}
-
 interface LivePhotoFile extends File {
   __key?: string
 }
@@ -47,11 +48,14 @@ export default function LivephotoFileUpload() {
   dayjs.locale('zh-cn')
   const { modal } = AntApp.useApp()
   const referenceInputRef = useRef<HTMLInputElement | null>(null)
-  const [alistStorage, setAlistStorage] = useState<AlistStorage[]>([])
-  const [storageSelect, setStorageSelect] = useState(false)
-  const [storage, setStorage] = useState('s3')
+
+  // 使用已提取的 hooks
+  const storageConfig = useStorageConfig()
+  const tagManagement = useTagManagement()
+  const exifDataHook = useExifData()
+  const exifPresets = useExifPresets()
+
   const [album, setAlbum] = useState('')
-  const [alistMountPath, setAlistMountPath] = useState('')
   const [exif, setExif] = useState({} as ExifType)
   const [title, setTitle] = useState('')
   const [imageId, setImageId] = useState('')
@@ -72,52 +76,22 @@ export default function LivephotoFileUpload() {
   const [lon, setLon] = useState('')
   const [detail, setDetail] = useState('')
   const [hash, setHash] = useState('')
-  const [imageLabels, setImageLabels] = useState([] as string[])
   const [autoUploadedFor, setAutoUploadedFor] = useState<string | null>(null)
   const [showMissingModal, setShowMissingModal] = useState(false)
   const [imageFile, setImageFile] = useState<LivePhotoFile | null>(null)
   const [videoFile, setVideoFile] = useState<LivePhotoFile | null>(null)
   const [videoUploadProgress, setVideoUploadProgress] = useState(0)
   const [videoUploadStage, setVideoUploadStage] = useState('')
+  const [presetTags, setPresetTags] = useState<string[]>([])
+  const [tagTree, setTagTree] = useState<TagNode[]>([])
 
   const t = useTranslations()
 
   const { data } = useSWR('/api/v1/albums/get', fetcher)
   const { data: configs } = useSWR<{ config_key: string, config_value: string }[]>('/api/v1/settings/get-custom-info', fetcher)
 
-  const defaultStorage = configs?.find(config => config.config_key === 'default_storage')?.config_value || 's3'
-  const previewImageMaxWidthLimitSwitchOn = configs?.find(config => config.config_key === 'preview_max_width_limit_switch')?.config_value === '1'
-  const previewImageMaxWidthLimit = parseInt(configs?.find(config => config.config_key === 'preview_max_width_limit')?.config_value || '0')
   const previewCompressQuality = parseFloat(configs?.find(config => config.config_key === 'preview_quality')?.config_value || '0.2')
-  const [presetTags, setPresetTags] = useState<string[]>([])
-  const [tagTree, setTagTree] = useState<TagNode[]>([])
-  const [primarySelect, setPrimarySelect] = useState<string | null>(null)
-  const [secondarySelect, setSecondarySelect] = useState<string[]>([])
-  const [cascaderValue, setCascaderValue] = useState<string[]>([])
-
-  useEffect(() => {
-    if (defaultStorage) {
-      setStorage(defaultStorage)
-    }
-  }, [defaultStorage])
-
-  // EXIF presets (editable via modal; persisted in localStorage)
-  const presetsStorageKey = 'picimpact_exif_presets'
-  const defaultPresets = {
-    cameraModels: ['Canon EOS R5','Sony A7 III','Nikon Z7 II','Fujifilm X-T4','iPhone 13 Pro'],
-    shutterSpeeds: ['1/8000','1/4000','1/2000','1/1000','1/500','1/250','1/125','1/60','1/30','1/15','1/8','1/4','1/2','1'],
-    isos: ['50','100','200','400','800','1600','3200','6400'],
-    apertures: ['1.4','1.8','2.0','2.8','3.5','4.0','5.6','8.0','11','16'],
-  }
-  const [exifPresets, setExifPresets] = useState(() => {
-    try {
-      const raw = localStorage.getItem(presetsStorageKey)
-      if (raw) return JSON.parse(raw)
-    } catch {}
-    return defaultPresets
-  })
-  const [isPresetModalOpen, setIsPresetModalOpen] = useState(false)
-  const [editingPresetsText, setEditingPresetsText] = useState({ cameraModels: '', shutterSpeeds: '', isos: '', apertures: '' })
+  const previewImageMaxWidthLimit = parseInt(configs?.find(config => config.config_key === 'preview_max_width_limit')?.config_value || '0')
 
   // 拉取后端预设标签 + 树形结构
   useEffect(() => {
@@ -134,120 +108,62 @@ export default function LivephotoFileUpload() {
       .catch(() => {})
   }, [])
 
-  // 点击预设标签：已存在则移除，否则加入
-  function togglePresetTag(tag: string) {
-    if (!tag || typeof tag !== 'string' || tag.trim() === '') return
+  // 使用共享压缩函数上传预览图
+  const uploadPreviewImage = React.useCallback((file: File, type: string) => {
+    return new Promise<void>(async (resolve, reject) => {
+      try {
+        setCurrentUploadStage('压缩预览图中')
 
-    const trimmedTag = tag.trim()
-
-    if (!Array.isArray(imageLabels)) {
-      setImageLabels([trimmedTag])
-      return
-    }
-
-    // 检查是否已存在（忽略大小写和首尾空格）
-    const existingIndex = imageLabels.findIndex(t => t.trim().toLowerCase() === trimmedTag.toLowerCase())
-
-    if (existingIndex >= 0) {
-      // 已存在，移除
-      setImageLabels(imageLabels.filter((_, i) => i !== existingIndex))
-    } else {
-      // 不存在，添加（确保去重）
-      const newLabels = [...imageLabels, trimmedTag]
-      const uniqueLabels = Array.from(new Set(newLabels.map(v => v.trim()))).filter(Boolean)
-      setImageLabels(uniqueLabels)
-    }
-  }
-
-  // 当选择级联标签时，自动将所选标签加入到标签输入框（不移除已有用户标签）
-  useEffect(() => {
-    if (!cascaderValue || cascaderValue.length === 0) {
-      return
-    }
-    const [p, ...children] = cascaderValue
-    // 过滤掉空值和无效值
-    const toAdd: string[] = [p, ...children].filter((v) => v && typeof v === 'string' && v.trim() !== '')
-    if (toAdd.length === 0) return
-    setPrimarySelect(p || null)
-    setSecondarySelect(children.filter((v) => v && typeof v === 'string'))
-    setImageLabels((prev) => {
-      const base = Array.isArray(prev) ? [...prev] : []
-      // 使用 Set 去重，确保不会添加重复的标签
-      const set = new Set(base.map(v => v.trim()))
-      // 添加新标签到集合
-      toAdd.forEach(v => {
-        if (v && v.trim() !== '') {
-          set.add(v.trim())
+        const compressOptions = getCompressOptionsFromConfigs(configs)
+        // 关键修复：maxWidth > 0 时直接生效，不再依赖开关
+        if (!compressOptions.maxWidthEnabled && previewImageMaxWidthLimit > 0) {
+          compressOptions.maxWidthEnabled = true
+          compressOptions.maxWidth = previewImageMaxWidthLimit
         }
-      })
-      return Array.from(set).filter(Boolean)
-    })
-  }, [cascaderValue])
+        compressOptions.quality = previewCompressQuality
 
-  const handleImageLabelsChange = (vals: string[]) => {
-    // 过滤掉空字符串和无效值，确保数据一致性
-    const cleanedVals = Array.isArray(vals)
-      ? vals.filter((v) => v && typeof v === 'string' && v.trim() !== '')
-      : []
+        const compressedBlob = await compressImage(file, compressOptions)
+        const compressedFile = new File([compressedBlob], 'preview.webp', { type: 'image/webp' })
 
-    // 去重处理：使用 Set 确保没有重复标签
-    const uniqueVals = Array.from(new Set(cleanedVals.map(v => v.trim()))).filter(Boolean)
-
-    setImageLabels(uniqueVals)
-
-    // 如果用户删除了来自级联选择器的标签，同步清除级联选择器
-    if (cascaderValue && cascaderValue.length > 0) {
-      const cascaderTags = cascaderValue.filter((v) => v && typeof v === 'string' && v.trim() !== '')
-      const allCascaderTagsRemoved = cascaderTags.every(tag => !uniqueVals.includes(tag.trim()))
-
-      if (allCascaderTagsRemoved) {
-        // 用户删除了所有来自级联选择器的标签，清空级联选择器
-        setCascaderValue([])
-        setPrimarySelect(null)
-        setSecondarySelect([])
+        const res = await uploadFile(compressedFile, type, storageConfig.storage, storageConfig.alistMountPath, {
+          onProgress: (p: number) => {
+            setTotalUploadProgress(50 + (p * 0.4))
+          },
+          onStageChange: (stage: string) => {
+            setCurrentUploadStage(stage)
+          }
+        })
+        if (res?.code === 200) {
+          setPreviewUrl(res?.data?.url)
+          if (res?.data?.key) setPreviewKey(res.data.key)
+          resolve()
+        } else {
+          reject(new Error('Upload failed'))
+        }
+      } catch (e) {
+        reject(e instanceof Error ? e : new Error('Upload failed'))
       }
-    }
-  }
+    })
+  }, [previewCompressQuality, previewImageMaxWidthLimit, configs, storageConfig.storage, storageConfig.alistMountPath])
 
+  // 使用 useExifData hook 加载 EXIF
   const loadExif = React.useCallback(async (file: File) => {
     try {
-      const { tags, exifObj } = await exifReader(file)
-      setExif(exifObj)
-      if (tags?.GPSLatitude?.description) {
-        setLat(tags?.GPSLatitude?.description)
-      } else {
-        setLat('')
-      }
-      if (tags?.GPSLongitude?.description) {
-        setLon(tags?.GPSLongitude?.description)
-      } else {
-        setLon('')
-      }
+      const { exif: exifInfo, lat: exifLat, lon: exifLon, width: imgWidth, height: imgHeight } = await exifDataHook.loadExifData(file)
+      setExif(exifInfo)
+      setLat(exifLat)
+      setLon(exifLon)
+      setWidth(imgWidth)
+      setHeight(imgHeight)
     } catch (e) {
       console.error(e)
     }
-    try {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const img = new Image()
-        img.onload = () => {
-          setWidth(Number(img.width))
-          setHeight(Number(img.height))
-        }
-        // @ts-expect-error - FileReader result typing
-        img.src = e.target.result
-      }
-      reader.readAsDataURL(file)
-    } catch (e) {
-      console.error(e)
-    }
-  }, [])
+  }, [exifDataHook])
 
   async function handleSubmit() {
     setIsSubmitting(true)
     try {
       if (!url || url === '') {
-        // show modal allowing upload+submit
         setIsSubmitting(false)
         setShowMissingModal(true)
         return
@@ -269,13 +185,12 @@ export default function LivephotoFileUpload() {
         return
       }
 
-      const labels = Array.isArray(imageLabels) ? [...imageLabels] : []
-      // If only primary selected, include primary. If secondary(s) selected, include primary + all selected secondaries.
-      if (primarySelect) {
-        if (!labels.includes(primarySelect)) labels.push(primarySelect)
+      const labels = [...tagManagement.labels]
+      if (tagManagement.primarySelect) {
+        if (!labels.includes(tagManagement.primarySelect)) labels.push(tagManagement.primarySelect)
       }
-      if (secondarySelect && Array.isArray(secondarySelect) && secondarySelect.length > 0) {
-        secondarySelect.forEach((s) => { if (!labels.includes(s)) labels.push(s) })
+      if (tagManagement.secondarySelect && tagManagement.secondarySelect.length > 0) {
+        tagManagement.secondarySelect.forEach((s) => { if (!labels.includes(s)) labels.push(s) })
       }
 
       const data = {
@@ -292,49 +207,18 @@ export default function LivephotoFileUpload() {
         detail,
         width,
         height,
-        type: 2, // LivePhoto type
+        type: 2,
         lat,
         lon,
       }
 
-      if (primarySelect && secondarySelect && Array.isArray(secondarySelect) && secondarySelect.length > 0) {
-        // map each secondary -> primary for backend upsert
+      if (tagManagement.primarySelect && tagManagement.secondarySelect && tagManagement.secondarySelect.length > 0) {
         const map: Record<string, string> = {}
-        secondarySelect.forEach(s => { map[s] = primarySelect })
+        tagManagement.secondarySelect.forEach(s => { map[s] = tagManagement.primarySelect! })
         ;(data as any).tagCategoryMap = map
       }
 
-      // 提交前，对现有 URL 做一次远端可访问性校验；若失败且仍有本地文件，则尝试自动重传，尽量避免「数据库有 URL 但 COS/S3 中无对象」的情况
-      async function verifyUrlAccessible(targetUrl: string): Promise<boolean> {
-        if (!targetUrl || typeof targetUrl !== 'string') return false
-        // dataURL 或非 http(s) 地址不做远端校验
-        if (!/^https?:\/\//i.test(targetUrl)) return true
-        try {
-          const controller = new AbortController()
-          const timer = setTimeout(() => controller.abort(), 8000)
-          const res = await fetch(targetUrl, {
-            method: 'HEAD',
-            mode: 'cors',
-            signal: controller.signal,
-          })
-          clearTimeout(timer)
-          if (!res.ok) {
-            const getController = new AbortController()
-            const getTimer = setTimeout(() => getController.abort(), 8000)
-            const probe = await fetch(targetUrl, {
-              method: 'GET',
-              mode: 'cors',
-              signal: getController.signal,
-            })
-            clearTimeout(getTimer)
-            return probe.ok
-          }
-          return true
-        } catch {
-          return false
-        }
-      }
-
+      // 提交前验证 URL 可访问性
       if (url) {
         const originOk = await verifyUrlAccessible(url)
         let previewOk = true
@@ -349,9 +233,7 @@ export default function LivephotoFileUpload() {
         if (!originOk || !previewOk) {
           if (imageFile) {
             try {
-              // 自动重传一次原图 + 预览图，复用已有的 imageId 避免重复上传
               await onRequestUploadImage(imageFile, imageId || undefined)
-              // 重传成功后，继续后续重复检测与入库流程
             } catch (e) {
               console.error('Re-upload after failed remote verification error', e)
               toast.error(t('Tips.cloudRemoteFileAnomalyRetryFailed'))
@@ -383,14 +265,10 @@ export default function LivephotoFileUpload() {
         }
       }
 
-      // 提交前进行重复检测（优先 blurhash，其次 url）
-      const dupRes = await fetchWithTimeout('/api/v1/images/check-duplicate', {
-        headers: { 'Content-Type': 'application/json' },
-        method: 'post',
-        body: JSON.stringify({ blurhash: hash || undefined, url: url || undefined }),
-      }, 10000).then(r => r.json()).catch(() => ({ code: 200, data: { duplicate: false } }))
+      // 重复检测
+      const dupRes = await checkDuplicate(hash || undefined, url || undefined)
 
-      if (dupRes?.code === 200 && dupRes?.data?.duplicate) {
+      if (dupRes) {
         const ok = await new Promise<boolean>((resolve) => {
           modal.confirm({
             title: t('Upload.duplicateImageTitle'),
@@ -427,83 +305,20 @@ export default function LivephotoFileUpload() {
     }
   }
 
-  // small helper to avoid hanging fetches
-  function fetchWithTimeout(resource: RequestInfo, options: RequestInit = {}, timeout = 15000) {
-    return new Promise<Response>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('请求超时')), timeout)
-      fetch(resource, options).then((res) => {
-        clearTimeout(timer)
-        resolve(res)
-      }).catch((err) => {
-        clearTimeout(timer)
-        reject(err)
-      })
-    })
-  }
-
-  async function getAlistStorage() {
-    if (alistStorage.length > 0) {
-      setStorageSelect(true)
-      return
-    }
+  // 使用 useExifData hook 的 applyReferenceExif
+  const applyReferenceExif = React.useCallback(async (file: File) => {
     try {
-      toast.info(t('Tips.gettingAlistDirs'))
-      const res = await fetch('/api/v1/storage/alist/storages', {
-        method: 'GET',
-      }).then(res => res.json())
-      if (res?.code === 200) {
-        setAlistStorage(res.data?.content)
-        setStorageSelect(true)
-      } else {
-        toast.error(t('Tips.getFailed'))
-      }
-    } catch {
-      toast.error(t('Tips.getFailed'))
+      const mergedExif = await exifDataHook.applyReferenceExif(file, exif)
+      setExif(mergedExif as ExifType)
+      const { tags } = await exifReader(file)
+      setLat(tags?.GPSLatitude?.description || '')
+      setLon(tags?.GPSLongitude?.description || '')
+      toast.success(t('Upload.referenceExifToastSuccess'))
+    } catch (err) {
+      console.error('Reference EXIF parse failed', err)
+      toast.error(t('Upload.referenceExifToastError'))
     }
-  }
-
-  const storages = [
-    { label: 'Cloudflare R2', value: 'r2' },
-    { label: 'Amazon S3', value: 's3' },
-    { label: 'Tencent COS', value: 'cos' },
-    { label: 'AList API', value: 'alist' },
-  ]
-
-  const uploadPreviewImage = React.useCallback((file: File, type: string) => {
-    return new Promise<void>((resolve, reject) => {
-      new Compressor(file, {
-        quality: previewCompressQuality,
-        checkOrientation: false,
-        mimeType: 'image/webp',
-        maxWidth: previewImageMaxWidthLimitSwitchOn && previewImageMaxWidthLimit > 0 ? previewImageMaxWidthLimit : undefined,
-        async success(compressedFile) {
-          try {
-            setCurrentUploadStage('压缩预览图中')
-            const res = await uploadFile(compressedFile as File, type, storage, alistMountPath, {
-              onProgress: (p: number) => {
-                setTotalUploadProgress(50 + (p * 0.4))
-              },
-              onStageChange: (stage: string) => {
-                setCurrentUploadStage(stage)
-              }
-            })
-            if (res?.code === 200) {
-              setPreviewUrl(res?.data?.url)
-              if (res?.data?.key) setPreviewKey(res.data.key)
-              resolve()
-            } else {
-              reject(new Error('Upload failed'))
-            }
-          } catch (e) {
-            reject(e instanceof Error ? e : new Error('Upload failed'))
-          }
-        },
-        error(err) {
-          reject(err instanceof Error ? err : new Error('Upload failed'))
-        },
-      })
-    })
-  }, [previewCompressQuality, previewImageMaxWidthLimitSwitchOn, previewImageMaxWidthLimit, storage, alistMountPath])
+  }, [exifDataHook, exif, t])
 
   const resHandleImage = React.useCallback(async (res: UploadResponse, file: File) => {
     try {
@@ -541,19 +356,6 @@ export default function LivephotoFileUpload() {
     }
   }, [])
 
-  const applyReferenceExif = React.useCallback(async (file: File) => {
-    try {
-      const { tags, exifObj } = await exifReader(file)
-      setExif((prev) => ({ ...(prev || {}), ...exifObj }))
-      setLat(tags?.GPSLatitude?.description || '')
-      setLon(tags?.GPSLongitude?.description || '')
-      toast.success(t('Upload.referenceExifToastSuccess'))
-    } catch (err) {
-      console.error('Reference EXIF parse failed', err)
-      toast.error(t('Upload.referenceExifToastError'))
-    }
-  }, [t])
-
   const onRequestUploadImage = React.useCallback(async (file: LivePhotoFile, existingImageId?: string) => {
     if (isUploading) {
       return
@@ -572,7 +374,7 @@ export default function LivephotoFileUpload() {
           type: 'image/jpeg',
         })
         const outputFile = new File([outputBuffer], fileName + '.jpg', { type: 'image/jpeg' })
-        await uploadFile(outputFile, album, storage, alistMountPath, {
+        await uploadFile(outputFile, album, storageConfig.storage, storageConfig.alistMountPath, {
           existingImageId,
           onProgress: (p:number) => {
             setTotalUploadProgress(10 + (p * 0.4))
@@ -590,7 +392,7 @@ export default function LivephotoFileUpload() {
       } else {
         setCurrentUploadStage('上传原图中')
         if (!file.__key) file.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
-        await uploadFile(file, album, storage, alistMountPath, {
+        await uploadFile(file, album, storageConfig.storage, storageConfig.alistMountPath, {
           existingImageId,
           onProgress: (p:number) => {
             setTotalUploadProgress(10 + (p * 0.4))
@@ -609,7 +411,7 @@ export default function LivephotoFileUpload() {
     } finally {
       setIsUploading(false)
     }
-  }, [album, storage, alistMountPath, resHandleImage, isUploading])
+  }, [album, storageConfig.storage, storageConfig.alistMountPath, resHandleImage, isUploading])
 
   const onRequestUploadVideo = React.useCallback(async (file: LivePhotoFile) => {
     if (!file) return
@@ -622,7 +424,7 @@ export default function LivephotoFileUpload() {
 
       const videoAlbum = album === '/' ? '/video' : album + '/video'
 
-      await uploadFile(file, videoAlbum, storage, alistMountPath, {
+      await uploadFile(file, videoAlbum, storageConfig.storage, storageConfig.alistMountPath, {
         onProgress: (p:number) => {
           setVideoUploadProgress(p)
         },
@@ -640,16 +442,15 @@ export default function LivephotoFileUpload() {
       console.error('Video upload error:', e)
       throw e
     }
-  }, [album, storage, alistMountPath, resHandleVideo])
+  }, [album, storageConfig.storage, storageConfig.alistMountPath, resHandleVideo])
 
   function onRemoveImage() {
-    // 若已上传原图，尝试删除存储对象
     ;(async () => {
       try {
-        if (originalKey && storage) {
+        if (originalKey && storageConfig.storage) {
           await fetch('/api/v1/file/delete', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ storage, key: originalKey })
+            body: JSON.stringify({ storage: storageConfig.storage, key: originalKey })
           })
         }
       } catch {}
@@ -672,13 +473,12 @@ export default function LivephotoFileUpload() {
   }
 
   function onRemoveVideo() {
-    // 若已上传视频，尝试删除存储对象
     ;(async () => {
       try {
-        if (videoKey && storage) {
+        if (videoKey && storageConfig.storage) {
           await fetch('/api/v1/file/delete', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ storage, key: videoKey })
+            body: JSON.stringify({ storage: storageConfig.storage, key: videoKey })
           })
         }
       } catch {}
@@ -691,19 +491,15 @@ export default function LivephotoFileUpload() {
   }
 
   // When an image file is selected, only read EXIF/preview/hash locally and prefill the form.
-  // Actual upload to storage will happen when the user clicks Submit.
   React.useEffect(() => {
     if (!imageFile) return
 
-    // prevent re-prefill for the same file
     if (autoUploadedFor === imageFile.name) return
 
     let cancelled = false
     ;(async () => {
       try {
-        // 如果未选择相册则不自动上传
         if (!album) {
-          // 保持旧行为：本地解析 EXIF/预览作为回退
           await loadExif(imageFile)
           setHash(await encodeBrowserThumbHash(imageFile))
           const reader = new FileReader()
@@ -716,9 +512,7 @@ export default function LivephotoFileUpload() {
           return
         }
 
-        // 已选择相册 => 自动上传原图与预览到存储
         await onRequestUploadImage(imageFile)
-        // onRequestUploadImage 会在完成时设置 url/previewUrl/exif/hash 等
         setAutoUploadedFor(imageFile.name)
       } catch (e) {
         console.error('Auto-upload failed', e)
@@ -736,11 +530,9 @@ export default function LivephotoFileUpload() {
     ;(async () => {
       try {
         if (!album) {
-          // 未选择相册，不上传
           return
         }
 
-        // 已选择相册 => 自动上传视频到存储
         await onRequestUploadVideo(videoFile)
         if (cancelled) return
       } catch (e) {
@@ -761,13 +553,13 @@ export default function LivephotoFileUpload() {
               {t('Upload.selectStorage')} *
             </label>
             <Select
-              value={storage || undefined}
-              onChange={(value: string) => { setStorage(value); if (value === 'alist') { getAlistStorage() } else { setStorageSelect(false) } if (value === 's3') { try { toast.info(t('Tips.switchToS3Info')) } catch {} } }}
+              value={storageConfig.storage || undefined}
+              onChange={(value: string) => { storageConfig.handleStorageChange(value); if (value === 's3') { try { toast.info(t('Tips.switchToS3Info')) } catch {} } }}
               placeholder={t('Upload.selectStorage')}
               className="w-full"
-              options={storages}
+              options={storageConfig.storages}
             />
-            {storage === '' && (
+            {storageConfig.storage === '' && (
               <p className="mt-1 text-xs text-error">{t('Upload.selectStorage')}</p>
             )}
           </div>
@@ -785,19 +577,19 @@ export default function LivephotoFileUpload() {
             />
           </div>
 
-          {storage === 'alist' && storageSelect && alistStorage?.length > 0 && (
+          {storageConfig.storage === 'alist' && storageConfig.isStorageSelect && storageConfig.alistStorage?.length > 0 && (
             <div className="w-full sm:flex-1">
               <label className="block text-sm font-medium text-text-secondary mb-2">
                 {t('Upload.selectAlistDirectory')} *
               </label>
               <Select
-                value={alistMountPath || undefined}
-                onChange={(value: string) => setAlistMountPath(value)}
+                value={storageConfig.alistMountPath || undefined}
+                onChange={storageConfig.handleAlistMountPathChange}
                 placeholder={t('Upload.selectAlistDirectory')}
                 className="w-full"
-                options={alistStorage?.map((s) => ({ label: s?.mount_path, value: s?.mount_path }))}
+                options={storageConfig.alistStorage?.map((s) => ({ label: s?.mount_path, value: s?.mount_path }))}
               />
-              {alistMountPath === '' && (
+              {storageConfig.alistMountPath === '' && (
                 <p className="mt-1 text-xs text-error">{t('Upload.selectAlistDirectory')}</p>
               )}
             </div>
@@ -821,7 +613,7 @@ export default function LivephotoFileUpload() {
                   await handleSubmit()
                 } catch {}
               }}
-              disabled={(!imageFile && !videoFile && (!url || url === '')) || album === '' || storage === '' || (storage === 'alist' && alistMountPath === '') || isUploading}
+              disabled={(!imageFile && !videoFile && (!url || url === '')) || album === '' || storageConfig.storage === '' || (storageConfig.storage === 'alist' && storageConfig.alistMountPath === '') || isUploading}
               style={{
                 backgroundColor: 'var(--primary)',
                 borderColor: 'var(--primary)',
@@ -869,7 +661,7 @@ export default function LivephotoFileUpload() {
             <div className="mb-4">
               <Dragger
                 multiple={false}
-                disabled={storage === '' || album === '' || (storage === 'alist' && alistMountPath === '')}
+                disabled={storageConfig.storage === '' || album === '' || (storageConfig.storage === 'alist' && storageConfig.alistMountPath === '')}
                 beforeUpload={() => false}
                 showUploadList={false}
                 style={{
@@ -884,7 +676,6 @@ export default function LivephotoFileUpload() {
                   const fileList = info.fileList || []
                   const last = fileList.length > 0 ? (fileList[fileList.length - 1].originFileObj as LivePhotoFile) : undefined
                   if (last) {
-                    // ensure stable key
                     if (!last.__key) last.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
                     setImageFile(last)
                   } else {
@@ -898,9 +689,9 @@ export default function LivephotoFileUpload() {
                   </div>
                   <p className="font-semibold text-text-primary">{t('Upload.dragOrClickImage')}</p>
                   <p className="text-text-secondary text-sm">{t('Upload.uploadTipsLivePhotoImage')}</p>
-                  {(storage === '' || album === '' || (storage === 'alist' && alistMountPath === '')) && (
+                  {(storageConfig.storage === '' || album === '' || (storageConfig.storage === 'alist' && storageConfig.alistMountPath === '')) && (
                     <p className="text-text-muted text-sm">
-                      {t(storage === 'alist' ? 'Tips.selectStorageAndAlbumWithAListDirectory' : 'Tips.selectStorageAndAlbum')}
+                      {t(storageConfig.storage === 'alist' ? 'Tips.selectStorageAndAlbumWithAListDirectory' : 'Tips.selectStorageAndAlbum')}
                     </p>
                   )}
                 </div>
@@ -912,7 +703,7 @@ export default function LivephotoFileUpload() {
               <Dragger
                 multiple={false}
                 accept="video/*,.mov,.mp4,.m4v"
-                disabled={storage === '' || album === '' || (storage === 'alist' && alistMountPath === '')}
+                disabled={storageConfig.storage === '' || album === '' || (storageConfig.storage === 'alist' && storageConfig.alistMountPath === '')}
                 beforeUpload={() => false}
                 showUploadList={false}
                 style={{
@@ -927,7 +718,6 @@ export default function LivephotoFileUpload() {
                   const fileList = info.fileList || []
                   const last = fileList.length > 0 ? (fileList[fileList.length - 1].originFileObj as LivePhotoFile) : undefined
                   if (last) {
-                    // ensure stable key
                     if (!last.__key) last.__key = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,9)}`
                     setVideoFile(last)
                   } else {
@@ -941,9 +731,9 @@ export default function LivephotoFileUpload() {
                   </div>
                   <p className="font-semibold text-text-primary">{t('Upload.dragOrClickVideo')}</p>
                   <p className="text-text-secondary text-sm">{t('Upload.uploadTipsLivePhotoVideo')}</p>
-                  {(storage === '' || album === '' || (storage === 'alist' && alistMountPath === '')) && (
+                  {(storageConfig.storage === '' || album === '' || (storageConfig.storage === 'alist' && storageConfig.alistMountPath === '')) && (
                     <p className="text-text-muted text-sm">
-                      {t(storage === 'alist' ? 'Tips.selectStorageAndAlbumWithAListDirectory' : 'Tips.selectStorageAndAlbum')}
+                      {t(storageConfig.storage === 'alist' ? 'Tips.selectStorageAndAlbumWithAListDirectory' : 'Tips.selectStorageAndAlbum')}
                     </p>
                   )}
                 </div>
@@ -1071,7 +861,6 @@ export default function LivephotoFileUpload() {
                   onChange={(e) => {
                     const file = e.target.files?.[0]
                     if (file) applyReferenceExif(file)
-                    // 允许重复选择同一文件
                     e.target.value = ''
                   }}
                 />
@@ -1080,12 +869,12 @@ export default function LivephotoFileUpload() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   <AntForm.Item
                     label={t('Upload.exifCameraModelLabel')}
-                    extra={<a onClick={() => { setEditingPresetsText({ cameraModels: exifPresets.cameraModels.join(', '), shutterSpeeds: exifPresets.shutterSpeeds.join(', '), isos: exifPresets.isos.join(', '), apertures: exifPresets.apertures.join(', ') }); setIsPresetModalOpen(true) }}>{t('Upload.manageCommonExifOptionsLink')}</a>}
+                    extra={<a onClick={() => { exifPresets.setEditingText({ cameraModels: exifPresets.presets.cameraModels.join(', '), shutterSpeeds: exifPresets.presets.shutterSpeeds.join(', '), isos: exifPresets.presets.isos.join(', '), apertures: exifPresets.presets.apertures.join(', ') }); exifPresets.openModal() }}>{t('Upload.manageCommonExifOptionsLink')}</a>}
                   >
                     <div>
                       <MultipleSelector
                         value={exif?.model ? [{ value: String(exif.model), label: String(exif.model) }] : []}
-                        options={exifPresets.cameraModels.map((m: string) => ({ value: m, label: m }))}
+                        options={exifPresets.presets.cameraModels.map((m: string) => ({ value: m, label: m }))}
                         placeholder={t('Upload.exifCameraModelManualPlaceholder')}
                         creatable
                         maxSelected={1}
@@ -1103,7 +892,7 @@ export default function LivephotoFileUpload() {
                         onChange={(v) => setExif({ ...(exif || {}), f_number: v })}
                         placeholder={t('Upload.exifCommonAperturePlaceholder')}
                         className="min-w-[120px]"
-                        options={exifPresets.apertures.map((a: string) => ({ label: a, value: a }))}
+                        options={exifPresets.presets.apertures.map((a: string) => ({ label: a, value: a }))}
                       />
                       <AntInput value={exif?.f_number || ''} onChange={(e) => setExif({ ...(exif || {}), f_number: parseFloat(e.target.value) || null })} placeholder={t('Upload.orManualInputPlaceholder')} />
                     </div>
@@ -1115,7 +904,7 @@ export default function LivephotoFileUpload() {
                         onChange={(v) => setExif({ ...(exif || {}), exposure_time: v })}
                         placeholder={t('Upload.exifCommonShutterPlaceholder')}
                         className="min-w-[120px]"
-                        options={exifPresets.shutterSpeeds.map((s: string) => ({ label: s, value: s }))}
+                        options={exifPresets.presets.shutterSpeeds.map((s: string) => ({ label: s, value: s }))}
                       />
                       <AntInput value={exif?.exposure_time || ''} onChange={(e) => setExif({ ...(exif || {}), exposure_time: e.target.value })} placeholder={t('Upload.orManualInputPlaceholder')} />
                     </div>
@@ -1127,7 +916,7 @@ export default function LivephotoFileUpload() {
                         onChange={(v) => setExif({ ...(exif || {}), iso_speed_rating: v })}
                         placeholder={t('Upload.exifCommonIsoPlaceholder')}
                         className="min-w-[120px]"
-                        options={exifPresets.isos.map((i: string) => ({ label: i, value: i }))}
+                        options={exifPresets.presets.isos.map((i: string) => ({ label: i, value: i }))}
                       />
                       <AntInput value={exif?.iso_speed_rating || ''} onChange={(e) => setExif({ ...(exif || {}), iso_speed_rating: parseInt(e.target.value) || null })} placeholder={t('Upload.orManualInputPlaceholder')} />
                     </div>
@@ -1316,7 +1105,7 @@ export default function LivephotoFileUpload() {
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.presetTagsClickAddRemoveHint')}</label>
                     <div className="flex flex-wrap gap-2">
                       {presetTags.filter(Boolean).map((tag, i) => {
-                        const isSelected = imageLabels && imageLabels.includes(tag)
+                        const isSelected = tagManagement.labels.includes(tag)
                         return (
                           <AntTag
                             key={`${tag}-${i}`}
@@ -1330,7 +1119,7 @@ export default function LivephotoFileUpload() {
                               color: isSelected ? '#FFFFFF' : undefined,
                               borderColor: isSelected ? 'var(--primary)' : undefined
                             }}
-                            onClick={() => togglePresetTag(tag)}
+                            onClick={() => tagManagement.togglePresetTag(tag)}
                           >
                             {tag}
                           </AntTag>
@@ -1343,10 +1132,9 @@ export default function LivephotoFileUpload() {
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.tagCategoryHeading')}</label>
                     <div className="space-y-3">
                       <Select
-                        value={primarySelect || undefined}
+                        value={tagManagement.primarySelect || undefined}
                         onChange={(v: string) => {
-                          setPrimarySelect(v)
-                          setCascaderValue([v, ...(secondarySelect || [])])
+                          tagManagement.handleCascaderChange([v, ...tagManagement.secondarySelect])
                         }}
                         placeholder={t('Upload.tagCategoryPlaceholder')}
                         className="w-full"
@@ -1357,13 +1145,12 @@ export default function LivephotoFileUpload() {
                         }}
                       />
                       <MultipleSelector
-                        value={(secondarySelect || []).map((s: string) => ({ value: s, label: s }))}
-                        options={(tagTree.find((t) => String(t.category) === String(primarySelect))?.children || []).map((c: any) => ({ value: c.name, label: c.name }))}
+                        value={(tagManagement.secondarySelect || []).map((s: string) => ({ value: s, label: s }))}
+                        options={(tagTree.find((t) => String(t.category) === String(tagManagement.primarySelect))?.children || []).map((c: any) => ({ value: c.name, label: c.name }))}
                         placeholder={t('Upload.tagChildrenPlaceholderMultiple')}
                         onChange={(opts?: any) => {
                           const vals = (opts || []).map((o: any) => o.value)
-                          setSecondarySelect(vals)
-                          setCascaderValue([primarySelect || '', ...vals])
+                          tagManagement.handleCascaderChange([tagManagement.primarySelect || '', ...vals])
                         }}
                       />
                     </div>
@@ -1372,11 +1159,11 @@ export default function LivephotoFileUpload() {
                   <div>
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.customTagsHeading')}</label>
                     <MultipleSelector
-                      value={(imageLabels.filter(Boolean) || []).map((s: string) => ({ value: s, label: s }))}
+                      value={(tagManagement.labels.filter(Boolean) || []).map((s: string) => ({ value: s, label: s }))}
                       options={(presetTags || []).map((s: string) => ({ value: s, label: s }))}
                       creatable
                       placeholder={t('Upload.indexTag')}
-                      onChange={(opts?: any) => handleImageLabelsChange((opts || []).map((o:any)=>o.value))}
+                      onChange={(opts?: any) => tagManagement.handleLabelsChange((opts || []).map((o:any)=>o.value))}
                     />
                   </div>
                 </div>
@@ -1388,39 +1175,59 @@ export default function LivephotoFileUpload() {
 
       <AntModal
         title={t('Upload.exifPresetManagerTitle')}
-        open={isPresetModalOpen}
+        open={exifPresets.isModalOpen}
         onOk={() => {
-          try {
-            const next = {
-              cameraModels: editingPresetsText.cameraModels.split(',').map(s=>s.trim()).filter(Boolean),
-              shutterSpeeds: editingPresetsText.shutterSpeeds.split(',').map(s=>s.trim()).filter(Boolean),
-              isos: editingPresetsText.isos.split(',').map(s=>s.trim()).filter(Boolean),
-              apertures: editingPresetsText.apertures.split(',').map(s=>s.trim()).filter(Boolean),
-            }
-            localStorage.setItem(presetsStorageKey, JSON.stringify(next))
-            setExifPresets(next)
-            setIsPresetModalOpen(false)
-            AntMessage.success(t('Tips.saveSuccess'))
-          } catch { AntMessage.error(t('Tips.saveFailed')) }
+          exifPresets.savePresets()
         }}
-        onCancel={() => setIsPresetModalOpen(false)}
+        onCancel={() => exifPresets.closeModal()}
+        footer={[
+          <AntButton key="cancel" onClick={() => exifPresets.closeModal()}>
+            {t('Button.canal')}
+          </AntButton>,
+          <AntButton key="reset" onClick={() => exifPresets.resetPresets()}>
+            {t('Button.reset')}
+          </AntButton>,
+          <AntButton key="save" type="primary" onClick={() => exifPresets.savePresets()}>
+            {t('Button.save')}
+          </AntButton>,
+        ]}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="space-y-4">
           <div>
-            <div className="text-xs text-gray-600 mb-1">{t('Upload.exifCameraModelsCommaSeparatedLabel')}</div>
-            <AntInput value={editingPresetsText.cameraModels} onChange={(e)=>setEditingPresetsText({...editingPresetsText, cameraModels: e.target.value})} />
+            <label className="block text-sm font-medium text-text-secondary mb-2">{t('Upload.cameraModels')}</label>
+            <AntInput.TextArea
+              value={exifPresets.editingText.cameraModels}
+              onChange={(e) => exifPresets.setEditingText({ ...exifPresets.editingText, cameraModels: e.target.value })}
+              placeholder={t('Upload.cameraModelsPlaceholder')}
+              rows={3}
+            />
           </div>
           <div>
-            <div className="text-xs text-gray-600 mb-1">{t('Upload.exifShutterSpeedsCommaSeparatedLabel')}</div>
-            <AntInput value={editingPresetsText.shutterSpeeds} onChange={(e)=>setEditingPresetsText({...editingPresetsText, shutterSpeeds: e.target.value})} />
+            <label className="block text-sm font-medium text-text-secondary mb-2">{t('Upload.shutterSpeeds')}</label>
+            <AntInput.TextArea
+              value={exifPresets.editingText.shutterSpeeds}
+              onChange={(e) => exifPresets.setEditingText({ ...exifPresets.editingText, shutterSpeeds: e.target.value })}
+              placeholder={t('Upload.shutterSpeedsPlaceholder')}
+              rows={3}
+            />
           </div>
           <div>
-            <div className="text-xs text-gray-600 mb-1">{t('Upload.exifIsosCommaSeparatedLabel')}</div>
-            <AntInput value={editingPresetsText.isos} onChange={(e)=>setEditingPresetsText({...editingPresetsText, isos: e.target.value})} />
+            <label className="block text-sm font-medium text-text-secondary mb-2">ISO</label>
+            <AntInput.TextArea
+              value={exifPresets.editingText.isos}
+              onChange={(e) => exifPresets.setEditingText({ ...exifPresets.editingText, isos: e.target.value })}
+              placeholder={t('Upload.isosPlaceholder')}
+              rows={3}
+            />
           </div>
           <div>
-            <div className="text-xs text-gray-600 mb-1">{t('Upload.exifAperturesCommaSeparatedLabel')}</div>
-            <AntInput value={editingPresetsText.apertures} onChange={(e)=>setEditingPresetsText({...editingPresetsText, apertures: e.target.value})} />
+            <label className="block text-sm font-medium text-text-secondary mb-2">{t('Upload.apertures')}</label>
+            <AntInput.TextArea
+              value={exifPresets.editingText.apertures}
+              onChange={(e) => exifPresets.setEditingText({ ...exifPresets.editingText, apertures: e.target.value })}
+              placeholder={t('Upload.aperturesPlaceholder')}
+              rows={3}
+            />
           </div>
         </div>
       </AntModal>

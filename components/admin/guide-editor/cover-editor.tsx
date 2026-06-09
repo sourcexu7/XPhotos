@@ -443,7 +443,7 @@ export default function GuideCoverEditor({
                 className={`relative aspect-square cursor-pointer rounded-lg overflow-hidden border-2 transition-colors ${
                   updatingAlbumCover ? 'border-gray-200 pointer-events-none opacity-50' : 'border-transparent hover:border-primary'
                 }`}
-                onClick={() => !updatingAlbumCover && handleAlbumCoverSelect(img.url)}
+                onClick={() => !updatingAlbumCover && handleAlbumCoverSelect(img.preview_url || img.url)}
               >
                 <Image
                   src={img.preview_url || img.url}

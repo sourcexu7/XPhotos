@@ -41,8 +41,8 @@ async function getClient(): Promise<RedisClient | null> {
   if (!client.isOpen && !client.isReady) {
     try {
       await client.connect()
-    } catch (err) {
-      console.warn('[Redis] connect failed, fallback to no-cache:', err?.message ?? err)
+    } catch (err: unknown) {
+      console.warn('[Redis] connect failed, fallback to no-cache:', err instanceof Error ? err.message : err)
       return null
     }
   }
@@ -61,8 +61,8 @@ export async function cacheWrap<T>(key: string, fn: () => Promise<T>): Promise<T
       const cached = await client.get(key)
       if (cached !== null) return JSON.parse(cached) as T
     }
-  } catch (err) {
-    console.warn('[Redis] get failed, fallback to db:', key, err?.message ?? err)
+  } catch (err: unknown) {
+    console.warn('[Redis] get failed, fallback to db:', key, err instanceof Error ? err.message : err)
   }
 
   const data = await fn()
@@ -70,8 +70,8 @@ export async function cacheWrap<T>(key: string, fn: () => Promise<T>): Promise<T
   try {
     const client = await getClient()
     if (client) await client.set(key, JSON.stringify(data))
-  } catch (err) {
-    console.warn('[Redis] set failed:', key, err?.message ?? err)
+  } catch (err: unknown) {
+    console.warn('[Redis] set failed:', key, err instanceof Error ? err.message : err)
   }
 
   return data
@@ -85,8 +85,8 @@ export async function cacheInvalidate(...keys: string[]): Promise<void> {
   try {
     const client = await getClient()
     if (client) await client.del(keys)
-  } catch (err) {
-    console.warn('[Redis] del failed:', keys, err?.message ?? err)
+  } catch (err: unknown) {
+    console.warn('[Redis] del failed:', keys, err instanceof Error ? err.message : err)
   }
 }
 
@@ -105,7 +105,7 @@ export async function cacheInvalidateByPattern(pattern: string): Promise<void> {
         await client.del(reply.keys)
       }
     } while (cursor !== '0')
-  } catch (err) {
-    console.warn('[Redis] scan/del failed:', pattern, err?.message ?? err)
+  } catch (err: unknown) {
+    console.warn('[Redis] scan/del failed:', pattern, err instanceof Error ? err.message : err)
   }
 }

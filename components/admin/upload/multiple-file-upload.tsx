@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
@@ -19,7 +19,9 @@ import { useStorageConfig } from '~/hooks/useStorageConfig'
 import { useTagManagement } from '~/hooks/useTagManagement'
 import { useExifData } from '~/hooks/useExifData'
 import { useExifPresets } from '~/hooks/useExifPresets'
-import { verifyUrlAccessible, fetchWithTimeout, checkDuplicate } from '~/lib/utils/uploadUtils'
+import { verifyUrlAccessible, fetchWithTimeout, checkDuplicate, uploadPreviewImage } from '~/lib/utils/uploadUtils'
+import { uploadFile } from '~/lib/utils/file'
+import { heicTo, isHeic } from 'heic-to'
 import { UploadIcon } from '~/components/icons/upload'
 
 const { Dragger } = AntUpload
@@ -76,6 +78,9 @@ export default function MultipleFileUpload() {
 
   // 获取配置值
   const maxUploadFiles = parseInt(configs?.find(config => config.config_key === 'max_upload_files')?.config_value || '20')
+  const previewCompressQuality = parseFloat(configs?.find(config => config.config_key === 'preview_quality')?.config_value || '0.2')
+  const previewImageMaxWidthLimitSwitchOn = configs?.find(config => config.config_key === 'preview_max_width_limit_switch')?.config_value === '1'
+  const previewImageMaxWidthLimit = parseInt(configs?.find(config => config.config_key === 'preview_max_width_limit')?.config_value || '0')
 
   // 拉取后端预设标签
   useEffect(() => {
@@ -128,12 +133,14 @@ export default function MultipleFileUpload() {
     if (album && storageConfig.storage) {
       for (const file of processedFiles) {
         if (!file.isUploaded && !file.isUploading) {
-          await processFile(file)
+          await processFileRef.current?.(file)
         }
       }
     }
-  }, [album, storageConfig.storage, maxUploadFiles])
+  }, [album, storageConfig.storage, maxUploadFiles, t])
 
+  // 使用 ref 保存 processFile，避免 handleFilesChange 与 processFile 之间的循环依赖
+  const processFileRef = useRef<(file: UploadFile) => Promise<void>>()
   // 处理单个文件
   const processFile = useCallback(async (file: UploadFile) => {
     if (!file.__key) return
@@ -155,6 +162,70 @@ export default function MultipleFileUpload() {
       // Generate blurhash
       const blurhash = await encodeBrowserThumbHash(file)
       updateFileField(key, 'blurhash', blurhash)
+
+      // HEIC 格式转换
+      updateFileProgress(key, 15, '准备上传中')
+      let uploadFileObj: File = file
+      const fileName = file.name.split('.').slice(0, -1).join('.')
+      if (await isHeic(file)) {
+        updateFileProgress(key, 18, '转换 HEIC 格式中')
+        const outputBuffer: Blob | Blob[] = await heicTo({
+          blob: file,
+          type: 'image/jpeg',
+        })
+        uploadFileObj = new File([outputBuffer], fileName + '.jpg', { type: 'image/jpeg' })
+      }
+
+      // 上传原图
+      updateFileProgress(key, 20, '上传原图中')
+      const originRes = await uploadFile(
+        uploadFileObj,
+        album,
+        storageConfig.storage,
+        storageConfig.alistMountPath,
+        {
+          onProgress: (p: number) => {
+            updateFileProgress(key, 20 + (p * 0.35), '上传原图中')
+          },
+          onStageChange: (stage: string) => {
+            updateFileProgress(key, file.uploadProgress || 20, stage)
+          },
+        }
+      )
+
+      if (originRes?.code === 200) {
+        updateFileField(key, 'url', originRes.data?.url)
+        updateFileField(key, 'imageId', originRes.data?.imageId)
+        if (originRes.data?.key) updateFileField(key, 'originalKey', originRes.data.key)
+      } else {
+        throw new Error('Original image upload failed')
+      }
+
+      // 压缩并上传预览图
+      updateFileProgress(key, 60, '压缩预览图中')
+      const previewType = album === '/' ? '/preview' : album + '/preview'
+      const previewRes = await uploadPreviewImage(
+        file,
+        previewType,
+        {
+          storage: storageConfig.storage,
+          alistMountPath: storageConfig.alistMountPath,
+          previewCompressQuality,
+          previewImageMaxWidthLimitSwitchOn,
+          previewImageMaxWidthLimit,
+          configs,
+          onProgress: (p: number) => {
+            updateFileProgress(key, 60 + (p * 0.35), '上传预览图中')
+          },
+          onStageChange: (stage: string) => {
+            updateFileProgress(key, file.uploadProgress || 60, stage)
+          },
+        }
+      )
+
+      updateFileField(key, 'previewUrl', previewRes.url)
+      if (previewRes.key) updateFileField(key, 'previewKey', previewRes.key)
+
       updateFileProgress(key, 100, '完成')
       updateFileField(key, 'isUploaded', true)
     } catch (e) {
@@ -164,7 +235,10 @@ export default function MultipleFileUpload() {
     } finally {
       updateFileField(key, 'isUploading', false)
     }
-  }, [exifDataHook, updateFileField, updateFileProgress])
+  }, [album, storageConfig.storage, storageConfig.alistMountPath, previewCompressQuality, previewImageMaxWidthLimitSwitchOn, previewImageMaxWidthLimit, configs, exifDataHook, updateFileField, updateFileProgress, t])
+
+  // 保持 ref 与最新 processFile 同步
+  processFileRef.current = processFile
 
   // 计算总进度
   useEffect(() => {
@@ -243,7 +317,7 @@ export default function MultipleFileUpload() {
       return newFile
     }))
     toast.success(t('Upload.batchExifApplied'))
-  }, [batchExif])
+  }, [batchExif, t])
 
   // 应用批量标签
   const applyBatchLabels = useCallback(() => {
@@ -256,7 +330,7 @@ export default function MultipleFileUpload() {
       return { ...f, labels: newLabels }
     }))
     toast.success(t('Upload.batchLabelsApplied'))
-  }, [batchLabels])
+  }, [batchLabels, t])
 
   // 应用参考 EXIF 到文件
   const applyReferenceExifToFile = useCallback(async (refFile: File, targetKey: string) => {
@@ -278,7 +352,7 @@ export default function MultipleFileUpload() {
       console.error('Reference EXIF parse failed', err)
       toast.error(t('Upload.referenceExifToastError'))
     }
-  }, [exifDataHook])
+  }, [exifDataHook, t])
 
   // 提交单个文件
   const submitSingleFile = useCallback(async (file: UploadFile): Promise<boolean> => {
@@ -342,13 +416,15 @@ export default function MultipleFileUpload() {
         modal.confirm({
           title: t('Upload.duplicateImageTitle'),
           content: t('Upload.duplicateImageContentWithName', { name: file.name }),
-          okText: t('Upload.duplicateImageContinue'),
+          okText: t('Upload.duplicateImageAsNew'),
           cancelText: t('Button.canal'),
           onOk: () => resolve(true),
           onCancel: () => resolve(false),
         })
       })
       if (!ok) return false
+      // 作为新图片上传，跳过幂等检查
+      ;(data as any).force_new = true
     }
 
     const res = await fetchWithTimeout('/api/v1/images/add', {
@@ -358,7 +434,7 @@ export default function MultipleFileUpload() {
     }, 15000).then(r => r.json())
 
     return res?.code === 200
-  }, [album, tagManagement, batchExif, batchLabels])
+  }, [album, tagManagement, batchExif, batchLabels, modal, t])
 
   // 处理提交
   const handleSubmit = useCallback(async () => {
@@ -424,7 +500,7 @@ export default function MultipleFileUpload() {
     } finally {
       setIsSubmitting(false)
     }
-  }, [album, files, submitSingleFile, tagManagement])
+  }, [album, files, submitSingleFile, tagManagement, t])
 
   // 处理上传选中文件并提交
   const handleUploadSelectedAndSubmit = useCallback(async () => {

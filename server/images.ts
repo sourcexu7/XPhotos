@@ -160,7 +160,7 @@ function validateImageData(data: Partial<ImageType>) {
 }
 
 app.post('/add', async (c) => {
-  const body = await c.req.json<ImageType & { client_image_id?: string }>()
+  const body = await c.req.json<ImageType & { client_image_id?: string; force_new?: boolean }>()
   if (!body) {
     throw new HTTPException(400, { message: 'Missing body' })
   }
@@ -170,6 +170,8 @@ app.post('/add', async (c) => {
     id: body.client_image_id || (body as any).id,
     image_name: (body as any).image_name,
   } as any
+
+  const forceNew = !!body.force_new
 
   validateImageData(image)
 
@@ -185,7 +187,7 @@ app.post('/add', async (c) => {
     // 入库前强校验：确保存储对象真实存在，避免“返回链接但桶里缺文件”
     await verifyImageObjectsExist(image as any)
 
-    const res = await insertImage(image)
+    const res = await insertImage(image, forceNew)
     await invalidateImageRelatedCaches()
     return c.json({ code: 200, data: res })
   } catch (e) {

@@ -222,7 +222,9 @@
     "close": "Close",
     "query": "Query",
     "save": "Save",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "prev": "Previous",
+    "next": "Next"
   },
   "Dashboard": {
     "title": "Dashboard",
@@ -330,8 +332,8 @@
     "referenceExifToastSuccess": "EXIF extracted from reference image (reference not uploaded)",
     "referenceExifToastError": "No valid EXIF found in the reference image or parsing failed",
     "duplicateImageTitle": "Duplicate image detected",
-    "duplicateImageContent": "This image already exists. Do you want to continue saving? (It may reuse the existing record.)",
-    "duplicateImageContinue": "Continue saving",
+    "duplicateImageContent": "This image already exists. Upload it as a new image?",
+    "duplicateImageAsNew": "Upload as new",
     "primaryTagLabel": "Primary Tag",
     "primaryTagPlaceholderOptional": "Select primary tag (optional)",
     "tagUncategorized": "Uncategorized",
@@ -799,5 +801,24 @@
       "autoGenerate": "Auto Generate",
       "noItems": "No TOC items"
     }
+  },
+  "Exif": {
+    "title": "Camera Info",
+    "camera": "Camera",
+    "date": "Date",
+    "aperture": "Aperture",
+    "focalLength": "Focal Length",
+    "shutter": "Shutter",
+    "lens": "Lens",
+    "iso": "ISO",
+    "resolution": "Resolution",
+    "location": "Location"
+  },
+  "Preview": {
+    "untitled": "Untitled",
+    "copyLink": "Copy Link",
+    "shareLink": "Share Link",
+    "download": "Download Original",
+    "fullscreen": "Fullscreen"
   }
 }

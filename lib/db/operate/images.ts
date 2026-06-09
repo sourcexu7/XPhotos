@@ -7,6 +7,7 @@ import type { ImageType } from '~/types'
 import dayjs from 'dayjs'
 import type { Tags } from '@prisma/client'
 import { upsertTagsByName } from '~/lib/db/operate/tags'
+import { createId } from '@paralleldrive/cuid2'
 
 /**
  * 恢复已删除的图片
@@ -147,36 +148,40 @@ async function syncImageTags(tx: Omit<PrismaClient, '$connect' | '$disconnect' |
  * 新增图片
  * @param image 图片数据
  */
-export async function insertImage(image: ImageType) {
+export async function insertImage(image: ImageType, forceNew = false) {
   if (!image.sort || image.sort < 0) {
     image.sort = 0
   }
 
   return await db.$transaction(async (tx) => {
-    // 幂等检查: 优先按 blurhash 检查(如果提供), 其次按 url 检查
-    const existingImage = image.blurhash
-      ? await tx.images.findFirst({ where: { blurhash: image.blurhash } })
-      : image.url
-        ? await tx.images.findFirst({ where: { url: image.url } })
-        : null
+    // forceNew 时跳过幂等检查，直接创建新记录
+    if (!forceNew) {
+      // 幂等检查: 优先按 blurhash 检查(如果提供), 其次按 url 检查
+      const existingImage = image.blurhash
+        ? await tx.images.findFirst({ where: { blurhash: image.blurhash } })
+        : image.url
+          ? await tx.images.findFirst({ where: { url: image.url } })
+          : null
 
-    // 如果存在且被逻辑删除, 恢复并更新元数据
-    if (existingImage && (existingImage as { del?: number }).del === 1) {
-      return await reviveDeletedImage(tx, existingImage.id, image)
+      // 如果存在且被逻辑删除, 恢复并更新元数据
+      if (existingImage && (existingImage as { del?: number }).del === 1) {
+        return await reviveDeletedImage(tx, existingImage.id, image)
+      }
+
+      // 如果存在且未删除, 直接返回
+      if (existingImage) {
+        return existingImage
+      }
     }
 
-    // 如果存在且未删除, 直接返回
-    if (existingImage) {
-      return existingImage
-    }
-
-    // 创建新图片
+    // 创建新图片（forceNew 时使用新 ID 避免主键冲突）
+    const imageId = forceNew ? createId() : image.id
     const rawDataTime = (image as any)?.exif?.data_time
     const shootAt = rawDataTime && dayjs(rawDataTime).isValid() ? dayjs(rawDataTime).toDate() : null
 
     const resultRow = await tx.images.create({
       data: {
-        id: image.id,
+        id: imageId,
         image_name: image.image_name,
         url: image.url,
         title: image.title,

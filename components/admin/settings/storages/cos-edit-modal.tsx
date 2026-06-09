@@ -21,7 +21,7 @@ export default function COSEditModal() {
     if (cosEdit) {
       form.setFieldsValue(initialValues)
     }
-  }, [cosEdit, initialValues])
+  }, [cosEdit, initialValues, form])
 
   async function onOk() {
     setLoading(true)

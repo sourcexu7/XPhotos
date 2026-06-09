@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { fetchConfigsByKeys } from '~/lib/db/query/configs'
-import { fetchAlbumsShowWithCounts } from '~/lib/db/query/albums'
+import { fetchAlbumsShowWithCounts, replaceCoverWithPreview } from '~/lib/db/query/albums'
 import { fetchPublicDashboardStats } from '~/lib/db/query/public-dashboard'
 import gallery from '~/server/open/gallery'
 import { Hono } from 'hono'
@@ -97,6 +97,22 @@ app.get('/guides', async (c) => {
         orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
       }),
     )
+
+    // 将攻略 cover_image 替换为预览图 URL
+    const coverUrls = guides.map((g: any) => g.cover_image).filter(Boolean) as string[]
+    if (coverUrls.length) {
+      const images = await db.images.findMany({
+        where: { url: { in: coverUrls }, del: 0 },
+        select: { url: true, preview_url: true },
+      })
+      const urlMap = new Map(images.map(img => [img.url, img.preview_url || img.url]))
+      for (const guide of guides) {
+        if (guide.cover_image) {
+          guide.cover_image = urlMap.get(guide.cover_image) || guide.cover_image
+        }
+      }
+    }
+
     return c.json({ data: guides })
   } catch (error) {
     console.error('Error fetching guides:', error)
@@ -143,6 +159,29 @@ app.get('/guides/:id', async (c) => {
     if (!data) {
       throw new HTTPException(404, { message: 'Guide not found' })
     }
+
+    // 将关联相册封面替换为预览图 URL
+    if (data.albums?.length) {
+      const albums = data.albums.map((r: any) => r.album).filter(Boolean)
+      const replaced = await replaceCoverWithPreview(albums)
+      data.albums.forEach((relation: any, i: number) => {
+        if (relation.album && replaced[i]) {
+          relation.album.cover = replaced[i].cover
+        }
+      })
+    }
+
+    // 将攻略 cover_image 替换为预览图 URL
+    if (data.cover_image) {
+      const img = await db.images.findFirst({
+        where: { url: data.cover_image, del: 0 },
+        select: { preview_url: true },
+      })
+      if (img?.preview_url) {
+        data.cover_image = img.preview_url
+      }
+    }
+
     return c.json({ data })
   } catch (error) {
     console.error('Error fetching guide:', error)

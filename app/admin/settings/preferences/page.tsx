@@ -9,7 +9,7 @@ import { Alert, Button, Input, Form, Switch, Card, Space, Row, Col, Typography, 
 import { SaveOutlined, CopyOutlined, DeleteOutlined, PlusOutlined, HolderOutlined } from '@ant-design/icons'
 import AdminPageHeader from '~/components/admin/layout/page-header'
 // 「关于我」头像上传使用现有上传工具 & 压缩
-import Compressor from 'compressorjs'
+import { compressImage } from '~/lib/utils/compress'
 import { uploadFile } from '~/lib/utils/file'
 
 const { Compact } = Space
@@ -205,20 +205,13 @@ export default function Preferences() {
         }
 
         // 压缩图片
-        const compressedFile: File = await new Promise((resolve, reject) => {
-          new Compressor(file, {
-            quality: 0.85,
-            maxWidth: 1920,
-            maxHeight: 1920,
-            success(result: Blob | File) {
-              const f = result instanceof File ? result : new File([result], file.name, { type: file.type })
-              resolve(f)
-            },
-            error(err: Error) {
-              reject(err)
-            },
-          })
+        const compressedBlob = await compressImage(file, {
+          quality: 0.85,
+          maxWidth: 1920,
+          maxWidthEnabled: true,
+          mimeType: 'image/webp',
         })
+        const compressedFile = new File([compressedBlob], file.name.replace(/\.\w+$/, '.webp'), { type: 'image/webp' })
 
         // 上传到画廊目录
         const resp = await uploadFile(compressedFile, '/about/gallery', 's3', '')

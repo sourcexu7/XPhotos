@@ -1,6 +1,6 @@
-import Compressor from 'compressorjs'
 import { toast } from 'sonner'
 import { uploadFile } from './file'
+import { compressImage, getCompressOptionsFromConfigs } from './compress'
 
 export interface UploadResult {
   url: string
@@ -18,6 +18,7 @@ export interface UploadPreviewImageOptions {
   previewImageMaxWidthLimitSwitchOn: boolean
   previewImageMaxWidthLimit: number
   existingImageId?: string
+  configs?: { config_key: string; config_value: string }[]
   onProgress?: (progress: number) => void
   onStageChange?: (stage: string) => void
 }
@@ -100,7 +101,7 @@ export async function checkDuplicate(
 }
 
 /**
- * 上传预览图
+ * 上传预览图（使用共享 compressImage 函数压缩，确保 maxWidth > 0 时直接生效）
  * @param file 原始文件
  * @param type 上传类型
  * @param options 上传选项
@@ -111,46 +112,40 @@ export async function uploadPreviewImage(
   type: string,
   options: UploadPreviewImageOptions
 ): Promise<{ url: string; key?: string }> {
-  return new Promise((resolve, reject) => {
-    new Compressor(file, {
-      quality: options.previewCompressQuality,
-      checkOrientation: false,
-      mimeType: 'image/webp',
-      maxWidth: options.previewImageMaxWidthLimitSwitchOn && options.previewImageMaxWidthLimit > 0
-        ? options.previewImageMaxWidthLimit
-        : undefined,
-      async success(compressedFile) {
-        try {
-          options.onStageChange?.('压缩预览图中')
-          const res = await uploadFile(
-            compressedFile as File,
-            type,
-            options.storage,
-            options.alistMountPath,
-            {
-              existingImageId: options.existingImageId,
-              onProgress: options.onProgress,
-              onStageChange: options.onStageChange,
-            }
-          )
+  options.onStageChange?.('压缩预览图中')
 
-          if (res?.code === 200) {
-            resolve({
-              url: res?.data?.url,
-              key: res?.data?.key,
-            })
-          } else {
-            reject(new Error('Upload failed'))
-          }
-        } catch (e) {
-          reject(e instanceof Error ? e : new Error('Upload failed'))
-        }
-      },
-      error(err) {
-        reject(err instanceof Error ? err : new Error('Compression failed'))
-      },
-    })
-  })
+  // 从后台配置中提取压缩参数，再覆盖调用方传入的值
+  const compressOptions = getCompressOptionsFromConfigs(options.configs)
+  // 关键修复：maxWidth > 0 时直接生效，不再依赖开关
+  if (!compressOptions.maxWidthEnabled && options.previewImageMaxWidthLimit > 0) {
+    compressOptions.maxWidthEnabled = true
+    compressOptions.maxWidth = options.previewImageMaxWidthLimit
+  }
+  compressOptions.quality = options.previewCompressQuality
+
+  const compressedBlob = await compressImage(file, compressOptions)
+  const compressedFile = new File([compressedBlob], 'preview.webp', { type: 'image/webp' })
+
+  const res = await uploadFile(
+    compressedFile,
+    type,
+    options.storage,
+    options.alistMountPath,
+    {
+      existingImageId: options.existingImageId,
+      onProgress: options.onProgress,
+      onStageChange: options.onStageChange,
+    }
+  )
+
+  if (res?.code === 200) {
+    return {
+      url: res?.data?.url,
+      key: res?.data?.key,
+    }
+  } else {
+    throw new Error('Upload failed')
+  }
 }
 
 /**

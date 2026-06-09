@@ -109,7 +109,7 @@ const SimpleGallery = React.memo(function SimpleGallery(props: Readonly<ImageHan
     if (scrollTop + windowHeight >= documentHeight - 100) {
       setSize((size as number) + 1)
     }
-  }, [isValidating, pageTotal, setSize, size])
+  }, [isValidating, pageTotalNumber, setSize, size])
 
   // 自动触底加载更多（替换底部按钮）
   useEffect(() => {

@@ -5,32 +5,33 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import Lightbox from 'yet-another-react-lightbox'
 import { useTranslations } from 'next-intl'
 import { useBlurImageDataUrl } from '~/hooks/use-blurhash'
-import { ArrowLeftIcon, X } from 'lucide-react'
+import { ArrowLeftIcon } from '~/components/icons/arrow-left'
+import { XIcon } from '~/components/icons/x'
 
-export default function ProgressiveImage(props: Readonly<ProgressiveImageProps>) {
+export default function ProgressiveImage({ showLightbox: showLightboxProp, previewUrl, onShowLightboxChange, blurhash, alt, width, height }: Readonly<ProgressiveImageProps>) {
   const t = useTranslations()
-  const [showLightbox, setShowLightbox] = useState(Boolean(props.showLightbox))
+  const [showLightbox, setShowLightbox] = useState(Boolean(showLightboxProp))
   const [fullresSrc, setFullresSrc] = useState<string | null>(null)
   const openedRef = useRef(false)
 
   useEffect(() => {
-    setShowLightbox(Boolean(props.showLightbox))
-  }, [props.showLightbox])
+    setShowLightbox(Boolean(showLightboxProp))
+  }, [showLightboxProp])
 
   useEffect(() => {
     if (showLightbox && !openedRef.current) {
       openedRef.current = true
-      setFullresSrc(props.previewUrl || null)
+      setFullresSrc(previewUrl || null)
     }
-  }, [showLightbox, props.previewUrl])
+  }, [showLightbox, previewUrl])
 
-  const dataURL = useBlurImageDataUrl(props.blurhash || '')
+  const dataURL = useBlurImageDataUrl(blurhash || '')
 
   const handleClose = useCallback(() => {
     setShowLightbox(false)
     openedRef.current = false
-    props.onShowLightboxChange?.(false)
-  }, [props.onShowLightboxChange])
+    onShowLightboxChange?.(false)
+  }, [onShowLightboxChange])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -42,7 +43,7 @@ export default function ProgressiveImage(props: Readonly<ProgressiveImageProps>)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [showLightbox, handleClose])
 
-  if (!props.previewUrl || props.previewUrl.trim() === '') {
+  if (!previewUrl || previewUrl.trim() === '') {
     return (
       <div className="flex items-center justify-center w-full h-[90vh] bg-gray-100">
         <div className="text-muted-foreground">{t('Tips.imageLoadFailed')}</div>
@@ -50,15 +51,15 @@ export default function ProgressiveImage(props: Readonly<ProgressiveImageProps>)
     )
   }
 
-  const slideSrc = fullresSrc ?? props.previewUrl
+  const slideSrc = fullresSrc ?? previewUrl
 
   return (
     <div className="relative">
       <img
-        src={props.previewUrl}
-        alt={props.alt || 'image'}
-        width={props.width}
-        height={props.height}
+        src={previewUrl}
+        alt={alt || 'image'}
+        width={width}
+        height={height}
         className="object-contain md:max-h-[90vh] cursor-zoom-in w-full"
         style={{
           backgroundImage: dataURL ? `url(${dataURL})` : undefined,
@@ -88,7 +89,7 @@ export default function ProgressiveImage(props: Readonly<ProgressiveImageProps>)
               aria-label={t('Button.goBack') || '返回'}
               type="button"
             >
-              <ArrowLeftIcon size={20} />
+              <ArrowLeftIcon size={20} className="!p-0" />
             </button>
 
             <button
@@ -97,7 +98,7 @@ export default function ProgressiveImage(props: Readonly<ProgressiveImageProps>)
               aria-label={t('Button.close') || '关闭'}
               type="button"
             >
-              <X size={20} />
+              <XIcon size={20} className="!p-0" />
             </button>
           </div>
 
@@ -112,7 +113,7 @@ export default function ProgressiveImage(props: Readonly<ProgressiveImageProps>)
           >
             <img
               src={slideSrc}
-              alt={props.alt || 'image'}
+              alt={alt || 'image'}
               onClick={(e) => e.stopPropagation()}
               style={{
                 maxHeight: 'calc(100dvh - 80px)',
