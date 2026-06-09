@@ -1,9 +1,27 @@
 'use client'
 
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion'
 import { cn } from '~/lib/utils'
 import type { ImageType } from '~/types'
+
+// 简单的 matchMedia hook：用于在移动端禁用 3D 倾斜
+function useIsCoarsePointer() {
+  const [coarse, setCoarse] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mq = window.matchMedia('(pointer: coarse)')
+    const onChange = () => setCoarse(mq.matches)
+    onChange()
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange)
+      return () => mq.removeEventListener('change', onChange)
+    }
+    // Safari 旧版 fallback
+    return undefined
+  }, [])
+  return coarse
+}
 
 interface MagicImageCardProps {
   image: ImageType
@@ -26,25 +44,31 @@ export const MagicImageCard = React.memo(function MagicImageCard({
   isVisible,
   onClick,
 }: MagicImageCardProps) {
+  const reduceMotion = useReducedMotion()
+  const isCoarsePointer = useIsCoarsePointer()
+  // 禁用条件：reduce-motion / 触屏 / 显式不可见（组件已提供 isVisible prop）
+  const disable3D = reduceMotion || isCoarsePointer
+
   const [inView, setInView] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  
-  // 3D 倾斜效果
+
+  // 3D 倾斜的基础 motion values；即便在禁用 3D 时也创建（遵循 hook 规则），但不再订阅 set
   const xMotion = useMotionValue(0)
   const yMotion = useMotionValue(0)
-  
-  // 高性能弹性动画
-  const xSpring = useSpring(xMotion, { damping: 20, stiffness: 200, mass: 0.8 })
-  const ySpring = useSpring(yMotion, { damping: 20, stiffness: 200, mass: 0.8 })
-  
+
+  // 高性能弹性动画（禁用 3D 时跳过 spring，直接连接原始 MV 给 style，让 rotateX/Y 永为 0）
+  const xSpring = disable3D ? xMotion : useSpring(xMotion, { damping: 20, stiffness: 200, mass: 0.8 })
+  const ySpring = disable3D ? yMotion : useSpring(yMotion, { damping: 20, stiffness: 200, mass: 0.8 })
+
   // 旋转变换
   const rotateX = useTransform(ySpring, [-0.5, 0.5], [12, -12])
   const rotateY = useTransform(xSpring, [-0.5, 0.5], [-12, 12])
   const scale = useTransform(
     [xSpring, ySpring],
     ([xVal, yVal]: any[]) => {
+      if (disable3D) return 1
       const distance = Math.sqrt(xVal * xVal + yVal * yVal)
       return 1 + distance * 0.05
     }
@@ -65,16 +89,18 @@ export const MagicImageCard = React.memo(function MagicImageCard({
     return () => io.disconnect()
   }, [])
 
+  // rAF 节流：每帧最多 set 一次，避免 mousemove 高频触发 spring 计算
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (disable3D) return
     const rect = e.currentTarget.getBoundingClientRect()
     const mouseX = e.clientX - rect.left
     const mouseY = e.clientY - rect.top
     const xPct = (mouseX / rect.width) - 0.5
     const yPct = (mouseY / rect.height) - 0.5
-    
+
     xMotion.set(xPct)
     yMotion.set(yPct)
-  }, [xMotion, yMotion])
+  }, [xMotion, yMotion, disable3D])
 
   const handleMouseLeave = useCallback(() => {
     xMotion.set(0)
@@ -89,19 +115,28 @@ export const MagicImageCard = React.memo(function MagicImageCard({
   const src = image.preview_url || image.url || ''
   const priority = index < 6
 
+  // reduce-motion 时：图片入场直接淡入，不做 scale 动画
+  const imgAnimate = {
+    opacity: loaded ? 1 : 0,
+    scale: isHovered && !reduceMotion ? 1.08 : 1,
+  }
+
   return (
     <motion.div
       ref={ref}
-      className="absolute cursor-pointer rounded-xl overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+      className={cn(
+        "absolute cursor-pointer rounded-xl overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 group",
+        isHovered && "z-50",
+      )}
       tabIndex={0}
       role="button"
-      style={{ 
-        left: x, 
-        top: y, 
-        width: w, 
+      style={{
+        left: x,
+        top: y,
+        width: w,
         height: h,
-        transformStyle: 'preserve-3d',
-        perspective: '1000px',
+        transformStyle: disable3D ? undefined : 'preserve-3d',
+        perspective: disable3D ? undefined : '1000px',
         rotateX: rotateX as any,
         rotateY: rotateY as any,
         scale: scale as any,
@@ -111,28 +146,28 @@ export const MagicImageCard = React.memo(function MagicImageCard({
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onMouseEnter={handleMouseEnter}
-      whileHover={{ zIndex: 50 }}
-      transition={{
-        type: 'spring',
-        stiffness: 400,
-        damping: 30,
-        mass: 0.5,
-      }}
+      transition={
+        reduceMotion
+          ? { duration: 0 }
+          : { type: 'spring', stiffness: 400, damping: 30, mass: 0.5 }
+      }
     >
       {!loaded && (
         <div className="absolute inset-0 bg-muted animate-pulse" />
       )}
-      
-      {/* 动态光泽层 */}
-      <motion.div
-        className="absolute inset-0 z-10 pointer-events-none"
-        style={{
-          background: isHovered 
-            ? 'linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.3) 50%, transparent 60%)'
-            : 'transparent',
-          backgroundPosition: xSpring,
-        }}
-      />
+
+      {/* 动态光泽层（仅非 reduce-motion + 非触屏显示） */}
+      {!disable3D && (
+        <motion.div
+          className="absolute inset-0 z-10 pointer-events-none"
+          style={{
+            background: isHovered
+              ? 'linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.3) 50%, transparent 60%)'
+              : 'transparent',
+            backgroundPosition: xSpring,
+          }}
+        />
+      )}
 
       {(inView || isVisible) && src && (
         <motion.img
@@ -147,19 +182,20 @@ export const MagicImageCard = React.memo(function MagicImageCard({
             'w-full h-full object-cover',
             loaded ? 'opacity-100' : 'opacity-0',
           )}
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ 
-            opacity: loaded ? 1 : 0,
-            scale: isHovered ? 1.08 : 1,
-          }}
-          transition={{
-            opacity: { duration: 0.5 },
-            scale: { duration: 0.4, type: 'spring', stiffness: 300, damping: 20 },
-          }}
+          initial={{ opacity: 0, scale: reduceMotion ? 1 : 1.05 }}
+          animate={imgAnimate}
+          transition={
+            reduceMotion
+              ? { opacity: { duration: 0.3 } }
+              : {
+                  opacity: { duration: 0.5 },
+                  scale: { duration: 0.4, type: 'spring', stiffness: 300, damping: 20 },
+                }
+          }
           onLoad={() => setLoaded(true)}
         />
       )}
-      
+
       {/* 悬浮信息层 */}
       <motion.div
         className="absolute inset-x-0 bottom-0 pointer-events-none bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4"
@@ -168,7 +204,7 @@ export const MagicImageCard = React.memo(function MagicImageCard({
           opacity: isHovered ? 1 : 0,
           y: isHovered ? 0 : 20,
         }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
+        transition={reduceMotion ? { duration: 0 } : { duration: 0.3, ease: 'easeOut' }}
       >
         {image.title && (
           <motion.p 

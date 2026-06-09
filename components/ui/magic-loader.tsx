@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 
 interface MagicLoaderProps {
   size?: 'sm' | 'md' | 'lg'
@@ -9,6 +9,7 @@ interface MagicLoaderProps {
 }
 
 export function MagicLoader({ size = 'md', className }: MagicLoaderProps) {
+  const reduce = useReducedMotion()
   const sizeMap = {
     sm: {
       container: 'w-6 h-6',
@@ -25,31 +26,39 @@ export function MagicLoader({ size = 'md', className }: MagicLoaderProps) {
   }
 
   const sizes = sizeMap[size]
-  const dots = 8
+  const dots = reduce ? 0 : 8 // reduce-motion：不渲染动态节点
 
   return (
     <div className={`relative ${sizes.container} ${className}`}>
-      {Array.from({ length: dots }).map((_, i) => (
+      {/* reduce-motion 降级为简单的脉冲 */}
+      {reduce ? (
         <motion.div
-          key={i}
-          className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${sizes.dot} rounded-full bg-primary`}
-          style={{
-            transformOrigin: 'center',
-          }}
-          animate={{
-            scale: [1, 1.4, 1],
-            opacity: [0.3, 1, 0.3],
-            rotate: i * (360 / dots),
-            x: `calc(-50% + ${size === 'sm' ? 10 : size === 'md' ? 18 : 28}px)`,
-          }}
-          transition={{
-            duration: 1.6,
-            repeat: Infinity,
-            delay: i * (1.6 / dots),
-            ease: 'easeInOut',
-          }}
+          className={`absolute inset-0 m-auto ${sizes.dot} rounded-full bg-primary`}
+          style={{ margin: 'auto' }}
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
         />
-      ))}
+      ) : (
+        Array.from({ length: dots }).map((_, i) => (
+          <motion.div
+            key={i}
+            className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${sizes.dot} rounded-full bg-primary`}
+            style={{ transformOrigin: 'center' }}
+            animate={{
+              scale: [1, 1.4, 1],
+              opacity: [0.3, 1, 0.3],
+              rotate: i * (360 / dots),
+              x: `calc(-50% + ${size === 'sm' ? 10 : size === 'md' ? 18 : 28}px)`,
+            }}
+            transition={{
+              duration: 1.6,
+              repeat: Infinity,
+              delay: i * (1.6 / dots),
+              ease: 'easeInOut',
+            }}
+          />
+        ))
+      )}
     </div>
   )
 }

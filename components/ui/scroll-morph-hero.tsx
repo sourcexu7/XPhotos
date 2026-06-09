@@ -1,8 +1,31 @@
 'use client'
 
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { motion, useTransform, useSpring, useMotionValue } from 'framer-motion'
+import { motion, useTransform, useSpring, useMotionValue, useReducedMotion } from 'framer-motion'
 import type { ImageType } from '~/types'
+
+// --- 性能与无障碍优化辅助 ---
+// 1) reduce-motion 时跳过物理 spring / 3D 变换，直接落位到最终态
+// 2) 移动端 (<768px) 关闭 morph，直接显示圆弧最终态，避免 wheel 劫持导致的滚动卡顿
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`)
+    const onChange = () => setIsMobile(mq.matches)
+    onChange()
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange)
+      return () => mq.removeEventListener('change', onChange)
+    }
+    // Safari 旧版兼容
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    mq.addListener(onChange)
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    return () => mq.removeListener(onChange)
+  }, [breakpoint])
+  return isMobile
+}
 
 // --- Types ---
 export type AnimationPhase = 'scatter' | 'line' | 'circle' | 'bottom-strip';
@@ -13,6 +36,7 @@ interface FlipCardProps {
     total: number;
     phase: AnimationPhase;
     target: { x: number; y: number; rotation: number; scale: number; opacity: number };
+    skipAnimation?: boolean;
 }
 
 // --- FlipCard Component ---
@@ -23,10 +47,10 @@ function FlipCard({
     src,
     index,
     target,
+    skipAnimation,
 }: FlipCardProps) {
     return (
         <motion.div
-            // Smoothly animate to the coordinates defined by the parent
             animate={{
                 x: target.x,
                 y: target.y,
@@ -34,27 +58,31 @@ function FlipCard({
                 scale: target.scale,
                 opacity: target.opacity,
             }}
-            transition={{
-                type: 'spring',
-                stiffness: 40,
-                damping: 15,
-            }}
-
-            // Initial style
+            // skipAnimation 时：瞬时落位，零 spring 开销；否则用弹簧
+            transition={
+                skipAnimation
+                    ? { duration: 0 }
+                    : { type: 'spring', stiffness: 40, damping: 15 }
+            }
             style={{
                 position: 'absolute',
                 width: IMG_WIDTH,
                 height: IMG_HEIGHT,
-                transformStyle: 'preserve-3d', // Essential for the 3D hover effect
-                perspective: '1000px',
+                transformStyle: skipAnimation ? undefined : 'preserve-3d',
+                perspective: skipAnimation ? undefined : '1000px',
             }}
             className="cursor-pointer group"
         >
             <motion.div
                 className="relative h-full w-full"
-                style={{ transformStyle: 'preserve-3d' }}
-                transition={{ duration: 0.6, type: 'spring', stiffness: 260, damping: 20 }}
-                whileHover={{ rotateY: 180 }}
+                style={{ transformStyle: skipAnimation ? undefined : 'preserve-3d' }}
+                transition={
+                    skipAnimation
+                        ? { duration: 0 }
+                        : { duration: 0.6, type: 'spring', stiffness: 260, damping: 20 }
+                }
+                // reduce-motion / 移动端：禁用 3D hover 翻转
+                {...(skipAnimation ? {} : { whileHover: { rotateY: 180 } })}
             >
                 {/* Front Face */}
                 <div
@@ -92,7 +120,12 @@ interface ScrollMorphHeroProps {
 }
 
 export default function ScrollMorphHero({ images }: ScrollMorphHeroProps) {
-    const [introPhase, setIntroPhase] = useState<AnimationPhase>('scatter')
+    const reduceMotion = useReducedMotion()
+    const isMobileDevice = useIsMobile(768)
+    // reduce-motion 或移动端时：直接跳过 morph 动画，显示最终圆弧排版，不再做 spring
+    const skipMorph = reduceMotion || isMobileDevice
+
+    const [introPhase, setIntroPhase] = useState<AnimationPhase>(skipMorph ? 'circle' : 'scatter')
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
     const containerRef = useRef<HTMLDivElement>(null)
 
@@ -125,23 +158,45 @@ export default function ScrollMorphHero({ images }: ScrollMorphHeroProps) {
     }, [])
 
     // --- Virtual Scroll Logic ---
+    // skipMorph 时不再监听，避免与页面滚动冲突与性能开销
     const virtualScroll = useMotionValue(0)
     const scrollRef = useRef(0) // Keep track of scroll value without re-renders
 
     useEffect(() => {
+        if (skipMorph) return
         const container = containerRef.current
         if (!container) return
 
-        const handleWheel = (e: WheelEvent) => {
-            // Prevent default to stop browser overscroll/bounce
-            e.preventDefault()
+        // 直接在 effect 内做 rAF 节流（每帧至多一次 set，避免抖动/主循环压力）
+        let wheelRaf: number | null = null
+        let pendingDelta = 0
+        let touchRaf: number | null = null
+        let pendingTouchDelta = 0
 
-            const newScroll = Math.min(Math.max(scrollRef.current + e.deltaY, 0), MAX_SCROLL)
+        const flushWheel = () => {
+            wheelRaf = null
+            const delta = pendingDelta
+            pendingDelta = 0
+            const newScroll = Math.min(Math.max(scrollRef.current + delta, 0), MAX_SCROLL)
             scrollRef.current = newScroll
             virtualScroll.set(newScroll)
         }
 
-        // Touch support
+        const flushTouch = () => {
+            touchRaf = null
+            const delta = pendingTouchDelta
+            pendingTouchDelta = 0
+            const newScroll = Math.min(Math.max(scrollRef.current + delta, 0), MAX_SCROLL)
+            scrollRef.current = newScroll
+            virtualScroll.set(newScroll)
+        }
+
+        const handleWheel = (e: WheelEvent) => {
+            // passive: true，不再 preventDefault，避免阻塞滚动
+            pendingDelta += e.deltaY
+            if (wheelRaf === null) wheelRaf = window.requestAnimationFrame(flushWheel)
+        }
+
         let touchStartY = 0
         const handleTouchStart = (e: TouchEvent) => {
             touchStartY = e.touches[0].clientY
@@ -150,61 +205,75 @@ export default function ScrollMorphHero({ images }: ScrollMorphHeroProps) {
             const touchY = e.touches[0].clientY
             const deltaY = touchStartY - touchY
             touchStartY = touchY
-
-            const newScroll = Math.min(Math.max(scrollRef.current + deltaY, 0), MAX_SCROLL)
-            scrollRef.current = newScroll
-            virtualScroll.set(newScroll)
+            pendingTouchDelta += deltaY
+            if (touchRaf === null) touchRaf = window.requestAnimationFrame(flushTouch)
         }
 
-        // Attach listeners to container instead of window for portability
-        container.addEventListener('wheel', handleWheel, { passive: false })
-        container.addEventListener('touchstart', handleTouchStart, { passive: false })
-        container.addEventListener('touchmove', handleTouchMove, { passive: false })
+        container.addEventListener('wheel', handleWheel, { passive: true })
+        container.addEventListener('touchstart', handleTouchStart, { passive: true })
+        container.addEventListener('touchmove', handleTouchMove, { passive: true })
 
         return () => {
+            if (wheelRaf !== null) cancelAnimationFrame(wheelRaf)
+            if (touchRaf !== null) cancelAnimationFrame(touchRaf)
             container.removeEventListener('wheel', handleWheel)
             container.removeEventListener('touchstart', handleTouchStart)
             container.removeEventListener('touchmove', handleTouchMove)
         }
-    }, [virtualScroll])
+    }, [virtualScroll, skipMorph])
 
     // 1. Morph Progress: 0 (Circle) -> 1 (Bottom Arc)
-    // Happens between scroll 0 and 600
+    // 注意：无条件创建 hooks 以遵守 React hook 规则；skipMorph 时动画被短路，不消耗动画帧
     const morphProgress = useTransform(virtualScroll, [0, 600], [0, 1])
-    const smoothMorph = useSpring(morphProgress, { stiffness: 40, damping: 20 })
+    const smoothMorph = skipMorph ? null : useSpring(morphProgress, { stiffness: 40, damping: 20 })
 
     // 2. Scroll Rotation (Shuffling): Starts after morph (e.g., > 600)
-    // Rotates the bottom arc as user continues scrolling
     const scrollRotate = useTransform(virtualScroll, [600, 3000], [0, 360])
-    const smoothScrollRotate = useSpring(scrollRotate, { stiffness: 40, damping: 20 })
+    const smoothScrollRotate = skipMorph ? null : useSpring(scrollRotate, { stiffness: 40, damping: 20 })
 
     // --- Mouse Parallax ---
     const mouseX = useMotionValue(0)
-    const smoothMouseX = useSpring(mouseX, { stiffness: 30, damping: 20 })
+    const smoothMouseX = skipMorph ? null : useSpring(mouseX, { stiffness: 30, damping: 20 })
 
     useEffect(() => {
+        if (skipMorph) return
         const container = containerRef.current
         if (!container) return
 
+        // rAF 节流：每帧只 set 一次（即使 mousemove 触发 60+ 次/秒）
+        let rafId: number | null = null
+        let pendingNormalizedX = 0
+
+        const flush = () => {
+            rafId = null
+            mouseX.set(pendingNormalizedX * 100)
+        }
+
         const handleMouseMove = (e: MouseEvent) => {
             const rect = container.getBoundingClientRect()
-            const relativeX = e.clientX - rect.left
-
-            // Normalize -1 to 1
-            const normalizedX = (relativeX / rect.width) * 2 - 1
-            // Move +/- 100px
-            mouseX.set(normalizedX * 100)
+            if (rect.width === 0) return
+            const normalizedX = (e.clientX - rect.left) / rect.width * 2 - 1
+            pendingNormalizedX = normalizedX
+            if (rafId === null) rafId = window.requestAnimationFrame(flush)
         }
         container.addEventListener('mousemove', handleMouseMove)
-        return () => container.removeEventListener('mousemove', handleMouseMove)
-    }, [mouseX])
+        return () => {
+            if (rafId !== null) cancelAnimationFrame(rafId)
+            container.removeEventListener('mousemove', handleMouseMove)
+        }
+    }, [skipMorph, mouseX])
 
     // --- Intro Sequence ---
     useEffect(() => {
+        if (skipMorph) {
+            // 静态模式：直接完成 intro 序列
+            setIntroPhase('circle')
+            return
+        }
         const timer1 = setTimeout(() => setIntroPhase('line'), 500)
         const timer2 = setTimeout(() => setIntroPhase('circle'), 2500)
         return () => { clearTimeout(timer1); clearTimeout(timer2) }
-    }, [])
+    }, [skipMorph])
 
     // --- Random Scatter Positions ---
     const scatterPositions = useMemo(() => {
@@ -218,11 +287,13 @@ export default function ScrollMorphHero({ images }: ScrollMorphHeroProps) {
     }, [images])
 
     // --- Render Loop (Manual Calculation for Morph) ---
-    const [morphValue, setMorphValue] = useState(0)
+    // skipMorph 时：直接给最终态数值（1 / 0 / 0），不订阅 spring，不触发 setState
+    const [morphValue, setMorphValue] = useState(skipMorph ? 1 : 0)
     const [rotateValue, setRotateValue] = useState(0)
     const [parallaxValue, setParallaxValue] = useState(0)
 
     useEffect(() => {
+        if (skipMorph || !smoothMorph || !smoothScrollRotate || !smoothMouseX) return
         const unsubscribeMorph = smoothMorph.on('change', setMorphValue)
         const unsubscribeRotate = smoothScrollRotate.on('change', setRotateValue)
         const unsubscribeParallax = smoothMouseX.on('change', setParallaxValue)
@@ -231,12 +302,16 @@ export default function ScrollMorphHero({ images }: ScrollMorphHeroProps) {
             unsubscribeRotate()
             unsubscribeParallax()
         }
-    }, [smoothMorph, smoothScrollRotate, smoothMouseX])
+    }, [skipMorph, smoothMorph, smoothScrollRotate, smoothMouseX])
 
     // --- Content Opacity ---
-    // Fade in content when arc is formed (morphValue > 0.8)
-    const contentOpacity = useTransform(smoothMorph, [0.8, 1], [0, 1])
-    const contentY = useTransform(smoothMorph, [0.8, 1], [20, 0])
+    // skipMorph 时：完全跳过 useTransform（它需要 MotionValue 而非 null），直接返回 1/0
+    const contentOpacity = skipMorph
+        ? 1
+        : useTransform(smoothMorph as any, [0.8, 1], [0, 1])
+    const contentY = skipMorph
+        ? 0
+        : useTransform(smoothMorph as any, [0.8, 1], [20, 0])
 
     return (
         <div ref={containerRef} className="relative w-full h-full bg-background overflow-hidden">
@@ -360,8 +435,9 @@ export default function ScrollMorphHero({ images }: ScrollMorphHeroProps) {
                                 src={image.url || ''}
                                 index={i}
                                 total={TOTAL_IMAGES}
-                                phase={introPhase} // Pass intro phase for initial animations
+                                phase={introPhase}
                                 target={target}
+                                skipAnimation={skipMorph}
                             />
                         )
                     })}

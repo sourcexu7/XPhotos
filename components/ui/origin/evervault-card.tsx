@@ -1,7 +1,7 @@
 'use client'
 
-import { useMotionValue, type MotionValue } from 'framer-motion'
-import React, { useState, useEffect } from 'react'
+import { useMotionValue, useReducedMotion, type MotionValue } from 'framer-motion'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useMotionTemplate, motion } from 'framer-motion'
 import { cn } from '~/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
@@ -13,17 +13,21 @@ export const EvervaultCard = ({
   text?: string;
   className?: string;
 }) => {
+  const reduceMotion = useReducedMotion()
+  // reduce-motion 时：禁用鼠标跟随，渲染静态图案
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
 
   const [randomString, setRandomString] = useState('')
+  const rafRef = useRef<number | null>(null)
 
   useEffect(() => {
     const str = generateRandomString(1500)
     setRandomString(str)
   }, [])
 
-  function onMouseMove({
+  // 节流：同一帧内最多更新一次位置 + 字符串；reduce-motion 时直接跳过
+  const onMouseMove = useCallback(({
     currentTarget,
     clientX,
     clientY,
@@ -31,14 +35,23 @@ export const EvervaultCard = ({
     currentTarget: HTMLElement
     clientX: number
     clientY: number
-  }) {
-    const { left, top } = currentTarget.getBoundingClientRect()
-    mouseX.set(clientX - left)
-    mouseY.set(clientY - top)
+  }) => {
+    if (reduceMotion) return
+    if (rafRef.current !== null) return
+    rafRef.current = window.requestAnimationFrame(() => {
+      rafRef.current = null
+      const { left, top } = currentTarget.getBoundingClientRect()
+      mouseX.set(clientX - left)
+      mouseY.set(clientY - top)
+      setRandomString(generateRandomString(1500))
+    })
+  }, [reduceMotion, mouseX, mouseY])
 
-    const str = generateRandomString(1500)
-    setRandomString(str)
-  }
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
 
   return (
     <div

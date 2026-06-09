@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useInView, useMotionValue, useSpring } from 'framer-motion'
+import { useInView, useMotionValue, useSpring, useReducedMotion } from 'framer-motion'
 
 import { cn } from '~/lib/utils'
 
@@ -60,6 +60,7 @@ export default function TextCounter({
   fontStyle = 'text-4xl font-bold text-foreground',
   animated = true,
 }: CounterProps) {
+  const reduceMotion = useReducedMotion()
   const ref = useRef<HTMLSpanElement>(null)
   const isGoingUp = direction === 'up'
   const motionValue = useMotionValue(isGoingUp ? 0 : targetValue)
@@ -71,17 +72,12 @@ export default function TextCounter({
   const isInView = useInView(ref, { margin: '0px', once: true })
 
   useEffect(() => {
-    if (!animated) {
-      // If animation is disabled, immediately set the content to the target value
-      if (ref.current) {
-        ref.current.textContent = format(targetValue)
-      }
+    if (!animated || reduceMotion) {
+      if (ref.current) ref.current.textContent = format(targetValue)
       return
     }
 
-    if (!isInView) {
-      return
-    }
+    if (!isInView) return
 
     const timer = setTimeout(() => {
       motionValue.set(isGoingUp ? targetValue : 0)

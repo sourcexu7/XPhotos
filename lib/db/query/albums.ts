@@ -21,8 +21,12 @@ export async function invalidateAlbumsListCache(): Promise<void> {
 }
 
 /**
- * 将相册 cover 替换为预览图 URL
- * 批量查询每个相册第一张图片的 preview_url，替换 cover 中的原图 URL
+ * 相册封面策略：
+ *   1. 若用户已在相册表 albums.cover 中设置了封面，优先保留用户设置；
+ *      如果该 cover 存的是原图 URL，则把它替换为对应 preview_url（体积更小、加载更快）。
+ *   2. 若 albums.cover 为空，使用该相册内第一张（relation.sort 升序）未删除图片的 preview_url 作为默认封面。
+ *
+ * 不会再用相册第一张图去覆盖用户已手动设置的封面。
  */
 export async function replaceCoverWithPreview<T extends { album_value: string; cover?: string | null }>(
   albums: T[]
@@ -32,31 +36,63 @@ export async function replaceCoverWithPreview<T extends { album_value: string; c
   const albumValues = albums.map(a => a.album_value).filter(Boolean)
   if (!albumValues.length) return albums
 
-  // 批量查询每个相册第一张图片的 preview_url
-  const firstImages = await db.imagesAlbumsRelation.findMany({
-    where: {
-      album_value: { in: albumValues },
-      images: { del: 0 },
-    },
-    include: {
-      images: { select: { url: true, preview_url: true } },
-    },
-    orderBy: { sort: 'asc' },
-  })
+  // 收集用户已显式设置的 cover（可能是原图 URL），统一映射为 preview_url
+  const explicitCoverUrls = albums
+    .map(a => (typeof a.cover === 'string' && a.cover.length > 0 ? a.cover : null))
+    .filter((u): u is string => u !== null)
 
-  // 建立 album_value -> preview_url 映射
-  const coverPreviewMap = new Map<string, string>()
+  const [firstImages, explicitCoverImages] = await Promise.all([
+    // 用于相册无 cover 时的默认封面（相册内第一张未删除图片）
+    db.imagesAlbumsRelation.findMany({
+      where: {
+        album_value: { in: albumValues },
+        images: { del: 0 },
+      },
+      include: {
+        images: { select: { url: true, preview_url: true } },
+      },
+      orderBy: { sort: 'asc' },
+    }),
+    // 用于把用户已设置的 cover（原图 URL）映射为 preview_url
+    explicitCoverUrls.length
+      ? db.images.findMany({
+          where: { url: { in: explicitCoverUrls }, del: 0 },
+          select: { url: true, preview_url: true },
+        })
+      : Promise.resolve([]),
+  ])
+
+  // 相册 -> 默认封面预览图（仅当相册无 cover 时使用）
+  const defaultCoverMap = new Map<string, string>()
   for (const rel of firstImages) {
-    if (!coverPreviewMap.has(rel.album_value)) {
-      coverPreviewMap.set(rel.album_value, rel.images.preview_url || rel.images.url || '')
+    if (!defaultCoverMap.has(rel.album_value)) {
+      defaultCoverMap.set(rel.album_value, rel.images.preview_url || rel.images.url || '')
     }
   }
 
-  // 替换 cover 为 preview_url
-  return albums.map(a => ({
-    ...a,
-    cover: coverPreviewMap.get(a.album_value) || a.cover,
-  }))
+  // 原图 URL -> 预览图 URL（用于用户已设置 cover 为原图时的优化）
+  const urlToPreview = new Map<string, string>()
+  for (const img of explicitCoverImages) {
+    if (img.url) {
+      urlToPreview.set(img.url, img.preview_url || img.url)
+    }
+  }
+
+  return albums.map(a => {
+    if (a.cover && typeof a.cover === 'string' && a.cover.length > 0) {
+      // 用户已设置封面：保留；若恰好命中图片表记录，则优化为 preview_url
+      const optimized = urlToPreview.get(a.cover)
+      return {
+        ...a,
+        cover: optimized ?? a.cover,
+      }
+    }
+    // 未设置封面，使用相册第一张图片作为默认封面
+    return {
+      ...a,
+      cover: defaultCoverMap.get(a.album_value) ?? null,
+    }
+  })
 }
 
 export async function fetchAlbumsList(): Promise<AlbumType[]> {

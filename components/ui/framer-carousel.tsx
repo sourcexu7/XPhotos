@@ -1,6 +1,6 @@
 'use client'
 import React, { useEffect, useRef, useState, useCallback } from 'react'
-import { motion, useMotionValue, animate, PanInfo } from 'framer-motion'
+import { motion, useMotionValue, animate, useReducedMotion, PanInfo } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export interface CarouselItem {
@@ -35,6 +35,7 @@ export function FramerCarousel({
   aspectRatio,
   heightClass,
 }: FramerCarouselProps) {
+  const reduceMotion = useReducedMotion()
   const [index, setIndex] = useState(0)
   const [containerWidth, setContainerWidth] = useState(0)
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set([0]))
@@ -93,23 +94,23 @@ export function FramerCarousel({
     })
   }, [index, items, loadedImages])
 
-  // 滑动动画 - 优化动画参数提高平滑度
+  // 滑动动画 - 优化动画参数提高平滑度；reduce-motion 时瞬时切换
   useEffect(() => {
     if (containerWidth > 0 && items.length > 0) {
       const targetX = -index * containerWidth
-      // 如果是初始加载且 x 为 0，直接设置位置而不使用动画
-      if (x.get() === 0 && index === 0) {
+      // 如果是初始加载且 x 为 0 或 reduce-motion，直接设置位置而不使用动画
+      if (reduceMotion || (x.get() === 0 && index === 0)) {
         x.set(targetX)
       } else {
         animate(x, targetX, {
           type: 'spring',
-          stiffness: 200,  // 降低刚度，更平滑
-          damping: 25,     // 适中阻尼
-          mass: 0.8,       // 添加质量感
+          stiffness: 200,
+          damping: 25,
+          mass: 0.8,
         })
       }
     }
-  }, [index, containerWidth, x, items.length])
+  }, [index, containerWidth, x, items.length, reduceMotion])
 
   // 自动播放
   useEffect(() => {
@@ -123,25 +124,29 @@ export function FramerCarousel({
   // 拖拽手势支持
   const handleDragEnd = useCallback(
     (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      const threshold = containerWidth * 0.15  // 降低阈值，更容易切换
+      const threshold = containerWidth * 0.15
       const velocity = info.velocity.x
-      
+
       // 考虑速度因素，快速滑动也可以切换
       if ((info.offset.x < -threshold || velocity < -500) && index < items.length - 1) {
         setIndex((prev) => prev + 1)
       } else if ((info.offset.x > threshold || velocity > 500) && index > 0) {
         setIndex((prev) => prev - 1)
       } else {
-        // 回弹到当前位置
-        animate(x, -index * containerWidth, {
-          type: 'spring',
-          stiffness: 200,
-          damping: 25,
-          mass: 0.8,
-        })
+        // 回弹到当前位置；reduce-motion 时瞬时回弹
+        if (reduceMotion) {
+          x.set(-index * containerWidth)
+        } else {
+          animate(x, -index * containerWidth, {
+            type: 'spring',
+            stiffness: 200,
+            damping: 25,
+            mass: 0.8,
+          })
+        }
       }
     },
-    [containerWidth, index, items.length, x]
+    [containerWidth, index, items.length, x, reduceMotion]
   )
 
   const goToPrev = useCallback(() => {

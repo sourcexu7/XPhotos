@@ -468,6 +468,25 @@
   }
 }
 
+/* 组件级动画暂停（用于不可见时暂停，避免空转浪费 CPU/GPU） */
+[data-animation-paused="true"],
+[data-animation-paused="true"] *,
+[data-animation-paused="true"] *::before,
+[data-animation-paused="true"] *::after {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
+/* 移动端（<768px）额外节省性能：降低 float/pulse 动画的不透明度与移动幅度 */
+@media (max-width: 767px) {
+  .animate-float-slow, .animate-float-medium, .animate-float-fast,
+  .animate-pulse-slow, .animate-pulse-medium,
+  .animate-glow, .animate-glow-delayed,
+  .animate-nebula, .animate-nebula-delayed {
+    opacity: 0.6;
+  }
+}
+
 /* Ensure admin upload pages use the same font family and inherit sizing
    This forces Ant components and native inputs inside `.admin-upload` to
    inherit the surrounding font settings so labels, tags and inputs match. */

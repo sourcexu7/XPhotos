@@ -1,9 +1,26 @@
 'use client'
 
 import * as React from 'react'
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '~/lib/utils'
+
+// 指针是否为 coarse（触屏等），coarse 指针下不启用 3D 倾斜
+function useIsCoarsePointer() {
+  const [coarse, setCoarse] = React.useState(false)
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mq = window.matchMedia('(pointer: coarse)')
+    const onChange = () => setCoarse(mq.matches)
+    onChange()
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange)
+      return () => mq.removeEventListener('change', onChange)
+    }
+    return undefined
+  }, [])
+  return coarse
+}
 
 const magicButtonVariants = cva(
   'relative inline-flex items-center justify-center gap-2 overflow-hidden whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\'size-\'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
@@ -55,24 +72,34 @@ export function MagicButton({
   children,
   ...props
 }: MagicButtonProps) {
-  // 3D 倾斜效果
+  const reduceMotion = useReducedMotion()
+  const isCoarsePointer = useIsCoarsePointer()
+  // 磁吸 + 3D 倾斜开关：若 reduce-motion 或触屏则关闭
+  const enableMagnetic = magnetic && !reduceMotion && !isCoarsePointer
+  const enableGlow = glow && !reduceMotion && !isCoarsePointer
+
+  // 3D 倾斜效果（hook 无条件创建以遵循 hook 规则；启用时才会被 set）
   const x = useMotionValue(0)
   const y = useMotionValue(0)
-  
-  // 弹性动画
-  const xSpring = useSpring(x, { damping: 15, stiffness: 150 })
-  const ySpring = useSpring(y, { damping: 15, stiffness: 150 })
-  
+
+  // 弹性动画：启用时走 spring，否则直连 motion value（常量 0）
+  const xSpring = enableMagnetic ? useSpring(x, { damping: 15, stiffness: 150 }) : x
+  const ySpring = enableMagnetic ? useSpring(y, { damping: 15, stiffness: 150 }) : y
+
   // 旋转变换
   const rotateX = useTransform(ySpring, [-0.5, 0.5], [10, -10])
   const rotateY = useTransform(xSpring, [-0.5, 0.5], [-10, 10])
-  
+
   // 发光效果强度
   const [isHovered, setIsHovered] = React.useState(false)
 
+  // 轻量节流：同一帧只 set 一次（React.MouseEvent 本身已经被节流，但额外 rAF 可防止高速移动时的多次 spring 计算）
+  const pendingRef = React.useRef<{ x: number; y: number } | null>(null)
+  const rafRef = React.useRef<number | null>(null)
+
   const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (!magnetic) return
-    
+    if (!enableMagnetic) return
+
     const rect = e.currentTarget.getBoundingClientRect()
     const width = rect.width
     const height = rect.height
@@ -80,10 +107,25 @@ export function MagicButton({
     const mouseY = e.clientY - rect.top
     const xPct = (mouseX / width) - 0.5
     const yPct = (mouseY / height) - 0.5
-    
-    x.set(xPct)
-    y.set(yPct)
+
+    pendingRef.current = { x: xPct, y: yPct }
+    if (rafRef.current === null) {
+      rafRef.current = window.requestAnimationFrame(() => {
+        rafRef.current = null
+        const p = pendingRef.current
+        if (p) {
+          x.set(p.x)
+          y.set(p.y)
+        }
+      })
+    }
   }
+
+  React.useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
 
   const handleMouseLeave = () => {
     x.set(0)
@@ -100,19 +142,19 @@ export function MagicButton({
       data-slot="magic-button"
       className={cn(magicButtonVariants({ variant, size, className }))}
       style={{
-        transformStyle: 'preserve-3d',
-        rotateX,
-        rotateY,
+        transformStyle: enableMagnetic ? 'preserve-3d' : undefined,
+        rotateX: enableMagnetic ? rotateX : 0,
+        rotateY: enableMagnetic ? rotateY : 0,
       } as React.CSSProperties}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onMouseEnter={handleMouseEnter}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+      whileHover={reduceMotion ? undefined : { scale: 1.02 }}
+      whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 17 }}
       {...props as any}
     >
-      {glow && (
+      {enableGlow && (
         <motion.div
           className="absolute inset-0 rounded-lg bg-gradient-to-r from-transparent via-white/20 to-transparent"
           initial={{ x: '-100%', opacity: 0 }}
@@ -122,7 +164,7 @@ export function MagicButton({
           }}
           transition={{
             duration: 0.8,
-            repeat: Infinity,
+            repeat: isHovered ? Infinity : 0,
             ease: 'linear',
           }}
         />
@@ -130,14 +172,16 @@ export function MagicButton({
       <span className="relative z-10 flex items-center justify-center gap-2">
         {children}
       </span>
-      {/* 悬停时的微妙阴影 */}
-      <motion.div
-        className="absolute inset-0 rounded-lg bg-primary/0"
-        animate={{
-          backgroundColor: isHovered ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0)',
-        }}
-        transition={{ duration: 0.2 }}
-      />
+      {/* 悬停时的微妙阴影（reduce-motion 时用纯色背景代替动效） */}
+      {!reduceMotion && (
+        <motion.div
+          className="absolute inset-0 rounded-lg bg-primary/0 pointer-events-none"
+          animate={{
+            backgroundColor: isHovered ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0)',
+          }}
+          transition={{ duration: 0.2 }}
+        />
+      )}
     </motion.button>
   )
 }

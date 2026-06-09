@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { motion, useMotionValue, animate } from 'framer-motion'
+import { motion, useMotionValue, animate, useReducedMotion } from 'framer-motion'
 import Image from 'next/image'
 import type { ImageType } from '~/types'
 
@@ -14,7 +14,7 @@ const COLLAPSED_WIDTH_PX = 35
 const GAP_PX = 2
 const MARGIN_PX = 2
 
-function Thumbnails({ index, setIndex, items }: { index: number, setIndex: (i: number) => void, items: { id: string; url: string; title: string }[] }) {
+function Thumbnails({ index, setIndex, items, reduceMotion }: { index: number, setIndex: (i: number) => void, items: { id: string; url: string; title: string }[], reduceMotion?: boolean | null }) {
   const thumbnailsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -32,10 +32,10 @@ function Thumbnails({ index, setIndex, items }: { index: number, setIndex: (i: n
 
       thumbnailsRef.current.scrollTo({
         left: scrollPosition,
-        behavior: 'smooth',
+        behavior: reduceMotion ? 'auto' : 'smooth',
       })
     }
-  }, [index])
+  }, [index, reduceMotion])
 
   return (
     <div
@@ -67,7 +67,7 @@ function Thumbnails({ index, setIndex, items }: { index: number, setIndex: (i: n
                 marginRight: 0,
               },
             }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.3, ease: 'easeOut' }}
             className='relative shrink-0 h-full overflow-hidden rounded'
           >
             <Image
@@ -86,6 +86,7 @@ function Thumbnails({ index, setIndex, items }: { index: number, setIndex: (i: n
 }
 
 export default function ThumbnailCarousel({ images }: ThumbnailCarouselProps) {
+  const reduceMotion = useReducedMotion()
   const [index, setIndex] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -103,13 +104,17 @@ export default function ThumbnailCarousel({ images }: ThumbnailCarouselProps) {
       const containerWidth = containerRef.current.offsetWidth || 1
       const targetX = -index * containerWidth
 
-      animate(x, targetX, {
-        type: 'spring',
-        stiffness: 300,
-        damping: 30,
-      })
+      if (reduceMotion) {
+        x.set(targetX)
+      } else {
+        animate(x, targetX, {
+          type: 'spring',
+          stiffness: 300,
+          damping: 30,
+        })
+      }
     }
-  }, [index, x, isDragging])
+  }, [index, x, isDragging, reduceMotion])
 
   if (items.length === 0) return null
 
@@ -219,7 +224,7 @@ export default function ThumbnailCarousel({ images }: ThumbnailCarouselProps) {
           </div>
         </div>
 
-        <Thumbnails index={index} setIndex={setIndex} items={items} />
+        <Thumbnails index={index} setIndex={setIndex} items={items} reduceMotion={reduceMotion} />
       </div>
     </div>
   )
