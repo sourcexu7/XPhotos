@@ -109,3 +109,27 @@ export async function cacheInvalidateByPattern(pattern: string): Promise<void> {
     console.warn('[Redis] scan/del failed:', pattern, err instanceof Error ? err.message : err)
   }
 }
+
+/**
+ * 清空 Redis 数据库中所有缓存 key（管理操作，仅后台触发）
+ * 返回被删除的 key 数量，Redis 未配置时返回 0
+ */
+export async function cacheFlushAll(): Promise<number> {
+  try {
+    const client = await getClient()
+    if (!client) return 0
+    let cursor = '0'
+    let deleted = 0
+    do {
+      const reply = await client.scan(cursor, { COUNT: 200 })
+      cursor = String(reply.cursor)
+      if (reply.keys.length > 0) {
+        deleted += await client.del(reply.keys)
+      }
+    } while (cursor !== '0')
+    return deleted
+  } catch (err: unknown) {
+    console.warn('[Redis] flush-all failed:', err instanceof Error ? err.message : err)
+    throw err
+  }
+}

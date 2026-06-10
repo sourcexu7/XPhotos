@@ -85,9 +85,9 @@ function SimpleGalleryImpl(props: Readonly<ImageHandleProps>) {
   })
 
   // ========== Infinite Scroll：sentinel IO，替代原始 scroll+距离判断 ==========
-  const sentinelRef = useRef<HTMLDivElement>(null)
-  const isLoadingRef = useRef(isLoading || isValidating)
-  isLoadingRef.current = isLoading || isValidating
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+  const isLoadingRef = useRef(isLoading)
+  isLoadingRef.current = isLoading
 
   // 用 ref 保留最新的 loadNext 逻辑，避免 IO 因依赖变化反复重建。
   const loadNextRef = useRef<() => void>(() => {})
@@ -97,6 +97,8 @@ function SimpleGalleryImpl(props: Readonly<ImageHandleProps>) {
     setSize((s) => s + 1)
   }
 
+  // sentinel 在下方 JSX 中始终渲染（条件渲染外），这里在挂载时建立 IO。
+  // 注意：ref 会在首次 commit 后被 React 赋值，所以 useEffect 运行时 el 一定存在。
   useEffect(() => {
     const el = sentinelRef.current
     if (!el) return
@@ -110,7 +112,7 @@ function SimpleGalleryImpl(props: Readonly<ImageHandleProps>) {
     )
     io.observe(el)
     return () => io.disconnect()
-  }, []) // 仅挂载一次，不再随任何依赖重建
+  }, [])
 
   // 筛选键变化时回到第一页
   const prevFilterKeyRef = useRef<string>(filterKey)
@@ -161,23 +163,22 @@ function SimpleGalleryImpl(props: Readonly<ImageHandleProps>) {
           </div>
         )}
 
-        {!isInitialLoading && dataList.length > 0 && (
-          <>
-            {dataList.map((photo, i) => (
-              <GalleryImage key={photo.id ?? i} photo={photo} configData={configData as { config_key: string; config_value: string }[]} />
-            ))}
+        {!isInitialLoading && dataList.length > 0 &&
+          dataList.map((photo, i) => (
+            <GalleryImage key={photo.id ?? i} photo={photo} configData={configData as { config_key: string; config_value: string }[]} />
+          ))
+        }
 
-            <div ref={sentinelRef} style={{ height: 1 }} aria-hidden />
+        {/* sentinel 始终挂载，避免首次加载时 ref 为空导致 IntersectionObserver 建立失败 */}
+        <div ref={sentinelRef} style={{ height: 1 }} aria-hidden />
 
-            {isValidating && dataList.length > 0 && (
-              <div className="flex items-center justify-center my-4 pb-4 text-sm text-gray-400">
-                <span className="inline-flex items-center gap-2">
-                  <ReloadIcon className="h-4 w-4 animate-spin" />
-                  加载中...
-                </span>
-              </div>
-            )}
-          </>
+        {isValidating && dataList.length > 0 && (
+          <div className="flex items-center justify-center my-4 pb-4 text-sm text-gray-400">
+            <span className="inline-flex items-center gap-2">
+              <ReloadIcon className="h-4 w-4 animate-spin" />
+              加载中...
+            </span>
+          </div>
         )}
       </div>
     </>

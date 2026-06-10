@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { ArrowLeft, MapPin, Calendar, ChevronDown, ImageIcon } from 'lucide-react'
+import { ArrowLeft, MapPin, Calendar, ImageIcon } from 'lucide-react'
 import GuideGuideTOC, { moduleColors, moduleIcons } from '@/components/guides/guide-toc'
 import MarkdownRenderer from '@/components/guides/markdown-renderer'
 
@@ -228,25 +228,9 @@ export default function GuideDetailPage() {
           </div>
         </div>
 
-        {/* Scroll Indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2"
-        >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400"
-          >
-            <span className="text-xs">向下滚动</span>
-            <ChevronDown className="w-5 h-5" />
-          </motion.div>
-        </motion.div>
+        {/* Main Content */}
       </div>
 
-      {/* Main Content */}
       <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
         <div className="flex gap-8 justify-center">
           {/* TOC Sidebar */}

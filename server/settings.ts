@@ -14,6 +14,7 @@ import { checkAndFixImageTagCompleteness } from '~/lib/services/image-tag-sync-s
 import { getClient } from '~/lib/s3'
 import { getCOSClient } from '~/lib/cos'
 import { HeadBucketCommand, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { cacheFlushAll } from '~/lib/redis'
 
 const app = new Hono()
 
@@ -502,6 +503,19 @@ app.put('/update-custom-info', async (c) => {
     })
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed', cause: e })
+  }
+})
+
+app.post('/cache/clear', async (c) => {
+  try {
+    const deleted = await cacheFlushAll()
+    return c.json({
+      code: 200,
+      message: 'Success',
+      data: { deleted },
+    })
+  } catch (e) {
+    throw new HTTPException(500, { message: 'Failed to clear cache', cause: e })
   }
 })
 
