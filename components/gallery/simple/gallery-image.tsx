@@ -22,25 +22,7 @@ import {
   useEffect,
   useState,
 } from 'react'
-
-/* -------------------------------------------------------------------------- */
-/*  工具：复制到剪贴板（封装 navigator.clipboard + execCommand 降级）          */
-/* -------------------------------------------------------------------------- */
-
-async function copyToClipboard(text: string): Promise<void> {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    await navigator.clipboard.writeText(text)
-    return
-  }
-  const textarea = document.createElement('textarea')
-  textarea.value = text
-  textarea.style.position = 'fixed'
-  textarea.style.opacity = '0'
-  document.body.appendChild(textarea)
-  textarea.select()
-  document.execCommand('copy')
-  document.body.removeChild(textarea)
-}
+import { buildShareUrl, copyToClipboard } from '~/lib/clipboard'
 
 /* -------------------------------------------------------------------------- */
 /*  子组件 1：图片标题 + 描述（桌面端使用）                                    */
@@ -203,28 +185,28 @@ function ImageActionsImpl({
       toast.error('图片链接不存在！', { duration: 500 })
       return
     }
-    try {
-      await copyToClipboard(url)
+    const res = await copyToClipboard(url)
+    if (res.success) {
       let msg = '复制图片链接成功！'
       if (albumLicense != null) {
         msg = '图片版权归作者所有, 分享转载需遵循 ' + albumLicense + ' 许可协议！'
       }
       toast.success(msg, { duration: 1500 })
-    } catch {
+    } else {
       toast.error('复制图片链接失败！', { duration: 1000 })
     }
   }, [photoUrl, albumLicense])
 
   const handleCopyShareLink = useCallback(async () => {
-    const url = photoId ? window.location.origin + '/preview/' + photoId : ''
-    if (!url) {
+    const shareUrl = buildShareUrl(photoId)
+    if (!shareUrl) {
       toast.error('图片ID不存在！', { duration: 500 })
       return
     }
-    try {
-      await copyToClipboard(url)
+    const res = await copyToClipboard(shareUrl)
+    if (res.success) {
       toast.success('复制分享直链成功！', { duration: 500 })
-    } catch {
+    } else {
       toast.error('复制分享直链失败！', { duration: 1000 })
     }
   }, [photoId])

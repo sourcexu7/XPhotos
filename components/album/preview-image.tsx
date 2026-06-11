@@ -27,6 +27,7 @@ import 'yet-another-react-lightbox/styles.css'
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import ProgressiveImage from '~/components/album/progressive-image.tsx'
+import { buildShareUrl, copyToClipboard } from '~/lib/clipboard'
 
 export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
   const router = useRouter()
@@ -95,22 +96,23 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
   const handleCopyUrl = async () => {
     const url = props.data?.url
     if (!url) { toast.error('图片链接不存在！', { duration: 500 }); return }
-    try {
-      await navigator.clipboard.writeText(url)
+    const res = await copyToClipboard(url)
+    if (res.success) {
       let msg = t('Tips.copyImageSuccess')
       if (props.data?.album_license) msg = t('Tips.downloadLicense', { license: props.data.album_license })
       toast.success(msg, { duration: 1500 })
-    } catch {
+    } else {
       toast.error(t('Tips.copyImageFailed'), { duration: 1000 })
     }
   }
 
   const handleCopyShare = async () => {
-    if (!props.id) { toast.error('图片ID不存在！', { duration: 500 }); return }
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/preview/${props.id}`)
+    const shareUrl = buildShareUrl(props.id)
+    if (!shareUrl) { toast.error('图片ID不存在！', { duration: 500 }); return }
+    const res = await copyToClipboard(shareUrl)
+    if (res.success) {
       toast.success(t('Tips.copyShareSuccess'), { duration: 500 })
-    } catch {
+    } else {
       toast.error(t('Tips.copyShareFailed'), { duration: 1000 })
     }
   }
