@@ -108,7 +108,7 @@ function SimpleGalleryImpl(props: Readonly<ImageHandleProps>) {
           if (entry.isIntersecting) loadNextRef.current()
         }
       },
-      { rootMargin: '400px 0px' },
+      { rootMargin: '1000px 0px' },
     )
     io.observe(el)
     return () => io.disconnect()

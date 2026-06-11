@@ -86,7 +86,7 @@ export default async function RootLayout({
   const umamiAnalytics = getConfigValue(data, 'umami_analytics')
 
   return (
-    <html className="overflow-y-auto scrollbar-hide" lang={locale} suppressHydrationWarning data-scroll-behavior="smooth">
+    <html lang={locale} suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
@@ -123,8 +123,8 @@ export default async function RootLayout({
                     <LoadingAnimationProviders>
                       <VisitTracker />
                       <RouteLoopGuard />
-                      <div className="flex min-h-screen flex-col">
-                        <main className="flex-1">
+                      <div className="min-h-screen">
+                        <main>
                           {children}
                         </main>
                       </div>

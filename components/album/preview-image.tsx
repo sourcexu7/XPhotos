@@ -22,23 +22,11 @@ import { ArrowLeftIcon } from '~/components/icons/arrow-left'
 import { ChevronLeftIcon } from '~/components/icons/chevron-left'
 import { ChevronRightIcon } from '~/components/icons/chevron-right'
 import { ExpandIcon } from '~/components/icons/expand'
-import { cn } from '~/lib/utils'
 import { useSwrHydrated } from '~/hooks/use-swr-hydrated'
 import 'yet-another-react-lightbox/styles.css'
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import ProgressiveImage from '~/components/album/progressive-image.tsx'
-import { motion, AnimatePresence } from 'framer-motion'
-
-const sidebarVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.06 } },
-} as const
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
-} as const
 
 export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
   const router = useRouter()
@@ -170,24 +158,47 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
     }
   }
 
-  // Skeleton loading state
+  const hasPrev = currentIndex > 0
+  const hasNext = currentIndex < imageList.length - 1
+
+  // Loading skeleton
   if (!props.data) {
     return (
-      <div className="w-full h-full flex flex-col lg:flex-row overflow-hidden bg-background" style={{ maxWidth: 1440, margin: '0 auto' }}>
-        {/* Desktop: image skeleton LEFT */}
-        <div className="hidden lg:flex flex-1 min-w-0 items-center justify-center">
-          <div className="w-3/4 h-3/4 rounded-xl bg-muted animate-pulse" />
-        </div>
-        {/* Mobile: image skeleton TOP */}
-        <div className="lg:hidden w-full flex-shrink-0 min-h-[50dvh] flex items-center justify-center">
-          <div className="w-3/4 h-3/4 rounded-xl bg-muted animate-pulse" />
-        </div>
-        {/* Sidebar skeleton RIGHT */}
-        <aside className="w-full lg:w-[320px] flex-shrink-0 flex flex-col bg-card overflow-y-auto">
-          <div className="px-6 py-5 border-b border-border">
-            <div className="h-6 w-3/4 rounded-lg bg-muted animate-pulse" />
+      <div>
+        {/* 桌面端：横向布局 */}
+        <div className="hidden lg:flex h-screen w-full flex-row overflow-hidden bg-background">
+          <div className="flex-1 min-w-0 flex items-center justify-center">
+            <div className="w-3/4 h-3/4 rounded-xl bg-muted animate-pulse" />
           </div>
-          <div className="px-6 py-5 space-y-4">
+          <aside className="w-[320px] flex-shrink-0 bg-card border-l border-border overflow-y-auto">
+            <div className="px-6 py-5 border-b border-border">
+              <div className="h-6 w-3/4 rounded-lg bg-muted animate-pulse" />
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div className="h-4 w-full rounded bg-muted animate-pulse" />
+              <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
+              <div className="space-y-3 mt-6">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-4 h-4 rounded bg-muted animate-pulse" />
+                    <div className="w-14 h-3 rounded bg-muted animate-pulse" />
+                    <div className="flex-1 h-3 rounded bg-muted animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        {/* 移动端：简单纵向堆叠 */}
+        <div className="lg:hidden">
+          <div className="px-4 py-3 border-b border-border bg-background sticky top-0 z-10">
+            <div className="h-5 w-1/2 rounded bg-muted animate-pulse" />
+          </div>
+          <div className="w-full min-h-[50dvh] flex items-center justify-center bg-muted/30">
+            <div className="w-3/4 aspect-square rounded-xl bg-muted animate-pulse" />
+          </div>
+          <div className="px-4 py-5 space-y-4 bg-card">
             <div className="h-4 w-full rounded bg-muted animate-pulse" />
             <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
             <div className="space-y-3 mt-6">
@@ -200,7 +211,7 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
               ))}
             </div>
           </div>
-        </aside>
+        </div>
       </div>
     )
   }
@@ -231,70 +242,33 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
     ...(hasLocation ? [{ icon: CompassIcon, label: t('Exif.location'), value: `${props.data.lat}, ${props.data.lon}` }] : []),
   ].filter((r) => r.value)
 
-  const ImageSlot = (
-    <div className="relative w-full h-full flex items-center justify-center select-none">
-      {props.data.type === 1 ? (
+  // ========== 共享：图片元素 ==========
+  const renderImage = () => {
+    if (props.data!.type === 1) {
+      return (
         <ProgressiveImage
-          imageUrl={props.data.preview_url || props.data.url}
-          previewUrl={props.data.preview_url || props.data.url}
-          alt={props.data.title}
-          height={props.data.height}
-          width={props.data.width}
-          blurhash={props.data.blurhash}
+          imageUrl={props.data!.preview_url || props.data!.url}
+          previewUrl={props.data!.preview_url || props.data!.url}
+          alt={props.data!.title}
+          height={props.data!.height}
+          width={props.data!.width}
+          blurhash={props.data!.blurhash}
           showLightbox={lightboxPhoto}
           onShowLightboxChange={(v) => setLightboxPhoto(v)}
         />
-      ) : (
-        <LivePhoto url={props.data.preview_url || props.data.url || ''} videoUrl={props.data.video_url || ''} className="max-h-[90vh]" />
-      )}
-    </div>
-  )
+      )
+    }
+    return <LivePhoto url={props.data!.preview_url || props.data!.url || ''} videoUrl={props.data!.video_url || ''} />
+  }
 
-  const hasPrev = currentIndex > 0
-  const hasNext = currentIndex < imageList.length - 1
-
-  // Navigation arrows component
-  const NavigationArrows = ({ mobile }: { mobile: boolean }) => (
+  // ========== 共享：信息侧栏内容 ==========
+  const renderInfoContent = () => (
     <>
-      {hasPrev && (
-        <button
-          onClick={handlePrev}
-          aria-label={t('Button.prev')}
-          className={cn(
-            'absolute top-1/2 -translate-y-1/2 z-20',
-            'w-11 h-11 rounded-xl bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm',
-            'flex items-center justify-center transition-colors touch-manipulation',
-            mobile ? 'left-3' : 'left-4'
-          )}
-        >
-          <ChevronLeftIcon size={20} className="!p-0" />
-        </button>
-      )}
-      {hasNext && (
-        <button
-          onClick={handleNext}
-          aria-label={t('Button.next')}
-          className={cn(
-            'absolute top-1/2 -translate-y-1/2 z-20',
-            'w-11 h-11 rounded-xl bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm',
-            'flex items-center justify-center transition-colors touch-manipulation',
-            mobile ? 'right-3' : 'right-4'
-          )}
-        >
-          <ChevronRightIcon size={20} className="!p-0" />
-        </button>
-      )}
-    </>
-  )
-
-  // Sidebar content (shared between desktop and mobile)
-  const SidebarContent = () => (
-    <motion.div variants={sidebarVariants} initial="hidden" animate="visible" className="flex-1 px-6 py-5 space-y-6">
       {props.data!.detail && (
-        <motion.p variants={itemVariants} className="text-sm text-muted-foreground leading-relaxed">{props.data!.detail}</motion.p>
+        <p className="text-sm text-muted-foreground leading-relaxed">{props.data!.detail}</p>
       )}
       {exifRows.length > 0 && (
-        <motion.section variants={itemVariants}>
+        <section>
           <div className="flex items-center gap-2 mb-3">
             <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               {t('Exif.title')}
@@ -310,10 +284,10 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
               </div>
             ))}
           </div>
-        </motion.section>
+        </section>
       )}
       {props.data!.labels && props.data!.labels.length > 0 && (
-        <motion.section variants={itemVariants}>
+        <section>
           <div className="flex flex-wrap gap-1.5">
             {props.data!.labels.map((tag: string) => (
               <button key={tag} onClick={() => router.push(`/tag/${tag}`)}
@@ -326,9 +300,9 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
               </button>
             ))}
           </div>
-        </motion.section>
+        </section>
       )}
-      <motion.section variants={itemVariants}>
+      <section>
         <div className="pt-2 border-t border-border/60">
           <div className="grid grid-cols-2 gap-2 pt-4 pb-2">
             <ActionButton icon={<CopyIcon size={14} />} label={t('Preview.copyLink')} onClick={handleCopyUrl} disabled={!props.data!.url} />
@@ -342,92 +316,117 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
             <ActionButton icon={<ExpandIcon size={14} />} label={t('Preview.fullscreen')} onClick={() => setLightboxPhoto(true)} />
           </div>
         </div>
-      </motion.section>
-    </motion.div>
+      </section>
+    </>
   )
 
+  // ========== 主渲染：两套完全独立的布局 ==========
   return (
-    <div className="w-full h-full flex flex-col lg:flex-row overflow-hidden bg-background">
+    <div>
+      {/* ── 桌面端（lg+）：横向布局，固定视口高度，图片居左，信息栏居右 ── */}
+      <div className="hidden lg:flex h-screen w-full flex-row overflow-hidden bg-background">
+        {/* 图片区 */}
+        <div className="relative flex-1 min-w-0 flex items-center justify-center">
+          <div className="w-full h-full flex items-center justify-center">
+            {renderImage()}
+          </div>
+          {hasPrev && (
+            <button
+              onClick={handlePrev}
+              aria-label={t('Button.prev')}
+              className="absolute top-1/2 -translate-y-1/2 z-20 left-4
+                w-11 h-11 rounded-xl bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm
+                flex items-center justify-center transition-colors touch-manipulation"
+            >
+              <ChevronLeftIcon size={20} />
+            </button>
+          )}
+          {hasNext && (
+            <button
+              onClick={handleNext}
+              aria-label={t('Button.next')}
+              className="absolute top-1/2 -translate-y-1/2 z-20 right-4
+                w-11 h-11 rounded-xl bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm
+                flex items-center justify-center transition-colors touch-manipulation"
+            >
+              <ChevronRightIcon size={20} />
+            </button>
+          )}
+        </div>
 
-      {/* ── Desktop: image LEFT ── */}
-      <div className="hidden lg:flex flex-1 min-w-0 items-center justify-center relative">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={props.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="w-full h-full flex items-center justify-center"
-          >
-            {ImageSlot}
-          </motion.div>
-        </AnimatePresence>
-        <NavigationArrows mobile={false} />
+        {/* 信息栏（内部可滚动） */}
+        <aside className="w-[300px] xl:w-[340px] flex-shrink-0 bg-card border-l border-border overflow-y-auto">
+          <div className="sticky top-0 z-10 bg-card border-b border-border px-6 py-5 items-start justify-between gap-3 flex">
+            <h1 className="text-lg font-bold text-card-foreground leading-snug line-clamp-2 flex-1">
+              {props.data!.title || t('Preview.untitled')}
+            </h1>
+            <button onClick={handleClose}
+              className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors touch-manipulation text-muted-foreground hover:text-foreground"
+              aria-label={t('Button.goBack')}>
+              <ArrowLeftIcon size={18} />
+            </button>
+          </div>
+          <div className="px-6 py-5 space-y-5">
+            {renderInfoContent()}
+          </div>
+        </aside>
       </div>
 
-      {/* ── Mobile: image TOP ── */}
-      <div className="lg:hidden w-full flex-shrink-0 min-h-[50dvh] relative">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={props.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="w-full h-full flex items-center justify-center"
-          >
-            {ImageSlot}
-          </motion.div>
-        </AnimatePresence>
-        <NavigationArrows mobile={true} />
-
-        {/* Mobile header */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-          className="absolute top-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-sm px-4 py-3 flex items-center justify-between border-b border-border/50"
-        >
+      {/* ── 移动端（<lg）：纵向堆叠，跟随文档流，浏览器原生滚动 ── */}
+      <div className="lg:hidden bg-background">
+        {/* 顶部导航（sticky 吸顶） */}
+        <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-sm px-4 py-3 flex items-center justify-between border-b border-border">
           <h1 className="text-sm font-bold text-foreground leading-snug line-clamp-1 flex-1 mr-3">
-            {props.data.title || t('Preview.untitled')}
+            {props.data!.title || t('Preview.untitled')}
           </h1>
           <button onClick={handleClose}
-            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors touch-manipulation text-muted-foreground"
+            className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors touch-manipulation text-muted-foreground"
             aria-label={t('Button.goBack')}>
-            <ArrowLeftIcon size={16} className="!p-0" />
+            <ArrowLeftIcon size={18} />
           </button>
-        </motion.div>
+        </div>
+
+        {/* 图片（自然宽高，按原始比例显示） */}
+        <div className="w-full relative bg-muted/20">
+          {renderImage()}
+
+          {/* 翻页按钮 */}
+          {hasPrev && (
+            <button
+              onClick={handlePrev}
+              aria-label={t('Button.prev')}
+              className="absolute top-1/2 left-3 -translate-y-1/2 z-10
+                w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm
+                flex items-center justify-center transition-colors touch-manipulation"
+            >
+              <ChevronLeftIcon size={18} />
+            </button>
+          )}
+          {hasNext && (
+            <button
+              onClick={handleNext}
+              aria-label={t('Button.next')}
+              className="absolute top-1/2 right-3 -translate-y-1/2 z-10
+                w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm
+                flex items-center justify-center transition-colors touch-manipulation"
+            >
+              <ChevronRightIcon size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* 信息区（紧随图片下方，随页面滚动） */}
+        <div className="bg-card border-t border-border">
+          <div className="px-5 py-5 space-y-5">
+            {renderInfoContent()}
+          </div>
+        </div>
       </div>
-
-      {/* ── Sidebar RIGHT ── */}
-      <aside className="w-full lg:w-[300px] xl:w-[320px] flex-shrink-0 flex flex-col border-t lg:border-t-0 lg:border-l border-border bg-card overflow-y-auto">
-        {/* Desktop header */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-          className="hidden lg:flex sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-5 items-start justify-between gap-3"
-        >
-          <h1 className="text-lg font-bold text-card-foreground leading-snug line-clamp-2 flex-1">
-            {props.data.title || t('Preview.untitled')}
-          </h1>
-          <button onClick={handleClose}
-            className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors touch-manipulation text-muted-foreground hover:text-foreground"
-            aria-label={t('Button.goBack')}>
-            <ArrowLeftIcon size={18} className="!p-0" />
-          </button>
-        </motion.div>
-
-        {/* Sidebar content */}
-        <SidebarContent />
-      </aside>
-
     </div>
   )
 }
 
-/* ── Small reusable action button ── */
+/* 小操作按钮 */
 function ActionButton({
   icon,
   label,

@@ -403,12 +403,14 @@
 }
 
 @layer base {
-  /* 优化：避免通配符选择器影响所有元素，改为更具体的选择器 */
+  /* html/body 使用标准文档流，内容自然撑开高度，由浏览器处理滚动 */
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
   }
   body {
     @apply bg-background text-foreground border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
   }
   /* 只对需要边框的元素应用边框样式 */
   button,
