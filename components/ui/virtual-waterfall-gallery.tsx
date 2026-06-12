@@ -52,6 +52,7 @@ export function VirtualWaterfallGallery({
     const el = containerRef.current
     if (!el) return
     const ro = new ResizeObserver((entries) => {
+      if (!entries || entries.length === 0) return
       const w = Math.floor(entries[0].contentRect.width)
       if (w <= 0) return
       setContainerWidth(w)

@@ -1,27 +1,41 @@
 import { Context, Next } from 'hono'
 import { getCookie } from 'hono/cookie'
 import { verifyJWT } from '~/lib/jwt'
-import { HTTPException } from 'hono/http-exception'
 
+/**
+ * JWT 鉴权中间件。
+ * 未通过鉴权时直接返回结构化的 JSON，不再抛 HTTPException，
+ * 便于前端根据 code 做差异化处理（跳转登录 / 提示重新登录等）。
+ */
 export async function jwtAuth(c: Context, next: Next) {
   const authHeader = c.req.header('Authorization')
-  let token: string | null = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+  const token = authHeader?.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : (getCookie(c, 'auth_token') ?? null)
 
   if (!token) {
-    token = getCookie(c, 'auth_token') ?? null
+    return c.json(
+      { code: 'AUTH_TOKEN_MISSING', message: '未登录，请先登录后再操作' },
+      401,
+    )
   }
 
-  if (!token) {
-    throw new HTTPException(401, { message: 'Unauthorized: No token provided' })
+  const result = await verifyJWT(token)
+
+  if (!result.ok) {
+    if (result.reason === 'expired') {
+      return c.json(
+        { code: 'AUTH_TOKEN_EXPIRED', message: '登录已过期，请重新登录' },
+        401,
+      )
+    }
+    return c.json(
+      { code: 'AUTH_TOKEN_INVALID', message: '登录凭证无效，请重新登录' },
+      401,
+    )
   }
 
-  const payload = await verifyJWT(token)
-
-  if (!payload) {
-    throw new HTTPException(401, { message: 'Unauthorized: Invalid token' })
-  }
-
-  c.set('user', payload)
+  c.set('user', result.payload)
 
   await next()
 }

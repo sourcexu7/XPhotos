@@ -555,7 +555,7 @@ export async function fetchServerImagesPageTotalByAlbum(
           ${filters.labelsFilter}
     `
     // @ts-expect-error - The query result is guaranteed to have a total field
-    count = Number(pageTotal[0].total) ?? 0
+    count = Array.isArray(pageTotal) && pageTotal.length > 0 ? Number(pageTotal[0].total ?? 0) : 0
   } else {
     const pageTotal = await db.$queryRaw`
       SELECT COALESCE(COUNT(DISTINCT image.id), 0) AS total
@@ -577,7 +577,7 @@ export async function fetchServerImagesPageTotalByAlbum(
           ${filters.labelsFilter}
     `
     // @ts-expect-error - The query result is guaranteed to have a total field
-    count = Number(pageTotal[0].total) ?? 0
+    count = Array.isArray(pageTotal) && pageTotal.length > 0 ? Number(pageTotal[0].total ?? 0) : 0
   }
 
   return count
@@ -619,10 +619,14 @@ export const fetchClientImagesListByAlbum = cache(async (
   lenses?: string[],
   tags?: string[],
   tagsOperator: 'and' | 'or' = 'and',
-  sortByShootTime?: 'desc' | 'asc'
+  sortByShootTime?: 'desc' | 'asc',
+  pageSize: number = 16
 ): Promise<ImageType[]> => {
   if (pageNum < 1) {
     pageNum = 1
+  }
+  if (pageSize < 1) {
+    pageSize = 16
   }
 
   // 1) 非根相册：先读取一次相册元数据判断是否启用随机展示
@@ -696,7 +700,7 @@ export const fetchClientImagesListByAlbum = cache(async (
           image.shoot_at DESC NULLS LAST,
           image.created_at DESC,
           image.updated_at DESC
-        LIMIT 16 OFFSET ${(pageNum - 1) * 16}
+        LIMIT ${pageSize} OFFSET ${(pageNum - 1) * pageSize}
       `
       } else if (sortByShootTime === 'asc') {
         result = await db.$queryRaw`
@@ -725,7 +729,7 @@ export const fetchClientImagesListByAlbum = cache(async (
           image.shoot_at ASC NULLS FIRST,
           image.created_at ASC,
           image.updated_at ASC
-        LIMIT 16 OFFSET ${(pageNum - 1) * 16}
+        LIMIT ${pageSize} OFFSET ${(pageNum - 1) * pageSize}
       `
       } else {
         result = await db.$queryRaw`
@@ -751,7 +755,7 @@ export const fetchClientImagesListByAlbum = cache(async (
             ${lensFilter}
             ${tagsFilter}
         ORDER BY image.created_at DESC, image.updated_at DESC, image.sort ASC
-        LIMIT 16 OFFSET ${(pageNum - 1) * 16}
+        LIMIT ${pageSize} OFFSET ${(pageNum - 1) * pageSize}
       `
       }
     } else {
@@ -810,7 +814,7 @@ export const fetchClientImagesListByAlbum = cache(async (
             ${lensFilter}
             ${tagsFilter}
         ORDER BY ${orderBy}
-        LIMIT 16 OFFSET ${(pageNum - 1) * 16}
+        LIMIT ${pageSize} OFFSET ${(pageNum - 1) * pageSize}
       `
     }
 
@@ -828,7 +832,7 @@ export const fetchClientImagesListByAlbum = cache(async (
 
   const cacheKey = buildGalleryCacheKey('images:list', album, pageNum, {
     cameras, lenses, tags, tagsOperator, sortByShootTime,
-  })
+  }) + `:ps=${pageSize}`
   return cacheWrap<ImageType[]>(cacheKey, doQuery)
 })
 
@@ -840,11 +844,15 @@ export async function fetchClientImagesPageTotalByAlbum(
   cameras?: string[],
   lenses?: string[],
   tags?: string[],
-  tagsOperator: 'and' | 'or' = 'and'
+  tagsOperator: 'and' | 'or' = 'and',
+  pageSize: number = 16
 ): Promise<number> {
+  if (pageSize < 1) {
+    pageSize = 16
+  }
   const cacheKey = buildGalleryCacheKey('images:count', album, null, {
     cameras, lenses, tags, tagsOperator,
-  })
+  }) + `:ps=${pageSize}`
 
   return cacheWrap<number>(cacheKey, async () => {
     const { cameraFilter, lensFilter, tagsFilter } = buildClientFilters({
@@ -882,7 +890,8 @@ export async function fetchClientImagesPageTotalByAlbum(
     ) AS unique_images;
   `
       // @ts-expect-error -- $queryRaw returns an untyped row object from SQL
-      return Number(pageTotal[0].total) > 0 ? Math.ceil(Number(pageTotal[0].total) / 16) : 0
+      const totalCount = Array.isArray(pageTotal) && pageTotal.length > 0 ? Number(pageTotal[0].total ?? 0) : 0
+      return totalCount > 0 ? Math.ceil(totalCount / pageSize) : 0
     }
     const pageTotal = await db.$queryRaw`
     SELECT COALESCE(COUNT(1),0) AS total
@@ -911,7 +920,8 @@ export async function fetchClientImagesPageTotalByAlbum(
     ) AS unique_images;
   `
     // @ts-expect-error -- $queryRaw returns an untyped row object from SQL; page total
-    return Number(pageTotal[0].total) > 0 ? Math.ceil(Number(pageTotal[0].total) / 16) : 0
+    const totalCount2 = Array.isArray(pageTotal) && pageTotal.length > 0 ? Number(pageTotal[0].total ?? 0) : 0
+    return totalCount2 > 0 ? Math.ceil(totalCount2 / pageSize) : 0
   })
 }
 
@@ -985,11 +995,12 @@ export async function fetchImagesAnalysis():
     item.show_total = Number(item.show_total)
   }
 
+  const safeCounts = Array.isArray(counts) && counts.length > 0 ? counts[0] : null
   return {
-    total: Number(counts[0].images_total),
-    showTotal: Number(counts[0].images_show),
-    crTotal: Number(counts[0].cr_total),
-    tagsTotal: Number(counts[0].tags_total),
+    total: safeCounts ? Number(safeCounts.images_total) : 0,
+    showTotal: safeCounts ? Number(safeCounts.images_show) : 0,
+    crTotal: safeCounts ? Number(safeCounts.cr_total) : 0,
+    tagsTotal: safeCounts ? Number(safeCounts.tags_total) : 0,
     cameraStats,
     result
   }
@@ -1019,6 +1030,9 @@ export async function fetchImageByIdAndAuth(id: string): Promise<ImageType> {
         "images"."id" = ${id}
     LIMIT 1
   `
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error(`Image ${id} not found`)
+  }
   return data[0]
 }
 

@@ -17,12 +17,43 @@ const route = new Hono()
 
 route.onError((err, c) => {
   if (err instanceof HTTPException) {
-    console.error(err)
-    return c.json({ message: err.message }, err.status)
+    console.error(`[HTTP ${err.status}] ${err.message}`)
+    return c.json(
+      {
+        code: httpStatusToCode(err.status),
+        message: err.message || defaultMessageFor(err.status),
+      },
+      err.status,
+    )
   }
   console.error(err)
-  return c.json({ message: 'Internal Server Error' }, 500)
+  return c.json(
+    { code: 'INTERNAL_ERROR', message: '服务开小差了，请稍后再试' },
+    500,
+  )
 })
+
+function httpStatusToCode(status: number): string {
+  switch (status) {
+    case 400: return 'BAD_REQUEST'
+    case 401: return 'UNAUTHORIZED'
+    case 403: return 'FORBIDDEN'
+    case 404: return 'NOT_FOUND'
+    case 409: return 'CONFLICT'
+    case 422: return 'UNPROCESSABLE_ENTITY'
+    default: return `HTTP_${status}`
+  }
+}
+
+function defaultMessageFor(status: number): string {
+  switch (status) {
+    case 400: return '请求参数有误'
+    case 401: return '未授权，请先登录'
+    case 403: return '没有权限执行此操作'
+    case 404: return '资源不存在'
+    default: return '请求失败'
+  }
+}
 
 // Public routes (no authentication required)
 route.route('/auth', auth)

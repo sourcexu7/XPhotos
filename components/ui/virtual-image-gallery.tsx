@@ -42,6 +42,7 @@ export function VirtualImageGallery({
   useEffect(() => {
     if (!containerRef.current) return
     const ro = new ResizeObserver((entries) => {
+      if (!entries || entries.length === 0) return
       setContainerWidth(entries[0].contentRect.width)
     })
     ro.observe(containerRef.current)

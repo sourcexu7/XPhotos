@@ -21,7 +21,8 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
     tags: tagsFilter.length > 0 ? tagsFilter : undefined,
     tagsOperator: tagsFilter.length > 0 ? tagsOperator : undefined,
     sortByShootTime: isHome ? sortByShootTime : undefined,
-  }), [props.album, cameraFilter, lensFilter, tagsFilter, tagsOperator, sortByShootTime, isHome])
+    pageSize: isMobile ? 48 : 96,
+  }), [props.album, cameraFilter, lensFilter, tagsFilter, tagsOperator, sortByShootTime, isHome, isMobile])
 
   const filterKey = useMemo(
     () => [

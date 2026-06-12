@@ -53,13 +53,17 @@ export async function fetchPublicDashboardStats(): Promise<PublicDashboardStats>
         `,
       ])
 
+    const ic = Array.isArray(imagesCount) && imagesCount.length > 0 ? imagesCount[0] : null
+    const gc = Array.isArray(guidesCount) && guidesCount.length > 0 ? guidesCount[0] : null
+    const ac = Array.isArray(albumsCount) && albumsCount.length > 0 ? albumsCount[0] : null
+
     return {
-      images: { total: Number(imagesCount[0].total), public: Number(imagesCount[0].public) },
-      guides: { total: Number(guidesCount[0].total), public: Number(guidesCount[0].public) },
-      albums: { total: Number(albumsCount[0].total) },
-      cameras: { top: cameraStats.map((i) => ({ camera: i.camera, count: Number(i.count) })) },
-      lenses: { top: lensStats.map((i) => ({ lens: i.lens, count: Number(i.count) })) },
-      photosByYear: photosByYear.map((i) => ({ year: i.year, count: Number(i.count) })),
+      images: { total: ic ? Number(ic.total) : 0, public: ic ? Number(ic.public) : 0 },
+      guides: { total: gc ? Number(gc.total) : 0, public: gc ? Number(gc.public) : 0 },
+      albums: { total: ac ? Number(ac.total) : 0 },
+      cameras: { top: Array.isArray(cameraStats) ? cameraStats.map((i) => ({ camera: i.camera, count: Number(i.count) })) : [] },
+      lenses: { top: Array.isArray(lensStats) ? lensStats.map((i) => ({ lens: i.lens, count: Number(i.count) })) : [] },
+      photosByYear: Array.isArray(photosByYear) ? photosByYear.map((i) => ({ year: i.year, count: Number(i.count) })) : [],
     }
   })
 }

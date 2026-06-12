@@ -34,6 +34,7 @@ type Params = {
   tags?: string[]
   tagsOperator?: 'and' | 'or'
   sortByShootTime?: 'asc' | 'desc'
+  pageSize?: number
 }
 
 /** 布局参数：由前端测量后传入，后端用于预计算每张图的绝对定位 */
@@ -47,6 +48,7 @@ function buildUrl(params: Params, page: number, layoutParams?: LayoutParams, col
   const q = new URLSearchParams()
   q.set('page', String(page))
   q.set('album', params.album)
+  if (params.pageSize && params.pageSize > 0) q.set('pageSize', String(params.pageSize))
   if (params.cameras?.length) q.set('cameras', params.cameras.join(','))
   if (params.lenses?.length) q.set('lenses', params.lenses.join(','))
   if (params.tags?.length) {

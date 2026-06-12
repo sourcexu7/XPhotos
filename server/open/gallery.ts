@@ -10,6 +10,7 @@ const app = new Hono()
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   album: z.string().default('/'),
+  pageSize: z.coerce.number().int().min(1).max(200).default(16),
   cameras: z.string().optional(),
   lenses: z.string().optional(),
   tags: z.string().optional(),
@@ -74,6 +75,7 @@ app.get('/images', async (c) => {
     const parsed = querySchema.safeParse({
       page: searchParams.get('page') ?? '1',
       album: searchParams.get('album') ?? '/',
+      pageSize: searchParams.get('pageSize') ?? undefined,
       cameras: searchParams.get('cameras') ?? undefined,
       lenses: searchParams.get('lenses') ?? undefined,
       tags: searchParams.get('tags') ?? undefined,
@@ -99,10 +101,12 @@ app.get('/images', async (c) => {
         q.page, q.album, cameras, lenses, tags,
         tags && tags.length > 0 ? (q.tagsOperator ?? 'and') : 'and',
         q.sortByShootTime,
+        q.pageSize,
       ),
       fetchClientImagesPageTotalByAlbum(
         q.album, cameras, lenses, tags,
         tags && tags.length > 0 ? (q.tagsOperator ?? 'and') : 'and',
+        q.pageSize,
       ),
     ])
 
@@ -134,7 +138,7 @@ app.get('/images', async (c) => {
 
     const res = c.json({
       page: q.page,
-      pageSize: 16,
+      pageSize: q.pageSize,
       pageTotal,
       items: list,
       // 布局数据（仅在客户端传了 containerWidth+cols 时才有）

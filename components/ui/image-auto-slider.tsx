@@ -15,11 +15,12 @@ export const ImageAutoSlider = ({ images }: ImageAutoSliderProps) => {
 
   // M3：恢复骨架屏状态 — 首图加载完才显示滑块，避免无占位直接渲染
   useEffect(() => {
-    if (images.length === 0) {
+    if (!Array.isArray(images) || images.length === 0) {
       setFirstImageLoaded(true)
       return
     }
-    const firstUrl = images[0].preview_url || images[0].url
+    const first = images[0]
+    const firstUrl = first?.preview_url || first?.url
     if (!firstUrl) {
       setFirstImageLoaded(true)
       return
@@ -31,7 +32,7 @@ export const ImageAutoSlider = ({ images }: ImageAutoSliderProps) => {
     img.onerror = () => setFirstImageLoaded(true)
   }, [images])
 
-  if (images.length === 0) return null
+  if (!Array.isArray(images) || images.length === 0) return null
 
   return (
     <>
