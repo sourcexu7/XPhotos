@@ -7,6 +7,7 @@ import dayjs from 'dayjs'
 import {
   deleteBatchImage,
   deleteImage,
+  getImagesByIds,
   insertImage,
   updateImage,
   updateImageShow,
@@ -234,6 +235,29 @@ app.post('/check-duplicate', async (c) => {
   }
 })
 
+app.post('/by-ids', async (c) => {
+  try {
+    const body = await c.req.json<unknown>()
+    const ids =
+      Array.isArray(body)
+        ? body
+        : body && typeof body === 'object' && Array.isArray((body as any).ids)
+          ? (body as any).ids
+          : null
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      throw new HTTPException(400, { message: 'ids is required' })
+    }
+
+    const strIds = ids.map((id) => String(id)).filter(Boolean)
+    const images = await getImagesByIds(strIds)
+    return c.json({ code: 200, data: images })
+  } catch (e) {
+    if (e instanceof HTTPException) throw e
+    throw new HTTPException(500, { message: 'Failed to fetch images by ids', cause: e })
+  }
+})
+
 app.delete('/batch-delete', async (c) => {
   try {
     const body = await c.req.json<unknown>()
@@ -253,7 +277,13 @@ app.delete('/batch-delete', async (c) => {
       throw new HTTPException(400, { message: 'ids is required' })
     }
 
-    await deleteBatchImage(strIds)
+    // 默认同时清理对象存储（与 deleteImage 保持一致），前端可显式传 false 来仅软删 DB 记录
+    const deleteStorage =
+      body && typeof body === 'object' && 'deleteStorage' in (body as any)
+        ? Boolean((body as any).deleteStorage)
+        : true
+
+    await deleteBatchImage(strIds, { deleteStorage })
     await invalidateImageRelatedCaches()
     return c.json({ code: 200, message: 'Success' })
   } catch (e) {

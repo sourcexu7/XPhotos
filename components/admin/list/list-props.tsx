@@ -12,6 +12,7 @@ import ImageView from '~/components/admin/list/image-view'
 import { fetcher } from '~/lib/utils/fetcher'
 import useSWR from 'swr'
 import ImageBatchDeleteSheet from '~/components/admin/list/image-batch-delete-sheet'
+import ImageBatchDownloadSheet from '~/components/admin/list/image-batch-download-sheet'
 import { Button } from 'antd'
 import {
   Sheet,
@@ -40,13 +41,11 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
 
   const [cameras, setCameras] = useState<string[]>([])
   const [lenses, setLenses] = useState<string[]>([])
-  const defaultPresets = {
-    cameraModels: ['Canon EOS R5','Sony A7 III','Nikon Z7 II','Fujifilm X-T4','iPhone 13 Pro'],
-    shutterSpeeds: ['1/8000','1/4000','1/2000','1/1000','1/500','1/250','1/125','1/60','1/30','1/15','1/8','1/4','1/2','1'],
-    isos: ['50','100','200','400','800','1600','3200','6400'],
-    apertures: ['1.4','1.8','2.0','2.8','3.5','4.0','5.6','8.0','11','16'],
-  }
-  const [exifPresets] = useState(defaultPresets)
+  const [exifPresets, setExifPresets] = useState<{
+    shutterSpeeds: string[]
+    apertures: string[]
+    isos: string[]
+  }>({ shutterSpeeds: [], apertures: [], isos: [] })
   const [tagsList, setTagsList] = useState<string[]>([])
   
   const [pageSize] = useState(8)
@@ -58,13 +57,13 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       props.args,
       pageNum,
       activeFilters.album,
-      activeFilters.showStatus === 'all' || activeFilters.showStatus === '' ? -1 : Number(activeFilters.showStatus),
-      activeFilters.featured === 'all' || activeFilters.featured === '' ? -1 : Number(activeFilters.featured),
-      activeFilters.selectedCamera === 'all' ? '' : activeFilters.selectedCamera,
-      activeFilters.selectedLens === 'all' ? '' : activeFilters.selectedLens,
-      activeFilters.selectedExposure === 'all' ? '' : activeFilters.selectedExposure,
-      activeFilters.selectedAperture === 'all' ? '' : activeFilters.selectedAperture,
-      activeFilters.selectedISO === 'all' ? '' : activeFilters.selectedISO,
+      activeFilters.showStatus === '' ? -1 : Number(activeFilters.showStatus),
+      activeFilters.featured === '' ? -1 : Number(activeFilters.featured),
+      activeFilters.selectedCamera,
+      activeFilters.selectedLens,
+      activeFilters.selectedExposure,
+      activeFilters.selectedAperture,
+      activeFilters.selectedISO,
       Array.isArray(activeFilters.selectedTags) ? [...activeFilters.selectedTags].sort().join(',') : '',
       activeFilters.labelsOperator,
     ],
@@ -72,13 +71,13 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       const result = await props.handle(
         pageNum,
         activeFilters.album,
-        activeFilters.showStatus === 'all' || activeFilters.showStatus === '' ? -1 : Number(activeFilters.showStatus),
-        activeFilters.featured === 'all' || activeFilters.featured === '' ? -1 : Number(activeFilters.featured),
-        activeFilters.selectedCamera === 'all' ? '' : activeFilters.selectedCamera,
-        activeFilters.selectedLens === 'all' ? '' : activeFilters.selectedLens,
-        activeFilters.selectedExposure === 'all' ? '' : activeFilters.selectedExposure,
-        activeFilters.selectedAperture === 'all' ? '' : activeFilters.selectedAperture,
-        activeFilters.selectedISO === 'all' ? '' : activeFilters.selectedISO,
+        activeFilters.showStatus === '' ? -1 : Number(activeFilters.showStatus),
+        activeFilters.featured === '' ? -1 : Number(activeFilters.featured),
+        activeFilters.selectedCamera,
+        activeFilters.selectedLens,
+        activeFilters.selectedExposure,
+        activeFilters.selectedAperture,
+        activeFilters.selectedISO,
         activeFilters.selectedTags,
         activeFilters.labelsOperator
       )
@@ -102,7 +101,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
   const [updateShowId, setUpdateShowId] = useState('')
   const [updateFeaturedId, setUpdateFeaturedId] = useState('')
   
-  const { setImageEdit, setImageEditData, setImageView, setImageViewData, setImageBatchDelete } = useButtonStore(
+  const { setImageEdit, setImageEditData, setImageView, setImageViewData, setImageBatchDelete, setImageBatchDownload } = useButtonStore(
     (state) => state,
   )
   
@@ -112,13 +111,13 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
   const activeFilterCount = useMemo(() => {
     let count = 0
     if (activeFilters.album) count++
-    if (activeFilters.showStatus && activeFilters.showStatus !== 'all') count++
-    if (activeFilters.featured && activeFilters.featured !== 'all') count++
-    if (activeFilters.selectedCamera && activeFilters.selectedCamera !== 'all') count++
-    if (activeFilters.selectedLens && activeFilters.selectedLens !== 'all') count++
-    if (activeFilters.selectedExposure && activeFilters.selectedExposure !== 'all') count++
-    if (activeFilters.selectedAperture && activeFilters.selectedAperture !== 'all') count++
-    if (activeFilters.selectedISO && activeFilters.selectedISO !== 'all') count++
+    if (activeFilters.showStatus) count++
+    if (activeFilters.featured) count++
+    if (activeFilters.selectedCamera) count++
+    if (activeFilters.selectedLens) count++
+    if (activeFilters.selectedExposure) count++
+    if (activeFilters.selectedAperture) count++
+    if (activeFilters.selectedISO) count++
     if (Array.isArray(activeFilters.selectedTags) && activeFilters.selectedTags.length > 0) count++
     return count
   }, [activeFilters])
@@ -197,12 +196,31 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       }
     }
 
+    const loadExifPresets = async () => {
+      try {
+        const response = await fetch('/api/v1/images/exif-presets')
+        if (response.ok) {
+          const data = await response.json()
+          setExifPresets({
+            shutterSpeeds: Array.isArray(data.shutterSpeeds) ? data.shutterSpeeds : [],
+            apertures:     Array.isArray(data.apertures)     ? data.apertures     : [],
+            isos:          Array.isArray(data.isos)          ? data.isos          : [],
+          })
+        }
+      } catch (error) {
+        console.error('Failed to fetch exif presets:', error)
+      }
+    }
+
     const loadTags = async () => {
       try {
+        // 真实接口路径：/api/v1/settings/tags/get（settings.ts 中定义）
         const res = await fetch('/api/v1/settings/tags/get')
         if (res.ok) {
           const data = await res.json()
-          setTagsList(data.tags || [])
+          // 接口返回 { code: 200, data: [{id,name,category?}, ...] }
+          const list = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : [])
+          setTagsList(list.map((t: any) => (typeof t === 'string' ? t : (t?.name ?? ''))).filter(Boolean))
         }
       } catch (error) {
         console.error('Failed to fetch tags:', error)
@@ -210,6 +228,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
     }
 
     loadCameraAndLensList()
+    loadExifPresets()
     loadTags()
   }, [])
 
@@ -389,6 +408,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
         onSelectAll={toggleSelectAll}
         onRefresh={async () => await mutate()}
         onBatchDelete={() => setImageBatchDelete(true)}
+        onBatchDownload={() => setImageBatchDownload(true)}
       />
 
       {/* 3. 照片布局：卡片 / 列表切换 */}
@@ -468,6 +488,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       <ImageEditSheet {...{...props, pageNum, album: activeFilters.album}} />
       <ImageView />
       <ImageBatchDeleteSheet {...{...props, dataProps, pageNum, album: activeFilters.album, selectedIds}} />
+      <ImageBatchDownloadSheet selectedIds={selectedIds} />
     </div>
   )
 }

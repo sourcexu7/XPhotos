@@ -6,7 +6,7 @@ import { useButtonStore } from '~/app/providers/button-store-providers'
 import { toast } from 'sonner'
 import { useSwrInfiniteServerHook } from '~/hooks/use-swr-infinite-server-hook'
 import { ReloadIcon } from '@radix-ui/react-icons'
-import { Button, Modal } from 'antd'
+import { Button, Checkbox, Modal } from 'antd'
 import { useTranslations } from 'next-intl'
 import { useSwrPageTotalServerHook } from '~/hooks/use-swr-page-total-server-hook'
 
@@ -18,6 +18,7 @@ export default function ImageBatchDeleteSheet(props : Readonly<ImageServerHandle
     (state) => state,
   )
   const [loading, setLoading] = useState(false)
+  const [deleteStorage, setDeleteStorage] = useState(true) // 默认同时清理对象存储，与 deleteImage 保持一致
   const t = useTranslations()
 
   async function submit() {
@@ -31,7 +32,7 @@ export default function ImageBatchDeleteSheet(props : Readonly<ImageServerHandle
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(selectedIds),
+        body: JSON.stringify({ ids: selectedIds, deleteStorage }),
         method: 'DELETE',
       }).then(response => response.json())
       toast.success(t('List.batchDeleteSuccess'))
@@ -78,7 +79,23 @@ export default function ImageBatchDeleteSheet(props : Readonly<ImageServerHandle
           <span className="font-bold text-[var(--admin-error)]">{selectedIds?.length || 0}</span>
           {t('List.batchDeleteDescriptionSuffix')}
         </div>
-        
+
+        <div className="mt-4 flex items-center justify-center">
+          <Checkbox
+            checked={deleteStorage}
+            onChange={(e) => setDeleteStorage(e.target.checked)}
+          >
+            <span className="text-sm text-gray-700">
+              {t('List.batchDeleteStorageCheckbox')}
+            </span>
+          </Checkbox>
+        </div>
+        {deleteStorage && (
+          <div className="mt-1 text-center text-xs text-amber-600">
+            {t('List.batchDeleteStorageHint')}
+          </div>
+        )}
+
         <div className="max-h-[200px] overflow-y-auto my-4 bg-white p-3 rounded-lg border border-gray-100">
           <div className="text-xs text-gray-400 mb-2">{t('List.batchDeleteIdsLabel')}</div>
           <div className="grid grid-cols-1 gap-1">

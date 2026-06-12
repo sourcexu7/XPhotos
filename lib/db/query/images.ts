@@ -1148,6 +1148,48 @@ export async function invalidateCameraLensListCache(): Promise<void> {
 }
 
 /**
+ * 从图片表 exif 字段中提取：快门速度 / 光圈 / ISO
+ * ——用于后台图片维护下拉框的"真实数据源"，替代写死的预设值
+ */
+export const fetchExifPresets = cache(async (): Promise<{
+  shutterSpeeds: string[]
+  apertures: string[]
+  isos: string[]
+}> => {
+  return cacheWrap('images:exif_presets', async () => {
+    const rows = await db.$queryRaw<Array<{ exposure_time: string; f_number: string; iso: string }>>`
+      SELECT DISTINCT
+        COALESCE(exif->>'exposure_time', '') as exposure_time,
+        COALESCE(exif->>'f_number', '')      as f_number,
+        COALESCE(exif->>'iso_speed_rating', '') as iso
+      FROM "public"."images"
+      WHERE del = 0
+    `
+
+    const ssSet = new Set<string>()
+    const apSet = new Set<string>()
+    const isoSet = new Set<string>()
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i]
+      if (r.exposure_time && r.exposure_time.trim() !== '') ssSet.add(r.exposure_time)
+      if (r.f_number && r.f_number.trim() !== '')           apSet.add(r.f_number)
+      if (r.iso && r.iso.trim() !== '')                      isoSet.add(r.iso)
+    }
+
+    return {
+      shutterSpeeds: Array.from(ssSet),
+      apertures:     Array.from(apSet),
+      isos:          Array.from(isoSet),
+    }
+  })
+})
+
+export async function invalidateExifPresetsCache(): Promise<void> {
+  await cacheInvalidate('images:exif_presets')
+}
+
+/**
  * 写操作后失效图片列表/总数缓存
  * ——传入 album 时只失效该相册的缓存；不传则全部失效（images:list:* / images:count:*）
  */
@@ -1178,5 +1220,6 @@ export async function invalidateAllImageReadCaches(album?: string): Promise<void
     invalidateFeaturedCache(),
     invalidateGalleryCache(album),
     invalidateCameraLensListCache(),
+    invalidateExifPresetsCache(),
   ])
 }

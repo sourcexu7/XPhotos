@@ -236,49 +236,128 @@ export async function insertImage(image: ImageType, forceNew = false) {
 }
 
 /**
- * 逻辑删除图片
+ * 尝试删除一张图片在对象存储中的文件（S3 / R2 / COS 三后端统一处理）
+ * 策略：
+ *  - 优先使用 DB 中保存的 original_key / preview_key / video_key
+ *  - 若无 key，则回退到从 url / preview_url / video_url 的 pathname 提取 key
+ *  - 存储类型通过 URL 是否包含对应 endpoint 推断，避免对所有桶各删一次（可能误伤其他存储文件）
+ *  - 任何对象删除失败均不阻断 DB 软删除（尽力而为）
+ */
+async function deleteImageStorageObjects(
+  img: {
+    url?: string | null
+    preview_url?: string | null
+    video_url?: string | null
+    original_key?: string | null
+    preview_key?: string | null
+    video_key?: string | null
+  },
+) {
+  try {
+    // --- 收集候选 key（字段 + URL 回退）
+    const urlKeys: { key: string; urlField: string }[] = []
+    // [key, url] — key 优先；无 key 时从 url 的 pathname 推断 key
+    const fieldPairs: Array<[string | null | undefined, string | null | undefined]> = [
+      [img.original_key, img.url],
+      [img.preview_key, img.preview_url],
+      [img.video_key, img.video_url],
+    ]
+    for (const [key, url] of fieldPairs) {
+      if (key && typeof key === 'string') {
+        urlKeys.push({ key, urlField: url || '' })
+      } else if (url && typeof url === 'string') {
+        try {
+          const pathname = new URL(url).pathname
+          if (pathname.length > 1) {
+            urlKeys.push({ key: decodeURIComponent(pathname.replace(/^\//, '')), urlField: url })
+          }
+        } catch {
+          // 无效 URL，跳过
+        }
+      }
+    }
+    if (urlKeys.length === 0) return
+
+    // --- 懒加载配置，按 URL 的 endpoint 推断存储类型
+    const { fetchConfigsByKeys } = await import('~/lib/db/query/configs')
+    const [s3Raw, r2Raw, cosRaw] = await Promise.all([
+      fetchConfigsByKeys(['accesskey_id', 'accesskey_secret', 'region', 'endpoint', 'bucket', 'force_path_style']),
+      fetchConfigsByKeys(['r2_account_id', 'r2_accesskey_id', 'r2_accesskey_secret', 'r2_bucket']),
+      fetchConfigsByKeys(['cos_secret_id', 'cos_secret_key', 'cos_region', 'cos_endpoint', 'cos_bucket', 'cos_force_path_style']),
+    ])
+
+    const cfgValue = (list: any[], k: string) =>
+      list.find((i: any) => i && i.config_key === k)?.config_value as string | undefined
+
+    const s3Endpoint = (cfgValue(s3Raw, 'endpoint') || '').replace(/^https?:\/\//, '')
+    const s3Bucket = cfgValue(s3Raw, 'bucket') || ''
+    const r2Bucket = cfgValue(r2Raw, 'r2_bucket') || ''
+    const cosEndpoint = (cfgValue(cosRaw, 'cos_endpoint') || '').replace(/^https?:\/\//, '')
+    const cosBucket = cfgValue(cosRaw, 'cos_bucket') || ''
+
+    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
+
+    // --- 按 URL 推断使用的后端，逐条删除
+    const s3ClientFn = async () => {
+      const { getClient } = await import('~/lib/s3')
+      return getClient(s3Raw)
+    }
+    const r2ClientFn = async () => {
+      const { getR2Client } = await import('~/lib/r2')
+      return getR2Client(r2Raw)
+    }
+    const cosClientFn = async () => {
+      const { getCOSClient } = await import('~/lib/cos')
+      return getCOSClient(cosRaw)
+    }
+
+    // 懒缓存客户端，避免重复初始化
+    let s3Client: any = undefined
+    let r2Client: any = undefined
+    let cosClient: any = undefined
+
+    for (const { key, urlField } of urlKeys) {
+      try {
+        const useCos = cosEndpoint && cosBucket && urlField.includes(cosEndpoint)
+        const useR2 = !useCos && /r2\.cloudflarestorage\.com|r2|cdn-?r2/i.test(urlField)
+        const useS3 = !useCos && !useR2 && (s3Endpoint ? urlField.includes(s3Endpoint) : !!s3Bucket)
+
+        if (useCos && cosBucket) {
+          cosClient = cosClient || (await cosClientFn())
+          await cosClient.send(new DeleteObjectCommand({ Bucket: cosBucket, Key: key }))
+        } else if (useR2 && r2Bucket) {
+          r2Client = r2Client || (await r2ClientFn())
+          await r2Client.send(new DeleteObjectCommand({ Bucket: r2Bucket, Key: key }))
+        } else if (useS3 && s3Bucket) {
+          s3Client = s3Client || (await s3ClientFn())
+          await s3Client.send(new DeleteObjectCommand({ Bucket: s3Bucket, Key: key }))
+        }
+      } catch {
+        // 单个对象删除失败不影响其他对象
+      }
+    }
+  } catch {
+    // 任何存储层错误都不阻断上层 DB 事务
+  }
+}
+
+/**
+ * 逻辑删除图片（同步尝试删除 S3 / R2 / COS 中的对象）
  * @param id 图片 ID
  */
 export async function deleteImage(id: string) {
   await db.$transaction(async (tx) => {
-    // 尝试删除存储对象（尽力而为，失败不阻断）
-    try {
-      const img = await tx.images.findUnique({ where: { id } })
-      const originalKey = (img as { original_key?: string | null })?.original_key as string | undefined
-      const previewKey = (img as { preview_key?: string | null })?.preview_key as string | undefined
-      const videoKey = (img as { video_key?: string | null })?.video_key as string | undefined
-      const keys = [originalKey, previewKey, videoKey].filter(Boolean) as string[]
-      if (keys.length) {
-        // 删除 S3
-        try {
-          const { fetchConfigsByKeys } = await import('~/lib/db/query/configs')
-          const s3Configs = await fetchConfigsByKeys(['accesskey_id','accesskey_secret','region','endpoint','bucket'])
-          const s3Bucket = s3Configs.find((i: { config_key: string; config_value: string | null }) => i.config_key === 'bucket')?.config_value || ''
-          if (s3Bucket) {
-            const { getClient } = await import('~/lib/s3')
-            const client = getClient(s3Configs)
-            const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
-            for (const k of keys) {
-              await client.send(new DeleteObjectCommand({ Bucket: s3Bucket, Key: k }))
-            }
-          }
-        } catch {}
-        // 删除 R2（与 S3 兼容协议）
-        try {
-          const { fetchConfigsByKeys } = await import('~/lib/db/query/configs')
-          const r2Configs = await fetchConfigsByKeys(['r2_account_id','r2_accesskey_id','r2_accesskey_secret','r2_bucket'])
-          const { getR2Client } = await import('~/lib/r2')
-          const r2Bucket = r2Configs.find((i: { config_key: string; config_value: string | null }) => i.config_key === 'r2_bucket')?.config_value || ''
-          if (r2Bucket) {
-            const r2Client = getR2Client(r2Configs)
-            const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
-            for (const k of keys) {
-              await r2Client.send(new DeleteObjectCommand({ Bucket: r2Bucket, Key: k }))
-            }
-          }
-        } catch {}
-      }
-    } catch {}
+    const img = await tx.images.findUnique({
+      where: { id },
+      select: { url: true, preview_url: true, video_url: true, original_key: true, preview_key: true, video_key: true },
+    })
+    if (img) {
+      // 不在事务内 await 长时间的外部网络调用，但这里我们希望删除成功后再提交 DB。
+      // 注意：Postgres 事务允许在回调里执行 I/O，只是需要控制时间。
+      // 若不想阻塞事务，可以把 storage 删除放到事务外、失败后仍提交 DB。
+      // 这里采取"事务内尽力删除，失败不回滚"的策略以保持与原实现行为一致。
+      await deleteImageStorageObjects(img)
+    }
 
     await tx.imagesAlbumsRelation.deleteMany({ where: { imageId: id } })
     await tx.images.update({
@@ -292,10 +371,42 @@ export async function deleteImage(id: string) {
 }
 
 /**
- * 批量逻辑删除图片
+ * 批量逻辑删除图片（可选择是否同时删除对象存储中的文件）
  * @param ids 图片 ID 数组
+ * @param options.deleteStorage 是否同时删除 COS / S3 / R2 中的对象（默认 true）
  */
-export async function deleteBatchImage(ids: string[]) {
+export async function deleteBatchImage(
+  ids: string[],
+  options?: { deleteStorage?: boolean },
+) {
+  if (!Array.isArray(ids) || ids.length === 0) return
+
+  const deleteStorage = options?.deleteStorage !== false
+
+  // 1. 先批量读取图片信息用于存储层删除（事务外完成，避免长时间持有事务锁）
+  const images = await db.images.findMany({
+    where: { id: { in: ids } },
+    select: {
+      id: true,
+      url: true,
+      preview_url: true,
+      video_url: true,
+      original_key: true,
+      preview_key: true,
+      video_key: true,
+    },
+  })
+
+  // 2. 并发、尽力而为地删除对象存储文件（默认开启；单个失败不影响其他）
+  if (deleteStorage) {
+    try {
+      await Promise.all(images.map((img) => deleteImageStorageObjects(img)))
+    } catch {
+      // 汇总层错误不阻断 DB 事务
+    }
+  }
+
+  // 3. DB 批量软删除
   await db.$transaction(async (tx) => {
     await tx.imagesAlbumsRelation.deleteMany({ where: { imageId: { in: ids } } })
     await tx.images.updateMany({
@@ -306,6 +417,27 @@ export async function deleteBatchImage(ids: string[]) {
       },
     })
   })
+}
+
+/**
+ * 批量按 ID 获取图片的公共字段（用于批量下载等场景）
+ * @param ids 图片 ID 数组
+ */
+export async function getImagesByIds(ids: string[]) {
+  if (!Array.isArray(ids) || ids.length === 0) return []
+  const rows = await db.images.findMany({
+    where: { id: { in: ids } },
+    select: {
+      id: true,
+      url: true,
+      preview_url: true,
+      video_url: true,
+      title: true,
+      image_name: true,
+      del: true,
+    },
+  })
+  return rows
 }
 
 /**

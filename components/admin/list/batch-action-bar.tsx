@@ -3,7 +3,7 @@
 import React from 'react'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Button as AntButton, Tooltip } from 'antd'
-import { DeleteOutlined, ReloadOutlined } from '@ant-design/icons'
+import { DeleteOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 
 interface BatchActionBarProps {
@@ -12,6 +12,7 @@ interface BatchActionBarProps {
   onSelectAll: (checked: boolean) => void
   onRefresh: () => void
   onBatchDelete: () => void
+  onBatchDownload: () => void
 }
 
 export default function BatchActionBar({
@@ -20,6 +21,7 @@ export default function BatchActionBar({
   onSelectAll,
   onRefresh,
   onBatchDelete,
+  onBatchDownload,
 }: BatchActionBarProps) {
   const t = useTranslations()
 
@@ -45,6 +47,16 @@ export default function BatchActionBar({
             onClick={onRefresh}
           >
             {t('Button.refresh')}
+          </AntButton>
+        </Tooltip>
+        <Tooltip title={t('List.batchDownloadTooltip')}>
+          <AntButton
+            type="default"
+            icon={<DownloadOutlined />}
+            onClick={onBatchDownload}
+            className="bg-card border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 rounded-lg transition-all duration-200"
+          >
+            {t('Button.batchDownload')}
           </AntButton>
         </Tooltip>
         <Tooltip title={t('List.deleteSelectedPhotosTooltip')}>

@@ -22,6 +22,7 @@ export type ButtonState = {
   MasonryViewData: ImageType
   MasonryViewDataList: ImageType[]
   imageBatchDelete: boolean
+  imageBatchDownload: boolean
   searchOpen: boolean
   loginHelp: boolean
   command: boolean
@@ -47,6 +48,7 @@ export type ButtonActions = {
   setMasonryViewData: (masonryViewData: ImageType) => void
   setMasonryViewDataList: (masonryViewDataList: ImageType[]) => void
   setImageBatchDelete: (imageBatchDelete: boolean) => void
+  setImageBatchDownload: (imageBatchDownload: boolean) => void
   setSearchOpen: (searchOpen: boolean) => void
   setLoginHelp: (loginHelp: boolean) => void
   setCommand: (command: boolean) => void
@@ -75,6 +77,7 @@ export const initButtonStore = (): ButtonState => {
     MasonryViewData: {} as ImageType,
     MasonryViewDataList: [] as ImageType[],
     imageBatchDelete: false,
+    imageBatchDownload: false,
     searchOpen: false,
     loginHelp: false,
     command: false,
@@ -101,6 +104,7 @@ export const defaultInitState: ButtonState = {
   MasonryViewData: {} as ImageType,
   MasonryViewDataList: [] as ImageType[],
   imageBatchDelete: false,
+  imageBatchDownload: false,
   searchOpen: false,
   loginHelp: false,
   command: false,
@@ -130,6 +134,7 @@ export const createButtonStore = (initState: ButtonState = defaultInitState) => 
         setMasonryViewData: (MasonryViewData) => set({ MasonryViewData }),
         setMasonryViewDataList: (MasonryViewDataList) => set({ MasonryViewDataList }),
         setImageBatchDelete: (imageBatchDelete) => set({ imageBatchDelete }),
+        setImageBatchDownload: (imageBatchDownload) => set({ imageBatchDownload }),
         setSearchOpen: (searchOpen) => set({ searchOpen }),
         setLoginHelp: (loginHelp) => set({ loginHelp }),
         setCommand: (command) => set({ command }),

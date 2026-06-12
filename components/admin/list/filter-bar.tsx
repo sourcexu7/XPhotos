@@ -2,14 +2,8 @@
 
 import React, { useState } from 'react'
 import { Select } from 'antd'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '~/components/ui/popover'
-import { Checkbox } from '~/components/ui/checkbox'
-import { Button as AntButton, Tooltip } from 'antd'
-import { Rows3, LayoutGrid, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react'
+import { Button as AntButton } from 'antd'
+import { Rows3, LayoutGrid, ChevronUp, ChevronDown, SlidersHorizontal } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import type { AlbumType } from '~/types'
 
@@ -47,10 +41,147 @@ interface FilterBarProps {
   albums?: AlbumType[]
   cameras: string[]
   lenses: string[]
-  exifPresets: { shutterSpeeds: string[], apertures: string[], isos: string[] }
+  exifPresets: { shutterSpeeds: string[]; apertures: string[]; isos: string[] }
   tagsList: string[]
   layout: 'card' | 'list'
   setLayout: (layout: 'card' | 'list') => void
+}
+
+/**
+ * 通用可搜索/可输入的筛选下拉
+ * - 选中值 => 精确匹配
+ * - 直接在输入框里写的值 => 也是精确匹配（走服务端 = 逻辑）
+ * - allowClear => 点 × 清空
+ */
+function SearchableSelect({
+  value,
+  onChange,
+  placeholder,
+  options,
+  className,
+}: {
+  value: string | undefined
+  onChange: (v: string) => void
+  placeholder: string
+  options: string[]
+  className?: string
+}) {
+  const optionList = options.map(o => ({ label: o, value: o }))
+
+  return (
+    <Select
+      value={value || undefined}
+      onChange={(v) => onChange(v ?? '')}
+      placeholder={placeholder}
+      showSearch
+      allowClear
+      filterOption={(input, option) =>
+        (option?.label ?? '')
+          .toString()
+          .toLowerCase()
+          .includes(input.toLowerCase())
+      }
+      className={className || 'border-border rounded-lg'}
+      options={optionList}
+    />
+  )
+}
+
+/**
+ * 标签筛选：下拉多选 + 支持自由输入新标签
+ * 选中的值会作为 JSONB contains 的条件数组传入服务端
+ */
+function TagsSelect({
+  value,
+  onChange,
+  onOperatorChange,
+  operator,
+  options,
+  placeholder,
+  className,
+}: {
+  value: string[]
+  onChange: (vals: string[]) => void
+  onOperatorChange: (op: 'and' | 'or') => void
+  operator: 'and' | 'or'
+  options: string[]
+  placeholder: string
+  className?: string
+}) {
+  const t = useTranslations()
+  return (
+    <div className="flex items-center gap-2">
+      <Select
+        mode="tags"
+        value={value}
+        onChange={(vals) => onChange(vals)}
+        placeholder={placeholder}
+        allowClear
+        tokenSeparators={[',', '，', ' ']}
+        className={className || 'border-border rounded-lg'}
+        style={{ minWidth: 220, width: 260 }}
+        options={options.map(tag => ({ label: tag, value: tag }))}
+      />
+      <div className="flex rounded-lg border border-border overflow-hidden text-xs" role="group" aria-label="标签筛选逻辑">
+        <button
+          className={`px-2 h-8 ${operator === 'and' ? 'bg-primary text-white' : 'bg-card hover:bg-muted text-foreground'}`}
+          onClick={() => onOperatorChange('and')}
+          aria-pressed={operator === 'and'}
+          type="button"
+        >
+          {t('List.tagsOperatorAnd')}
+        </button>
+        <button
+          className={`px-2 h-8 ${operator === 'or' ? 'bg-primary text-white' : 'bg-card hover:bg-muted text-foreground'}`}
+          onClick={() => onOperatorChange('or')}
+          aria-pressed={operator === 'or'}
+          type="button"
+        >
+          {t('List.tagsOperatorOr')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** 操作按钮区：查询 / 重置 / 视图切换（桌面端） */
+function ActionButtons({
+  onApply, onReset, layout, setLayout, showSwitch,
+}: {
+  onApply: () => void
+  onReset: () => void
+  layout: 'card' | 'list'
+  setLayout: (l: 'card' | 'list') => void
+  showSwitch?: boolean
+}) {
+  const t = useTranslations()
+  return (
+    <div className="flex items-center gap-2 ml-auto md:ml-0">
+      <AntButton
+        type="primary"
+        className="bg-primary hover:bg-primary/90 border-none transition-all text-white rounded-lg"
+        onClick={onApply}
+      >
+        {t('Button.query')}
+      </AntButton>
+      <AntButton
+        className="border border-border hover:border-primary hover:text-primary transition-all rounded-lg"
+        onClick={onReset}
+      >
+        {t('Button.reset')}
+      </AntButton>
+      {showSwitch && (
+        <AntButton
+          type="text"
+          className="hidden md:flex items-center gap-1 text-foreground hover:bg-muted hover:text-primary rounded-lg"
+          icon={layout === 'card' ? <Rows3 size={14} /> : <LayoutGrid size={14} />}
+          onClick={() => setLayout(layout === 'card' ? 'list' : 'card')}
+        >
+          {layout === 'card' ? t('List.viewList') : t('List.viewCard')}
+        </AntButton>
+      )}
+    </div>
+  )
 }
 
 export default function FilterBar({
@@ -77,22 +208,27 @@ export default function FilterBar({
           value={filters.album || undefined}
           onChange={(v) => onChange({ album: v })}
           placeholder={t('List.selectAlbum')}
+          showSearch
+          allowClear
+          filterOption={(input, option) =>
+            (option?.label ?? '')
+              .toString()
+              .toLowerCase()
+              .includes(input.toLowerCase())
+          }
           className="min-w-[140px] md:w-[140px] border-border rounded-lg"
-          options={[
-            { label: t('Words.all'), value: 'all' },
-            ...(albums?.map(a => ({ label: a.name, value: a.album_value })) || [])
-          ]}
+          options={albums?.map(a => ({ label: a.name, value: a.album_value })) || []}
         />
 
         <Select
           value={filters.showStatus || undefined}
           onChange={(v) => onChange({ showStatus: v })}
           placeholder={t('List.selectShowStatus')}
+          allowClear
           className="min-w-[140px] md:w-[140px] border-border rounded-lg"
           options={[
-            { label: t('Words.all'), value: 'all' },
             { label: t('Words.public'), value: '0' },
-            { label: t('Words.private'), value: '1' }
+            { label: t('Words.private'), value: '1' },
           ]}
         />
 
@@ -100,11 +236,11 @@ export default function FilterBar({
           value={filters.featured || undefined}
           onChange={(v) => onChange({ featured: v })}
           placeholder={t('List.selectFeatured')}
+          allowClear
           className="min-w-[120px] md:w-[120px] border-border rounded-lg"
           options={[
-            { label: t('Words.all'), value: 'all' },
             { label: t('List.featuredOn'), value: '1' },
-            { label: t('List.featuredOff'), value: '0' }
+            { label: t('List.featuredOff'), value: '0' },
           ]}
         />
 
@@ -116,282 +252,116 @@ export default function FilterBar({
           aria-label="展开高级筛选"
         >
           <SlidersHorizontal size={14} />
-          高级筛选
+          {t('List.advancedFilters')}
           {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
 
         {/* 桌面端：高级筛选器直接显示 */}
         <div className="hidden md:flex gap-3 flex-wrap items-center">
-          <Select
-            value={filters.selectedCamera || undefined}
+          <SearchableSelect
+            value={filters.selectedCamera}
             onChange={(v) => onChange({ selectedCamera: v })}
             placeholder={t('List.selectCamera')}
-            className="w-[120px] border-border rounded-lg"
-            options={[
-              { label: t('Words.all'), value: 'all' },
-              ...cameras.map(c => ({ label: c, value: c }))
-            ]}
+            options={cameras}
+            className="w-[160px] border-border rounded-lg"
           />
-
-          <Select
-            value={filters.selectedLens || undefined}
+          <SearchableSelect
+            value={filters.selectedLens}
             onChange={(v) => onChange({ selectedLens: v })}
             placeholder={t('List.selectLens')}
-            className="w-[120px] border-border rounded-lg"
-            options={[
-              { label: t('Words.all'), value: 'all' },
-              ...lenses.map(l => ({ label: l, value: l }))
-            ]}
+            options={lenses}
+            className="w-[160px] border-border rounded-lg"
           />
-
-          <Select
-            value={filters.selectedExposure || undefined}
+          <SearchableSelect
+            value={filters.selectedExposure}
             onChange={(v) => onChange({ selectedExposure: v })}
             placeholder={t('List.selectShutter')}
-            className="w-[100px] border-border rounded-lg"
-            options={[
-              { label: t('Words.all'), value: 'all' },
-              ...exifPresets.shutterSpeeds.map(s => ({ label: s, value: s }))
-            ]}
+            options={exifPresets.shutterSpeeds}
+            className="w-[130px] border-border rounded-lg"
           />
-
-          <Select
-            value={filters.selectedAperture || undefined}
+          <SearchableSelect
+            value={filters.selectedAperture}
             onChange={(v) => onChange({ selectedAperture: v })}
             placeholder={t('List.selectAperture')}
-            className="w-[90px] border-border rounded-lg"
-            options={[
-              { label: t('Words.all'), value: 'all' },
-              ...exifPresets.apertures.map(a => ({ label: a, value: a }))
-            ]}
+            options={exifPresets.apertures}
+            className="w-[120px] border-border rounded-lg"
           />
-
-          <Select
-            value={filters.selectedISO || undefined}
+          <SearchableSelect
+            value={filters.selectedISO}
             onChange={(v) => onChange({ selectedISO: v })}
             placeholder={t('List.selectISO')}
-            className="w-[80px] border-border rounded-lg"
-            options={[
-              { label: t('Words.all'), value: 'all' },
-              ...exifPresets.isos.map(i => ({ label: i, value: i }))
-            ]}
+            options={exifPresets.isos}
+            className="w-[110px] border-border rounded-lg"
           />
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <button 
-                className="h-9 px-3 border border-border rounded-lg text-sm text-left min-w-[100px] bg-card text-foreground hover:bg-muted transition-all duration-200"
-                aria-label={filters.selectedTags.length > 0 
-                  ? t('List.tagCount', { count: filters.selectedTags.length })
-                  : t('List.filterTags')}
-                aria-haspopup="dialog"
-              >
-                {filters.selectedTags.length > 0
-                  ? t('List.tagCount', { count: filters.selectedTags.length })
-                  : t('List.filterTags')}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="p-3 w-64 border border-border rounded-lg bg-card">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-foreground">{t('List.selectTags')}</span>
-                <div className="flex gap-1" role="group" aria-label="标签筛选逻辑">
-                  <button
-                    className={`px-2 py-0.5 text-xs border rounded-lg ${filters.labelsOperator === 'and' ? 'bg-primary text-white border-primary' : 'border-border hover:bg-muted'}`}
-                    onClick={() => onChange({ labelsOperator: 'and' })}
-                    aria-pressed={filters.labelsOperator === 'and'}
-                    aria-label="AND逻辑：必须包含所有选中的标签"
-                  >
-                    {t('List.tagsOperatorAnd')}
-                  </button>
-                  <button
-                    className={`px-2 py-0.5 text-xs border rounded-lg ${filters.labelsOperator === 'or' ? 'bg-primary text-white border-primary' : 'border-border hover:bg-muted'}`}
-                    onClick={() => onChange({ labelsOperator: 'or' })}
-                    aria-pressed={filters.labelsOperator === 'or'}
-                    aria-label="OR逻辑：包含任意一个选中的标签"
-                  >
-                    {t('List.tagsOperatorOr')}
-                  </button>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto my-2">
-                {tagsList.map(tag => (
-                  <label key={tag} className="flex items-center gap-2 cursor-pointer hover:bg-muted p-1 rounded-lg">
-                    <Checkbox
-                      checked={filters.selectedTags.includes(tag)}
-                      onCheckedChange={(v) => {
-                        const next = v
-                          ? [...filters.selectedTags, tag]
-                          : filters.selectedTags.filter(t => t !== tag)
-                        onChange({ selectedTags: next })
-                      }}
-                    />
-                    <span className="text-xs truncate text-foreground" title={tag}>{tag}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="flex justify-end pt-2 border-t border-border">
-                <button
-                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                  onClick={() => onChange({ selectedTags: [] })}
-                  aria-label="清除所有选中的标签"
-                >
-                  {t('List.clearSelectedTags')}
-                </button>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <TagsSelect
+            value={filters.selectedTags}
+            onChange={(vals) => onChange({ selectedTags: vals })}
+            onOperatorChange={(op) => onChange({ labelsOperator: op })}
+            operator={filters.labelsOperator}
+            options={tagsList}
+            placeholder={t('List.filterTags')}
+          />
         </div>
 
-        {/* 操作按钮 */}
-        <div className="flex items-center gap-2 ml-auto md:ml-0">
-          <Tooltip title={t('List.applyFiltersTooltip')}>
-            <AntButton
-              type="primary"
-              className="bg-primary hover:bg-primary/90 border-none transition-all text-white rounded-lg"
-              onClick={onApply}
-            >
-              {t('Button.query')}
-            </AntButton>
-          </Tooltip>
-          <Tooltip title={t('List.resetFiltersTooltip')}>
-            <AntButton
-              className="border border-border hover:border-primary hover:text-primary transition-all rounded-lg"
-              onClick={onReset}
-            >
-              {t('Button.reset')}
-            </AntButton>
-          </Tooltip>
-          <Tooltip title={layout === 'card' ? t('List.switchToListLayout') : t('List.switchToCardLayout')}>
-            <AntButton
-              type="text"
-              className="hidden md:flex items-center gap-1 text-foreground hover:bg-muted hover:text-primary rounded-lg"
-              icon={layout === 'card' ? <Rows3 size={14} /> : <LayoutGrid size={14} />}
-              onClick={() => setLayout(layout === 'card' ? 'list' : 'card')}
-            >
-              {layout === 'card' ? t('List.viewCard') : t('List.viewList')}
-            </AntButton>
-          </Tooltip>
-        </div>
+        <ActionButtons
+          onApply={onApply}
+          onReset={onReset}
+          layout={layout}
+          setLayout={setLayout}
+          showSwitch
+        />
       </div>
 
       {/* 移动端：高级筛选器（折叠） */}
       {showAdvanced && (
         <div className="md:hidden grid grid-cols-2 gap-3 p-3 border border-border rounded-lg bg-card">
-          <Select
-            value={filters.selectedCamera || undefined}
+          <SearchableSelect
+            value={filters.selectedCamera}
             onChange={(v) => onChange({ selectedCamera: v })}
             placeholder={t('List.selectCamera')}
+            options={cameras}
             className="w-full border-border rounded-lg"
-            options={[
-              { label: t('Words.all'), value: 'all' },
-              ...cameras.map(c => ({ label: c, value: c }))
-            ]}
           />
-
-          <Select
-            value={filters.selectedLens || undefined}
+          <SearchableSelect
+            value={filters.selectedLens}
             onChange={(v) => onChange({ selectedLens: v })}
             placeholder={t('List.selectLens')}
+            options={lenses}
             className="w-full border-border rounded-lg"
-            options={[
-              { label: t('Words.all'), value: 'all' },
-              ...lenses.map(l => ({ label: l, value: l }))
-            ]}
           />
-
-          <Select
-            value={filters.selectedExposure || undefined}
+          <SearchableSelect
+            value={filters.selectedExposure}
             onChange={(v) => onChange({ selectedExposure: v })}
             placeholder={t('List.selectShutter')}
+            options={exifPresets.shutterSpeeds}
             className="w-full border-border rounded-lg"
-            options={[
-              { label: t('Words.all'), value: 'all' },
-              ...exifPresets.shutterSpeeds.map(s => ({ label: s, value: s }))
-            ]}
           />
-
-          <Select
-            value={filters.selectedAperture || undefined}
+          <SearchableSelect
+            value={filters.selectedAperture}
             onChange={(v) => onChange({ selectedAperture: v })}
             placeholder={t('List.selectAperture')}
+            options={exifPresets.apertures}
             className="w-full border-border rounded-lg"
-            options={[
-              { label: t('Words.all'), value: 'all' },
-              ...exifPresets.apertures.map(a => ({ label: a, value: a }))
-            ]}
           />
-
-          <Select
-            value={filters.selectedISO || undefined}
+          <SearchableSelect
+            value={filters.selectedISO}
             onChange={(v) => onChange({ selectedISO: v })}
             placeholder={t('List.selectISO')}
+            options={exifPresets.isos}
             className="w-full border-border rounded-lg"
-            options={[
-              { label: t('Words.all'), value: 'all' },
-              ...exifPresets.isos.map(i => ({ label: i, value: i }))
-            ]}
           />
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <button 
-                className="h-9 px-3 border border-border rounded-lg text-sm text-left bg-card text-foreground hover:bg-muted transition-all duration-200"
-                aria-label={filters.selectedTags.length > 0 
-                  ? t('List.tagCount', { count: filters.selectedTags.length })
-                  : t('List.filterTags')}
-                aria-haspopup="dialog"
-              >
-                {filters.selectedTags.length > 0
-                  ? t('List.tagCount', { count: filters.selectedTags.length })
-                  : t('List.filterTags')}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="p-3 w-64 border border-border rounded-lg bg-card">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-foreground">{t('List.selectTags')}</span>
-                <div className="flex gap-1" role="group" aria-label="标签筛选逻辑">
-                  <button
-                    className={`px-2 py-0.5 text-xs border rounded-lg ${filters.labelsOperator === 'and' ? 'bg-primary text-white border-primary' : 'border-border hover:bg-muted'}`}
-                    onClick={() => onChange({ labelsOperator: 'and' })}
-                    aria-pressed={filters.labelsOperator === 'and'}
-                  >
-                    {t('List.tagsOperatorAnd')}
-                  </button>
-                  <button
-                    className={`px-2 py-0.5 text-xs border rounded-lg ${filters.labelsOperator === 'or' ? 'bg-primary text-white border-primary' : 'border-border hover:bg-muted'}`}
-                    onClick={() => onChange({ labelsOperator: 'or' })}
-                    aria-pressed={filters.labelsOperator === 'or'}
-                  >
-                    {t('List.tagsOperatorOr')}
-                  </button>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto my-2">
-                {tagsList.map(tag => (
-                  <label key={tag} className="flex items-center gap-2 cursor-pointer hover:bg-muted p-1 rounded-lg">
-                    <Checkbox
-                      checked={filters.selectedTags.includes(tag)}
-                      onCheckedChange={(v) => {
-                        const next = v
-                          ? [...filters.selectedTags, tag]
-                          : filters.selectedTags.filter(t => t !== tag)
-                        onChange({ selectedTags: next })
-                      }}
-                    />
-                    <span className="text-xs truncate text-foreground" title={tag}>{tag}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="flex justify-end pt-2 border-t border-border">
-                <button
-                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                  onClick={() => onChange({ selectedTags: [] })}
-                >
-                  {t('List.clearSelectedTags')}
-                </button>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <div className="col-span-2">
+            <TagsSelect
+              value={filters.selectedTags}
+              onChange={(vals) => onChange({ selectedTags: vals })}
+              onOperatorChange={(op) => onChange({ labelsOperator: op })}
+              operator={filters.labelsOperator}
+              options={tagsList}
+              placeholder={t('List.filterTags')}
+              className="w-full border-border rounded-lg"
+            />
+          </div>
         </div>
       )}
     </div>
