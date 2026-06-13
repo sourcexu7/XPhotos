@@ -10,6 +10,12 @@ FROM node:20.18-alpine3.20 AS base
 ENV NPM_REGISTRY=https://registry.npmmirror.com
 ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
 
+# 使用 Node.js 官方 corepack 启用 pnpm（相比 npm install -g pnpm 更稳定，不依赖网络下载）
+# 先尝试使用项目指定的 pnpm 版本（packageManager: pnpm@9.7.1）
+RUN corepack enable \
+    && corepack prepare pnpm@9.7.1 --activate \
+    && pnpm config set registry "${NPM_CONFIG_REGISTRY}"
+
 # ---------------------------------------------------------------------------
 # deps: 安装项目依赖（独立阶段
 # ---------------------------------------------------------------------------
@@ -23,14 +29,8 @@ WORKDIR /app
 # 仅复制与依赖解析所需的文件，最大化利用 build cache
 COPY package.json pnpm-lock.yaml* .npmrc ./
 
-# 1) 配置 npm registry
-# 2) 全局安装与项目 packageManager 一致的 pnpm@9.7.1
-# 3) 配置 pnpm registry
-# 4) 安装项目依赖（--no-frozen-lockfile 允许 lockfile 与 package.json 有轻微差异时也能安装
-RUN npm config set registry "${NPM_CONFIG_REGISTRY}" \
-    && npm install -g pnpm@9.7.1 \
-    && pnpm config set registry "${NPM_CONFIG_REGISTRY}" \
-    && pnpm install --no-frozen-lockfile
+# 安装项目依赖（--no-frozen-lockfile 允许 lockfile 与 package.json 有轻微差异时也能安装
+RUN pnpm install --no-frozen-lockfile
 
 # ---------------------------------------------------------------------------
 # builder: 生成 Prisma client 并执行 Next.js build
@@ -54,12 +54,6 @@ ENV PRISMA_SKIP_POSTINSTALL_GENERATE=true
 
 # Next.js build 阶段容易 OOM，把堆内存上限放宽到 4 GiB
 ENV NODE_OPTIONS="--openssl-legacy-provider --max-old-space-size=4096"
-
-# 给 builder 也装一下 pnpm（deps 阶段装的是全局，本阶段也需要
-# 独立步骤：失败时可直接定位到具体哪一步
-RUN npm config set registry "${NPM_CONFIG_REGISTRY}" \
-    && npm install -g pnpm@9.7.1 \
-    && pnpm config set registry "${NPM_CONFIG_REGISTRY}"
 
 # 独立执行：Prisma generate（独立步骤，失败时直接定位
 RUN pnpm run prisma:generate

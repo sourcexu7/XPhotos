@@ -10,7 +10,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // output: 'standalone', // Windows 需管理员权限创建符号链接，生产环境可启用
+  output: 'standalone', // 生成 .next/standalone（Docker 运行必需）
   reactStrictMode: true,
   poweredByHeader: false,
   // 解决跨域请求警告
