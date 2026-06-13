@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { toast } from 'sonner'
+import { message } from 'antd'
 import { useTranslations } from 'next-intl'
 import { authClient } from '~/lib/auth-client'
 import { Button, Input, Form, Card, Space, Divider, theme } from 'antd'
@@ -26,12 +26,12 @@ export default function Account() {
         image: values.avatar,
       })
       if (error) {
-        toast.error(t('Tips.updateFailed'))
+        message.error(t('Tips.updateFailed'))
       } else {
-        toast.success(t('Tips.updateSuccess'))
+        message.success(t('Tips.updateSuccess'))
       }
     } catch (e) {
-      toast.error(t('Tips.updateFailed'))
+      message.error(t('Tips.updateFailed'))
     } finally {
       setAvatarLoading(false)
     }
@@ -40,17 +40,17 @@ export default function Account() {
   async function updatePassword(values: any) {
     // 校验旧密码规则，不小于 8 位
     if (values.currentPassword.length < 8) {
-      toast.error(t('Password.passwordMinLength'))
+      message.error(t('Password.passwordMinLength'))
       return
     }
     // 校验新密码规则，不小于 8 位
     if (values.newPassword.length < 8) {
-      toast.error(t('Password.passwordMinLength'))
+      message.error(t('Password.passwordMinLength'))
       return
     }
     // 校验 2 个新密码是否一致
     if (values.newPassword !== values.confirmPassword) {
-      toast.error(t('Password.passwordMismatch'))
+      message.error(t('Password.passwordMismatch'))
       return
     }
     try {
@@ -61,13 +61,13 @@ export default function Account() {
         revokeOtherSessions: true,
       })
       if (error) {
-        toast.error(t('Tips.updateFailed'))
+        message.error(t('Tips.updateFailed'))
       } else {
-        toast.success(t('Tips.updateSuccess'))
+        message.success(t('Tips.updateSuccess'))
         passwordForm.resetFields()
       }
     } catch (e) {
-      toast.error(t('Tips.updateFailed'))
+      message.error(t('Tips.updateFailed'))
     } finally {
       setPasswordLoading(false)
     }

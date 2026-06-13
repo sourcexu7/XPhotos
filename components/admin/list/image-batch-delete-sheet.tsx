@@ -3,10 +3,9 @@
 import type { ImageListDataProps, ImageServerHandleProps } from '~/types/props'
 import React, { useState } from 'react'
 import { useButtonStore } from '~/app/providers/button-store-providers'
-import { toast } from 'sonner'
+import { message } from 'antd'
 import { useSwrInfiniteServerHook } from '~/hooks/use-swr-infinite-server-hook'
-import { ReloadIcon } from '@radix-ui/react-icons'
-import { Button, Checkbox, Modal } from 'antd'
+import { Button, Checkbox, Modal, theme } from 'antd'
 import { useTranslations } from 'next-intl'
 import { useSwrPageTotalServerHook } from '~/hooks/use-swr-page-total-server-hook'
 
@@ -20,10 +19,11 @@ export default function ImageBatchDeleteSheet(props : Readonly<ImageServerHandle
   const [loading, setLoading] = useState(false)
   const [deleteStorage, setDeleteStorage] = useState(true) // 默认同时清理对象存储，与 deleteImage 保持一致
   const t = useTranslations()
+  const { token } = theme.useToken()
 
   async function submit() {
     if (!selectedIds || selectedIds.length === 0) {
-      toast.warning(t('List.batchDeleteNoSelection'))
+      message.warning(t('List.batchDeleteNoSelection'))
       return
     }
     try {
@@ -35,12 +35,12 @@ export default function ImageBatchDeleteSheet(props : Readonly<ImageServerHandle
         body: JSON.stringify({ ids: selectedIds, deleteStorage }),
         method: 'DELETE',
       }).then(response => response.json())
-      toast.success(t('List.batchDeleteSuccess'))
+      message.success(t('List.batchDeleteSuccess'))
       setImageBatchDelete(false)
       await mutate()
       await totalMutate()
     } catch (e) {
-      toast.error(t('List.batchDeleteFailed'))
+      message.error(t('List.batchDeleteFailed'))
     } finally {
       setLoading(false)
     }
@@ -48,24 +48,18 @@ export default function ImageBatchDeleteSheet(props : Readonly<ImageServerHandle
 
   return (
     <Modal
-      title={<div className="text-center text-lg font-semibold text-gray-900">{t('Button.yesDelete')}</div>}
+      title={<div style={{ textAlign: 'center', fontSize: 18, fontWeight: 600, color: token.colorText }}>{t('Button.yesDelete')}</div>}
       open={imageBatchDelete}
       onCancel={() => setImageBatchDelete(false)}
       footer={
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-center gap-3">
-          <Button
-            onClick={() => setImageBatchDelete(false)}
-            className="w-full sm:w-auto hover:bg-gray-100 transition-colors"
-          >
-            {t('Button.canal')}
-          </Button>
+        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: token.margin }}>
+          <Button onClick={() => setImageBatchDelete(false)}>{t('Button.canal')}</Button>
           <Button
             danger
-            disabled={loading}
+            type="primary"
+            loading={loading}
             onClick={() => submit()}
-            className="w-full sm:w-auto bg-white border-red-200 hover:bg-red-50 hover:border-red-300 transition-colors shadow-sm"
           >
-            {loading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin"/>}
             {t('Button.yesDelete')}
           </Button>
         </div>
@@ -74,33 +68,48 @@ export default function ImageBatchDeleteSheet(props : Readonly<ImageServerHandle
       width={420}
     >
       <div>
-        <div className="text-center text-gray-500 mt-2">
+        <div style={{ textAlign: 'center', color: token.colorTextSecondary, marginTop: 8 }}>
           {t('List.batchDeleteDescriptionPrefix')}
-          <span className="font-bold text-[var(--admin-error)]">{selectedIds?.length || 0}</span>
+          <span style={{ fontWeight: 700, color: token.colorError }}>{selectedIds?.length || 0}</span>
           {t('List.batchDeleteDescriptionSuffix')}
         </div>
 
-        <div className="mt-4 flex items-center justify-center">
+        <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Checkbox
             checked={deleteStorage}
             onChange={(e) => setDeleteStorage(e.target.checked)}
           >
-            <span className="text-sm text-gray-700">
+            <span style={{ fontSize: 14, color: token.colorText }}>
               {t('List.batchDeleteStorageCheckbox')}
             </span>
           </Checkbox>
         </div>
         {deleteStorage && (
-          <div className="mt-1 text-center text-xs text-amber-600">
+          <div style={{ marginTop: 4, textAlign: 'center', fontSize: 12, color: token.colorWarning }}>
             {t('List.batchDeleteStorageHint')}
           </div>
         )}
 
-        <div className="max-h-[200px] overflow-y-auto my-4 bg-white p-3 rounded-lg border border-gray-100">
-          <div className="text-xs text-gray-400 mb-2">{t('List.batchDeleteIdsLabel')}</div>
-          <div className="grid grid-cols-1 gap-1">
+        <div style={{
+          maxHeight: 200,
+          overflowY: 'auto',
+          margin: '16px 0',
+          backgroundColor: token.colorBgContainer,
+          padding: 12,
+          borderRadius: token.borderRadius,
+          border: `1px solid ${token.colorBorderSecondary}`,
+        }}>
+          <div style={{ fontSize: 12, color: token.colorTextTertiary, marginBottom: 8 }}>{t('List.batchDeleteIdsLabel')}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {selectedIds?.map(id => (
-              <div key={id} className="text-xs font-mono text-gray-600 truncate">
+              <div key={id} style={{
+                fontSize: 12,
+                fontFamily: 'monospace',
+                color: token.colorTextSecondary,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
                 {id}
               </div>
             ))}

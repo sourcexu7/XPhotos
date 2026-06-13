@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { toast } from 'sonner'
+import { message, theme } from 'antd'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
 import type { ExifType, AlbumType } from '~/types'
 import { Upload as AntUpload, Button as AntButton, Input as AntInput, Form as AntForm, Modal as AntModal, Tag as AntTag, Card as AntCard, Progress as AntProgress, InputNumber as AntInputNumber, DatePicker as AntDatePicker, Select } from 'antd'
-import MultipleSelector from '~/components/ui/origin/multiselect'
+
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import zhCN from 'antd/es/date-picker/locale/zh_CN'
@@ -21,7 +21,7 @@ import { useExifData } from '~/hooks/useExifData'
 import { useExifPresets } from '~/hooks/useExifPresets'
 import { useFileUpload } from '~/hooks/useFileUpload'
 import { verifyUrlAccessible, fetchWithTimeout, checkDuplicate } from '~/lib/utils/uploadUtils'
-import { UploadIcon } from '~/components/icons/upload'
+import { UploadOutlined } from '@ant-design/icons'
 
 const { Dragger } = AntUpload
 
@@ -34,6 +34,7 @@ interface TagNode {
 
 export default function SimpleFileUpload() {
   dayjs.locale('zh-cn')
+  const { token } = theme.useToken()
   const t = useTranslations()
   const referenceInputRef = useRef<HTMLInputElement>(null)
 
@@ -119,10 +120,10 @@ export default function SimpleFileUpload() {
       setExif((prev) => ({ ...(prev || {}), ...exifObj }))
       setLat(tags?.GPSLatitude?.description || '')
       setLon(tags?.GPSLongitude?.description || '')
-      toast.success(t('Upload.referenceExifToastSuccess'))
+      message.success(t('Upload.referenceExifToastSuccess'))
     } catch (err) {
       console.error('Reference EXIF parse failed', err)
-      toast.error(t('Upload.referenceExifToastError'))
+      message.error(t('Upload.referenceExifToastError'))
     }
   }, [t])
 
@@ -173,20 +174,20 @@ export default function SimpleFileUpload() {
 
       // ② 基本校验
       if (!finalUrl) {
-        toast.error(t('Upload.uploadError'))
+        message.error(t('Upload.uploadError'))
         setPostUploadStatus('error')
         return
       }
       if (!album) {
-        toast.warning(t('Tips.selectAlbumFirst'))
+        message.warning(t('Tips.selectAlbumFirst'))
         return
       }
       if (!height || height <= 0) {
-        toast.warning(t('Tips.imageHeightRequired'))
+        message.warning(t('Tips.imageHeightRequired'))
         return
       }
       if (!width || width <= 0) {
-        toast.warning(t('Tips.imageWidthRequired'))
+        message.warning(t('Tips.imageWidthRequired'))
         return
       }
 
@@ -248,14 +249,14 @@ export default function SimpleFileUpload() {
       }, 15000).then(r => r.json())
 
       if (res?.code === 200) {
-        toast.success(t('Tips.saveSuccess'))
+        message.success(t('Tips.saveSuccess'))
         resetAfterSubmit()
       } else {
-        toast.error(t('Tips.saveFailed'))
+        message.error(t('Tips.saveFailed'))
       }
     } catch {
       setPostUploadStatus('error')
-      toast.error(t('Upload.uploadError'))
+      message.error(t('Upload.uploadError'))
     } finally {
       setIsSubmitting(false)
     }
@@ -346,7 +347,7 @@ export default function SimpleFileUpload() {
       reader.readAsDataURL(file)
     } catch (error) {
       console.error(error)
-      toast.error(t('Upload.uploadError'))
+      message.error(t('Upload.uploadError'))
     }
   }, [exifDataHook, onBeforeUpload, t])
 
@@ -387,26 +388,26 @@ export default function SimpleFileUpload() {
   const renderFileStatus = () => {
     if (isUploading) {
       return (
-        <div className="mt-2">
-          <div className="flex items-center gap-1 text-xs text-text-secondary mb-1">
-            <LoadingOutlined className="text-primary" />
+        <div style={{ marginTop: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>
+            <LoadingOutlined style={{ color: token.colorPrimary }} />
             <span>{fileUploadHook.uploadStage || '上传中...'}</span>
           </div>
           <AntProgress
             percent={Math.round(fileUploadHook.uploadProgress)}
             status="active"
-            strokeColor="var(--primary)"
+            strokeColor={token.colorPrimary}
             size={4}
             showInfo={false}
           />
-          <div className="text-xs text-text-secondary mt-0.5">{Math.round(fileUploadHook.uploadProgress)}%</div>
+          <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 2 }}>{Math.round(fileUploadHook.uploadProgress)}%</div>
         </div>
       )
     }
 
     if (postUploadStatus === 'verifying') {
       return (
-        <div className="mt-2 flex items-center gap-1 text-xs text-text-secondary">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: token.colorTextSecondary, marginTop: 8 }}>
           <LoadingOutlined />
           <span>验证存储可访问性...</span>
         </div>
@@ -416,19 +417,19 @@ export default function SimpleFileUpload() {
     if (postUploadStatus === 'done') {
       const allOk = originVerified !== false && previewVerified !== false
       return (
-        <div className="mt-2 space-y-1">
-          <div className={`flex items-center gap-1 text-xs font-medium ${allOk ? 'text-green-600' : 'text-orange-500'}`}>
+        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 500, color: allOk ? token.colorSuccess : token.colorWarning }}>
             {allOk
               ? <><CheckCircleOutlined /><span>已上传并验证可访问</span></>
               : <><ExclamationCircleOutlined /><span>上传完成，部分 URL 暂时无法访问</span></>
             }
           </div>
-          <div className="flex items-center gap-3 text-xs text-text-secondary">
-            <span>原图 {originVerified === false ? <span className="text-red-500">✗</span> : <span className="text-green-600">✓</span>}</span>
-            <span>预览图 {previewVerified === false ? <span className="text-red-500">✗</span> : <span className="text-green-600">✓</span>}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: token.colorTextSecondary }}>
+            <span>原图 {originVerified === false ? <span style={{ color: token.colorError }}>✗</span> : <span style={{ color: token.colorSuccess }}>✓</span>}</span>
+            <span>预览图 {previewVerified === false ? <span style={{ color: token.colorError }}>✗</span> : <span style={{ color: token.colorSuccess }}>✓</span>}</span>
           </div>
           {isDuplicate && (
-            <AntTag color="warning" icon={<ExclamationCircleOutlined />} className="mt-1">
+            <AntTag color="warning" icon={<ExclamationCircleOutlined />} style={{ marginTop: 4 }}>
               {t('Upload.duplicateImageContent')}
             </AntTag>
           )}
@@ -438,7 +439,7 @@ export default function SimpleFileUpload() {
 
     if (postUploadStatus === 'error') {
       return (
-        <div className="mt-2 flex items-center gap-1 text-xs text-red-500">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: token.colorError, marginTop: 8 }}>
           <CloseCircleOutlined />
           <span>上传或验证失败，请重试</span>
         </div>
@@ -511,8 +512,8 @@ export default function SimpleFileUpload() {
                 isBusy
               }
               style={{
-                backgroundColor: isDuplicate ? 'var(--warning, #faad14)' : 'var(--primary)',
-                borderColor: isDuplicate ? 'var(--warning, #faad14)' : 'var(--primary)',
+                backgroundColor: isDuplicate ? token.colorWarning : token.colorPrimary,
+                borderColor: isDuplicate ? token.colorWarning : token.colorPrimary,
                 borderRadius: '8px',
                 fontWeight: '500',
               }}
@@ -537,9 +538,9 @@ export default function SimpleFileUpload() {
                 padding: 24,
                 minHeight: 200,
                 height: '100%',
-                border: '2px dashed var(--border)',
+                border: `2px dashed ${token.colorBorder}`,
                 borderRadius: '12px',
-                backgroundColor: 'var(--background)',
+                backgroundColor: token.colorBgContainer,
               }}
               onChange={(info) => {
                 const fileList = info.fileList || []
@@ -554,11 +555,11 @@ export default function SimpleFileUpload() {
                 }
               }}
             >
-              <div className="flex flex-col items-center justify-center h-full gap-4">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <UploadIcon className="w-8 h-8 text-primary" />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16 }}>
+                <div style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: token.colorPrimaryBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <UploadOutlined style={{ fontSize: 32, color: token.colorPrimary }} />
                 </div>
-                <p className="font-semibold text-text-primary">{t('Upload.dragOrClick')}</p>
+                <p style={{ fontWeight: 600, color: token.colorText }}>{t('Upload.dragOrClick')}</p>
                 <p className="text-text-secondary text-sm">{t('Upload.uploadTipsSingle')}</p>
                 {(storageConfig.storage === '' || album === '' || (storageConfig.storage === 'alist' && storageConfig.alistMountPath === '')) && (
                   <p className="text-text-muted text-sm">
@@ -605,16 +606,17 @@ export default function SimpleFileUpload() {
                     }}>{t('Upload.manageCommonExifOptionsLink')}</a>}
                   >
                     <div>
-                      <MultipleSelector
-                        value={exif?.model ? [{ value: String(exif.model), label: String(exif.model) }] : []}
-                        options={exifPresets.presets.cameraModels.map((m: string) => ({ value: m, label: m }))}
+                      <Select
+                        mode="tags"
+                        value={exif?.model ? [String(exif.model)] : []}
+                        options={exifPresets.presets.cameraModels.map((m: string) => ({ label: m, value: m }))}
                         placeholder={t('Upload.exifCameraModelManualPlaceholder')}
-                        creatable
-                        maxSelected={1}
-                        onChange={(opts?: any) => {
-                          const v = (opts && opts[0] && opts[0].value) || ''
+                        onChange={(vals: string[] | string | undefined) => {
+                          const arrVals = Array.isArray(vals) ? vals : (vals ? [String(vals)] : [])
+                          const v = arrVals[arrVals.length - 1] || ''
                           setExif({ ...(exif || {}), model: v })
                         }}
+                        style={{ width: '100%' }}
                       />
                     </div>
                   </AntForm.Item>
@@ -712,17 +714,17 @@ export default function SimpleFileUpload() {
                       value={title}
                       placeholder={t('Upload.inputTitle')}
                       onChange={(e) => setTitle(e.target.value)}
-                      style={{ borderRadius: '8px', borderColor: 'var(--border)' }}
+                      style={{ borderRadius: token.borderRadius, borderColor: token.colorBorder }}
                     />
                   </div>
                   <div>
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.url')}</label>
-                    <AntInput disabled value={url} style={{ borderRadius: '8px', borderColor: 'var(--border)', backgroundColor: 'var(--background)' }} />
+                    <AntInput disabled value={url} style={{ borderRadius: token.borderRadius, borderColor: token.colorBorder, backgroundColor: token.colorBgContainer }} />
                     {!url && files.length > 0 && <p className="mt-2 text-xs text-text-secondary">{t('Upload.originNotUploadedHint')}</p>}
                   </div>
                   <div>
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.previewUrl')}</label>
-                    <AntInput disabled value={previewUrl.startsWith('data:') ? '（本地预览）' : previewUrl} style={{ borderRadius: '8px', borderColor: 'var(--border)', backgroundColor: 'var(--background)' }} />
+                    <AntInput disabled value={previewUrl.startsWith('data:') ? '（本地预览）' : previewUrl} style={{ borderRadius: token.borderRadius, borderColor: token.colorBorder, backgroundColor: token.colorBgContainer }} />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -731,7 +733,7 @@ export default function SimpleFileUpload() {
                         disabled
                         value={width}
                         onChange={(val) => setWidth(Number(val) || 0)}
-                        style={{ width: '100%', borderRadius: '8px', borderColor: 'var(--border)', backgroundColor: 'var(--background)' }}
+                        style={{ width: '100%', borderRadius: token.borderRadius, borderColor: token.colorBorder, backgroundColor: token.colorBgContainer }}
                       />
                     </div>
                     <div>
@@ -740,7 +742,7 @@ export default function SimpleFileUpload() {
                         disabled
                         value={height}
                         onChange={(val) => setHeight(Number(val) || 0)}
-                        style={{ width: '100%', borderRadius: '8px', borderColor: 'var(--border)', backgroundColor: 'var(--background)' }}
+                        style={{ width: '100%', borderRadius: token.borderRadius, borderColor: token.colorBorder, backgroundColor: token.colorBgContainer }}
                       />
                     </div>
                   </div>
@@ -753,11 +755,11 @@ export default function SimpleFileUpload() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.lon')}</label>
-                    <AntInput disabled value={lon} onChange={(e) => setLon(e.target.value)} style={{ borderRadius: '8px', borderColor: 'var(--border)', backgroundColor: 'var(--background)' }} />
+                    <AntInput disabled value={lon} onChange={(e) => setLon(e.target.value)} style={{ borderRadius: token.borderRadius, borderColor: token.colorBorder, backgroundColor: token.colorBgContainer }} />
                   </div>
                   <div>
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.lat')}</label>
-                    <AntInput disabled value={lat} onChange={(e) => setLat(e.target.value)} style={{ borderRadius: '8px', borderColor: 'var(--border)', backgroundColor: 'var(--background)' }} />
+                    <AntInput disabled value={lat} onChange={(e) => setLat(e.target.value)} style={{ borderRadius: token.borderRadius, borderColor: token.colorBorder, backgroundColor: token.colorBgContainer }} />
                   </div>
                 </div>
               </div>
@@ -771,7 +773,7 @@ export default function SimpleFileUpload() {
                     value={detail}
                     onChange={(e) => setDetail(e.target.value)}
                     placeholder={t('Upload.inputDetail')}
-                    style={{ borderRadius: '8px', borderColor: 'var(--border)' }}
+                    style={{ borderRadius: token.borderRadius, borderColor: token.colorBorder }}
                   />
                 </div>
               </div>
@@ -794,9 +796,9 @@ export default function SimpleFileUpload() {
                               borderRadius: '16px',
                               padding: '4px 12px',
                               fontSize: '12px',
-                              backgroundColor: isSelected ? 'var(--primary)' : undefined,
-                              color: isSelected ? '#FFFFFF' : undefined,
-                              borderColor: isSelected ? 'var(--primary)' : undefined,
+                              backgroundColor: isSelected ? token.colorPrimary : undefined,
+                              color: isSelected ? token.colorBgBase : undefined,
+                              borderColor: isSelected ? token.colorPrimary : undefined,
                             }}
                             onClick={() => tagManagement.togglePresetTag(tag)}
                           >
@@ -817,27 +819,33 @@ export default function SimpleFileUpload() {
                         placeholder={t('Upload.tagCategoryPlaceholder')}
                         className="w-full"
                         options={tagTree.filter(Boolean).map((n) => ({ label: n.category ?? t('Upload.tagUncategorized'), value: n.category }))}
-                        style={{ borderRadius: '8px', borderColor: 'var(--border)' }}
+                        style={{ borderRadius: token.borderRadius, borderColor: token.colorBorder }}
                       />
-                      <MultipleSelector
-                        value={(tagManagement.secondarySelect || []).map((s: string) => ({ value: s, label: s }))}
-                        options={(tagTree.find((t) => String(t.category) === String(tagManagement.primarySelect))?.children || []).map((c: any) => ({ value: c.name, label: c.name }))}
+                      <Select
+                        mode="multiple"
+                        value={(tagManagement.secondarySelect || []) as string[]}
+                        options={(tagTree.find((t) => String(t.category) === String(tagManagement.primarySelect))?.children || []).map((c: any) => ({ label: c.name, value: c.name }))}
                         placeholder={t('Upload.tagChildrenPlaceholderMultiple')}
-                        onChange={(opts?: any) => {
-                          const vals = (opts || []).map((o: any) => o.value)
-                          tagManagement.handleCascaderChange([tagManagement.primarySelect || '', ...vals])
+                        onChange={(vals: string[] | string | undefined) => {
+                          const arrVals = Array.isArray(vals) ? vals : (vals ? [String(vals)] : [])
+                          tagManagement.handleCascaderChange([tagManagement.primarySelect || '', ...arrVals])
                         }}
+                        style={{ width: '100%' }}
                       />
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.customTagsHeading')}</label>
-                    <MultipleSelector
-                      value={(tagManagement.labels.filter(Boolean) || []).map((s: string) => ({ value: s, label: s }))}
-                      options={(presetTags || []).map((s: string) => ({ value: s, label: s }))}
-                      creatable
+                    <Select
+                      mode="tags"
+                      value={(tagManagement.labels.filter(Boolean) || []) as string[]}
+                      options={(presetTags || []).map((s: string) => ({ label: s, value: s }))}
                       placeholder={t('Upload.indexTag')}
-                      onChange={(opts?: any) => tagManagement.handleLabelsChange((opts || []).map((o: any) => o.value))}
+                      onChange={(vals: string[] | string | undefined) => {
+                        const arrVals = Array.isArray(vals) ? vals : (vals ? [String(vals)] : [])
+                        tagManagement.handleLabelsChange(arrVals)
+                      }}
+                      style={{ width: '100%' }}
                     />
                   </div>
                 </div>
@@ -859,12 +867,12 @@ export default function SimpleFileUpload() {
                 <div key={((file as any).__key || file.name || index)} className="p-3 border border-border rounded-lg mb-3 bg-background">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <UploadIcon className="w-5 h-5 text-primary" />
+                      <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: token.colorPrimaryBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <UploadOutlined style={{ fontSize: 20, color: token.colorPrimary }} />
                       </div>
                       <div>
-                        <div className="font-medium text-text-primary">{file.name}</div>
-                        <div className="text-sm text-text-secondary">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                        <div style={{ fontWeight: 500, color: token.colorText }}>{file.name}</div>
+                        <div style={{ fontSize: 14, color: token.colorTextSecondary }}>{(file.size / 1024 / 1024).toFixed(2)} MB</div>
                       </div>
                     </div>
                     <AntButton

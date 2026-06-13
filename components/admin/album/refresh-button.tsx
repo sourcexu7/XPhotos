@@ -3,23 +3,20 @@
 import React from 'react'
 import { useSwrHydrated } from '~/hooks/use-swr-hydrated.ts'
 import type { HandleProps } from '~/types/props.ts'
-import { ReloadIcon } from '@radix-ui/react-icons'
-import { Button } from '~/components/ui/button.tsx'
+import { ReloadOutlined } from '@ant-design/icons'
+import { Button } from 'antd'
 
 export default function RefreshButton(props: Readonly<HandleProps>) {
   const { isLoading, mutate } = useSwrHydrated(props)
 
   return (
     <Button
-      variant="outline"
-      className="cursor-pointer bg-white text-slate-900 border-slate-200 hover:bg-slate-100 rounded-lg transition-all duration-200"
+      icon={isLoading ? <ReloadOutlined spin /> : <ReloadOutlined />}
       disabled={isLoading}
-      aria-label="刷新"
       onClick={async () => {
         await mutate()
       }}
     >
-      {isLoading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />}
       刷新
     </Button>
   )

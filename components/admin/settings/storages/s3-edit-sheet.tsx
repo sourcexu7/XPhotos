@@ -1,17 +1,18 @@
 'use client'
 
 import type { Config } from '~/types'
-import { Drawer } from 'antd'
+import { Drawer, theme } from 'antd'
 import { useButtonStore } from '~/app/providers/button-store-providers'
 import React, { useState } from 'react'
-import { toast } from 'sonner'
+import { message } from 'antd'
 import { useSWRConfig } from 'swr'
-import { ReloadIcon } from '@radix-ui/react-icons'
+import { ReloadOutlined } from '@ant-design/icons'
 import { Button, Switch } from 'antd'
 import { useTranslations } from 'next-intl'
 import { normalizeStorageFolder } from '~/lib/utils/storage'
 
 export default function S3EditSheet() {
+  const { token } = theme.useToken()
   const [loading, setLoading] = useState(false)
   const { mutate } = useSWRConfig()
   const { s3Edit, setS3Edit, setS3EditData, s3Data } = useButtonStore(
@@ -51,7 +52,7 @@ export default function S3EditSheet() {
     // Force path style suggestion for AWS
     const forcePathStyle = getVal(next, 'force_path_style')
     if (/amazonaws\.com/i.test(getVal(next, 'endpoint')) && forcePathStyle === 'true') {
-      toast.info('AWS S3 通常使用虚拟主机风格，建议将 force_path_style 设为 false')
+      message.info('AWS S3 通常使用虚拟主机风格，建议将 force_path_style 设为 false')
     }
     return { ok: true, next }
   }
@@ -59,9 +60,9 @@ export default function S3EditSheet() {
   async function submit() {
     setLoading(true)
     try {
-      const { ok, next, message } = normalizeAndValidate(s3Data)
+      const { ok, next, message: errorMsg } = normalizeAndValidate(s3Data)
       if (!ok) {
-        toast.error(message || '配置不完整')
+        message.error(errorMsg || '配置不完整')
         return
       }
       setS3EditData(next)
@@ -72,12 +73,12 @@ export default function S3EditSheet() {
         method: 'PUT',
         body: JSON.stringify(next),
       }).then(res => res.json())
-      toast.success(t('Config.updateSuccess'))
+      message.success(t('Config.updateSuccess'))
       mutate('/api/v1/settings/s3-info')
       setS3Edit(false)
       setS3EditData([] as Config[])
     } catch (e) {
-      toast.error(t('Config.updateFailed'))
+      message.error(t('Config.updateFailed'))
     } finally {
       setLoading(false)
     }
@@ -95,8 +96,8 @@ export default function S3EditSheet() {
       }}
       mask={false}
       styles={{
-        header: { padding: '16px 24px', background: 'var(--admin-bg-secondary)' },
-        body: { padding: '24px' },
+        header: { padding: `${token.padding} ${token.paddingLG}`, background: token.colorBgElevated },
+        body: { padding: token.paddingLG },
       }}
     >
       <div className="flex flex-col space-y-4">
@@ -152,7 +153,7 @@ export default function S3EditSheet() {
           ))
         }
         <Button type="primary" className="w-full mt-4 h-10" onClick={() => submit()} disabled={loading}>
-          {loading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin"/>}
+          {loading && <ReloadOutlined style={{ marginRight: 8, fontSize: 16 }} spin />}
           {t('Config.submit')}
         </Button>
       </div>

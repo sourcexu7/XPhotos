@@ -1,8 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Checkbox } from '~/components/ui/checkbox'
-import { Button as AntButton, Tooltip } from 'antd'
+import { Checkbox, Button, Tooltip, Space, theme } from 'antd'
 import { DeleteOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 
@@ -23,54 +22,57 @@ export default function BatchActionBar({
   onBatchDelete,
   onBatchDownload,
 }: BatchActionBarProps) {
+  const { token } = theme.useToken()
   const t = useTranslations()
 
   if (selectedCount === 0) return null
 
+  const indeterminate = selectedCount > 0 && selectedCount < totalCount
+  const allSelected = selectedCount === totalCount
+
   return (
-    <div className="sticky top-0 z-20 bg-card text-foreground border border-border px-4 py-3 rounded-lg flex justify-between items-center animate-in slide-in-from-top-2 duration-300">
-      <div className="flex items-center gap-3">
+    <div
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 20,
+        padding: `${token.paddingMD}px ${token.paddingLG}px`,
+        borderRadius: token.borderRadiusLG,
+        border: `1px solid ${token.colorBorder}`,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: token.margin,
+        backgroundColor: token.colorBgContainer,
+      }}
+    >
+      <Space size="middle">
         <Checkbox
-          checked={selectedCount < totalCount ? 'indeterminate' : true}
-          onCheckedChange={(v) => onSelectAll(!!v)}
+          checked={allSelected}
+          indeterminate={indeterminate}
+          onChange={(e) => onSelectAll(e.target.checked)}
         />
-        <span className="text-sm font-medium">
+        <span style={{ fontSize: token.fontSize, fontWeight: 500 }}>
           {t('List.selectedPhotosCount', { count: selectedCount })}
         </span>
-      </div>
-      <div className="flex gap-3">
+      </Space>
+      <Space size="small">
         <Tooltip title={t('List.refreshListTooltip')}>
-          <AntButton
-            type="text"
-            className="text-foreground hover:bg-muted flex items-center gap-1 rounded-lg"
-            icon={<ReloadOutlined />}
-            onClick={onRefresh}
-          >
+          <Button icon={<ReloadOutlined />} onClick={onRefresh}>
             {t('Button.refresh')}
-          </AntButton>
+          </Button>
         </Tooltip>
         <Tooltip title={t('List.batchDownloadTooltip')}>
-          <AntButton
-            type="default"
-            icon={<DownloadOutlined />}
-            onClick={onBatchDownload}
-            className="bg-card border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 rounded-lg transition-all duration-200"
-          >
+          <Button icon={<DownloadOutlined />} onClick={onBatchDownload}>
             {t('Button.batchDownload')}
-          </AntButton>
+          </Button>
         </Tooltip>
         <Tooltip title={t('List.deleteSelectedPhotosTooltip')}>
-          <AntButton
-            type="default"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={onBatchDelete}
-            className="bg-card border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-lg transition-all duration-200"
-          >
+          <Button danger icon={<DeleteOutlined />} onClick={onBatchDelete}>
             {t('Button.batchDelete')}
-          </AntButton>
+          </Button>
         </Tooltip>
-      </div>
+      </Space>
     </div>
   )
 }

@@ -1,18 +1,19 @@
 'use client'
 
 import type { Config } from '~/types'
-import { Drawer } from 'antd'
+import { Drawer, theme } from 'antd'
 import { useButtonStore } from '~/app/providers/button-store-providers'
 import React, { useMemo, useState } from 'react'
-import { toast } from 'sonner'
+import { message } from 'antd'
 import { useSWRConfig } from 'swr'
-import { ReloadIcon } from '@radix-ui/react-icons'
+import { ReloadOutlined } from '@ant-design/icons'
 import { Button, Switch } from 'antd'
 import { useTranslations } from 'next-intl'
 import { normalizeStorageFolder } from '~/lib/utils/storage'
 import { Divider } from 'antd'
 
 export default function COSEditSheet() {
+  const { token } = theme.useToken()
   const [loading, setLoading] = useState(false)
   const { mutate } = useSWRConfig()
   const { cosEdit, setCosEdit, setCosEditData, cosData } = useButtonStore(
@@ -82,9 +83,9 @@ export default function COSEditSheet() {
   async function submit() {
     setLoading(true)
     try {
-      const { ok, next, message } = normalizeAndValidate(cosData)
+      const { ok, next, message: errorMsg } = normalizeAndValidate(cosData)
       if (!ok) {
-        toast.error(message || '配置不完整')
+        message.error(errorMsg || '配置不完整')
         return
       }
       setCosEditData(next)
@@ -95,12 +96,12 @@ export default function COSEditSheet() {
         method: 'PUT',
         body: JSON.stringify(next),
       }).then(res => res.json())
-      toast.success(t('Config.updateSuccess'))
+      message.success(t('Config.updateSuccess'))
       mutate('/api/v1/settings/cos-info')
       setCosEdit(false)
       setCosEditData([] as Config[])
     } catch (e) {
-      toast.error(t('Config.updateFailed'))
+      message.error(t('Config.updateFailed'))
     } finally {
       setLoading(false)
     }
@@ -118,8 +119,8 @@ export default function COSEditSheet() {
       }}
       mask={false}
       styles={{
-        header: { padding: '16px 24px', background: 'var(--admin-bg-secondary)' },
-        body: { padding: '24px' },
+        header: { padding: `${token.padding} ${token.paddingLG}`, background: token.colorBgElevated },
+        body: { padding: token.paddingLG },
       }}
     >
       <Divider titlePlacement="left" plain style={{ margin: '0 0 16px 0' }}>基础配置</Divider>
@@ -192,7 +193,7 @@ export default function COSEditSheet() {
           )
         })}
         <Button type="primary" className="w-full mt-4 h-10" onClick={() => submit()} disabled={loading}>
-          {loading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin"/>}
+          {loading && <ReloadOutlined style={{ marginRight: 8, fontSize: 16 }} spin />}
           {t('Config.submit')}
         </Button>
       </div>

@@ -2,7 +2,7 @@
 
 import { Button } from 'antd'
 import { cn } from '~/lib/utils'
-import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
+import { SearchOutlined } from '@ant-design/icons'
 import { useButtonStore } from '~/app/providers/button-store-providers'
 
 export default function SearchBorder() {
@@ -18,7 +18,7 @@ export default function SearchBorder() {
       )}
       onClick={() => setSearchOpen(true)}
     >
-      <MagnifyingGlassIcon className="mr-2 h-4 w-4 inline-block align-middle" />
+      <SearchOutlined style={{ marginRight: 8, fontSize: 16 }} />
       <span className="align-middle">搜索</span>
     </Button>
   )

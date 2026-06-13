@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { Select } from 'antd'
 import { Button as AntButton } from 'antd'
-import { Rows3, LayoutGrid, ChevronUp, ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { UnorderedListOutlined, AppstoreOutlined, UpOutlined, DownOutlined, SlidersOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import type { AlbumType } from '~/types'
 
@@ -174,7 +174,7 @@ function ActionButtons({
         <AntButton
           type="text"
           className="hidden md:flex items-center gap-1 text-foreground hover:bg-muted hover:text-primary rounded-lg"
-          icon={layout === 'card' ? <Rows3 size={14} /> : <LayoutGrid size={14} />}
+          icon={layout === 'card' ? <UnorderedListOutlined /> : <AppstoreOutlined />}
           onClick={() => setLayout(layout === 'card' ? 'list' : 'card')}
         >
           {layout === 'card' ? t('List.viewList') : t('List.viewCard')}
@@ -251,9 +251,9 @@ export default function FilterBar({
           aria-expanded={showAdvanced}
           aria-label="展开高级筛选"
         >
-          <SlidersHorizontal size={14} />
+          <SlidersOutlined />
           {t('List.advancedFilters')}
-          {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          {showAdvanced ? <UpOutlined /> : <DownOutlined />}
         </button>
 
         {/* 桌面端：高级筛选器直接显示 */}

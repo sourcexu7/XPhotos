@@ -5,12 +5,11 @@ import { useButtonStore } from '~/app/providers/button-store-providers'
 import type { AlbumType } from '~/types'
 import type { HandleProps } from '~/types/props'
 import React, { useState } from 'react'
-import { toast } from 'sonner'
+import { message } from 'antd'
 import { useSwrHydrated } from '~/hooks/use-swr-hydrated'
-import { ReloadIcon } from '@radix-ui/react-icons'
+import { ReloadOutlined } from '@ant-design/icons'
 import { Button, Select, Switch } from 'antd'
 import { useTranslations } from 'next-intl'
-import { Label } from '~/components/ui/label.tsx'
 
 export default function AlbumAddSheet(props : Readonly<HandleProps>) {
   const { mutate } = useSwrHydrated(props)
@@ -23,11 +22,11 @@ export default function AlbumAddSheet(props : Readonly<HandleProps>) {
 
   async function submit() {
     if (!data.name || !data.album_value) {
-      toast.error(t('Album.requiredFields'))
+      message.error(t('Album.requiredFields'))
       return
     }
     if (data.album_value && data.album_value.charAt(0) !== '/') {
-      toast.error(t('Album.routerStartWithSlash'))
+      message.error(t('Album.routerStartWithSlash'))
       return
     }
     try {
@@ -40,15 +39,15 @@ export default function AlbumAddSheet(props : Readonly<HandleProps>) {
         method: 'POST',
       }).then(response => response.json())
       if (res.code === 200) {
-        toast.success(t('Tips.addSuccess'))
+        message.success(t('Tips.addSuccess'))
         setAlbumAdd(false)
         setData({} as AlbumType)
         await mutate()
       } else {
-        toast.error(res.message)
+        message.error(res.message)
       }
     } catch {
-      toast.error(t('Tips.addFailed'))
+      message.error(t('Tips.addFailed'))
     } finally {
       setLoading(false)
     }
@@ -139,7 +138,9 @@ export default function AlbumAddSheet(props : Readonly<HandleProps>) {
           />
         </label>
         <div className="w-full space-y-1">
-          <Label htmlFor="indexStyleSelect"> {t('Preferences.indexThemeSelect')} </Label>
+          <label htmlFor="indexStyleSelect" className="text-sm font-medium text-foreground block">
+            {t('Preferences.indexThemeSelect')}
+          </label>
           <Select
             value={data?.theme || '0'}
             onChange={(value) => setData({...data, theme: value})}
@@ -201,7 +202,7 @@ export default function AlbumAddSheet(props : Readonly<HandleProps>) {
           onClick={() => submit()}
           aria-label={t('Album.submit')}
         >
-          {loading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin"/>}
+          {loading && <ReloadOutlined spin style={{ marginRight: 8, fontSize: 16 }} />}
           {t('Album.submit')}
         </Button>
       </div>

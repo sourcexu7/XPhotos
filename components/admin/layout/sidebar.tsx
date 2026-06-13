@@ -10,23 +10,23 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { cn } from '~/lib/utils'
 import {
-  LayoutDashboard,
-  Upload,
-  List,
-  Images,
-  Settings,
-  User,
-  Cloud,
-  Tag,
-  Home,
-  LogOut,
-  Menu,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Search,
-  BookOpen,
-} from 'lucide-react'
+  DashboardOutlined,
+  UploadOutlined,
+  UnorderedListOutlined,
+  AppstoreOutlined,
+  SettingOutlined,
+  UserOutlined,
+  CloudOutlined,
+  TagsOutlined,
+  HomeOutlined,
+  LogoutOutlined,
+  MenuOutlined,
+  CloseOutlined,
+  LeftOutlined,
+  RightOutlined,
+  SearchOutlined,
+  BookOutlined,
+} from '@ant-design/icons'
 import { authClient } from '~/lib/auth-client'
 import { clearAllAuthData } from '~/lib/utils/auth-utils'
 
@@ -71,18 +71,18 @@ export function AdminSidebar({ collapsed: controlledCollapsed, onCollapse }: Adm
   }, [])
   
   const mainItems: SidebarItem[] = [
-    { key: '/admin', label: t('Link.dashboard'), icon: LayoutDashboard },
-    { key: '/admin/upload', label: t('Link.upload'), icon: Upload },
-    { key: '/admin/list', label: t('Link.list'), icon: List },
-    { key: '/admin/album', label: t('Link.album'), icon: Images },
-    { key: '/admin/guides', label: '攻略管理', icon: BookOpen },
+    { key: '/admin', label: t('Link.dashboard'), icon: DashboardOutlined },
+    { key: '/admin/upload', label: t('Link.upload'), icon: UploadOutlined },
+    { key: '/admin/list', label: t('Link.list'), icon: UnorderedListOutlined },
+    { key: '/admin/album', label: t('Link.album'), icon: AppstoreOutlined },
+    { key: '/admin/guides', label: '攻略管理', icon: BookOutlined },
   ]
   
   const settingsItems: SidebarItem[] = [
-    { key: '/admin/settings/preferences', label: t('Link.preferences'), icon: Settings },
-    { key: '/admin/settings/account', label: t('Link.account'), icon: User },
-    { key: '/admin/settings/tag', label: t('Link.tags'), icon: Tag },
-    { key: '/admin/settings/storages', label: t('Link.storages'), icon: Cloud },
+    { key: '/admin/settings/preferences', label: t('Link.preferences'), icon: SettingOutlined },
+    { key: '/admin/settings/account', label: t('Link.account'), icon: UserOutlined },
+    { key: '/admin/settings/tag', label: t('Link.tags'), icon: TagsOutlined },
+    { key: '/admin/settings/storages', label: t('Link.storages'), icon: CloudOutlined },
   ]
   
   const handleItemClick = (key: string) => {
@@ -214,9 +214,9 @@ export function AdminSidebar({ collapsed: controlledCollapsed, onCollapse }: Adm
           aria-label="Toggle sidebar"
         >
           {isOpen ? (
-            <X className="h-5 w-5 text-slate-600" />
+            <CloseOutlined />
           ) : (
-            <Menu className="h-5 w-5 text-slate-600" />
+            <MenuOutlined />
           )}
         </button>
       )}
@@ -274,7 +274,7 @@ export function AdminSidebar({ collapsed: controlledCollapsed, onCollapse }: Adm
               className="hidden md:flex p-1.5 rounded-md hover:bg-slate-100 transition-all duration-200"
               aria-label="Collapse sidebar"
             >
-              <ChevronLeft className="h-4 w-4 text-slate-600" />
+              <LeftOutlined />
             </button>
           )}
 
@@ -284,7 +284,7 @@ export function AdminSidebar({ collapsed: controlledCollapsed, onCollapse }: Adm
               className="hidden md:flex absolute right-2 p-1.5 rounded-md hover:bg-slate-100 transition-all duration-200"
               aria-label="Expand sidebar"
             >
-              <ChevronRight className="h-4 w-4 text-slate-600" />
+              <RightOutlined />
             </button>
           )}
 
@@ -298,7 +298,7 @@ export function AdminSidebar({ collapsed: controlledCollapsed, onCollapse }: Adm
               )}
               aria-label="Close sidebar"
             >
-              <X className="h-4 w-4 text-slate-600" />
+              <CloseOutlined />
             </button>
           )}
         </div>
@@ -307,7 +307,7 @@ export function AdminSidebar({ collapsed: controlledCollapsed, onCollapse }: Adm
         {!collapsed && (
           <div className="px-4 py-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <SearchOutlined className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder={t('Search.placeholder') || '搜索...'}
@@ -371,7 +371,7 @@ export function AdminSidebar({ collapsed: controlledCollapsed, onCollapse }: Adm
               title={collapsed ? t('Login.goHome') : undefined}
             >
               <div className="flex items-center justify-center min-w-[24px]">
-                <Home className="h-4.5 w-4.5 flex-shrink-0 text-slate-600 group-hover:text-slate-700" />
+                <HomeOutlined className="flex-shrink-0 text-slate-600 group-hover:text-slate-700" />
               </div>
               
               {!collapsed && <span className="text-sm">{t('Login.goHome')}</span>}
@@ -423,7 +423,7 @@ export function AdminSidebar({ collapsed: controlledCollapsed, onCollapse }: Adm
               title={collapsed ? t('Login.logout') : undefined}
             >
               <div className="flex items-center justify-center min-w-[24px]">
-                <LogOut className="h-4.5 w-4.5 flex-shrink-0 text-red-500 group-hover:text-red-600" />
+                <LogoutOutlined className="flex-shrink-0 text-red-500 group-hover:text-red-600" />
               </div>
               
               {!collapsed && <span className="text-sm">{t('Login.logout')}</span>}

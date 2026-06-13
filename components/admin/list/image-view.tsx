@@ -1,21 +1,22 @@
 'use client'
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '~/components/ui/sheet'
+import { Drawer, Switch, Typography, Tag, theme } from 'antd'
 import { useButtonStore } from '~/app/providers/button-store-providers'
 import type { ImageType } from '~/types'
 import type { ImageDataProps } from '~/types/props'
 import React from 'react'
 import ExifView from '~/components/admin/album/exif-view.tsx'
-import { Switch } from 'antd'
 import LivePhoto from '~/components/album/live-photo'
 import { MotionImage } from '~/components/album/motion-image'
-import { Badge } from '~/components/ui/badge'
 import { useBlurImageDataUrl } from '~/hooks/use-blurhash'
+
+const { Text } = Typography
 
 export default function ImageView() {
   const { imageView, imageViewData, setImageView, setImageViewData } = useButtonStore(
     (state) => state,
   )
+  const { token } = theme.useToken()
 
   const props: ImageDataProps = {
     data: imageViewData,
@@ -24,85 +25,124 @@ export default function ImageView() {
   const dataURL = useBlurImageDataUrl(imageViewData.blurhash || '')
 
   return (
-    <Sheet
-      defaultOpen={false}
+    <Drawer
+      title={imageViewData.title || '图片预览'}
+      placement="left"
+      size={600}
       open={imageView}
-      onOpenChange={(open: boolean) => {
-        if (!open) {
-          setImageView(false)
-          setImageViewData({} as ImageType)
-        }
+      onClose={() => {
+        setImageView(false)
+        setImageViewData({} as ImageType)
       }}
     >
-      <SheetContent side="left" className="w-full sm:max-w-full md:w-[600px] overflow-y-auto scrollbar-hide p-0 border-r border-gray-100 bg-white shadow-xl">
-        <SheetHeader className="px-6 py-4 border-b border-gray-100 bg-white">
-          <SheetTitle className="text-gray-900">{imageViewData.title || '图片预览'}</SheetTitle>
-        </SheetHeader>
-        <div className="p-6 space-y-6 bg-white">
-          <div className="rounded-xl overflow-hidden bg-white border border-gray-100 shadow-sm min-h-[200px] flex items-center justify-center">
-            {imageViewData?.type === 1 ?
-              <MotionImage
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                className="max-w-full max-h-[60vh] object-contain"
-                src={imageViewData.preview_url || imageViewData.url}
-                overrideSrc={imageViewData.preview_url || imageViewData.url}
-                alt={imageViewData.detail}
-                width={imageViewData.width}
-                height={imageViewData.height}
-                unoptimized
-                loading="lazy"
-                placeholder="blur"
-                blurDataURL={dataURL}
-              />
-              :
-              <LivePhoto url={imageViewData.preview_url || imageViewData.url || ''} videoUrl={imageViewData.video_url || ''} />
-            }
+      <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginLG }}>
+        <div
+          style={{
+            borderRadius: token.borderRadiusLG,
+            overflow: 'hidden',
+            border: `1px solid ${token.colorBorderSecondary}`,
+            minHeight: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: token.boxShadowSecondary,
+          }}
+        >
+          {imageViewData?.type === 1 ? (
+            <MotionImage
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain' }}
+              src={imageViewData.preview_url || imageViewData.url}
+              overrideSrc={imageViewData.preview_url || imageViewData.url}
+              alt={imageViewData.detail}
+              width={imageViewData.width}
+              height={imageViewData.height}
+              unoptimized
+              loading="lazy"
+              placeholder="blur"
+              blurDataURL={dataURL}
+            />
+          ) : (
+            <LivePhoto
+              url={imageViewData.preview_url || imageViewData.url || ''}
+              videoUrl={imageViewData.video_url || ''}
+            />
+          )}
+        </div>
+
+        {imageViewData?.labels && imageViewData.labels.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: token.marginXS }}>
+            {imageViewData?.labels.map((tag: string) => (
+              <Tag key={tag} color="default">
+                {tag}
+              </Tag>
+            ))}
           </div>
-          
-          {imageViewData?.labels && imageViewData.labels.length > 0 &&
-            <div className="flex flex-wrap gap-2">
-              {imageViewData?.labels.map((tag: string) => (
-                <Badge key={tag} variant="secondary" className="bg-gray-100 text-gray-600 hover:bg-gray-200">{tag}</Badge>
-              ))}
-            </div>
-          }
-          
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">EXIF 信息</h3>
+        )}
+
+        <div
+          style={{
+            backgroundColor: token.colorBgElevated,
+            borderRadius: token.borderRadiusLG,
+            padding: token.marginLG,
+            border: `1px solid ${token.colorBorderSecondary}`,
+          }}
+        >
+          <Text style={{ fontSize: 12, fontWeight: 600, color: token.colorTextTertiary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            EXIF 信息
+          </Text>
+          <div style={{ marginTop: token.marginSM }}>
             <ExifView {...props} />
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-gray-500">尺寸</span>
-              <div className="text-sm font-mono">{imageViewData?.width} x {imageViewData?.height}</div>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-gray-500">位置</span>
-              <div className="text-sm font-mono truncate" title={`${imageViewData?.lat}, ${imageViewData?.lon}`}>
-                {imageViewData?.lat && imageViewData?.lon ? `${imageViewData.lat}, ${imageViewData.lon}` : '无位置信息'}
-              </div>
-            </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: token.marginLG }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Text style={{ fontSize: 12, fontWeight: 500, color: token.colorTextTertiary }}>尺寸</Text>
+            <Text style={{ fontFamily: 'monospace' }}>{imageViewData?.width} x {imageViewData?.height}</Text>
           </div>
-
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-gray-500">详情描述</span>
-            <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded border border-gray-100 min-h-[60px]">
-              {imageViewData?.detail || '暂无描述'}
-            </div>
-          </div>
-
-          <div className="flex gap-4 pt-4 border-t border-gray-100">
-            <div className="flex items-center justify-between flex-1 p-3 border rounded-lg bg-white">
-              <span className="text-sm text-gray-700">显示状态</span>
-              <Switch checked={imageViewData?.show === 0} disabled size="small" />
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <Text style={{ fontSize: 12, fontWeight: 500, color: token.colorTextTertiary }}>位置</Text>
+            <Text style={{ fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${imageViewData?.lat}, ${imageViewData?.lon}`}>
+              {imageViewData?.lat && imageViewData?.lon ? `${imageViewData.lat}, ${imageViewData.lon}` : '无位置信息'}
+            </Text>
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <Text style={{ fontSize: 12, fontWeight: 500, color: token.colorTextTertiary }}>详情描述</Text>
+          <div
+            style={{
+              fontSize: 14,
+              color: token.colorTextSecondary,
+              backgroundColor: token.colorBgElevated,
+              padding: token.margin,
+              borderRadius: token.borderRadius,
+              border: `1px solid ${token.colorBorderSecondary}`,
+              minHeight: 60,
+            }}
+          >
+            {imageViewData?.detail || '暂无描述'}
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: token.margin,
+            borderRadius: token.borderRadiusLG,
+            border: `1px solid ${token.colorBorderSecondary}`,
+            backgroundColor: token.colorBgContainer,
+          }}
+        >
+          <Text style={{ fontSize: 14, color: token.colorText }}>显示状态</Text>
+          <Switch checked={imageViewData?.show === 0} disabled size="small" />
+        </div>
+      </div>
+    </Drawer>
   )
 }
-

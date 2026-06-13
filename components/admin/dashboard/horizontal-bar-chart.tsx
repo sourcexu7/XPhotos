@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { Camera, Aperture } from 'lucide-react'
+import { CameraOutlined, ExperimentOutlined } from '@ant-design/icons'
 
 export type HorizontalBarChartProps = {
   data: Array<{ name: string; count: number }>
@@ -29,7 +29,7 @@ export function HorizontalBarChart({
   const b = parseInt(lightColor.substring(4, 6), 16)
   const bgColor = `rgba(${r}, ${g}, ${b}, 0.12)`
   
-  const Icon = variant === 'camera' ? Camera : Aperture
+  const Icon = variant === 'camera' ? CameraOutlined : ExperimentOutlined
 
   return (
     <motion.div

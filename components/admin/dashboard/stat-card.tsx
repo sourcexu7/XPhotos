@@ -2,14 +2,14 @@
 
 import React from 'react'
 import { useRouter } from 'next-nprogress-bar'
-import { 
-  Image as ImageIcon, 
-  BookOpen, 
-  Folder, 
-  Camera, 
-  Aperture,
-  Eye 
-} from 'lucide-react'
+import {
+  PictureOutlined,
+  BookOutlined,
+  FolderOutlined,
+  CameraOutlined,
+  ExperimentOutlined,
+  EyeOutlined,
+} from '@ant-design/icons'
 import { cn } from '~/lib/utils'
 import { motion, useReducedMotion } from 'motion/react'
 
@@ -23,12 +23,12 @@ export type StatCardProps = {
 }
 
 const iconMap = {
-  images: ImageIcon,
-  guides: BookOpen,
-  albums: Folder,
-  cameras: Camera,
-  lenses: Aperture,
-  visits: Eye,
+  images: PictureOutlined,
+  guides: BookOutlined,
+  albums: FolderOutlined,
+  cameras: CameraOutlined,
+  lenses: ExperimentOutlined,
+  visits: EyeOutlined,
 }
 
 const colorMap = {

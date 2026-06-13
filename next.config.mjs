@@ -10,7 +10,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  // output: 'standalone', // Windows 需管理员权限创建符号链接，生产环境可启用
   reactStrictMode: true,
   poweredByHeader: false,
   // 解决跨域请求警告

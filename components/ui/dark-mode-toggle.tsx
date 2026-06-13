@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Tooltip, Button } from 'antd'
 import { SunMoonIcon } from '~/components/icons/sun-moon.tsx'
-import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip.tsx'
 import { useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
 import { useUserThemeToggle } from '~/lib/theme/use-user-theme-toggle'
@@ -13,44 +13,40 @@ export default function DarkModeToggle() {
   const { toggle } = useUserThemeToggle()
   const [mounted, setMounted] = useState(false)
 
-  // 避免水合不匹配：客户端挂载前用占位按钮
   useEffect(() => {
     setMounted(true)
   }, [])
 
   if (!mounted) {
     return (
-      <button
-        className="p-2 rounded-full opacity-0"
+      <Button
+        type="text"
+        shape="circle"
         aria-label="加载中"
         disabled
+        style={{ opacity: 0, cursor: 'default' }}
       >
         <SunMoonIcon size={18} />
-      </button>
+      </Button>
     )
   }
 
   const isDark = resolvedTheme === 'dark'
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          onClick={toggle}
-          className="p-2 rounded-full hover:bg-muted/50 transition-colors duration-200"
-          style={{ touchAction: 'manipulation' }}
-          type="button"
-          aria-label={isDark ? t('Theme.lightMode') : t('Theme.darkMode')}
-        >
-          <SunMoonIcon
-            size={20}
-            className={`transition-transform duration-300 ${isDark ? 'rotate-180' : ''}`}
-          />
-        </button>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>{isDark ? t('Theme.lightMode') : t('Theme.darkMode')}</p>
-      </TooltipContent>
+    <Tooltip title={isDark ? t('Theme.lightMode') : t('Theme.darkMode')}>
+      <Button
+        type="text"
+        shape="circle"
+        onClick={toggle}
+        style={{ touchAction: 'manipulation' }}
+        aria-label={isDark ? t('Theme.lightMode') : t('Theme.darkMode')}
+      >
+        <SunMoonIcon
+          size={20}
+          className={`transition-transform duration-300 ${isDark ? 'rotate-180' : ''}`}
+        />
+      </Button>
     </Tooltip>
   )
 }

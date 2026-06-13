@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { toast } from 'sonner'
+import { message, theme } from 'antd'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
 import type { ExifType, AlbumType, ImageType } from '~/types'
 import { App as AntApp, Upload as AntUpload, Button as AntButton, Input as AntInput, Modal as AntModal, Tag as AntTag, Card as AntCard, Progress as AntProgress, DatePicker as AntDatePicker, Select, Checkbox } from 'antd'
-import MultipleSelector from '~/components/ui/origin/multiselect'
+
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import zhCN from 'antd/es/date-picker/locale/zh_CN'
@@ -22,7 +22,7 @@ import { useExifPresets } from '~/hooks/useExifPresets'
 import { verifyUrlAccessible, fetchWithTimeout, checkDuplicate, uploadPreviewImage } from '~/lib/utils/uploadUtils'
 import { uploadFile } from '~/lib/utils/file'
 import { heicTo, isHeic } from 'heic-to'
-import { UploadIcon } from '~/components/icons/upload'
+import { UploadOutlined } from '@ant-design/icons'
 
 const { Dragger } = AntUpload
 
@@ -50,6 +50,7 @@ interface UploadFile extends File {
 
 export default function MultipleFileUpload() {
   dayjs.locale('zh-cn')
+  const { token } = theme.useToken()
   const { modal } = AntApp.useApp()
   const t = useTranslations()
 
@@ -108,7 +109,7 @@ export default function MultipleFileUpload() {
   // 处理文件变化
   const handleFilesChange = useCallback(async (newFiles: UploadFile[]) => {
     if (newFiles.length > maxUploadFiles) {
-      toast.warning(t('Upload.maxFilesExceeded', { max: maxUploadFiles }))
+      message.warning(t('Upload.maxFilesExceeded', { max: maxUploadFiles }))
       newFiles = newFiles.slice(0, maxUploadFiles)
     }
 
@@ -140,7 +141,7 @@ export default function MultipleFileUpload() {
   }, [album, storageConfig.storage, maxUploadFiles, t])
 
   // 使用 ref 保存 processFile，避免 handleFilesChange 与 processFile 之间的循环依赖
-  const processFileRef = useRef<(file: UploadFile) => Promise<void>>()
+  const processFileRef = useRef<(file: UploadFile) => Promise<void>>(() => Promise.resolve())
   // 处理单个文件
   const processFile = useCallback(async (file: UploadFile) => {
     if (!file.__key) return
@@ -231,7 +232,7 @@ export default function MultipleFileUpload() {
     } catch (e) {
       console.error('Process file error:', e)
       updateFileProgress(key, 0, '处理失败')
-      toast.error(t('Upload.fileUploadFailed', { name: file.name }))
+      message.error(t('Upload.fileUploadFailed', { name: file.name }))
     } finally {
       updateFileField(key, 'isUploading', false)
     }
@@ -316,7 +317,7 @@ export default function MultipleFileUpload() {
       newFile.exif = { ...(f.exif || {}), ...batchExif }
       return newFile
     }))
-    toast.success(t('Upload.batchExifApplied'))
+    message.success(t('Upload.batchExifApplied'))
   }, [batchExif, t])
 
   // 应用批量标签
@@ -329,7 +330,7 @@ export default function MultipleFileUpload() {
       })
       return { ...f, labels: newLabels }
     }))
-    toast.success(t('Upload.batchLabelsApplied'))
+    message.success(t('Upload.batchLabelsApplied'))
   }, [batchLabels, t])
 
   // 应用参考 EXIF 到文件
@@ -347,17 +348,17 @@ export default function MultipleFileUpload() {
         }
         return f
       }))
-      toast.success(t('Upload.referenceExifToastSuccess'))
+      message.success(t('Upload.referenceExifToastSuccess'))
     } catch (err) {
       console.error('Reference EXIF parse failed', err)
-      toast.error(t('Upload.referenceExifToastError'))
+      message.error(t('Upload.referenceExifToastError'))
     }
   }, [exifDataHook, t])
 
   // 提交单个文件
   const submitSingleFile = useCallback(async (file: UploadFile): Promise<boolean> => {
     if (!file.width || !file.height || file.width <= 0 || file.height <= 0) {
-      toast.error(t('Tips.imageSizeMissing', { name: file.name }))
+      message.error(t('Tips.imageSizeMissing', { name: file.name }))
       return false
     }
 
@@ -369,7 +370,7 @@ export default function MultipleFileUpload() {
     }
 
     if (!originOk || !previewOk) {
-      toast.error(t('Tips.remoteOriginOrPreviewMissing', { name: file.name }))
+      message.error(t('Tips.remoteOriginOrPreviewMissing', { name: file.name }))
       return false
     }
 
@@ -441,13 +442,13 @@ export default function MultipleFileUpload() {
     setIsSubmitting(true)
     try {
       if (album === '') {
-        toast.warning(t('Tips.selectAlbumFirst'))
+        message.warning(t('Tips.selectAlbumFirst'))
         setIsSubmitting(false)
         return
       }
 
       if (files.length === 0) {
-        toast.warning(t('Upload.noFilesSelected'))
+        message.warning(t('Upload.noFilesSelected'))
         setIsSubmitting(false)
         return
       }
@@ -485,18 +486,18 @@ export default function MultipleFileUpload() {
       }
 
       if (successCount > 0) {
-        toast.success(t('Upload.batchSubmitSuccess', { success: successCount, fail: failCount }))
+        message.success(t('Upload.batchSubmitSuccess', { success: successCount, fail: failCount }))
         // Clear files after successful submission
         setFiles([])
         setBatchLabels([])
         setBatchExif({})
         tagManagement.clearTags()
       } else {
-        toast.error(t('Upload.batchSubmitFailed'))
+        message.error(t('Upload.batchSubmitFailed'))
       }
     } catch (e) {
       console.error(e)
-      toast.error(t('Tips.saveFailed'))
+      message.error(t('Tips.saveFailed'))
     } finally {
       setIsSubmitting(false)
     }
@@ -585,8 +586,8 @@ export default function MultipleFileUpload() {
               onClick={handleSubmit}
               disabled={files.length === 0 || album === '' || storageConfig.storage === '' || (storageConfig.storage === 'alist' && storageConfig.alistMountPath === '')}
               style={{
-                backgroundColor: 'var(--primary)',
-                borderColor: 'var(--primary)',
+                backgroundColor: token.colorPrimary,
+                borderColor: token.colorPrimary,
                 borderRadius: '8px',
                 fontWeight: '500',
               }}
@@ -608,7 +609,7 @@ export default function MultipleFileUpload() {
             <AntProgress
               percent={totalProgress}
               status={totalProgress === 100 ? 'success' : 'active'}
-              strokeColor="var(--primary)"
+              strokeColor={token.colorPrimary}
               size={8}
               showInfo={false}
             />
@@ -685,8 +686,8 @@ export default function MultipleFileUpload() {
                         borderRadius: '16px',
                         padding: '4px 12px',
                         fontSize: '12px',
-                        backgroundColor: isSelected ? 'var(--primary)' : undefined,
-                        color: isSelected ? '#FFFFFF' : undefined,
+                        backgroundColor: isSelected ? token.colorPrimary : undefined,
+                        color: isSelected ? token.colorBgBase : undefined,
                       }}
                       onClick={() => {
                         const existingIndex = batchLabels.findIndex(t => t.trim().toLowerCase() === tag.trim().toLowerCase())
@@ -704,19 +705,18 @@ export default function MultipleFileUpload() {
                   )
                 })}
               </div>
-              <MultipleSelector
-                value={batchLabels.map((s: string) => ({ value: s, label: s }))}
-                options={presetTags.map((s: string) => ({ value: s, label: s }))}
-                creatable
+              <Select
+                mode="tags"
+                value={batchLabels}
+                options={presetTags.map((s: string) => ({ label: s, value: s }))}
                 placeholder={t('Upload.addCustomTags')}
-                onChange={(opts?: any) => {
-                  const vals = (opts || []).map((o: any) => o.value)
-                  const cleanedVals = Array.isArray(vals)
-                    ? vals.filter((v) => v && typeof v === 'string' && v.trim() !== '')
-                    : []
+                onChange={(vals: string[] | string | undefined) => {
+                  const arrVals = Array.isArray(vals) ? vals : (vals ? [String(vals)] : [])
+                  const cleanedVals = arrVals.filter((v) => v && typeof v === 'string' && v.trim() !== '')
                   const uniqueVals = Array.from(new Set(cleanedVals.map(v => v.trim()))).filter(Boolean)
                   setBatchLabels(uniqueVals)
                 }}
+                style={{ width: '100%' }}
               />
               <AntButton className="mt-3" size="small" onClick={applyBatchLabels}>
                 {t('Upload.applyToAll')}
@@ -772,9 +772,9 @@ export default function MultipleFileUpload() {
               style={{
                 padding: 24,
                 minHeight: 200,
-                border: '2px dashed var(--border)',
+                border: `2px dashed ${token.colorBorder}`,
                 borderRadius: '12px',
-                backgroundColor: 'var(--background)',
+                backgroundColor: token.colorBgContainer,
               }}
               onChange={(info) => {
                 const fileList = info.fileList || []
@@ -792,11 +792,11 @@ export default function MultipleFileUpload() {
                 handleFilesChange(selected)
               }}
             >
-              <div className="flex flex-col items-center justify-center h-full gap-4">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <UploadIcon className="w-8 h-8 text-primary" />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16 }}>
+                <div style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: token.colorPrimaryBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <UploadOutlined style={{ fontSize: 32, color: token.colorPrimary }} />
                 </div>
-                <p className="font-semibold text-text-primary">{t('Upload.dragOrClickMultiple')}</p>
+                <p style={{ fontWeight: 600, color: token.colorText }}>{t('Upload.dragOrClickMultiple')}</p>
                 <p className="text-text-secondary text-sm">{t('Upload.uploadTipsMultiple')}</p>
                 <p className="text-text-secondary text-sm">{t('Upload.maxFilesLimit', { count: maxUploadFiles })}</p>
                 {(storageConfig.storage === '' || album === '' || (storageConfig.storage === 'alist' && storageConfig.alistMountPath === '')) && (
@@ -827,11 +827,11 @@ export default function MultipleFileUpload() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center">
-                            <UploadIcon className="w-4 h-4 text-primary" />
+                          <div style={{ width: 32, height: 32, borderRadius: 4, backgroundColor: token.colorPrimaryBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <UploadOutlined style={{ fontSize: 16, color: token.colorPrimary }} />
                           </div>
                           <div className="min-w-0">
-                            <div className="font-medium text-text-primary truncate" style={{ maxWidth: 150 }}>
+                            <div style={{ fontWeight: 500, color: token.colorText, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 150 }}>
                               {file.name}
                             </div>
                             <div className="text-xs text-text-secondary">
@@ -863,7 +863,7 @@ export default function MultipleFileUpload() {
                         <AntProgress
                           percent={file.uploadProgress}
                           size="small"
-                          strokeColor="var(--primary)"
+                          strokeColor={token.colorPrimary}
                           showInfo={false}
                           className="mt-2"
                         />
@@ -880,11 +880,11 @@ export default function MultipleFileUpload() {
         <div className="lg:col-span-2">
           <AntCard className="h-full" title={t('Upload.fileDetailsCardTitle')}>
             {files.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 text-text-muted">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <UploadIcon className="w-8 h-8 text-primary" />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 256, color: token.colorTextTertiary }}>
+                <div style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: token.colorPrimaryBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                  <UploadOutlined style={{ fontSize: 32, color: token.colorPrimary }} />
                 </div>
-                <p className="text-sm">{t('Upload.noFiles')}</p>
+                <p style={{ fontSize: 14 }}>{t('Upload.noFiles')}</p>
               </div>
             ) : (
               <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -900,12 +900,12 @@ export default function MultipleFileUpload() {
                     >
                       <div className="flex items-center gap-3">
                         {expandedFileKeys.has(file.__key!) ? <UpOutlined /> : <DownOutlined />}
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <UploadIcon className="w-5 h-5 text-primary" />
+                        <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: token.colorPrimaryBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <UploadOutlined style={{ fontSize: 20, color: token.colorPrimary }} />
                         </div>
                         <div>
-                          <div className="font-medium text-text-primary">{file.name}</div>
-                          <div className="text-sm text-text-secondary">
+                          <div style={{ fontWeight: 500, color: token.colorText }}>{file.name}</div>
+                          <div style={{ fontSize: 14, color: token.colorTextSecondary }}>
                             {file.width && file.height ? `${file.width} x ${file.height}` : t('Upload.dimensionsPending')}
                             {file.isUploaded && <span className="ml-2 text-success">{t('Upload.statusUploaded')}</span>}
                           </div>
@@ -1069,8 +1069,8 @@ export default function MultipleFileUpload() {
                                     borderRadius: '16px',
                                     padding: '4px 12px',
                                     fontSize: '12px',
-                                    backgroundColor: isSelected ? 'var(--primary)' : undefined,
-                                    color: isSelected ? '#FFFFFF' : undefined,
+                                    backgroundColor: isSelected ? token.colorPrimary : undefined,
+                                    color: isSelected ? token.colorBgBase : undefined,
                                   }}
                                   onClick={() => {
                                     if (!file.__key) return
@@ -1090,20 +1090,19 @@ export default function MultipleFileUpload() {
                               )
                             })}
                           </div>
-                          <MultipleSelector
-                            value={(file.labels || []).map((s: string) => ({ value: s, label: s }))}
-                            options={presetTags.map((s: string) => ({ value: s, label: s }))}
-                            creatable
+                          <Select
+                            mode="tags"
+                            value={(file.labels || []) as string[]}
+                            options={presetTags.map((s: string) => ({ label: s, value: s }))}
                             placeholder={t('Upload.addCustomTags')}
-                            onChange={(opts?: any) => {
+                            onChange={(vals: string[] | string | undefined) => {
                               if (!file.__key) return
-                              const vals = (opts || []).map((o: any) => o.value)
-                              const cleanedVals = Array.isArray(vals)
-                                ? vals.filter((v) => v && typeof v === 'string' && v.trim() !== '')
-                                : []
+                              const arrVals = Array.isArray(vals) ? vals : (vals ? [String(vals)] : [])
+                              const cleanedVals = arrVals.filter((v) => v && typeof v === 'string' && v.trim() !== '')
                               const uniqueVals = Array.from(new Set(cleanedVals.map(v => v.trim()))).filter(Boolean)
                               updateFileField(file.__key, 'labels', uniqueVals)
                             }}
+                            style={{ width: '100%' }}
                           />
                         </div>
                       </div>

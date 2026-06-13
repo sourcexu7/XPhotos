@@ -3,7 +3,7 @@
 import React from 'react'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
-import { toast } from 'sonner'
+import { message } from 'antd'
 import { useButtonStore } from '~/app/providers/button-store-providers'
 import AlistEditSheet from '~/components/admin/settings/storages/alist-edit-sheet'
 import { useTranslations } from 'next-intl'
@@ -21,7 +21,7 @@ export default function AlistTabs() {
   const t = useTranslations()
 
   if (error) {
-    toast.error(t('Config.requestFailed'))
+    message.error(t('Config.requestFailed'))
   }
 
   const columns = [

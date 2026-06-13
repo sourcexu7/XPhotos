@@ -8,7 +8,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Settings, LogOut, Menu, Moon, Sun } from 'lucide-react'
+import { SettingOutlined, LogoutOutlined, MenuOutlined, MoonOutlined, SunOutlined } from '@ant-design/icons'
 import { useTheme } from 'next-themes'
 import { clearAllAuthData } from '~/lib/utils/auth-utils'
 
@@ -47,7 +47,7 @@ export function AdminHeader({ onMenuClick, showMenuButton = false }: AdminHeader
               onClick={onMenuClick}
               className="lg:hidden p-2 rounded-[var(--admin-radius-md)] hover:bg-[var(--admin-bg-secondary)] text-[var(--admin-text-primary)]"
             >
-              <Menu className="h-5 w-5" />
+              <MenuOutlined />
             </button>
           )}
         </div>
@@ -61,9 +61,9 @@ export function AdminHeader({ onMenuClick, showMenuButton = false }: AdminHeader
             title={resolvedTheme === 'dark' ? t('Button.light') : t('Button.dark')}
           >
             {resolvedTheme === 'dark' ? (
-              <Sun className="h-4 w-4" />
+              <SunOutlined />
             ) : (
-              <Moon className="h-4 w-4" />
+              <MoonOutlined />
             )}
           </button>
 
@@ -95,7 +95,7 @@ export function AdminHeader({ onMenuClick, showMenuButton = false }: AdminHeader
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--admin-text-primary)] hover:bg-[var(--admin-bg-secondary)] transition-colors"
                   >
-                    <Settings className="h-4 w-4" />
+                    <SettingOutlined />
                     <span>{t('Link.preferences')}</span>
                   </button>
                   <button
@@ -105,7 +105,7 @@ export function AdminHeader({ onMenuClick, showMenuButton = false }: AdminHeader
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--admin-error)] hover:bg-[var(--admin-error-light)] transition-colors"
                   >
-                    <LogOut className="h-4 w-4" />
+                    <LogoutOutlined />
                     <span>{t('Button.logout')}</span>
                   </button>
                 </div>

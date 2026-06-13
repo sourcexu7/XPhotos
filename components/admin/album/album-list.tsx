@@ -2,29 +2,21 @@
 
 import React, { useEffect, useState } from 'react'
 import { useSwrHydrated } from '~/hooks/use-swr-hydrated'
-import { ArrowUp, ArrowDown, Pin, Settings2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { ArrowUpOutlined, ArrowDownOutlined, PushpinOutlined, SettingOutlined } from '@ant-design/icons'
+import { message } from 'antd'
 import type { AlbumType } from '~/types'
 import type { HandleProps } from '~/types/props'
 import { useButtonStore } from '~/app/providers/button-store-providers'
-import { ReloadIcon } from '@radix-ui/react-icons'
-import { Button, Switch } from 'antd'
+import { Button, Switch, theme } from 'antd'
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '~/components/ui/dialog'
-import { SquarePenIcon } from '~/components/icons/square-pen'
-import { DeleteIcon } from '~/components/icons/delete'
+  Modal as AntModal,
+} from 'antd'
+import { EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { Badge } from '~/components/ui/badge'
+import { Tag } from 'antd'
 import AlbumAddButton from '~/components/admin/album/album-add-button'
 import { motion, useReducedMotion } from 'motion/react'
-import { cn } from '~/lib/utils'
 
 export default function AlbumList(props : Readonly<HandleProps>) {
   const { data, mutate, isLoading } = useSwrHydrated(props)
@@ -39,6 +31,7 @@ export default function AlbumList(props : Readonly<HandleProps>) {
   const { setAlbumEdit, setAlbumEditData } = useButtonStore(
     (state) => state,
   )
+  const { token } = theme.useToken()
   const t = useTranslations()
   const reduce = useReducedMotion()
 
@@ -57,13 +50,13 @@ export default function AlbumList(props : Readonly<HandleProps>) {
         method: 'DELETE',
       })
       if (res.status === 200) {
-        toast.success(t('Tips.deleteSuccess'))
+        message.success(t('Tips.deleteSuccess'))
         await mutate()
       } else {
-        toast.error(t('Tips.deleteFailed'))
+        message.error(t('Tips.deleteFailed'))
       }
     } catch {
-      toast.error(t('Tips.deleteFailed'))
+      message.error(t('Tips.deleteFailed'))
     } finally {
       setDeleteLoading(false)
     }
@@ -84,13 +77,13 @@ export default function AlbumList(props : Readonly<HandleProps>) {
         }),
       })
       if (res.status === 200) {
-        toast.success(t('Tips.updateSuccess'))
+        message.success(t('Tips.updateSuccess'))
         await mutate()
       } else {
-        toast.error(t('Tips.updateFailed'))
+        message.error(t('Tips.updateFailed'))
       }
     } catch {
-      toast.error(t('Tips.updateFailed'))
+      message.error(t('Tips.updateFailed'))
     } finally {
       setUpdateAlbumId('')
       setUpdateAlbumLoading(false)
@@ -122,10 +115,10 @@ export default function AlbumList(props : Readonly<HandleProps>) {
       if (!res.ok) {
         throw new Error('sort failed')
       }
-      toast.success('排序已保存')
+      message.success('排序已保存')
       await mutate()
     } catch {
-      toast.error('调整失败，请重试')
+      message.error('调整失败，请重试')
       setAlbums(prevAlbums)
     } finally {
       setSavingSort(false)
@@ -155,28 +148,55 @@ export default function AlbumList(props : Readonly<HandleProps>) {
   }
 
   return (
-    <div className="flex w-full justify-center">
-      <div className="flex w-full max-w-[1440px] flex-col bg-background/50 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg">
+    <div style={{ display: 'flex', width: '100%', justifyContent: 'center' }}>
+      <div style={{
+        display: 'flex',
+        width: '100%',
+        maxWidth: 1440,
+        flexDirection: 'column',
+        backgroundColor: token.colorBgElevated,
+        padding: token.marginLG,
+        borderRadius: token.borderRadiusLG,
+        border: `1px solid ${token.colorBorderSecondary}`,
+        boxShadow: token.boxShadowSecondary,
+      }}>
         {!isLoading && albums.length === 0 && (
           <motion.div 
             initial={reduce ? {} : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="py-20 flex flex-col items-center justify-center"
+            style={{ padding: '80px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
           >
-            <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-6 shadow-xl">
-              <div className="w-14 h-14 text-primary">
-                📁
-              </div>
+            <div style={{
+              width: 112,
+              height: 112,
+              borderRadius: 24,
+              background: `linear-gradient(135deg, ${token.colorPrimaryBgHover}, ${token.colorPrimaryBg})`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 24,
+              boxShadow: token.boxShadowSecondary,
+              fontSize: 56,
+              color: token.colorPrimary,
+            }}>
+              📁
             </div>
-            <h3 className="text-xl font-semibold text-foreground mb-3">{t('Album.noAlbumsTitle')}</h3>
-            <p className="text-muted-foreground text-sm mb-8 text-center max-w-md leading-relaxed">
+            <h3 style={{ fontSize: 20, fontWeight: 600, color: token.colorText, marginBottom: 12 }}>{t('Album.noAlbumsTitle')}</h3>
+            <p style={{
+              color: token.colorTextSecondary,
+              fontSize: 14,
+              marginBottom: 32,
+              textAlign: 'center',
+              maxWidth: 448,
+              lineHeight: 1.6,
+            }}>
               {t('Album.noAlbumsDescription')}
             </p>
             <AlbumAddButton />
           </motion.div>
         )}
 
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: token.margin }}>
           {albums?.map((album, index) => {
             const onlyOne = albums.length <= 1
             const isFirst = index === 0
@@ -196,60 +216,93 @@ export default function AlbumList(props : Readonly<HandleProps>) {
                   ease: [0.22, 1, 0.36, 1]
                 }}
                 whileHover={reduce ? {} : { y: -2, scale: 1.01 }}
-                className={cn(
-                  'flex items-center gap-5 p-5 rounded-2xl transition-all duration-300 ease-out',
-                  'bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-border/40',
-                  'shadow-sm hover:shadow-lg hover:shadow-primary/5',
-                  'hover:border-primary/20 dark:hover:border-primary/30'
-                )}
                 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 20,
+                  padding: 20,
+                  borderRadius: 16,
+                  backgroundColor: token.colorBgElevated,
+                  border: `1px solid ${token.colorBorderSecondary}`,
+                  boxShadow: token.boxShadowSecondary,
+                  transition: 'all 0.3s ease-out',
                   backdropFilter: 'blur(16px)',
                   WebkitBackdropFilter: 'blur(16px)',
                 }}
               >
-                <div className="h-24 w-36 flex-shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-muted to-muted/50 shadow-md">
+                <div style={{
+                  height: 96,
+                  width: 144,
+                  flexShrink: 0,
+                  overflow: 'hidden',
+                  borderRadius: 16,
+                  background: `linear-gradient(135deg, ${token.colorFillSecondary}, ${token.colorFill})`,
+                  boxShadow: token.boxShadow,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
                   {album.cover ? (
                     <motion.img
                       whileHover={reduce ? {} : { scale: 1.08 }}
                       transition={{ duration: 0.4, ease: 'easeOut' }}
                       src={album.cover}
                       alt={album.name || '相册封面'}
-                      className="h-full w-full object-cover"
+                      style={{ height: '100%', width: '100%', objectFit: 'cover' }}
                       loading="lazy"
                       decoding="async"
                     />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/30 text-muted-foreground text-sm font-medium">
+                    <div style={{
+                      color: token.colorTextTertiary,
+                      fontSize: 14,
+                      fontWeight: 500,
+                    }}>
                       无封面
                     </div>
                   )}
                 </div>
 
-                <div className="flex min-w-0 flex-1 flex-col gap-2">
-                  <div className="flex items-center gap-3">
+                <div style={{ display: 'flex', minWidth: 0, flex: 1, flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <motion.span 
                       initial={reduce ? {} : { opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="truncate text-lg font-semibold text-foreground tracking-tight"
+                      style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        fontSize: 18,
+                        fontWeight: 600,
+                        color: token.colorText,
+                        letterSpacing: '-0.02em',
+                      }}
                     >
                       {album.name}
                     </motion.span>
-                    <Badge
-                      variant="secondary"
-                      aria-label={t('Album.router')}
-                      className="bg-muted/60 text-muted-foreground border-border/50 text-xs px-3 py-1 rounded-full"
+                    <Tag
+                      color="default"
+                      style={{ fontSize: 12, borderRadius: 999, marginInlineEnd: 0, padding: '2px 10px' }}
                     >
                       {album.album_value}
-                    </Badge>
+                    </Tag>
                   </div>
-                  <p className="line-clamp-2 text-sm text-muted-foreground leading-relaxed">
+                  <p style={{
+                    fontSize: 14,
+                    color: token.colorTextSecondary,
+                    lineHeight: 1.6,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}>
                     {album.detail || t('Album.noTips')}
                   </p>
                 </div>
 
-                <div className="flex flex-shrink-0 items-center gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground font-medium">{album.show === 0 ? t('Album.show') : t('Album.hide')}</span>
+                <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 14, color: token.colorTextSecondary, fontWeight: 500 }}>{album.show === 0 ? t('Album.show') : t('Album.hide')}</span>
                     <Switch
                       checked={album.show === 0}
                       disabled={updateAlbumLoading && updateAlbumId === album.id}
@@ -260,123 +313,106 @@ export default function AlbumList(props : Readonly<HandleProps>) {
                     />
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <motion.button
-                      whileHover={reduce ? {} : { scale: 1.1 }}
-                      whileTap={reduce ? {} : { scale: 0.95 }}
-                      type="button"
-                      className="flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent transition-all duration-200 p-2.5"
-                      disabled={disablePin}
-                      onClick={() => pinTop(index)}
-                      aria-label="置顶"
-                      title="置顶到列表最前面"
-                    >
-                      <Pin size={18} strokeWidth={1.75} />
-                    </motion.button>
-                    <motion.button
-                      whileHover={reduce ? {} : { scale: 1.1 }}
-                      whileTap={reduce ? {} : { scale: 0.95 }}
-                      type="button"
-                      className="flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent transition-all duration-200 p-2.5"
-                      disabled={disableUp}
-                      onClick={() => moveUp(index)}
-                      aria-label="上移"
-                      title="向上移动一位"
-                    >
-                      <ArrowUp size={18} strokeWidth={1.75} />
-                    </motion.button>
-                    <motion.button
-                      whileHover={reduce ? {} : { scale: 1.1 }}
-                      whileTap={reduce ? {} : { scale: 0.95 }}
-                      type="button"
-                      className="flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent transition-all duration-200 p-2.5"
-                      disabled={disableDown}
-                      onClick={() => moveDown(index)}
-                      aria-label="下移"
-                      title="向下移动一位"
-                    >
-                      <ArrowDown size={18} strokeWidth={1.75} />
-                    </motion.button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: token.marginXXS }}>
+                    <motion.div whileHover={reduce ? {} : { scale: 1.1 }} whileTap={reduce ? {} : { scale: 0.95 }} style={{ display: 'inline-block' }}>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<PushpinOutlined />}
+                        disabled={disablePin}
+                        onClick={() => pinTop(index)}
+                        aria-label="置顶"
+                        title="置顶到列表最前面"
+                      />
+                    </motion.div>
+                    <motion.div whileHover={reduce ? {} : { scale: 1.1 }} whileTap={reduce ? {} : { scale: 0.95 }} style={{ display: 'inline-block' }}>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<ArrowUpOutlined />}
+                        disabled={disableUp}
+                        onClick={() => moveUp(index)}
+                        aria-label="上移"
+                        title="向上移动一位"
+                      />
+                    </motion.div>
+                    <motion.div whileHover={reduce ? {} : { scale: 1.1 }} whileTap={reduce ? {} : { scale: 0.95 }} style={{ display: 'inline-block' }}>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<ArrowDownOutlined />}
+                        disabled={disableDown}
+                        onClick={() => moveDown(index)}
+                        aria-label="下移"
+                        title="向下移动一位"
+                      />
+                    </motion.div>
                   </div>
 
-                  <motion.button
-                    whileHover={reduce ? {} : { scale: 1.1, y: -1 }}
-                    whileTap={reduce ? {} : { scale: 0.95 }}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/50 text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 hover:shadow-md"
-                    onClick={() => {
-                      router.push(`/admin/album/${encodeURIComponent(album.album_value)}/sort`)
-                    }}
-                    title={t('Album.manageSort')}
-                    aria-label={t('Album.manageSort')}
-                  >
-                    <Settings2 size={18} />
-                  </motion.button>
+                  <motion.div whileHover={reduce ? {} : { scale: 1.1, y: -1 }} whileTap={reduce ? {} : { scale: 0.95 }} style={{ display: 'inline-block' }}>
+                    <Button
+                      type="text"
+                      size="middle"
+                      icon={<SettingOutlined />}
+                      onClick={() => {
+                        router.push(`/admin/album/${encodeURIComponent(album.album_value)}/sort`)
+                      }}
+                      title={t('Album.manageSort')}
+                      aria-label={t('Album.manageSort')}
+                      style={{ width: 40, height: 40 }}
+                    />
+                  </motion.div>
 
-                  <motion.button
-                    whileHover={reduce ? {} : { scale: 1.1, y: -1 }}
-                    whileTap={reduce ? {} : { scale: 0.95 }}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/50 text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 hover:shadow-md"
-                    onClick={() => {
-                      setAlbumEditData(album)
-                      setAlbumEdit(true)
-                    }}
-                    title={t('Album.editAlbum')}
-                    aria-label={t('Album.editAlbum')}
-                  >
-                    <SquarePenIcon size={18} />
-                  </motion.button>
+                  <motion.div whileHover={reduce ? {} : { scale: 1.1, y: -1 }} whileTap={reduce ? {} : { scale: 0.95 }} style={{ display: 'inline-block' }}>
+                    <Button
+                      type="text"
+                      size="middle"
+                      icon={<EditOutlined style={{ fontSize: 18 }} />}
+                      onClick={() => {
+                        setAlbumEditData(album)
+                        setAlbumEdit(true)
+                      }}
+                      title={t('Album.editAlbum')}
+                      aria-label={t('Album.editAlbum')}
+                      style={{ width: 40, height: 40 }}
+                    />
+                  </motion.div>
 
-                  <Dialog onOpenChange={(value) => {
-                    if (!value) {
-                      setAlbum({} as AlbumType)
-                    }
-                  }}>
-                    <DialogTrigger asChild>
-                      <motion.button
-                        whileHover={reduce ? {} : { scale: 1.1, y: -1 }}
-                        whileTap={reduce ? {} : { scale: 0.95 }}
-                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/50 text-muted-foreground transition-all duration-200 hover:bg-red-500/10 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:ring-offset-2 hover:shadow-md"
-                        onClick={() => {
-                          setAlbum(album)
-                        }}
-                        title={t('Album.deleteAlbum')}
-                        aria-label={t('Album.deleteAlbum')}
-                      >
-                        <DeleteIcon size={18} />
-                      </motion.button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px] bg-background/95 backdrop-blur-xl border-border/60 rounded-2xl">
-                      <DialogHeader>
-                        <DialogTitle className="text-foreground">{t('Tips.reallyDelete')}</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-3 text-muted-foreground py-2">
-                        <p className="flex items-center gap-2">
-                          <span className="font-medium text-foreground">{t('Album.albumId')}：</span>
-                          <span className="font-mono">{album.id}</span>
-                        </p>
-                        <p className="flex items-center gap-2">
-                          <span className="font-medium text-foreground">{t('Album.albumName')}：</span>
-                          <span>{album.name}</span>
-                        </p>
-                        <p className="flex items-center gap-2">
-                          <span className="font-medium text-foreground">{t('Album.albumRouter')}：</span>
-                          <span className="font-mono">{album.album_value}</span>
-                        </p>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          danger
-                          className="cursor-pointer bg-background border border-red-500/30 hover:bg-red-500/10 text-red-500 rounded-xl transition-all hover:shadow-md"
-                          disabled={deleteLoading}
-                          onClick={() => deleteAlbum()}
-                          aria-label={t('Button.yesDelete')}
-                        >
-                          {deleteLoading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin"/>}
-                          {t('Button.delete')}
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                  <Button
+                    size="small"
+                    danger
+                    onClick={() => {
+                      setAlbum(album)
+                      AntModal.confirm({
+                        title: t('Tips.reallyDelete'),
+                        content: (
+                          <div style={{ fontSize: '14px', color: token.colorTextSecondary }}>
+                            <p style={{ margin: '4px 0' }}>
+                              <span style={{ fontWeight: 500, color: token.colorText }}>{t('Album.albumId')}：</span>
+                              <span style={{ fontFamily: 'monospace' }}>{album.id}</span>
+                            </p>
+                            <p style={{ margin: '4px 0' }}>
+                              <span style={{ fontWeight: 500, color: token.colorText }}>{t('Album.albumName')}：</span>
+                              {album.name}
+                            </p>
+                            <p style={{ margin: '4px 0' }}>
+                              <span style={{ fontWeight: 500, color: token.colorText }}>{t('Album.albumRouter')}：</span>
+                              <span style={{ fontFamily: 'monospace' }}>{album.album_value}</span>
+                            </p>
+                          </div>
+                        ),
+                        okText: t('Button.delete'),
+                        cancelText: '取消',
+                        okButtonProps: { danger: true, loading: deleteLoading },
+                        centered: true,
+                        onOk: () => deleteAlbum(),
+                      })
+                    }}
+                    title={t('Album.deleteAlbum')}
+                    aria-label={t('Album.deleteAlbum')}
+                  >
+                    <DeleteOutlined style={{ fontSize: 18 }} />
+                  </Button>
                 </div>
               </motion.div>
             )

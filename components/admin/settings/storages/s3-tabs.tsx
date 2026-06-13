@@ -3,7 +3,7 @@
 import React from 'react'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
-import { toast } from 'sonner'
+import { message } from 'antd'
 import { useButtonStore } from '~/app/providers/button-store-providers'
 import S3EditSheet from '~/components/admin/settings/storages/s3-edit-sheet'
 import { useTranslations } from 'next-intl'
@@ -21,7 +21,7 @@ export default function S3Tabs() {
   const t = useTranslations()
 
   if (error) {
-    toast.error(t('Config.requestFailed'))
+    message.error(t('Config.requestFailed'))
   }
 
   const columns = [
@@ -70,9 +70,9 @@ export default function S3Tabs() {
                     `GetObject: ${checks?.getObject || 'unknown'}`,
                     `DeleteObject: ${checks?.deleteObject || 'unknown'}`,
                   ].join(' | ')
-                  toast.success(`S3 验证成功：${bucket} @ ${endpoint} — ${summary}`)
+                  message.success(`S3 验证成功：${bucket} @ ${endpoint} — ${summary}`)
                 } catch (e: any) {
-                  toast.error(`S3 验证失败：${e?.message || ''}`)
+                  message.error(`S3 验证失败：${e?.message || ''}`)
                 }
               }}
             >

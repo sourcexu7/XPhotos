@@ -1,16 +1,17 @@
 'use client'
 
 import type { Config } from '~/types'
-import { Drawer } from 'antd'
+import { Drawer, theme } from 'antd'
 import { useButtonStore } from '~/app/providers/button-store-providers'
 import React, { useState } from 'react'
-import { toast } from 'sonner'
+import { message } from 'antd'
 import { useSWRConfig } from 'swr'
-import { ReloadIcon } from '@radix-ui/react-icons'
+import { ReloadOutlined } from '@ant-design/icons'
 import { Button, Switch } from 'antd'
 import { useTranslations } from 'next-intl'
 
 export default function R2EditSheet() {
+  const { token } = theme.useToken()
   const [loading, setLoading] = useState(false)
   const { mutate } = useSWRConfig()
   const { r2Edit, setR2Edit, setR2EditData, r2Data } = useButtonStore(
@@ -28,12 +29,12 @@ export default function R2EditSheet() {
         method: 'PUT',
         body: JSON.stringify(r2Data),
       }).then(res => res.json())
-      toast.success(t('Config.updateSuccess'))
+      message.success(t('Config.updateSuccess'))
       mutate('/api/v1/settings/r2-info')
       setR2Edit(false)
       setR2EditData([] as Config[])
     } catch (e) {
-      toast.error(t('Config.updateFailed'))
+      message.error(t('Config.updateFailed'))
     } finally {
       setLoading(false)
     }
@@ -51,8 +52,8 @@ export default function R2EditSheet() {
       }}
       mask={false}
       styles={{
-        header: { padding: '16px 24px', background: 'var(--admin-bg-secondary)' },
-        body: { padding: '24px' },
+        header: { padding: `${token.padding} ${token.paddingLG}`, background: token.colorBgElevated },
+        body: { padding: token.paddingLG },
       }}
     >
       <div className="flex flex-col space-y-4">
@@ -108,7 +109,7 @@ export default function R2EditSheet() {
           ))
         }
         <Button type="primary" className="w-full mt-4 h-10" onClick={() => submit()} disabled={loading}>
-          {loading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin"/>}
+          {loading && <ReloadOutlined style={{ marginRight: 8, fontSize: 16 }} spin />}
           {t('Config.submit')}
         </Button>
       </div>

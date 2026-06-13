@@ -5,8 +5,8 @@ import type { ImageType } from '~/types'
 import type { ImageServerHandleProps } from '~/types/props'
 import { useSwrInfiniteServerHook } from '~/hooks/use-swr-infinite-server-hook'
 import React, { useState, useRef } from 'react'
-import { toast } from 'sonner'
-import { ReloadIcon } from '@radix-ui/react-icons'
+import { message } from 'antd'
+import { ReloadOutlined } from '@ant-design/icons'
 import { Button, Switch, Drawer } from 'antd'
 import { TagInput } from 'emblor'
 import { exifReader } from '~/lib/utils/file'
@@ -30,25 +30,25 @@ export default function ImageEditSheet(props : Readonly<ImageServerHandleProps &
         lat: tags?.GPSLatitude?.description || image?.lat || '',
         lon: tags?.GPSLongitude?.description || image?.lon || '',
       } as ImageType)
-      toast.success('已从参考图提取 EXIF（未上传参考图）')
+      message.success('已从参考图提取 EXIF（未上传参考图）')
     } catch (err) {
       console.error('Reference EXIF parse failed', err)
-      toast.error('参考图无有效 EXIF 信息或解析失败')
+      message.error('参考图无有效 EXIF 信息或解析失败')
     }
   }
 
   async function submit() {
-    if (!image.url) { toast.error('图片链接不能为空！'); return }
-    if (!image.height || image.height <= 0) { toast.error('图片高度不能为空且必须大于 0！'); return }
-    if (!image.width || image.width <= 0) { toast.error('图片宽度不能为空且必须大于 0！'); return }
+    if (!image.url) { message.error('图片链接不能为空！'); return }
+    if (!image.height || image.height <= 0) { message.error('图片高度不能为空且必须大于 0！'); return }
+    if (!image.width || image.width <= 0) { message.error('图片宽度不能为空且必须大于 0！'); return }
     try {
       setLoading(true)
       await fetch('/api/v1/images/update', { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(image), method: 'PUT' }).then(response => response.json())
-      toast.success('更新成功！')
+      message.success('更新成功！')
       setImageEditData({} as ImageType)
       setImageEdit(false)
       await mutate()
-    } catch (e) { toast.error('更新失败！') } finally { setLoading(false) }
+    } catch (e) { message.error('更新失败！') } finally { setLoading(false) }
   }
 
   const GroupTitle = ({ title }: { title: string }) => (
@@ -94,7 +94,7 @@ export default function ImageEditSheet(props : Readonly<ImageServerHandleProps &
             onClick={() => submit()} 
             className="w-full h-10 bg-primary hover:bg-primary/90 border-none text-base font-medium shadow-sm transition-all duration-200 transform hover:scale-[1.01]"
           >
-            {loading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin"/>}
+            {loading && <ReloadOutlined spin style={{ marginRight: 8, fontSize: 16 }} />}
             保存更改
           </Button>
         </div>

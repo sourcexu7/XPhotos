@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react'
 import { useButtonStore } from '~/app/providers/button-store-providers'
-import { toast } from 'sonner'
-import { ReloadIcon, CopyIcon, DownloadIcon } from '@radix-ui/react-icons'
+import { message } from 'antd'
+import { ReloadOutlined, CopyOutlined, DownloadOutlined } from '@ant-design/icons'
 import { Button, Modal, Checkbox } from 'antd'
 import { useTranslations } from 'next-intl'
 
@@ -59,7 +59,7 @@ export default function ImageBatchDownloadSheet({ selectedIds }: Props) {
   useEffect(() => {
     if (!imageBatchDownload) return
     if (!selectedIds || selectedIds.length === 0) {
-      toast.warning(t('List.batchDeleteNoSelection'))
+      message.warning(t('List.batchDeleteNoSelection'))
       setImageBatchDownload(false)
       return
     }
@@ -76,10 +76,10 @@ export default function ImageBatchDownloadSheet({ selectedIds }: Props) {
         if (res && res.code === 200 && Array.isArray(res.data)) {
           setRows(res.data as ImageRow[])
         } else {
-          toast.error(String(res?.message || t('List.batchDeleteFailed')))
+          message.error(String(res?.message || t('List.batchDeleteFailed')))
         }
       } catch (e) {
-        if (!cancelled) toast.error(t('List.batchDeleteFailed'))
+        if (!cancelled) message.error(t('List.batchDeleteFailed'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -103,7 +103,7 @@ export default function ImageBatchDownloadSheet({ selectedIds }: Props) {
 
   async function triggerDownloadAll() {
     if (downloadables.length === 0) {
-      toast.warning(t('List.batchDownloadNoUrl'))
+      message.warning(t('List.batchDownloadNoUrl'))
       return
     }
 
@@ -122,7 +122,7 @@ export default function ImageBatchDownloadSheet({ selectedIds }: Props) {
       a.remove()
       await new Promise((resolve) => setTimeout(resolve, 250))
     }
-    toast.success(
+    message.success(
       t('List.batchDownloadTriggerCount', { count: downloadables.length }),
     )
   }
@@ -130,14 +130,14 @@ export default function ImageBatchDownloadSheet({ selectedIds }: Props) {
   function copyAllUrls() {
     const text = downloadables.map((x) => x.url).join('\n')
     if (!text) {
-      toast.warning(t('List.batchDownloadNoUrl'))
+      message.warning(t('List.batchDownloadNoUrl'))
       return
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard
         .writeText(text)
         .then(() =>
-          toast.success(t('List.batchDownloadCopied', { count: downloadables.length })),
+          message.success(t('List.batchDownloadCopied', { count: downloadables.length })),
         )
         .catch(() => fallbackCopy(text))
     } else {
@@ -154,9 +154,9 @@ export default function ImageBatchDownloadSheet({ selectedIds }: Props) {
     ta.select()
     try {
       document.execCommand('copy')
-      toast.success(t('List.batchDownloadCopied', { count: downloadables.length }))
+      message.success(t('List.batchDownloadCopied', { count: downloadables.length }))
     } catch {
-      toast.error(t('List.batchDeleteFailed'))
+      message.error(t('List.batchDeleteFailed'))
     }
     ta.remove()
   }
@@ -164,7 +164,7 @@ export default function ImageBatchDownloadSheet({ selectedIds }: Props) {
   function downloadUrlList() {
     const text = downloadables.map((x) => x.url).join('\n')
     if (!text) {
-      toast.warning(t('List.batchDownloadNoUrl'))
+      message.warning(t('List.batchDownloadNoUrl'))
       return
     }
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
@@ -176,7 +176,7 @@ export default function ImageBatchDownloadSheet({ selectedIds }: Props) {
     a.click()
     a.remove()
     URL.revokeObjectURL(href)
-    toast.success(t('List.batchDownloadTxtSaved'))
+    message.success(t('List.batchDownloadTxtSaved'))
   }
 
   return (
@@ -197,7 +197,7 @@ export default function ImageBatchDownloadSheet({ selectedIds }: Props) {
             type="primary"
             disabled={loading || downloadables.length === 0}
             onClick={downloadUrlList}
-            icon={<DownloadIcon />}
+            icon={<DownloadOutlined />}
           >
             {t('List.batchDownloadAsTxt')}
           </Button>
@@ -205,7 +205,7 @@ export default function ImageBatchDownloadSheet({ selectedIds }: Props) {
             type="default"
             disabled={loading || downloadables.length === 0}
             onClick={copyAllUrls}
-            icon={<CopyIcon />}
+            icon={<CopyOutlined />}
           >
             {t('List.batchDownloadCopyAll')}
           </Button>
@@ -215,7 +215,7 @@ export default function ImageBatchDownloadSheet({ selectedIds }: Props) {
             disabled={loading || downloadables.length === 0}
             onClick={triggerDownloadAll}
           >
-            {loading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />}
+            {loading && <ReloadOutlined spin style={{ marginRight: 8, fontSize: 16 }} />}
             {t('List.batchDownloadTriggerAll')}
           </Button>
         </div>
@@ -291,7 +291,7 @@ export default function ImageBatchDownloadSheet({ selectedIds }: Props) {
                         a.remove()
                       }}
                     >
-                      <DownloadIcon />
+                      <DownloadOutlined />
                     </Button>
                   )}
                 </div>

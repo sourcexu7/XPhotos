@@ -1,11 +1,18 @@
 'use client'
 
 import React, { useEffect, useState, useCallback, useMemo, useRef, useTransition } from 'react'
-import { toast } from 'sonner'
-import { ArrowUp, ArrowDown, Pin, ArrowDownToLine, RotateCcw, Check, Move, Loader2, ArrowLeft } from 'lucide-react'
-import { Button } from '~/components/ui/button'
-import { Checkbox } from '~/components/ui/checkbox'
-import { Badge } from '~/components/ui/badge'
+import { message, Button, Checkbox, Badge } from 'antd'
+import {
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  PushpinOutlined,
+  DownloadOutlined,
+  ReloadOutlined,
+  CheckOutlined,
+  HolderOutlined,
+  LoadingOutlined,
+  LeftOutlined,
+} from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { FixedSizeList as List } from 'react-window'
 import { motion } from 'framer-motion'
@@ -55,101 +62,107 @@ function ImageItem({
   featuredText: string
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 1 }}
-      animate={{ opacity: sorting ? 0.7 : 1 }}
-      transition={{ duration: 0.2 }}
-      className={`flex items-center gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b border-border transition-all duration-200 ${
-        selected ? 'bg-primary/5' : 'hover:bg-muted/50'
-      }`}
-      style={{ height: ITEM_HEIGHT }}
-    >
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 16,
+      padding: '12px 16px',
+      borderBottom: '1px solid #f0f0f0',
+      backgroundColor: selected ? 'rgba(0,0,0,0.02)' : 'transparent',
+      opacity: sorting ? 0.7 : 1,
+      height: ITEM_HEIGHT,
+    }}>
       <Checkbox
-          checked={selected}
-          onCheckedChange={onToggleSelect}
-          aria-label={`选择 ${image.image_name || image.id}`}
-          className="data-[state=checked]:bg-primary"
-        />
+        checked={selected}
+        onChange={onToggleSelect}
+      />
 
-      <div className={`w-8 sm:w-10 text-center text-xs sm:text-sm font-mono ${ 
-        sorting ? 'text-primary font-semibold' : 'text-muted-foreground'
-      }`}>
+      <div style={{
+        width: 40,
+        textAlign: 'center',
+        fontSize: 14,
+        fontFamily: 'monospace',
+        color: sorting ? '#1677ff' : '#8c8c8c',
+        fontWeight: sorting ? 600 : 400,
+      }}>
         {index + 1}
       </div>
 
-      <div className="h-12 sm:h-16 w-16 sm:w-24 flex-shrink-0 overflow-hidden rounded-lg bg-muted border border-border transition-all duration-200 hover:shadow-sm">
+      <div style={{
+        height: 56,
+        width: 84,
+        flexShrink: 0,
+        overflow: 'hidden',
+        borderRadius: 8,
+        backgroundColor: '#f5f5f5',
+        border: '1px solid #f0f0f0',
+      }}>
         {image.preview_url || image.url ? (
           <img
             src={image.preview_url || image.url || ''}
             alt={image.image_name || ''}
-            className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+            style={{ height: '100%', width: '100%', objectFit: 'cover' }}
             loading="lazy"
             decoding="async"
           />
         ) : (
-          <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+          <div style={{
+            height: '100%',
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 12,
+            color: '#8c8c8c',
+          }}>
             无
           </div>
         )}
       </div>
 
-      <div className="flex-1 min-w-0">
-        <div className="text-xs sm:text-sm font-medium truncate text-foreground">
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {image.image_name || image.id.slice(0, 8)}
         </div>
-        <div className="text-xs text-muted-foreground">
+        <div style={{ fontSize: 12, color: '#8c8c8c' }}>
           {image.width} × {image.height}
           {image.featured === 1 && (
-            <Badge variant="secondary" className="ml-2 text-xs bg-primary/10 text-primary">
-              {featuredText}
-            </Badge>
+            <Badge color="gold" style={{ marginLeft: 8 }}>{featuredText}</Badge>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-1 sm:gap-2">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 sm:h-8 w-7 sm:w-8 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors duration-200"
+          type="text"
+          size="small"
+          icon={<PushpinOutlined />}
           onClick={onMoveToTop}
           disabled={index === 0 || saving}
-          title="置顶"
-        >
-          <Pin className="h-3 sm:h-4 w-3 sm:w-4" />
-        </Button>
+        />
         <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 sm:h-8 w-7 sm:w-8 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors duration-200"
+          type="text"
+          size="small"
+          icon={<ArrowUpOutlined />}
           onClick={onMoveUp}
           disabled={index === 0 || saving}
-          title="上移"
-        >
-          <ArrowUp className="h-3 sm:h-4 w-3 sm:w-4" />
-        </Button>
+        />
         <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 sm:h-8 w-7 sm:w-8 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors duration-200"
+          type="text"
+          size="small"
+          icon={<ArrowDownOutlined />}
           onClick={onMoveDown}
           disabled={index === totalCount - 1 || saving}
-          title="下移"
-        >
-          <ArrowDown className="h-3 sm:h-4 w-3 sm:w-4" />
-        </Button>
+        />
         <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 sm:h-8 w-7 sm:w-8 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors duration-200"
+          type="text"
+          size="small"
+          icon={<DownloadOutlined />}
           onClick={onMoveToBottom}
           disabled={index === totalCount - 1 || saving}
-          title="置底"
-        >
-          <ArrowDownToLine className="h-3 sm:h-4 w-3 sm:w-4" />
-        </Button>
+        />
       </div>
-    </motion.div>
+    </div>
   )
 }
 
@@ -202,7 +215,7 @@ export default function AlbumSortPage() {
       setHasChanges(false)
     } catch (error) {
       console.error('Failed to fetch images:', error)
-      toast.error(t('Tips.loadFailed'))
+      message.error(t('Tips.loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -359,12 +372,12 @@ export default function AlbumSortPage() {
         throw new Error(result.message || 'Failed to save')
       }
       
-      toast.success(t('Tips.updateSuccess'))
+      message.success(t('Tips.updateSuccess'))
       setOriginalImages([...images])
       setHasChanges(false)
     } catch (error) {
       console.error('Save failed:', error)
-      toast.error(t('Tips.updateFailed'))
+      message.error(t('Tips.updateFailed'))
     } finally {
       setSaving(false)
     }
@@ -380,11 +393,11 @@ export default function AlbumSortPage() {
         method: 'POST',
       })
       if (!res.ok) throw new Error('Failed to reset')
-      toast.success(t('Tips.updateSuccess'))
+      message.success(t('Tips.updateSuccess'))
       await fetchImages()
     } catch (error) {
       console.error('Reset failed:', error)
-      toast.error(t('Tips.updateFailed'))
+      message.error(t('Tips.updateFailed'))
     } finally {
       setSaving(false)
     }
@@ -429,100 +442,74 @@ export default function AlbumSortPage() {
   }, [images, selectedIds, saving, sortingIndex, toggleSelect, moveUp, moveDown, moveToTop, moveToBottom, t])
 
   return (
-    <div className="min-h-screen bg-background">
+    <div style={{ minHeight: '100vh', backgroundColor: '#ffffff' }}>
       {/* Header */}
-      <div className="bg-card border-b border-border sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
+      <div style={{ borderBottom: '1px solid #f0f0f0', backgroundColor: '#ffffff' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', height: 64, alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
               <Button
-                variant="ghost"
+                type="text"
                 onClick={handleClose}
-                className="mr-4 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                style={{ marginRight: 16 }}
+                icon={<LeftOutlined />}
               >
-                <ArrowLeft className="h-5 w-5 mr-2" />
                 {t('Button.back')}
               </Button>
-              <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
-                <Move className="h-5 w-5 text-primary" />
-                {t('Album.management')} - {albumName}
-                <Badge variant="secondary" className="font-normal bg-primary/10 text-primary">
-                  {images.length} {t('Album.images')}
-                </Badge>
-              </h1>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
+              <h1 style={{ fontSize: 20, fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <HolderOutlined />
+                  {t('Album.management')} - {albumName}
+                  <Badge count={images.length} />
+                </h1>
+              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Button
-                size="sm"
-                variant="outline"
                 onClick={handleReset}
                 disabled={saving}
-                className="bg-card border-border text-foreground hover:bg-primary/5 hover:border-primary transition-colors duration-200"
+                icon={<ReloadOutlined />}
               >
-                <RotateCcw className="h-4 w-4 mr-1" />
                 {t('Album.resetSort')}
               </Button>
               <Button
-                size="sm"
+                type="primary"
                 onClick={handleSave}
                 disabled={!hasChanges || saving}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-200 transform hover:scale-[1.02]"
+                icon={saving ? <LoadingOutlined /> : <CheckOutlined />}
               >
-                {saving ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {t('Button.saving')}
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <Check className="h-4 w-4" />
-                    {t('Button.save')}
-                  </span>
-                )}
+                {saving ? t('Button.saving') : t('Button.save')}
               </Button>
             </div>
           </div>
-          <div className="pb-4">
-            <p className="text-sm text-muted-foreground">
-              {t('Album.sortDescription')}
-            </p>
+          <div style={{ paddingBottom: 16 }}>
+            <p style={{ fontSize: 14, color: '#8c8c8c', margin: 0 }}>{t('Album.sortDescription')}</p>
           </div>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4 py-4">
+      <div style={{ borderBottom: '1px solid #f0f0f0' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 0' }}>
             <Checkbox
               checked={selectedIds.size === images.length && images.length > 0}
-              onCheckedChange={toggleSelectAll}
-              aria-label={t('Album.selectAll')}
-              className="data-[state=checked]:bg-primary"
-            />
-            <span className="text-sm font-medium text-foreground">
+              onChange={toggleSelectAll}
+            >
               {selectedIds.size > 0 ? `${selectedIds.size} ${t('Album.selected')}` : t('Album.selectAll')}
-            </span>
+            </Checkbox>
             {selectedIds.size > 0 && (
-              <div className="flex gap-2">
+              <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
                 <Button
-                  size="sm"
-                  variant="outline"
                   onClick={batchMoveToTop}
                   disabled={saving}
-                  className="bg-card border-border text-foreground hover:bg-primary/5 hover:border-primary transition-colors duration-200"
+                  icon={<PushpinOutlined />}
                 >
-                  <Pin className="h-4 w-4 mr-1" />
                   {t('Album.batchTop')}
                 </Button>
                 <Button
-                  size="sm"
-                  variant="outline"
                   onClick={batchMoveToBottom}
                   disabled={saving}
-                  className="bg-card border-border text-foreground hover:bg-primary/5 hover:border-primary transition-colors duration-200"
+                  icon={<DownloadOutlined />}
                 >
-                  <ArrowDownToLine className="h-4 w-4 mr-1" />
                   {t('Album.batchBottom')}
                 </Button>
               </div>
@@ -532,35 +519,28 @@ export default function AlbumSortPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 16px' }}>
         {loading ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
-            <div className="flex space-x-3">
-              <Loader2 className="h-10 w-10 text-primary animate-spin" />
-              <Loader2 className="h-10 w-10 text-primary/70 animate-spin" style={{ animationDelay: '0.2s' }} />
-              <Loader2 className="h-10 w-10 text-primary/40 animate-spin" style={{ animationDelay: '0.4s' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <LoadingOutlined style={{ fontSize: 24 }} />
+              <span>{t('Tips.loading')}</span>
             </div>
-            <p className="text-muted-foreground text-lg">{t('Tips.loading')}</p>
           </div>
         ) : images.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-muted-foreground">
-            <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center">
-              <Move className="h-12 w-12 text-muted-foreground/70" />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 24, color: '#8c8c8c' }}>
+            <div style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>
+              <HolderOutlined />
             </div>
-            <h3 className="text-xl font-medium text-foreground">{t('Album.noImages')}</h3>
-            <p className="text-sm text-center max-w-md px-4">
-              该相册暂无图片，无法进行排序操作
-            </p>
-            <Button
-              onClick={handleClose}
-              className="mt-4 bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-200"
-            >
+            <h3 style={{ fontSize: 20, fontWeight: 500, margin: 0 }}>{t('Album.noImages')}</h3>
+            <p style={{ fontSize: 14, textAlign: 'center', maxWidth: 400 }}>该相册暂无图片，无法进行排序操作</p>
+            <Button type="primary" onClick={handleClose}>
               {t('Button.back')}
             </Button>
           </div>
         ) : (
-          <div className="bg-card rounded-lg border border-border overflow-hidden transition-all duration-200 hover:shadow-sm">
-            <div className="h-[70vh]">
+          <div style={{ backgroundColor: '#ffffff', borderRadius: 8, border: '1px solid #f0f0f0', overflow: 'hidden' }}>
+            <div style={{ height: '70vh' }}>
               <List
                 ref={listRef}
                 height={typeof window !== 'undefined' ? window.innerHeight - 300 : 600}
@@ -568,7 +548,6 @@ export default function AlbumSortPage() {
                 itemCount={images.length}
                 itemSize={ITEM_HEIGHT}
                 overscanCount={5}
-                className="focus:outline-none"
               >
                 {Row}
               </List>

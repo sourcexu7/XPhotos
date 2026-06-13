@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Button, Drawer, Space, App, Typography, Spin, Empty, Tooltip, Badge } from 'antd'
+import { Button, Drawer, Space, App, Typography, Spin, Empty, Tooltip, Badge, theme } from 'antd'
 import { 
   UnorderedListOutlined,
   SaveOutlined,
@@ -76,6 +76,7 @@ interface GuideEditorProps {
 const SPECIAL_TEMPLATES = ['itinerary', 'expense', 'checklist', 'transport', 'photo', 'tips']
 
 export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
+  const { token } = theme.useToken()
   const { message } = App.useApp()
   const [selectedModule, setSelectedModule] = useState<Module | null>(null)
   const [isTocDrawerOpen, setIsTocDrawerOpen] = useState(false)
@@ -229,7 +230,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
           <Badge 
             status={isPreviewMode ? "processing" : "default"} 
             style={{ 
-              backgroundColor: isPreviewMode ? '#3B82F6' : '#10B981' 
+              backgroundColor: isPreviewMode ? token.colorPrimary : token.colorSuccess
             }} 
           />
           <span className="text-sm font-medium text-gray-700">

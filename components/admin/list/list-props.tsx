@@ -4,8 +4,8 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import type { ImageType, AlbumType } from '~/types'
 import type { ImageListDataProps, ImageServerHandleProps } from '~/types/props'
-import { Filter } from 'lucide-react'
-import { toast } from 'sonner'
+import { FilterOutlined } from '@ant-design/icons'
+import { message } from 'antd'
 import { useButtonStore } from '~/app/providers/button-store-providers'
 import ImageEditSheet from '~/components/admin/list/image-edit-sheet'
 import ImageView from '~/components/admin/list/image-view'
@@ -13,17 +13,7 @@ import { fetcher } from '~/lib/utils/fetcher'
 import useSWR from 'swr'
 import ImageBatchDeleteSheet from '~/components/admin/list/image-batch-delete-sheet'
 import ImageBatchDownloadSheet from '~/components/admin/list/image-batch-download-sheet'
-import { Button } from 'antd'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetFooter,
-  SheetClose,
-} from '~/components/ui/sheet'
-import { AdminPagination } from '~/components/admin/ui/pagination'
+import { Button, Drawer, Pagination } from 'antd'
 import { useTranslations } from 'next-intl'
 
 import FilterBar, { FilterState, defaultFilterState } from './filter-bar'
@@ -51,6 +41,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
   const [pageSize] = useState(8)
   const [layout, setLayout] = useState<'card' | 'list'>('card')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
 
   const { data: pageData, mutate } = useSWR(
     [
@@ -156,7 +147,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
     try {
       const targetAlbum = albumMap.get(albumValue)
       if (!targetAlbum) {
-        toast.error(t('List.albumNotFound'))
+        message.error(t('List.albumNotFound'))
         return
       }
       
@@ -167,12 +158,12 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       }).then(r => r.json())
 
       if (res.code === 200) {
-        toast.success(t('List.coverUpdateSuccess'))
+        message.success(t('List.coverUpdateSuccess'))
       } else {
-        toast.error(res.message || t('List.coverUpdateFailed'))
+        message.error(res.message || t('List.coverUpdateFailed'))
       }
-    } catch (e) {
-      toast.error(t('List.coverUpdateFailed'))
+    } catch {
+      message.error(t('List.coverUpdateFailed'))
     }
   }
 
@@ -234,7 +225,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
 
   async function updateImageAlbum(targetImage: ImageType, albumId: string) {
     if (!albumId) {
-      toast.error(t('List.bindAlbumRequired'))
+      message.error(t('List.bindAlbumRequired'))
       return
     }
     try {
@@ -250,13 +241,13 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
         }),
       })
       if (res.status === 200) {
-        toast.success(t('Tips.updateSuccess'))
+        message.success(t('Tips.updateSuccess'))
         await mutate()
       } else {
-        toast.error(t('Tips.updateFailed'))
+        message.error(t('Tips.updateFailed'))
       }
     } catch {
-      toast.error(t('Tips.updateFailed'))
+      message.error(t('Tips.updateFailed'))
     } finally {
       setUpdateImageAlbumLoading(false)
     }
@@ -272,13 +263,13 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
         body: JSON.stringify({ imageId, featured })
       })
       if (res.ok) {
-        toast.success(featured === 1 ? t('List.featuredToastEnabled') : t('List.featuredToastDisabled'))
+        message.success(featured === 1 ? t('List.featuredToastEnabled') : t('List.featuredToastDisabled'))
         await mutate()
       } else {
-        toast.error(t('Tips.updateFailed'))
+        message.error(t('Tips.updateFailed'))
       }
-    } catch (e) {
-      toast.error(t('Tips.updateFailed'))
+    } catch {
+      message.error(t('Tips.updateFailed'))
     } finally {
       setUpdateFeaturedLoading(false)
       setUpdateFeaturedId('')
@@ -295,13 +286,13 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
         body: JSON.stringify({ id: imageId, show }),
       })
       if (res.ok) {
-        toast.success(show === 0 ? t('List.showToastPublic') : t('List.showToastHidden'))
+        message.success(show === 0 ? t('List.showToastPublic') : t('List.showToastHidden'))
         await mutate()
       } else {
-        toast.error(t('Tips.updateFailed'))
+        message.error(t('Tips.updateFailed'))
       }
     } catch {
-      toast.error(t('Tips.updateFailed'))
+      message.error(t('Tips.updateFailed'))
     } finally {
       setUpdateShowLoading(false)
       setUpdateShowId('')
@@ -314,13 +305,13 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
         method: 'DELETE',
       })
       if (res.status === 200) {
-        toast.success(t('Tips.deleteSuccess'))
+        message.success(t('Tips.deleteSuccess'))
         await mutate()
       } else {
-        toast.error(t('Tips.deleteFailed'))
+        message.error(t('Tips.deleteFailed'))
       }
     } catch {
-      toast.error(t('Tips.deleteFailed'))
+      message.error(t('Tips.deleteFailed'))
     }
   }
 
@@ -355,49 +346,52 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
         </div>
         <div className="md:hidden flex justify-between items-center">
           <span className="text-sm font-medium text-foreground">{t('List.filterConditions')}</span>
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button size="small" className="gap-2" aria-label={t('List.openFilterPanel')}>
-                <Filter size={14} /> {t('List.filter')}
-                {activeFilterCount > 0 ? t('List.appliedCountShort', { count: activeFilterCount }) : ''}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[340px] overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle>
-                  {t('List.filterPhotos')}
-                  {activeFilterCount > 0 ? t('List.appliedCountTitle', { count: activeFilterCount }) : ''}
-                </SheetTitle>
-              </SheetHeader>
-              <div className="py-4 flex flex-col gap-4">
-                <FilterBar
-                  filters={stagedFilters}
-                  onChange={(updates) => setStagedFilters((prev) => ({ ...prev, ...updates }))}
-                  onApply={() => {
-                    setActiveFilters(stagedFilters)
-                    setPageNum(1)
-                  }}
-                  onReset={() => {
-                    setStagedFilters(defaultFilterState)
-                    setActiveFilters(defaultFilterState)
-                    setPageNum(1)
-                  }}
-                  albums={albums}
-                  cameras={cameras}
-                  lenses={lenses}
-                  exifPresets={exifPresets}
-                  tagsList={tagsList}
-                  layout={layout}
-                  setLayout={setLayout}
-                />
-              </div>
-              <SheetFooter>
-                <SheetClose asChild>
-                  <Button>{t('Button.close')}</Button>
-                </SheetClose>
-              </SheetFooter>
-            </SheetContent>
-          </Sheet>
+          <Button
+            size="small"
+            icon={<FilterOutlined />}
+            onClick={() => setFilterDrawerOpen(true)}
+            aria-label={t('List.openFilterPanel')}
+          >
+            {t('List.filter')}
+            {activeFilterCount > 0 ? t('List.appliedCountShort', { count: activeFilterCount }) : ''}
+          </Button>
+          <Drawer
+            title={
+              <span>
+                {t('List.filterPhotos')}
+                {activeFilterCount > 0 ? t('List.appliedCountTitle', { count: activeFilterCount }) : ''}
+              </span>
+            }
+            placement="right"
+            size={340}
+            open={filterDrawerOpen}
+            onClose={() => setFilterDrawerOpen(false)}
+          >
+            <div style={{ padding: '16px 0' }}>
+              <FilterBar
+                filters={stagedFilters}
+                onChange={(updates) => setStagedFilters((prev) => ({ ...prev, ...updates }))}
+                onApply={() => {
+                  setActiveFilters(stagedFilters)
+                  setPageNum(1)
+                  setFilterDrawerOpen(false)
+                }}
+                onReset={() => {
+                  setStagedFilters(defaultFilterState)
+                  setActiveFilters(defaultFilterState)
+                  setPageNum(1)
+                  setFilterDrawerOpen(false)
+                }}
+                albums={albums}
+                cameras={cameras}
+                lenses={lenses}
+                exifPresets={exifPresets}
+                tagsList={tagsList}
+                layout={layout}
+                setLayout={setLayout}
+              />
+            </div>
+          </Drawer>
         </div>
       </div>
 
@@ -473,14 +467,14 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
 
       {/* 4. 分页导航 */}
       {typeof total === 'number' && total !== 0 && (
-        <div className="flex justify-center mt-6 pb-4">
-          <AdminPagination
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24, paddingBottom: 16 }}>
+          <Pagination
             current={pageNum}
             total={total}
             pageSize={pageSize}
-            onChange={async (page) => { setPageNum(page); await mutate() }}
+            onChange={(page) => { setPageNum(page) }}
             showSizeChanger={false}
-            showTotal={(total) => t('List.paginationTotalImages', { total })}
+            showTotal={(totalCount) => t('List.paginationTotalImages', { total: totalCount })}
           />
         </div>
       )}

@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
-import { toast } from 'sonner'
+import { message } from 'antd'
 import { useTranslations } from 'next-intl'
 import { Alert, Button, Input, Form, Switch, Card, Space, Row, Col, Typography, theme, Select } from 'antd'
 import { SaveOutlined, CopyOutlined, DeleteOutlined, PlusOutlined, HolderOutlined } from '@ant-design/icons'
@@ -115,9 +115,9 @@ export default function Preferences() {
           aboutGalleryImagesFull: galleryImages, // 完整数据，包含原图和预览图
         }),
       }).then(res => res.json())
-      toast.success(t('Tips.updateSuccess'))
+      message.success(t('Tips.updateSuccess'))
     } catch (e) {
-      toast.error(t('Tips.updateFailed'))
+      message.error(t('Tips.updateFailed'))
     } finally {
       setLoading(false)
     }
@@ -189,7 +189,7 @@ export default function Preferences() {
 
     // 限制最多上传 10 张
     if (galleryImages.length + files.length > 10) {
-      toast.error('画廊最多支持 10 张图片')
+      message.error('画廊最多支持 10 张图片')
       return
     }
 
@@ -200,7 +200,7 @@ export default function Preferences() {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
         if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type)) {
-          toast.warning(`跳过不支持的格式: ${file.name}`)
+          message.warning(`跳过不支持的格式: ${file.name}`)
           continue
         }
 
@@ -217,9 +217,9 @@ export default function Preferences() {
         const resp = await uploadFile(compressedFile, '/about/gallery', 's3', '')
         if (resp.code === 200 && resp.data?.url) {
           newUrls.push({ original: resp.data.url, preview: resp.data.url })
-          toast.success(`上传成功: ${file.name}`)
+          message.success(`上传成功: ${file.name}`)
         } else {
-          toast.error(`上传失败: ${file.name}`)
+          message.error(`上传失败: ${file.name}`)
         }
       }
 
@@ -228,7 +228,7 @@ export default function Preferences() {
       }
     } catch (e) {
       console.error(e)
-      toast.error('画廊图片上传失败')
+      message.error('画廊图片上传失败')
     } finally {
       setGalleryUploading(false)
       event.target.value = ''
@@ -238,7 +238,7 @@ export default function Preferences() {
   // 删除画廊图片
   const handleDeleteGalleryImage = useCallback((index: number) => {
     setGalleryImages(prev => prev.filter((_, i) => i !== index))
-    toast.success('已删除')
+    message.success('已删除')
   }, [])
 
   // 拖拽排序 - 开始拖拽
@@ -362,9 +362,9 @@ export default function Preferences() {
                         try {
                           const url = typeof window !== 'undefined' ? window.location.origin + '/rss.xml' : ''
                           await navigator.clipboard.writeText(url)
-                          toast.success('复制成功！', {duration: 500})
+                          message.success('复制成功！', 0.5)
                         } catch (error) {
-                          toast.error('复制失败！', {duration: 500})
+                          message.error('复制失败！', 0.5)
                         }
                       }}
                     />

@@ -1,26 +1,11 @@
 'use client'
 
-import { toast } from 'sonner'
+import { message, Alert, Button, Modal, theme } from 'antd'
+import { LoadingOutlined, RocketOutlined, DeleteOutlined, SafetyOutlined, MobileOutlined } from '@ant-design/icons'
 import React, { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { RocketIcon, ReloadIcon, TrashIcon } from '@radix-ui/react-icons'
-import { Button } from 'antd'
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from '~/components/ui/alert'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '~/components/ui/dialog'
 import { authClient } from '~/lib/auth-client'
 import { PasskeyRegister } from '~/components/auth/passkey-register'
-import { Fingerprint, Smartphone } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import AdminPageHeader from '~/components/admin/layout/page-header'
 
@@ -36,6 +21,7 @@ interface Passkey {
 }
 
 export default function PasskeySettings() {
+  const { token } = theme.useToken()
   const t = useTranslations('Passkey')
   const [passkeys, setPasskeys] = useState<Passkey[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,7 +37,7 @@ export default function PasskeySettings() {
 
       if (error) {
         console.error('Failed to load passkeys:', error)
-        toast.error(t('loadError'))
+        message.error(t('loadError'))
         return
       }
 
@@ -60,7 +46,7 @@ export default function PasskeySettings() {
       }
     } catch (error) {
       console.error('Error loading passkeys:', error)
-      toast.error(t('loadingError'))
+      message.error(t('loadingError'))
     } finally {
       setLoading(false)
     }
@@ -75,15 +61,15 @@ export default function PasskeySettings() {
       })
 
       if (error) {
-        toast.error(t('deleteFailed'))
+        message.error(t('deleteFailed'))
         return
       }
 
-      toast.success(t('deleteSuccess'))
+      message.success(t('deleteSuccess'))
       loadPasskeys() // 重新加载列表
     } catch (error) {
       console.error('Delete passkey error:', error)
-      toast.error(t('deleteFailed'))
+      message.error(t('deleteFailed'))
     } finally {
       setDeleteLoading('')
     }
@@ -130,17 +116,17 @@ export default function PasskeySettings() {
 
             {loading ? (
               <div className="flex items-center space-x-2">
-                <ReloadIcon className="h-4 w-4 animate-spin" />
+                <LoadingOutlined style={{ fontSize: 16 }} />
                 <span>{t('loading')}</span>
               </div>
             ) : passkeys.length === 0 ? (
-              <Alert className="max-w-sm">
-                <Fingerprint className="h-4 w-4" />
-                <AlertTitle>{t('noPasskeys')}</AlertTitle>
-                <AlertDescription>
-                  {t('noPasskeysDescription')}
-                </AlertDescription>
-              </Alert>
+              <Alert
+                message={t('noPasskeys')}
+                description={t('noPasskeysDescription')}
+                icon={<SafetyOutlined />}
+                type="info"
+                style={{ maxWidth: '384px' }}
+              />
             ) : (
               <div className="space-y-2">
                 {passkeys.map((passkey) => (
@@ -152,10 +138,10 @@ export default function PasskeySettings() {
                   >
                     <div className="flex items-center space-x-3">
                       {passkey.deviceType === 'platform' ? (
-                        <Smartphone className="h-5 w-5 text-blue-500" />
-                      ) : (
-                        <Fingerprint className="h-5 w-5 text-green-500" />
-                      )}
+                          <MobileOutlined />
+                        ) : (
+                          <SafetyOutlined />
+                        )}
                       <div>
                         <p className="font-medium">
                           {passkey.name || t('unnamedPasskey')}
@@ -173,43 +159,32 @@ export default function PasskeySettings() {
                       </div>
                     </div>
 
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          size="small"
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                          <DialogTitle>{t('deletePasskey')}</DialogTitle>
-                        </DialogHeader>
-                        <div className="py-4">
-                          <p>{t('deleteConfirmation')}</p>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            Passkey: {passkey.name || t('unnamedPasskey')}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {t('createdOn')}: {new Date(passkey.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <DialogFooter>
-                          <Button
-                            danger
-                            onClick={() => deletePasskey(passkey.id)}
-                            disabled={deleteLoading === passkey.id}
-                            className="cursor-pointer"
-                          >
-                            {deleteLoading === passkey.id && (
-                              <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
-                            )}
-                            {t('confirmDelete')}
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
+                    <Button
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => {
+                        Modal.confirm({
+                          title: t('deletePasskey'),
+                          content: (
+                            <div style={{ padding: '16px 0' }}>
+                              <p>{t('deleteConfirmation')}</p>
+                              <p style={{ fontSize: '14px', color: token.colorTextSecondary, marginTop: 8 }}>
+                                Passkey: {passkey.name || t('unnamedPasskey')}
+                              </p>
+                              <p style={{ fontSize: '12px', color: token.colorTextTertiary, marginTop: 4 }}>
+                                {t('createdOn')}: {new Date(passkey.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          ),
+                          okText: t('confirmDelete'),
+                          cancelText: '取消',
+                          okButtonProps: { danger: true, loading: deleteLoading === passkey.id },
+                          centered: true,
+                          onOk: () => deletePasskey(passkey.id),
+                        })
+                      }}
+                    />
                   </motion.div>
                 ))}
               </div>
@@ -218,13 +193,12 @@ export default function PasskeySettings() {
 
           {/* 提示信息 */}
           {passkeys.length > 0 && (
-            <Alert>
-              <RocketIcon className="h-4 w-4" />
-              <AlertTitle>{t('tipTitle')}</AlertTitle>
-              <AlertDescription>
-                {t('tipDescription')}
-              </AlertDescription>
-            </Alert>
+            <Alert
+              message={t('tipTitle')}
+              description={t('tipDescription')}
+              icon={<RocketOutlined />}
+              type="success"
+            />
           )}
         </div>
       )}

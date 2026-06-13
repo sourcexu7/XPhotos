@@ -3,7 +3,7 @@
 import React from 'react'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
-import { toast } from 'sonner'
+import { message } from 'antd'
 import { useButtonStore } from '~/app/providers/button-store-providers'
 import R2EditSheet from '~/components/admin/settings/storages/r2-edit-sheet'
 import { useTranslations } from 'next-intl'
@@ -21,7 +21,7 @@ export default function R2Tabs() {
   const t = useTranslations()
 
   if (error) {
-    toast.error(t('Config.requestFailed'))
+    message.error(t('Config.requestFailed'))
   }
 
   const columns = [

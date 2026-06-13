@@ -1,34 +1,13 @@
 'use client'
 
-import { toast } from 'sonner'
+import { message, Alert, Button, Modal, Input } from 'antd'
+import { RocketOutlined } from '@ant-design/icons'
 import React, { useState } from 'react'
 import { useQRCode } from 'next-qrcode'
 import { motion } from 'framer-motion'
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSeparator,
-  InputOTPSlot,
-} from '~/components/ui/input-otp'
-import { RocketIcon, ReloadIcon } from '@radix-ui/react-icons'
-import { Button } from 'antd'
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from '~/components/ui/alert'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '~/components/ui/dialog'
-import { useTranslations } from 'next-intl'
 import { authClient } from '~/lib/auth-client'
-import { Input } from '~/components/ui/input.tsx'
 import AdminPageHeader from '~/components/admin/layout/page-header'
+import { useTranslations } from 'next-intl'
 
 export default function Authenticator() {
   const t = useTranslations()
@@ -36,12 +15,14 @@ export default function Authenticator() {
   const [otpCode, setOtpCode] = useState('')
   const [uri, setUri] = useState('')
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [showRemoveModal, setShowRemoveModal] = useState(false)
+  const [removePassword, setRemovePassword] = useState('')
 
   const { data: session, isPending } = authClient.useSession()
 
   async function enable2FA() {
     if (!password) {
-      toast.error(t('Tips.passwordRequired'))
+      message.error(t('Tips.passwordRequired'))
       return
     }
     const { data, error } = await authClient.twoFactor.enable({
@@ -50,7 +31,7 @@ export default function Authenticator() {
     })
 
     if (error) {
-      toast.error(t('Tips.enable2FAFailed'))
+      message.error(t('Tips.enable2FAFailed'))
     }
 
     if (data) {
@@ -66,12 +47,12 @@ export default function Authenticator() {
         code: otpCode
       })
       if (error) {
-        toast.error(t('Tips.setupFailed'))
+        message.error(t('Tips.setupFailed'))
       } else {
-        toast.success(t('Tips.setupSuccess'))
+        message.success(t('Tips.setupSuccess'))
       }
     } catch {
-      toast.error(t('Tips.setupFailed'))
+      message.error(t('Tips.setupFailed'))
     }
   }
 
@@ -82,12 +63,12 @@ export default function Authenticator() {
         password: password
       })
       if (error) {
-        toast.error(t('Tips.removeFailed'))
+        message.error(t('Tips.removeFailed'))
       } else {
-        toast.success(t('Tips.removeSuccess'))
+        message.success(t('Tips.removeSuccess'))
       }
     } catch (e) {
-      toast.error(t('Tips.removeFailed'))
+      message.error(t('Tips.removeFailed'))
     } finally {
       setPassword('')
       setUri('')
@@ -106,54 +87,58 @@ export default function Authenticator() {
         isPending ? <p className="m-2">{t('Tips.syncingStatus')}</p>
           : session?.user?.twoFactorEnabled ?
             <div className="flex flex-col space-y-2">
-              <Alert className="!md:w-64">
-                <RocketIcon className="h-4 w-4" />
-                <AlertTitle>{t('Tips.congratulations')}</AlertTitle>
-                <AlertDescription>
-                  {t('Tips.twoFactorEnabled')}
-                </AlertDescription>
-              </Alert>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button danger className="cursor-pointer w-36">
-                    {t('Button.removeTwoFactor')}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle>{t('Tips.confirmRemoveTwoFactor')}</DialogTitle>
-                  </DialogHeader>
-                  <DialogFooter className={'flex items-center sm:justify-center'}>
-                    <div className="flex flex-col full space-y-2">
-                      <Input
-                        id="password"
-                        className="w-full sm:w-64"
-                        type="password"
-                        required
-                        value={password}
-                        placeholder="请输入密码"
-                        onChange={(e) => setPassword(e.target.value)}
-                      />
-                      <Button
-                        danger
-                        className="cursor-pointer"
-                        onClick={() => disable2FA()}
-                        disabled={deleteLoading}
-                      >
-                        {deleteLoading && <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />}
-                        {t('Tips.yes')}
-                      </Button>
-                    </div>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <Alert
+                message={t('Tips.congratulations')}
+                description={t('Tips.twoFactorEnabled')}
+                icon={<RocketOutlined />}
+                type="success"
+                style={{ maxWidth: '256px' }}
+              />
+              <Button
+                danger
+                className="cursor-pointer w-36"
+                onClick={() => {
+                  setShowRemoveModal(true)
+                  setRemovePassword('')
+                }}
+              >
+                {t('Button.removeTwoFactor')}
+              </Button>
+              <Modal
+                open={showRemoveModal}
+                onCancel={() => setShowRemoveModal(false)}
+                title={t('Tips.confirmRemoveTwoFactor')}
+                centered
+                okButtonProps={{ danger: true, loading: deleteLoading }}
+                okText={t('Tips.yes')}
+                cancelText="取消"
+                onOk={() => {
+                  if (!removePassword) {
+                    message.error(t('Tips.passwordRequired'))
+                    return Promise.reject()
+                  }
+                  return new Promise<void>((resolve) => {
+                    setPassword(removePassword)
+                    disable2FA()
+                    setShowRemoveModal(false)
+                    resolve()
+                  })
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 0' }}>
+                  <Input.Password
+                    placeholder="请输入密码"
+                    value={removePassword}
+                    onChange={(e) => setRemovePassword(e.target.value)}
+                  />
+                </div>
+              </Modal>
             </div>
             : <div className="space-y-2">
               <h4 className="text-medium font-medium">{t('Tips.stepOne')}</h4>
-              <Input
+              <Input.Password
                 id="password"
                 className="w-full sm:w-64"
-                type="password"
                 required
                 value={password}
                 placeholder="请输入密码"
@@ -192,23 +177,13 @@ export default function Authenticator() {
               <h4 className="text-medium font-medium">{t('Tips.stepThree')}</h4>
               <p className="text-small text-default-400">{t('Tips.enterSixDigits')}</p>
               <div className="flex justify-center">
-                <InputOTP
+                <Input
                   maxLength={6}
+                  style={{ width: 200, textAlign: 'center', letterSpacing: 8, fontSize: 18 }}
+                  placeholder="000000"
                   value={otpCode}
-                  onChange={(value) => setOtpCode(value)}
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                  </InputOTPGroup>
-                  <InputOTPSeparator />
-                  <InputOTPGroup>
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                />
               </div>
               <div className="gap space-y-2 w-full sm:w-64">
                 <Button

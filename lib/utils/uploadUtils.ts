@@ -1,4 +1,4 @@
-import { toast } from 'sonner'
+import { message } from 'antd'
 import { uploadFile } from './file'
 import { compressImage, getCompressOptionsFromConfigs } from './compress'
 
@@ -153,7 +153,7 @@ export async function uploadPreviewImage(
  */
 export async function getAlistStorage(): Promise<{ mount_path: string }[]> {
   try {
-    toast.info('获取 AList 目录中...')
+    message.info('获取 AList 目录中...')
     const res = await fetch('/api/v1/storage/alist/storages', {
       method: 'GET',
     }).then(res => res.json())
@@ -161,11 +161,11 @@ export async function getAlistStorage(): Promise<{ mount_path: string }[]> {
     if (res?.code === 200) {
       return res.data?.content || []
     } else {
-      toast.error('获取失败')
+      message.error('获取失败')
       return []
     }
   } catch {
-    toast.error('获取失败')
+    message.error('获取失败')
     return []
   }
 }

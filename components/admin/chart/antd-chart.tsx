@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Card, Row, Col, Statistic, Button, Skeleton } from 'antd'
+import { Card, Row, Col, Statistic, Button, Skeleton, theme } from 'antd'
 import {
   LineChart,
   Line,
@@ -13,7 +13,7 @@ import {
 } from 'recharts'
 import type { VisitSummary } from '~/lib/db/query/analytics'
 import { useTranslations } from 'next-intl'
-import { DownloadIcon } from '~/components/icons/download'
+import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons'
 
 interface AdminAnalyticsClientProps {
   initialData: VisitSummary
@@ -21,6 +21,7 @@ interface AdminAnalyticsClientProps {
 
 export function AdminAnalyticsClient({ initialData }: AdminAnalyticsClientProps) {
   const t = useTranslations('AdminAnalytics')
+  const { token } = theme.useToken()
   const [data, setData] = useState<VisitSummary>(initialData)
   const [loading, setLoading] = useState(false)
 
@@ -39,7 +40,6 @@ export function AdminAnalyticsClient({ initialData }: AdminAnalyticsClientProps)
     }
   }
 
-  // Auto-refresh every 5 minutes
   useEffect(() => {
     const interval = setInterval(() => {
       void fetchData()
@@ -47,7 +47,6 @@ export function AdminAnalyticsClient({ initialData }: AdminAnalyticsClientProps)
     return () => clearInterval(interval)
   }, [])
 
-  // Export data as CSV
   const exportData = () => {
     const csvContent = [
       ['Date', 'Visits'],
@@ -84,7 +83,6 @@ export function AdminAnalyticsClient({ initialData }: AdminAnalyticsClientProps)
   }
 
   const trendData = data.last7Days.map((item) => {
-    // 将 "YYYY-MM-DD" 转换为 "MM/DD" 格式
     const [, month, day] = item.date.split('-')
     return {
       name: `${month}/${day}`,
@@ -98,23 +96,49 @@ export function AdminAnalyticsClient({ initialData }: AdminAnalyticsClientProps)
   }))
   const hasChartData = todayData.length > 0 || trendData.length > 0
 
+  const statStyles = {
+    title: { color: token.colorTextSecondary, fontSize: 14 },
+    content: { fontSize: 28, fontWeight: 700, color: token.colorText },
+  }
+
+  const chartContainerStyle = {
+    borderRadius: token.borderRadiusLG,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    backgroundColor: token.colorBgContainer,
+    padding: 24,
+  }
+
+  const listItemStyle = (
+    padding = 12,
+    borderRadius = token.borderRadius,
+    bgHover = token.colorFillTertiary,
+    transition = 'background-color 0.2s',
+  ) => ({
+    display: 'flex' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    padding,
+    borderRadius,
+    backgroundColor: 'transparent',
+    ':hover': { backgroundColor: bgHover },
+    transition,
+  })
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 className="text-xl font-semibold text-text-primary">{t('title')}</h1>
-          <p className="text-sm text-text-secondary">
+          <h1 style={{ fontSize: 20, fontWeight: 600, color: token.colorText, margin: 0 }}>{t('title')}</h1>
+          <p style={{ fontSize: 14, color: token.colorTextSecondary, margin: '4px 0 0' }}>
             {t('subtitle')}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Button
-            type="default"
             size="middle"
+            icon={<DownloadOutlined />}
             onClick={exportData}
-            className="rounded-lg border border-border bg-background hover:bg-background/80 text-text-secondary transition-all duration-200 flex items-center gap-2"
           >
-            <DownloadIcon size={16} />
             {t('export')}
           </Button>
           <Button
@@ -122,7 +146,7 @@ export function AdminAnalyticsClient({ initialData }: AdminAnalyticsClientProps)
             size="middle"
             loading={loading}
             onClick={fetchData}
-            className="rounded-lg bg-primary hover:bg-primary/90 text-white transition-all duration-200"
+            icon={<ReloadOutlined />}
           >
             {t('refresh')}
           </Button>
@@ -130,94 +154,76 @@ export function AdminAnalyticsClient({ initialData }: AdminAnalyticsClientProps)
       </div>
 
       {!hasChartData && (
-        <div className="rounded-lg border border-border bg-background p-8 flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-            <div className="w-8 h-8 text-primary">📊</div>
-          </div>
-          <h3 className="text-lg font-semibold text-text-primary mb-2">{t('empty')}</h3>
-          <p className="text-text-secondary text-sm text-center">
+        <div style={{
+          borderRadius: token.borderRadiusLG,
+          border: `1px solid ${token.colorBorderSecondary}`,
+          backgroundColor: token.colorBgContainer,
+          padding: 32,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            backgroundColor: token.colorPrimaryBg,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 16,
+            fontSize: 32,
+            color: token.colorPrimary,
+          }}>📊</div>
+          <h3 style={{ fontSize: 18, fontWeight: 600, color: token.colorText, marginBottom: 8 }}>{t('empty')}</h3>
+          <p style={{ color: token.colorTextSecondary, fontSize: 14, textAlign: 'center' }}>
             {t('emptyDescription')}
           </p>
         </div>
       )}
 
-      {/* Key Metrics */}
       <Row gutter={[16, 16]}>
         <Col xs={12} md={6}>
-          <div className="rounded-lg border border-border bg-background p-4">
-            <Statistic
-              title={t('todayVisits')}
-              value={data.todayVisits}
-              styles={{ 
-                title: { color: 'var(--text-secondary)', fontSize: '14px' },
-                content: { fontSize: '28px', fontWeight: 'bold', color: 'var(--text-primary)' }
-              }}
-            />
+          <div style={{ borderRadius: token.borderRadiusLG, border: `1px solid ${token.colorBorderSecondary}`, backgroundColor: token.colorBgContainer, padding: 16 }}>
+            <Statistic title={t('todayVisits')} value={data.todayVisits} styles={statStyles} />
           </div>
         </Col>
         <Col xs={12} md={6}>
-          <div className="rounded-lg border border-border bg-background p-4">
-            <Statistic
-              title={t('yesterdayVisits')}
-              value={data.yesterdayVisits}
-              styles={{ 
-                title: { color: 'var(--text-secondary)', fontSize: '14px' },
-                content: { fontSize: '28px', fontWeight: 'bold', color: 'var(--text-primary)' }
-              }}
-            />
+          <div style={{ borderRadius: token.borderRadiusLG, border: `1px solid ${token.colorBorderSecondary}`, backgroundColor: token.colorBgContainer, padding: 16 }}>
+            <Statistic title={t('yesterdayVisits')} value={data.yesterdayVisits} styles={statStyles} />
           </div>
         </Col>
         <Col xs={12} md={6}>
-          <div className="rounded-lg border border-border bg-background p-4">
-            <Statistic
-              title={t('last7DaysTotal')}
-              value={data.totalVisits}
-              styles={{ 
-                title: { color: 'var(--text-secondary)', fontSize: '14px' },
-                content: { fontSize: '28px', fontWeight: 'bold', color: 'var(--text-primary)' }
-              }}
-            />
+          <div style={{ borderRadius: token.borderRadiusLG, border: `1px solid ${token.colorBorderSecondary}`, backgroundColor: token.colorBgContainer, padding: 16 }}>
+            <Statistic title={t('last7DaysTotal')} value={data.totalVisits} styles={statStyles} />
           </div>
         </Col>
         <Col xs={12} md={6}>
-          <div className="rounded-lg border border-border bg-background p-4">
-            <Statistic
-              title={t('uniqueIpCount')}
-              value={data.uniqueIpCount}
-              styles={{ 
-                title: { color: 'var(--text-secondary)', fontSize: '14px' },
-                content: { fontSize: '28px', fontWeight: 'bold', color: 'var(--text-primary)' }
-              }}
-            />
+          <div style={{ borderRadius: token.borderRadiusLG, border: `1px solid ${token.colorBorderSecondary}`, backgroundColor: token.colorBgContainer, padding: 16 }}>
+            <Statistic title={t('uniqueIpCount')} value={data.uniqueIpCount} styles={statStyles} />
           </div>
         </Col>
       </Row>
 
-      {/* Today's Visits Chart */}
-      <div className="rounded-lg border border-border bg-background p-6">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">{t('todayHourly')}</h3>
+      <div style={chartContainerStyle}>
+        <h3 style={{ fontSize: 18, fontWeight: 600, color: token.colorText, marginBottom: 16 }}>{t('todayHourly')}</h3>
         {loading && <Skeleton active paragraph={{ rows: 4 }} />}
         {!loading && (
           <div style={{ width: '100%', height: 300 }}>
             <ResponsiveContainer>
               <LineChart data={todayData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)' }} />
-                <YAxis allowDecimals={false} tick={{ fill: 'var(--text-secondary)' }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'var(--background-alt)', 
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px'
-                  }} 
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke={token.colorBorderSecondary} />
+                <XAxis dataKey="name" tick={{ fill: token.colorTextSecondary }} />
+                <YAxis allowDecimals={false} tick={{ fill: token.colorTextSecondary }} />
+                <Tooltip contentStyle={{ backgroundColor: token.colorBgElevated, border: `1px solid ${token.colorBorderSecondary}`, borderRadius: token.borderRadius }} />
                 <Line
                   type="monotone"
                   dataKey="value"
-                  stroke="var(--primary)"
+                  stroke={token.colorPrimary}
                   name={t('visits')}
-                  dot={{ r: 4, fill: 'var(--primary)', strokeWidth: 2, stroke: 'var(--background-alt)' }}
-                  activeDot={{ r: 6, fill: 'var(--primary)', strokeWidth: 2, stroke: 'var(--background-alt)' }}
+                  dot={{ r: 4, fill: token.colorPrimary, strokeWidth: 2, stroke: token.colorBgElevated }}
+                  activeDot={{ r: 6, fill: token.colorPrimary, strokeWidth: 2, stroke: token.colorBgElevated }}
                   strokeWidth={3}
                 />
               </LineChart>
@@ -226,31 +232,24 @@ export function AdminAnalyticsClient({ initialData }: AdminAnalyticsClientProps)
         )}
       </div>
 
-      {/* Last 7 Days Chart */}
-      <div className="rounded-lg border border-border bg-background p-6">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">{t('last7DaysTrend')}</h3>
+      <div style={chartContainerStyle}>
+        <h3 style={{ fontSize: 18, fontWeight: 600, color: token.colorText, marginBottom: 16 }}>{t('last7DaysTrend')}</h3>
         {loading && <Skeleton active paragraph={{ rows: 4 }} />}
         {!loading && (
           <div style={{ width: '100%', height: 300 }}>
             <ResponsiveContainer>
               <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)' }} />
-                <YAxis allowDecimals={false} tick={{ fill: 'var(--text-secondary)' }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'var(--background-alt)', 
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px'
-                  }} 
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke={token.colorBorderSecondary} />
+                <XAxis dataKey="name" tick={{ fill: token.colorTextSecondary }} />
+                <YAxis allowDecimals={false} tick={{ fill: token.colorTextSecondary }} />
+                <Tooltip contentStyle={{ backgroundColor: token.colorBgElevated, border: `1px solid ${token.colorBorderSecondary}`, borderRadius: token.borderRadius }} />
                 <Line
                   type="monotone"
                   dataKey="value"
-                  stroke="var(--primary)"
+                  stroke={token.colorPrimary}
                   name={t('visits')}
-                  dot={{ r: 4, fill: 'var(--primary)', strokeWidth: 2, stroke: 'var(--background-alt)' }}
-                  activeDot={{ r: 6, fill: 'var(--primary)', strokeWidth: 2, stroke: 'var(--background-alt)' }}
+                  dot={{ r: 4, fill: token.colorPrimary, strokeWidth: 2, stroke: token.colorBgElevated }}
+                  activeDot={{ r: 6, fill: token.colorPrimary, strokeWidth: 2, stroke: token.colorBgElevated }}
                   strokeWidth={3}
                 />
               </LineChart>
@@ -259,54 +258,53 @@ export function AdminAnalyticsClient({ initialData }: AdminAnalyticsClientProps)
         )}
       </div>
 
-      {/* Page and Source Distribution */}
       <Row gutter={[16, 16]}>
         <Col xs={24} md={12}>
-          <div className="rounded-lg border border-border bg-background p-6">
-            <h3 className="text-lg font-semibold text-text-primary mb-4">{t('pageDistribution')}</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
-                <span className="text-text-secondary">{t('home')}</span>
-                <span className="font-semibold text-text-primary">{data.pages.home}</span>
+          <div style={chartContainerStyle}>
+            <h3 style={{ fontSize: 18, fontWeight: 600, color: token.colorText, marginBottom: 16 }}>{t('pageDistribution')}</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={listItemStyle()}>
+                <span style={{ color: token.colorTextSecondary }}>{t('home')}</span>
+                <span style={{ fontWeight: 600, color: token.colorText }}>{data.pages.home}</span>
               </div>
-              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
-                <span className="text-text-secondary">{t('gallery')}</span>
-                <span className="font-semibold text-text-primary">{data.pages.gallery}</span>
+              <div style={listItemStyle()}>
+                <span style={{ color: token.colorTextSecondary }}>{t('gallery')}</span>
+                <span style={{ fontWeight: 600, color: token.colorText }}>{data.pages.gallery}</span>
               </div>
-              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
-                <span className="text-text-secondary">{t('albumDetail')}</span>
-                <span className="font-semibold text-text-primary">{data.pages.album}</span>
+              <div style={listItemStyle()}>
+                <span style={{ color: token.colorTextSecondary }}>{t('albumDetail')}</span>
+                <span style={{ fontWeight: 600, color: token.colorText }}>{data.pages.album}</span>
               </div>
-              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
-                <span className="text-text-secondary">{t('admin')}</span>
-                <span className="font-semibold text-text-primary">{data.pages.admin}</span>
+              <div style={listItemStyle()}>
+                <span style={{ color: token.colorTextSecondary }}>{t('admin')}</span>
+                <span style={{ fontWeight: 600, color: token.colorText }}>{data.pages.admin}</span>
               </div>
-              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
-                <span className="text-text-secondary">{t('other')}</span>
-                <span className="font-semibold text-text-primary">{data.pages.other}</span>
+              <div style={listItemStyle()}>
+                <span style={{ color: token.colorTextSecondary }}>{t('other')}</span>
+                <span style={{ fontWeight: 600, color: token.colorText }}>{data.pages.other}</span>
               </div>
             </div>
           </div>
         </Col>
         <Col xs={24} md={12}>
-          <div className="rounded-lg border border-border bg-background p-6">
-            <h3 className="text-lg font-semibold text-text-primary mb-4">{t('sourceDistribution')}</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
-                <span className="text-text-secondary">{t('direct')}</span>
-                <span className="font-semibold text-text-primary">{data.sources.direct}</span>
+          <div style={chartContainerStyle}>
+            <h3 style={{ fontSize: 18, fontWeight: 600, color: token.colorText, marginBottom: 16 }}>{t('sourceDistribution')}</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={listItemStyle()}>
+                <span style={{ color: token.colorTextSecondary }}>{t('direct')}</span>
+                <span style={{ fontWeight: 600, color: token.colorText }}>{data.sources.direct}</span>
               </div>
-              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
-                <span className="text-text-secondary">{t('referer')}</span>
-                <span className="font-semibold text-text-primary">{data.sources.referer}</span>
+              <div style={listItemStyle()}>
+                <span style={{ color: token.colorTextSecondary }}>{t('referer')}</span>
+                <span style={{ fontWeight: 600, color: token.colorText }}>{data.sources.referer}</span>
               </div>
-              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
-                <span className="text-text-secondary">{t('search')}</span>
-                <span className="font-semibold text-text-primary">{data.sources.search}</span>
+              <div style={listItemStyle()}>
+                <span style={{ color: token.colorTextSecondary }}>{t('search')}</span>
+                <span style={{ fontWeight: 600, color: token.colorText }}>{data.sources.search}</span>
               </div>
-              <div className="flex justify-between items-center p-3 rounded-lg hover:bg-background/80 transition-colors duration-200">
-                <span className="text-text-secondary">{t('other')}</span>
-                <span className="font-semibold text-text-primary">{data.sources.other}</span>
+              <div style={listItemStyle()}>
+                <span style={{ color: token.colorTextSecondary }}>{t('other')}</span>
+                <span style={{ fontWeight: 600, color: token.colorText }}>{data.sources.other}</span>
               </div>
             </div>
           </div>
@@ -316,7 +314,6 @@ export function AdminAnalyticsClient({ initialData }: AdminAnalyticsClientProps)
   )
 }
 
-// Keep the old default export for backward compatibility
 export default function AntdChart({
   data,
   dataKey = 'value',
@@ -326,6 +323,7 @@ export default function AntdChart({
   dataKey?: string
   name?: string
 }) {
+  const { token } = theme.useToken()
   return (
     <Card>
       <ResponsiveContainer width="100%" height={300}>
@@ -333,7 +331,7 @@ export default function AntdChart({
           <XAxis dataKey="name" />
           <YAxis />
           <Tooltip />
-          <Line type="monotone" dataKey={dataKey} stroke="var(--primary)" name={name} />
+          <Line type="monotone" dataKey={dataKey} stroke={token.colorPrimary} name={name} />
         </LineChart>
       </ResponsiveContainer>
     </Card>

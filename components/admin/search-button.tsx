@@ -1,6 +1,6 @@
 'use client'
 
-import { Search } from 'lucide-react'
+import { SearchOutlined } from '@ant-design/icons'
 import { useButtonStore } from '~/app/providers/button-store-providers'
 import { usePathname } from 'next/navigation'
 
@@ -13,7 +13,7 @@ export default function SearchButton() {
   return (
     <>
       {
-        pathname.startsWith('/admin') && <Search onClick={() => setSearchOpen(true)} size={20} />
+        pathname.startsWith('/admin') && <SearchOutlined onClick={() => setSearchOpen(true)} />
       }
     </>
   )

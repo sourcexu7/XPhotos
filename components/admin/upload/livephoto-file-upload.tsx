@@ -1,19 +1,19 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { toast } from 'sonner'
+import { message, theme } from 'antd'
 import useSWR from 'swr'
 import { fetcher } from '~/lib/utils/fetcher'
 import type { ExifType, AlbumType } from '~/types'
 import { App as AntApp, Upload as AntUpload, Button as AntButton, Input as AntInput, Form as AntForm, Modal as AntModal, Tag as AntTag, Card as AntCard, Progress as AntProgress, InputNumber as AntInputNumber, DatePicker as AntDatePicker, Select } from 'antd'
-import MultipleSelector from '~/components/ui/origin/multiselect'
+
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import zhCN from 'antd/es/date-picker/locale/zh_CN'
 import { CloseOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { exifReader, uploadFile } from '~/lib/utils/file'
-import { UploadIcon } from '~/components/icons/upload'
+import { UploadOutlined } from '@ant-design/icons'
 import { heicTo, isHeic } from 'heic-to'
 import { encodeBrowserThumbHash } from '~/lib/utils/blurhash-client'
 import { compressImage, getCompressOptionsFromConfigs } from '~/lib/utils/compress'
@@ -46,6 +46,7 @@ interface LivePhotoFile extends File {
 
 export default function LivephotoFileUpload() {
   dayjs.locale('zh-cn')
+  const { token } = theme.useToken()
   const { modal } = AntApp.useApp()
   const referenceInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -169,19 +170,19 @@ export default function LivephotoFileUpload() {
         return
       }
       if (album === '') {
-        toast.warning(t('Tips.selectAlbumFirst'))
+        message.warning(t('Tips.selectAlbumFirst'))
         return
       }
       if (!height || height <= 0) {
-        toast.warning(t('Tips.imageHeightRequired'))
+        message.warning(t('Tips.imageHeightRequired'))
         return
       }
       if (!width || width <= 0) {
-        toast.warning(t('Tips.imageWidthRequired'))
+        message.warning(t('Tips.imageWidthRequired'))
         return
       }
       if (!videoUrl || videoUrl === '') {
-        toast.warning(t('Upload.videoRequired'))
+        message.warning(t('Upload.videoRequired'))
         return
       }
 
@@ -236,12 +237,12 @@ export default function LivephotoFileUpload() {
               await onRequestUploadImage(imageFile, imageId || undefined)
             } catch (e) {
               console.error('Re-upload after failed remote verification error', e)
-              toast.error(t('Tips.cloudRemoteFileAnomalyRetryFailed'))
+              message.error(t('Tips.cloudRemoteFileAnomalyRetryFailed'))
               setIsSubmitting(false)
               return
             }
           } else {
-            toast.error(t('Tips.remoteOriginOrPreviewMissing'))
+            message.error(t('Tips.remoteOriginOrPreviewMissing'))
             setIsSubmitting(false)
             return
           }
@@ -253,12 +254,12 @@ export default function LivephotoFileUpload() {
               await onRequestUploadVideo(videoFile)
             } catch (e) {
               console.error('Re-upload video after failed remote verification error', e)
-              toast.error(t('Tips.cloudRemoteVideoAnomalyRetryFailed'))
+              message.error(t('Tips.cloudRemoteVideoAnomalyRetryFailed'))
               setIsSubmitting(false)
               return
             }
           } else {
-            toast.error(t('Tips.remoteVideoMissing'))
+            message.error(t('Tips.remoteVideoMissing'))
             setIsSubmitting(false)
             return
           }
@@ -292,12 +293,12 @@ export default function LivephotoFileUpload() {
       }, 15000).then(r => r.json())
 
       if (res?.code === 200) {
-        toast.success(t('Tips.saveSuccess'))
+        message.success(t('Tips.saveSuccess'))
       } else {
-        toast.error(t('Tips.saveFailed'))
+        message.error(t('Tips.saveFailed'))
       }
     } catch {
-      toast.error(t('Tips.saveFailed'))
+      message.error(t('Tips.saveFailed'))
     } finally {
       setIsSubmitting(false)
       setTotalUploadProgress(0)
@@ -313,10 +314,10 @@ export default function LivephotoFileUpload() {
       const { tags } = await exifReader(file)
       setLat(tags?.GPSLatitude?.description || '')
       setLon(tags?.GPSLongitude?.description || '')
-      toast.success(t('Upload.referenceExifToastSuccess'))
+      message.success(t('Upload.referenceExifToastSuccess'))
     } catch (err) {
       console.error('Reference EXIF parse failed', err)
-      toast.error(t('Upload.referenceExifToastError'))
+      message.error(t('Upload.referenceExifToastError'))
     }
   }, [exifDataHook, exif, t])
 
@@ -554,7 +555,7 @@ export default function LivephotoFileUpload() {
             </label>
             <Select
               value={storageConfig.storage || undefined}
-              onChange={(value: string) => { storageConfig.handleStorageChange(value); if (value === 's3') { try { toast.info(t('Tips.switchToS3Info')) } catch {} } }}
+              onChange={(value: string) => { storageConfig.handleStorageChange(value); if (value === 's3') { try { message.info(t('Tips.switchToS3Info')) } catch {} } }}
               placeholder={t('Upload.selectStorage')}
               className="w-full"
               options={storageConfig.storages}
@@ -615,8 +616,8 @@ export default function LivephotoFileUpload() {
               }}
               disabled={(!imageFile && !videoFile && (!url || url === '')) || album === '' || storageConfig.storage === '' || (storageConfig.storage === 'alist' && storageConfig.alistMountPath === '') || isUploading}
               style={{
-                backgroundColor: 'var(--primary)',
-                borderColor: 'var(--primary)',
+                backgroundColor: token.colorPrimary,
+                borderColor: token.colorPrimary,
                 borderRadius: '8px',
                 fontWeight: '500',
                 transition: 'all 0.2s ease-in-out'
@@ -643,7 +644,7 @@ export default function LivephotoFileUpload() {
               await handleSubmit()
             } catch (e) {
               console.error(e)
-              toast.error(t('Upload.uploadError'))
+              message.error(t('Upload.uploadError'))
             } finally {
               setIsSubmitting(false)
             }
@@ -667,9 +668,9 @@ export default function LivephotoFileUpload() {
                 style={{
                   padding: 24,
                   minHeight: 160,
-                  border: '2px dashed var(--border)',
+                  border: `2px dashed ${token.colorBorder}`,
                   borderRadius: '12px',
-                  backgroundColor: 'var(--background)',
+                  backgroundColor: token.colorBgContainer,
                   transition: 'all 0.2s ease-in-out'
                 }}
                 onChange={(info) => {
@@ -683,11 +684,11 @@ export default function LivephotoFileUpload() {
                   }
                 }}
               >
-                <div className="flex flex-col items-center justify-center h-full gap-3">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <UploadIcon className="w-6 h-6 text-primary" />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: token.colorPrimaryBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <UploadOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
                   </div>
-                  <p className="font-semibold text-text-primary">{t('Upload.dragOrClickImage')}</p>
+                  <p style={{ fontWeight: 600, color: token.colorText }}>{t('Upload.dragOrClickImage')}</p>
                   <p className="text-text-secondary text-sm">{t('Upload.uploadTipsLivePhotoImage')}</p>
                   {(storageConfig.storage === '' || album === '' || (storageConfig.storage === 'alist' && storageConfig.alistMountPath === '')) && (
                     <p className="text-text-muted text-sm">
@@ -709,9 +710,9 @@ export default function LivephotoFileUpload() {
                 style={{
                   padding: 24,
                   minHeight: 160,
-                  border: '2px dashed var(--border)',
+                  border: `2px dashed ${token.colorBorder}`,
                   borderRadius: '12px',
-                  backgroundColor: 'var(--background)',
+                  backgroundColor: token.colorBgContainer,
                   transition: 'all 0.2s ease-in-out'
                 }}
                 onChange={(info) => {
@@ -725,11 +726,11 @@ export default function LivephotoFileUpload() {
                   }
                 }}
               >
-                <div className="flex flex-col items-center justify-center h-full gap-3">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <UploadIcon className="w-6 h-6 text-primary" />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: token.colorPrimaryBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <UploadOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
                   </div>
-                  <p className="font-semibold text-text-primary">{t('Upload.dragOrClickVideo')}</p>
+                  <p style={{ fontWeight: 600, color: token.colorText }}>{t('Upload.dragOrClickVideo')}</p>
                   <p className="text-text-secondary text-sm">{t('Upload.uploadTipsLivePhotoVideo')}</p>
                   {(storageConfig.storage === '' || album === '' || (storageConfig.storage === 'alist' && storageConfig.alistMountPath === '')) && (
                     <p className="text-text-muted text-sm">
@@ -752,7 +753,7 @@ export default function LivephotoFileUpload() {
                 <AntProgress
                   percent={Math.round(totalUploadProgress)}
                   status="active"
-                  strokeColor="var(--primary)"
+                  strokeColor={token.colorPrimary}
                   size={8}
                   showInfo={false}
                   className="mb-2"
@@ -775,7 +776,7 @@ export default function LivephotoFileUpload() {
                 <AntProgress
                   percent={Math.round(videoUploadProgress)}
                   status="active"
-                  strokeColor="var(--primary)"
+                  strokeColor={token.colorPrimary}
                   size={8}
                   showInfo={false}
                   className="mb-2"
@@ -793,12 +794,12 @@ export default function LivephotoFileUpload() {
                 {imageFile && (
                   <div className="flex items-center justify-between p-3 border border-border rounded-lg mb-3 bg-background">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <UploadIcon className="w-5 h-5 text-primary" />
+                      <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: token.colorPrimaryBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <UploadOutlined style={{ fontSize: 20, color: token.colorPrimary }} />
                       </div>
                       <div>
-                        <div className="font-medium text-text-primary">{imageFile.name}</div>
-                        <div className="text-sm text-text-secondary">
+                        <div style={{ fontWeight: 500, color: token.colorText }}>{imageFile.name}</div>
+                        <div style={{ fontSize: 14, color: token.colorTextSecondary }}>
                           {(imageFile.size / 1024 / 1024).toFixed(2)} MB
                           {url && <span className="ml-2 text-success">{t('Upload.statusUploaded')}</span>}
                         </div>
@@ -818,12 +819,12 @@ export default function LivephotoFileUpload() {
                 {videoFile && (
                   <div className="flex items-center justify-between p-3 border border-border rounded-lg mb-3 bg-background">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <UploadIcon className="w-5 h-5 text-primary" />
+                      <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: token.colorPrimaryBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <UploadOutlined style={{ fontSize: 20, color: token.colorPrimary }} />
                       </div>
                       <div>
-                        <div className="font-medium text-text-primary">{videoFile.name}</div>
-                        <div className="text-sm text-text-secondary">
+                        <div style={{ fontWeight: 500, color: token.colorText }}>{videoFile.name}</div>
+                        <div style={{ fontSize: 14, color: token.colorTextSecondary }}>
                           {(videoFile.size / 1024 / 1024).toFixed(2)} MB
                           {videoUrl && <span className="ml-2 text-success">{t('Upload.statusUploaded')}</span>}
                         </div>
@@ -872,16 +873,17 @@ export default function LivephotoFileUpload() {
                     extra={<a onClick={() => { exifPresets.setEditingText({ cameraModels: exifPresets.presets.cameraModels.join(', '), shutterSpeeds: exifPresets.presets.shutterSpeeds.join(', '), isos: exifPresets.presets.isos.join(', '), apertures: exifPresets.presets.apertures.join(', ') }); exifPresets.openModal() }}>{t('Upload.manageCommonExifOptionsLink')}</a>}
                   >
                     <div>
-                      <MultipleSelector
-                        value={exif?.model ? [{ value: String(exif.model), label: String(exif.model) }] : []}
-                        options={exifPresets.presets.cameraModels.map((m: string) => ({ value: m, label: m }))}
+                      <Select
+                        mode="tags"
+                        value={exif?.model ? [String(exif.model)] : []}
+                        options={exifPresets.presets.cameraModels.map((m: string) => ({ label: m, value: m }))}
                         placeholder={t('Upload.exifCameraModelManualPlaceholder')}
-                        creatable
-                        maxSelected={1}
-                        onChange={(opts?: any) => {
-                          const v = (opts && opts[0] && opts[0].value) || ''
+                        onChange={(vals: string[] | string | undefined) => {
+                          const arrVals = Array.isArray(vals) ? vals : (vals ? [String(vals)] : [])
+                          const v = arrVals[arrVals.length - 1] || ''
                           setExif({ ...(exif || {}), model: v })
                         }}
+                        style={{ width: '100%' }}
                       />
                     </div>
                   </AntForm.Item>
@@ -958,8 +960,8 @@ export default function LivephotoFileUpload() {
                       placeholder={t('Upload.inputTitle')}
                       onChange={(e) => setTitle(e.target.value)}
                       style={{
-                        borderRadius: '8px',
-                        borderColor: 'var(--border)',
+                      borderRadius: token.borderRadius,
+                      borderColor: token.colorBorder,
                         transition: 'all 0.2s ease-in-out'
                       }}
                     />
@@ -971,9 +973,9 @@ export default function LivephotoFileUpload() {
                       disabled
                       value={url}
                       style={{
-                        borderRadius: '8px',
-                        borderColor: 'var(--border)',
-                        backgroundColor: 'var(--background)'
+                      borderRadius: token.borderRadius,
+                      borderColor: token.colorBorder,
+                      backgroundColor: token.colorBgContainer
                       }}
                     />
                     {!url && (
@@ -987,9 +989,9 @@ export default function LivephotoFileUpload() {
                       disabled
                       value={previewUrl}
                       style={{
-                        borderRadius: '8px',
-                        borderColor: 'var(--border)',
-                        backgroundColor: 'var(--background)'
+                      borderRadius: token.borderRadius,
+                      borderColor: token.colorBorder,
+                      backgroundColor: token.colorBgContainer
                       }}
                     />
                   </div>
@@ -1000,9 +1002,9 @@ export default function LivephotoFileUpload() {
                       disabled
                       value={videoUrl}
                       style={{
-                        borderRadius: '8px',
-                        borderColor: 'var(--border)',
-                        backgroundColor: 'var(--background)'
+                      borderRadius: token.borderRadius,
+                      borderColor: token.colorBorder,
+                      backgroundColor: token.colorBgContainer
                       }}
                     />
                     {!videoUrl && (
@@ -1019,9 +1021,9 @@ export default function LivephotoFileUpload() {
                         onChange={(val) => setWidth(Number(val) || 0)}
                         style={{
                           width: '100%',
-                          borderRadius: '8px',
-                          borderColor: 'var(--border)',
-                          backgroundColor: 'var(--background)'
+                          borderRadius: token.borderRadius,
+                          borderColor: token.colorBorder,
+                        backgroundColor: token.colorBgContainer
                         }}
                       />
                       {!width && (
@@ -1036,9 +1038,9 @@ export default function LivephotoFileUpload() {
                         onChange={(val) => setHeight(Number(val) || 0)}
                         style={{
                           width: '100%',
-                          borderRadius: '8px',
-                          borderColor: 'var(--border)',
-                          backgroundColor: 'var(--background)'
+                          borderRadius: token.borderRadius,
+                          borderColor: token.colorBorder,
+                        backgroundColor: token.colorBgContainer
                         }}
                       />
                       {!height && (
@@ -1059,9 +1061,9 @@ export default function LivephotoFileUpload() {
                       value={lon}
                       onChange={(e) => setLon(e.target.value)}
                       style={{
-                        borderRadius: '8px',
-                        borderColor: 'var(--border)',
-                        backgroundColor: 'var(--background)'
+                      borderRadius: token.borderRadius,
+                      borderColor: token.colorBorder,
+                      backgroundColor: token.colorBgContainer
                       }}
                     />
                   </div>
@@ -1072,9 +1074,9 @@ export default function LivephotoFileUpload() {
                       value={lat}
                       onChange={(e) => setLat(e.target.value)}
                       style={{
-                        borderRadius: '8px',
-                        borderColor: 'var(--border)',
-                        backgroundColor: 'var(--background)'
+                      borderRadius: token.borderRadius,
+                      borderColor: token.colorBorder,
+                      backgroundColor: token.colorBgContainer
                       }}
                     />
                   </div>
@@ -1090,8 +1092,8 @@ export default function LivephotoFileUpload() {
                     onChange={(e) => setDetail(e.target.value)}
                     placeholder={t('Upload.inputDetail')}
                     style={{
-                      borderRadius: '8px',
-                      borderColor: 'var(--border)',
+                      borderRadius: token.borderRadius,
+                      borderColor: token.colorBorder,
                       transition: 'all 0.2s ease-in-out'
                     }}
                   />
@@ -1115,9 +1117,9 @@ export default function LivephotoFileUpload() {
                               borderRadius: '16px',
                               padding: '4px 12px',
                               fontSize: '12px',
-                              backgroundColor: isSelected ? 'var(--primary)' : undefined,
-                              color: isSelected ? '#FFFFFF' : undefined,
-                              borderColor: isSelected ? 'var(--primary)' : undefined
+                              backgroundColor: isSelected ? token.colorPrimary : undefined,
+                              color: isSelected ? token.colorBgBase : undefined,
+                              borderColor: isSelected ? token.colorPrimary : undefined
                             }}
                             onClick={() => tagManagement.togglePresetTag(tag)}
                           >
@@ -1140,30 +1142,36 @@ export default function LivephotoFileUpload() {
                         className="w-full"
                         options={tagTree.filter(Boolean).map((n) => ({ label: n.category ?? t('Upload.tagUncategorized'), value: n.category }))}
                         style={{
-                          borderRadius: '8px',
-                          borderColor: 'var(--border)'
+                          borderRadius: token.borderRadius,
+                          borderColor: token.colorBorder
                         }}
                       />
-                      <MultipleSelector
-                        value={(tagManagement.secondarySelect || []).map((s: string) => ({ value: s, label: s }))}
-                        options={(tagTree.find((t) => String(t.category) === String(tagManagement.primarySelect))?.children || []).map((c: any) => ({ value: c.name, label: c.name }))}
+                      <Select
+                        mode="multiple"
+                        value={(tagManagement.secondarySelect || []) as string[]}
+                        options={(tagTree.find((t) => String(t.category) === String(tagManagement.primarySelect))?.children || []).map((c: any) => ({ label: c.name, value: c.name }))}
                         placeholder={t('Upload.tagChildrenPlaceholderMultiple')}
-                        onChange={(opts?: any) => {
-                          const vals = (opts || []).map((o: any) => o.value)
-                          tagManagement.handleCascaderChange([tagManagement.primarySelect || '', ...vals])
+                        onChange={(vals: string[] | string | undefined) => {
+                          const arrVals = Array.isArray(vals) ? vals : (vals ? [String(vals)] : [])
+                          tagManagement.handleCascaderChange([tagManagement.primarySelect || '', ...arrVals])
                         }}
+                        style={{ width: '100%' }}
                       />
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.customTagsHeading')}</label>
-                    <MultipleSelector
-                      value={(tagManagement.labels.filter(Boolean) || []).map((s: string) => ({ value: s, label: s }))}
-                      options={(presetTags || []).map((s: string) => ({ value: s, label: s }))}
-                      creatable
+                    <Select
+                      mode="tags"
+                      value={(tagManagement.labels.filter(Boolean) || []) as string[]}
+                      options={(presetTags || []).map((s: string) => ({ label: s, value: s }))}
                       placeholder={t('Upload.indexTag')}
-                      onChange={(opts?: any) => tagManagement.handleLabelsChange((opts || []).map((o:any)=>o.value))}
+                      onChange={(vals: string[] | string | undefined) => {
+                        const arrVals = Array.isArray(vals) ? vals : (vals ? [String(vals)] : [])
+                        tagManagement.handleLabelsChange(arrVals)
+                      }}
+                      style={{ width: '100%' }}
                     />
                   </div>
                 </div>

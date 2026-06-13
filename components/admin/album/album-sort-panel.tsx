@@ -1,32 +1,29 @@
 'use client'
 
 import React, { useEffect, useState, useCallback, useMemo, useRef, useTransition } from 'react'
-import { toast } from 'sonner'
-import { 
-  ArrowUp, 
-  ArrowDown, 
-  Pin, 
-  ArrowDownToLine, 
-  RotateCcw, 
-  Check, 
-  Move, 
-  Loader2,
-  Image as ImageIcon
-} from 'lucide-react'
-import { Button } from '~/components/ui/button'
-import { Checkbox } from '~/components/ui/checkbox'
+import { message } from 'antd'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '~/components/ui/sheet'
-import { Badge } from '~/components/ui/badge'
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  PushpinOutlined,
+  DownloadOutlined,
+  ReloadOutlined,
+  CheckOutlined,
+  HolderOutlined,
+  LoadingOutlined,
+  PictureOutlined,
+} from '@ant-design/icons'
+import {
+  Drawer,
+  Button,
+  Checkbox,
+  Badge,
+  Space,
+  theme,
+} from 'antd'
 import { useTranslations } from 'next-intl'
 import { FixedSizeList as List } from 'react-window'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 
 interface AlbumSortImage {
   id: string
@@ -105,11 +102,8 @@ function ImageItem({
       <div className="flex items-center justify-center">
         <Checkbox
           checked={selected}
-          onCheckedChange={onToggleSelect}
+          onChange={onToggleSelect}
           aria-label={`选择 ${image.image_name || image.id}`}
-          className={`data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500 ${
-            selected ? 'ring-2 ring-amber-500/30 ring-offset-1' : ''
-          } transition-all duration-200`}
         />
       </div>
 
@@ -134,7 +128,7 @@ function ImageItem({
           />
         ) : (
           <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-slate-800 dark:to-slate-900">
-            <ImageIcon className="h-6 w-6 text-gray-400 dark:text-slate-500" />
+            <PictureOutlined />
           </div>
         )}
       </div>
@@ -146,66 +140,45 @@ function ImageItem({
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
           <span className="font-mono">{image.width} × {image.height}</span>
           {image.featured === 1 && (
-            <Badge 
-              variant="secondary" 
-              className="ml-1 text-xs bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 dark:from-amber-900/60 dark:to-orange-900/60 dark:text-amber-200 border-amber-200/50"
-            >
-              {featuredText}
-            </Badge>
+            <Badge color="gold">{featuredText}</Badge>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5">
-        <motion.div whileHover={reduce ? {} : { scale: 1.1 }} whileTap={reduce ? {} : { scale: 0.95 }}>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-9 w-9 rounded-xl text-gray-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/80 dark:hover:bg-amber-900/30 transition-all duration-200"
-            onClick={onMoveToTop}
-            disabled={index === 0 || saving}
-            title="置顶"
-          >
-            <Pin className="h-4 w-4" />
-          </Button>
-        </motion.div>
-        <motion.div whileHover={reduce ? {} : { scale: 1.1 }} whileTap={reduce ? {} : { scale: 0.95 }}>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-9 w-9 rounded-xl text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/80 dark:hover:bg-blue-900/30 transition-all duration-200"
-            onClick={onMoveUp}
-            disabled={index === 0 || saving}
-            title="上移"
-          >
-            <ArrowUp className="h-4 w-4" />
-          </Button>
-        </motion.div>
-        <motion.div whileHover={reduce ? {} : { scale: 1.1 }} whileTap={reduce ? {} : { scale: 0.95 }}>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-9 w-9 rounded-xl text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/80 dark:hover:bg-blue-900/30 transition-all duration-200"
-            onClick={onMoveDown}
-            disabled={index === totalCount - 1 || saving}
-            title="下移"
-          >
-            <ArrowDown className="h-4 w-4" />
-          </Button>
-        </motion.div>
-        <motion.div whileHover={reduce ? {} : { scale: 1.1 }} whileTap={reduce ? {} : { scale: 0.95 }}>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-9 w-9 rounded-xl text-gray-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50/80 dark:hover:bg-orange-900/30 transition-all duration-200"
-            onClick={onMoveToBottom}
-            disabled={index === totalCount - 1 || saving}
-            title="置底"
-          >
-            <ArrowDownToLine className="h-4 w-4" />
-          </Button>
-        </motion.div>
-      </div>
+      <Space size="small">
+        <Button
+          type="text"
+          size="small"
+          icon={<PushpinOutlined />}
+          onClick={onMoveToTop}
+          disabled={index === 0 || saving}
+          title="置顶"
+        />
+        <Button
+          type="text"
+          size="small"
+          icon={<ArrowUpOutlined />}
+          onClick={onMoveUp}
+          disabled={index === 0 || saving}
+          title="上移"
+        />
+        <Button
+          type="text"
+          size="small"
+          icon={<ArrowDownOutlined />}
+          onClick={onMoveDown}
+          disabled={index === totalCount - 1 || saving}
+          title="下移"
+        />
+        <Button
+          type="text"
+          size="small"
+          icon={<DownloadOutlined />}
+          onClick={onMoveToBottom}
+          disabled={index === totalCount - 1 || saving}
+          title="置底"
+        />
+      </Space>
     </motion.div>
   )
 }
@@ -216,6 +189,7 @@ export default function AlbumSortPanel({
   albumName,
   onClose,
 }: AlbumSortPanelProps) {
+  const { token } = theme.useToken()
   const t = useTranslations()
   const listRef = useRef<List>(null)
   const [images, setImages] = useState<AlbumSortImage[]>([])
@@ -226,7 +200,6 @@ export default function AlbumSortPanel({
   const [hasChanges, setHasChanges] = useState(false)
   const [, startTransition] = useTransition()
   const [sortingIndex, setSortingIndex] = useState<number | null>(null)
-  const reduce = useReducedMotion()
 
   const fetchImages = useCallback(async () => {
     if (!albumValue) return
@@ -241,7 +214,7 @@ export default function AlbumSortPanel({
       setHasChanges(false)
     } catch (error) {
       console.error('Failed to fetch images:', error)
-      toast.error(t('Tips.loadFailed'))
+      message.error(t('Tips.loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -396,12 +369,12 @@ export default function AlbumSortPanel({
         throw new Error(result.message || 'Failed to save')
       }
       
-      toast.success(t('Tips.updateSuccess'))
+      message.success(t('Tips.updateSuccess'))
       setOriginalImages([...images])
       setHasChanges(false)
     } catch (error) {
       console.error('Save failed:', error)
-      toast.error(t('Tips.updateFailed'))
+      message.error(t('Tips.updateFailed'))
     } finally {
       setSaving(false)
     }
@@ -414,11 +387,11 @@ export default function AlbumSortPanel({
         method: 'POST',
       })
       if (!res.ok) throw new Error('Failed to reset')
-      toast.success(t('Tips.updateSuccess'))
+      message.success(t('Tips.updateSuccess'))
       await fetchImages()
     } catch (error) {
       console.error('Reset failed:', error)
-      toast.error(t('Tips.updateFailed'))
+      message.error(t('Tips.updateFailed'))
     } finally {
       setSaving(false)
     }
@@ -463,171 +436,100 @@ export default function AlbumSortPanel({
   }, [images, selectedIds, saving, sortingIndex, toggleSelect, moveUp, moveDown, moveToTop, moveToBottom, t])
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && handleClose()}>
-      <SheetContent 
-        side="right" 
-        className="w-full sm:max-w-2xl flex flex-col bg-gradient-to-br from-white/95 to-gray-50/90 dark:from-slate-900/95 dark:to-slate-950/90 backdrop-blur-xl border-l border-gray-200/70 dark:border-slate-800/60 shadow-2xl"
-      >
-        <SheetHeader className="border-b border-gray-200/50 dark:border-slate-800/50 pb-5 bg-gradient-to-r from-white/70 to-gray-50/70 dark:from-slate-900/80 dark:to-slate-950/80">
-          <SheetTitle className="flex items-center gap-3 text-gray-900 dark:text-slate-100 text-xl font-bold tracking-tight">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 shadow-lg">
-              <Move className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-            </div>
-            {albumName}
-            <Badge 
-              variant="secondary" 
-              className="font-medium bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 dark:from-amber-900/60 dark:to-orange-900/60 dark:text-amber-200 border-amber-200/50 text-sm"
-            >
-              {images.length} {t('Album.images')}
-            </Badge>
-            {hasChanges && (
-              <motion.div
-                initial={reduce ? {} : { scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="ml-auto"
-              >
-                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg">
-                  {t('Album.unsavedChanges')}
-                </Badge>
-              </motion.div>
-            )}
-          </SheetTitle>
-          <SheetDescription className="text-gray-500 dark:text-slate-400 mt-2 text-sm">
-            {t('Album.sortDescription')}
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className="flex items-center gap-3 py-4 border-b border-gray-200/50 dark:border-slate-800/50 bg-gradient-to-r from-gray-50/70 to-white/70 dark:from-slate-900/70 dark:to-slate-950/70 px-6 -mx-6">
-          <Checkbox
-            checked={selectedIds.size === images.length && images.length > 0}
-            onCheckedChange={toggleSelectAll}
-            aria-label={t('Album.selectAll')}
-            className={`data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500 ${
-              selectedIds.size > 0 ? 'ring-2 ring-amber-500/30 ring-offset-1' : ''
-            } transition-all duration-200`}
-          />
-          <span className="text-sm font-medium text-gray-700 dark:text-slate-300">
-            {selectedIds.size > 0 ? `${selectedIds.size} ${t('Album.selected')}` : t('Album.selectAll')}
+    <Drawer
+      open={open}
+      onClose={handleClose}
+      title={
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ display: 'inline-flex', width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'linear-gradient(135deg, rgba(255,179,71,0.2), rgba(255,139,97,0.2))' }}>
+            <HolderOutlined />
           </span>
-          <div className="flex-1" />
-          <AnimatePresence>
-            {selectedIds.size > 0 && (
-              <motion.div
-                initial={reduce ? {} : { opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={reduce ? {} : { opacity: 0, x: 20 }}
-                className="flex items-center gap-2"
-              >
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={batchMoveToTop} 
-                  disabled={saving}
-                  className="bg-white/80 dark:bg-slate-800/80 border-gray-200/70 dark:border-slate-700/60 text-gray-700 dark:text-slate-200 hover:bg-amber-50/80 dark:hover:bg-amber-900/30 hover:border-amber-300/70 dark:hover:border-amber-700/60 hover:text-amber-700 dark:hover:text-amber-300 transition-all duration-200 rounded-xl"
-                >
-                  <Pin className="h-4 w-4 mr-1.5" />
-                  {t('Album.batchTop')}
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={batchMoveToBottom} 
-                  disabled={saving}
-                  className="bg-white/80 dark:bg-slate-800/80 border-gray-200/70 dark:border-slate-700/60 text-gray-700 dark:text-slate-200 hover:bg-orange-50/80 dark:hover:bg-orange-900/30 hover:border-orange-300/70 dark:hover:border-orange-700/60 hover:text-orange-700 dark:hover:text-orange-300 transition-all duration-200 rounded-xl"
-                >
-                  <ArrowDownToLine className="h-4 w-4 mr-1.5" />
-                  {t('Album.batchBottom')}
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={handleReset} 
-            disabled={saving}
-            className="bg-white/80 dark:bg-slate-800/80 border-gray-200/70 dark:border-slate-700/60 text-gray-700 dark:text-slate-200 hover:bg-blue-50/80 dark:hover:bg-blue-900/30 hover:border-blue-300/70 dark:hover:border-blue-700/60 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 rounded-xl"
-          >
-            <RotateCcw className="h-4 w-4 mr-1.5" />
+          {albumName}
+          <Badge count={images.length} showZero />
+          {hasChanges && (
+            <Badge status="warning" text={t('Album.unsavedChanges')} />
+          )}
+        </span>
+      }
+      size={520}
+      placement="right"
+      extra={
+        <Space>
+          <Button onClick={handleReset} icon={<ReloadOutlined />} disabled={saving}>
             {t('Album.resetSort')}
           </Button>
-        </div>
-
-        <div className="flex-1 -mx-6" style={{ height: 'calc(100vh - 300px)' }}>
-          {loading ? (
-            <div className="flex flex-col items-center justify-center h-full space-y-6">
-              <motion.div 
-                animate={reduce ? {} : { rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                className="flex items-center gap-3"
-              >
-                <div className="w-3 h-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full animate-pulse" style={{ animationDelay: '0s' }} />
-                <div className="w-4 h-4 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
-                <div className="w-5 h-5 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
-              </motion.div>
-              <p className="text-gray-600 dark:text-slate-400 font-medium">{t('Tips.loading')}</p>
-            </div>
-          ) : images.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full space-y-5 text-gray-500 dark:text-slate-400">
-              <motion.div 
-                initial={reduce ? {} : { scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                className="w-24 h-24 rounded-3xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center shadow-xl"
-              >
-                <Move className="h-10 w-10 text-gray-400 dark:text-slate-500" />
-              </motion.div>
-              <h3 className="text-lg font-semibold text-gray-700 dark:text-slate-300">{t('Album.noImages')}</h3>
-              <p className="text-sm text-center max-w-md px-4 text-gray-500 dark:text-slate-500">
-                该相册暂无图片，无法进行排序操作
-              </p>
-            </div>
-          ) : (
-            <List
-              ref={listRef}
-              height={typeof window !== 'undefined' ? window.innerHeight - 300 : 500}
-              width="100%"
-              itemCount={images.length}
-              itemSize={ITEM_HEIGHT}
-              overscanCount={8}
-              className="focus:outline-none"
-            >
-              {Row}
-            </List>
-          )}
-        </div>
-
-        <SheetFooter className="mt-4 border-t border-gray-200/50 dark:border-slate-800/50 pt-5 pb-7 bg-gradient-to-r from-gray-50/70 to-white/70 dark:from-slate-900/70 dark:to-slate-950/70 -mx-6 px-6">
-          <Button 
-            variant="outline" 
-            onClick={handleClose}
-            className="bg-white/80 dark:bg-slate-800/80 border-gray-200/70 dark:border-slate-700/60 text-gray-700 dark:text-slate-200 hover:bg-gray-100/80 dark:hover:bg-slate-700/80 hover:border-gray-300/70 dark:hover:border-slate-600/60 transition-all duration-200 rounded-xl"
-          >
-            {t('Button.cancel')}
-          </Button>
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             disabled={!hasChanges || saving}
-            className={`rounded-xl transition-all duration-300 ${
-              hasChanges && !saving
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg hover:shadow-xl hover:shadow-amber-500/25 hover:scale-105 active:scale-98'
-                : 'bg-gray-300 dark:bg-slate-700 text-gray-500 dark:text-slate-400 cursor-not-allowed'
-            }`}
+            type="primary"
+            icon={saving ? <LoadingOutlined /> : <CheckOutlined />}
           >
-            {saving ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {t('Button.saving')}
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <Check className="h-4 w-4" />
-                {t('Button.save')}
-              </span>
-            )}
+            {saving ? t('Button.saving') : t('Button.save')}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </Space>
+      }
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${token.colorBorder}` }}>
+        <Checkbox
+          checked={selectedIds.size === images.length && images.length > 0}
+          onChange={toggleSelectAll}
+        >
+          {selectedIds.size > 0 ? `${selectedIds.size} ${t('Album.selected')}` : t('Album.selectAll')}
+        </Checkbox>
+        <div style={{ flex: 1 }} />
+        {selectedIds.size > 0 && (
+          <>
+            <Button
+              size="small"
+              onClick={batchMoveToTop}
+              disabled={saving}
+              icon={<PushpinOutlined />}
+            >
+              {t('Album.batchTop')}
+            </Button>
+            <Button
+              size="small"
+              onClick={batchMoveToBottom}
+              disabled={saving}
+              icon={<ArrowDownOutlined />}
+            >
+              {t('Album.batchBottom')}
+            </Button>
+          </>
+        )}
+      </div>
+
+      <div style={{ height: 'calc(100vh - 300px)' }}>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <LoadingOutlined style={{ fontSize: 24 }} />
+              <span>{t('Tips.loading')}</span>
+            </div>
+          </div>
+        ) : images.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 20 }}>
+            <div style={{ width: 96, height: 96, borderRadius: 24, background: token.colorBgLayout, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <HolderOutlined style={{ fontSize: 32, color: token.colorTextTertiary }} />
+            </div>
+            <h3 style={{ fontWeight: 600, color: token.colorTextSecondary }}>{t('Album.noImages')}</h3>
+            <p style={{ color: token.colorTextTertiary, textAlign: 'center', maxWidth: 400 }}>
+              该相册暂无图片，无法进行排序操作
+            </p>
+          </div>
+        ) : (
+          <List
+            ref={listRef}
+            height={typeof window !== 'undefined' ? window.innerHeight - 300 : 500}
+            width="100%"
+            itemCount={images.length}
+            itemSize={ITEM_HEIGHT}
+            overscanCount={8}
+          >
+            {Row}
+          </List>
+        )}
+      </div>
+    </Drawer>
   )
 }
