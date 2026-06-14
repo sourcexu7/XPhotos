@@ -1,8 +1,14 @@
 'use client'
 
 import React from 'react'
-import { Image as ImageIcon, BookOpen, Folder } from 'lucide-react'
-import { cn } from '~/lib/utils'
+import { Card, Row, Col, Typography, theme } from 'antd'
+import {
+  PictureOutlined,
+  FolderOpenOutlined,
+  BookOutlined,
+} from '@ant-design/icons'
+
+const { Title, Paragraph } = Typography
 
 export type StatCardProps = {
   id: string
@@ -13,59 +19,102 @@ export type StatCardProps = {
 }
 
 const iconMap = {
-  images: ImageIcon,
-  guides: BookOpen,
-  albums: Folder,
+  images: PictureOutlined,
+  guides: BookOutlined,
+  albums: FolderOpenOutlined,
 }
 
 const colorMap = {
-  emerald: {
-    icon: 'text-emerald-600 dark:text-emerald-400',
-    iconBg: 'bg-emerald-100 dark:bg-emerald-950',
-    value: 'text-foreground',
-    label: 'text-muted-foreground',
-  },
-  violet: {
-    icon: 'text-violet-600 dark:text-violet-400',
-    iconBg: 'bg-violet-100 dark:bg-violet-950',
-    value: 'text-foreground',
-    label: 'text-muted-foreground',
-  },
-  blue: {
-    icon: 'text-blue-600 dark:text-blue-400',
-    iconBg: 'bg-blue-100 dark:bg-blue-950',
-    value: 'text-foreground',
-    label: 'text-muted-foreground',
-  },
-}
+  emerald: 'success',
+  violet: 'purple',
+  blue: 'info',
+} as const
 
 export function StatCard({ label, value, icon, color }: StatCardProps) {
+  const { token } = theme.useToken()
   const Icon = iconMap[icon]
-  const colors = colorMap[color]
+  const semanticColor = colorMap[color]
+
+  const bgColorMap: Record<string, string> = {
+    success: token.colorSuccessBg,
+    purple: token.colorPrimaryBg,
+    info: token.colorInfoBg,
+  }
+  const borderColorMap: Record<string, string> = {
+    success: token.colorSuccessBorder,
+    purple: token.colorPrimaryBorder,
+    info: token.colorInfoBorder,
+  }
+  const textColorMap: Record<string, string> = {
+    success: token.colorSuccess,
+    purple: token.colorPrimary,
+    info: token.colorInfo,
+  }
 
   return (
-    <div className="bg-card p-6 rounded-xl border border-border transition-all duration-300 hover:shadow-md">
-      <div className="flex items-center gap-4">
-        <div className={cn('p-3 rounded-lg', colors.iconBg)}>
-          <Icon className={cn('w-6 h-6', colors.icon)} />
-        </div>
-        <div className="flex-1">
-          <p className={cn('text-sm font-medium', colors.label)}>{label}</p>
-          <p className={cn('text-2xl font-bold mt-1', colors.value)}>
+    <Card
+      styles={{
+        body: {
+          padding: token.marginLG,
+        },
+      }}
+      style={{
+        height: '100%',
+      }}
+    >
+      <Row gutter={token.margin} align="middle" wrap={false}>
+        <Col flex="none">
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: token.borderRadius,
+              backgroundColor: bgColorMap[semanticColor],
+              border: `1px solid ${borderColorMap[semanticColor]}`,
+            }}
+          >
+            <Icon style={{ fontSize: 22, color: textColorMap[semanticColor] }} />
+          </div>
+        </Col>
+        <Col flex="auto">
+          <Paragraph
+            type="secondary"
+            style={{
+              margin: 0,
+              fontSize: token.fontSizeSM,
+            }}
+          >
+            {label}
+          </Paragraph>
+          <Title
+            level={4}
+            style={{
+              marginTop: token.marginXS,
+              marginBottom: 0,
+              color: token.colorText,
+            }}
+          >
             {value.toLocaleString()}
-          </p>
-        </div>
-      </div>
-    </div>
+          </Title>
+        </Col>
+      </Row>
+    </Card>
   )
 }
 
 export function StatCardsGrid({ stats }: { stats: StatCardProps[] }) {
+  const { token } = theme.useToken()
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <Row gutter={[token.margin, token.margin]}>
       {stats.map((stat) => (
-        <StatCard key={stat.id} {...stat} />
+        <Col xs={24} sm={12} lg={8} key={stat.id}>
+          <StatCard {...stat} />
+        </Col>
       ))}
-    </div>
+    </Row>
   )
 }

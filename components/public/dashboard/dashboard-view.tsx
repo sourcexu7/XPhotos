@@ -1,10 +1,10 @@
 'use client'
 
 import React from 'react'
+import { Spin, Empty, Row, Col, theme } from 'antd'
 import { StatCardsGrid, type StatCardProps } from './stat-card'
 import { HorizontalBarChart } from './horizontal-bar-chart'
 import { PhotosByYearChart } from './photos-by-year-chart'
-import { Loader2 } from 'lucide-react'
 
 export type PublicDashboardStats = {
   images: {
@@ -27,36 +27,47 @@ export type PublicDashboardStats = {
   photosByYear: Array<{ year: number; count: number }>
 }
 
-export function DashboardView({ 
-  data, 
-  isLoading, 
-  error 
-}: { 
+export function DashboardView({
+  data,
+  isLoading,
+  error,
+}: {
   data?: PublicDashboardStats
   isLoading: boolean
-  error?: Error 
+  error?: Error
 }) {
+  const { token } = theme.useToken()
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: 400,
+        }}
+      >
+        <Spin size="large" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">加载失败，请稍后重试</p>
-      </div>
+      <Empty
+        description="加载失败，请稍后重试"
+        style={{ padding: `${token.marginXL}px 0` }}
+      />
     )
   }
 
   if (!data) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">暂无数据</p>
-      </div>
+      <Empty
+        description="暂无数据"
+        style={{ padding: `${token.marginXL}px 0` }}
+      />
     )
   }
 
@@ -85,21 +96,31 @@ export function DashboardView({
   ]
 
   return (
-    <div className="space-y-8">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginLG }}>
       <StatCardsGrid stats={stats} />
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <HorizontalBarChart
-          data={data.cameras.top.map(item => ({ name: item.camera, count: item.count }))}
-          title="相机使用 TOP5"
-          color="#10B981"
-        />
-        <HorizontalBarChart
-          data={data.lenses.top.map(item => ({ name: item.lens, count: item.count }))}
-          title="镜头使用 TOP5"
-          color="#8B5CF6"
-        />
-      </div>
+
+      <Row gutter={[token.margin, token.margin]}>
+        <Col xs={24} lg={12}>
+          <HorizontalBarChart
+            data={data.cameras.top.map((item) => ({
+              name: item.camera,
+              count: item.count,
+            }))}
+            title="相机使用 TOP5"
+            color={token.colorSuccess}
+          />
+        </Col>
+        <Col xs={24} lg={12}>
+          <HorizontalBarChart
+            data={data.lenses.top.map((item) => ({
+              name: item.lens,
+              count: item.count,
+            }))}
+            title="镜头使用 TOP5"
+            color={token.colorPrimary}
+          />
+        </Col>
+      </Row>
 
       <PhotosByYearChart data={data.photosByYear} />
     </div>

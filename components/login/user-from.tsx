@@ -3,32 +3,52 @@
 import * as React from 'react'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { Lock, Mail, ArrowLeft, Loader2, Camera, Aperture, Focus, Layers } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import { motion, useReducedMotion } from 'motion/react'
+import { ConfigProvider, App as AntdApp, Form, Input, Button, Typography, Space, theme, type FormInstance } from 'antd'
+import {
+  LockOutlined,
+  UserOutlined,
+  ArrowLeftOutlined,
+  CameraOutlined,
+  ApartmentOutlined,
+  PictureOutlined,
+  ClusterOutlined,
+} from '@ant-design/icons'
+
+const { Title, Paragraph, Text } = Typography
 
 const BackgroundElements = () => {
   const reduce = useReducedMotion()
+  const { token } = theme.useToken()
 
   const elements = [
-    { icon: Camera, delay: 0, duration: 20, xStart: -20, xEnd: 20 },
-    { icon: Aperture, delay: 5, duration: 25, xStart: 20, xEnd: -20 },
-    { icon: Focus, delay: 10, duration: 22, xStart: -15, xEnd: 15 },
-    { icon: Layers, delay: 15, duration: 28, xStart: 15, xEnd: -15 },
+    { Icon: CameraOutlined, delay: 0, duration: 20, xStart: -20, xEnd: 20 },
+    { Icon: ApartmentOutlined, delay: 5, duration: 25, xStart: 20, xEnd: -20 },
+    { Icon: PictureOutlined, delay: 10, duration: 22, xStart: -15, xEnd: 15 },
+    { Icon: ClusterOutlined, delay: 15, duration: 28, xStart: 15, xEnd: -15 },
   ]
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {elements.map(({ icon: Icon, delay, duration, xStart, xEnd }, i) => (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        overflow: 'hidden',
+        pointerEvents: 'none',
+      }}
+    >
+      {elements.map(({ Icon, delay, duration, xStart, xEnd }, i) => (
         <motion.div
           key={i}
-          className="absolute text-muted-foreground/5"
           style={{
+            position: 'absolute',
             top: `${15 + i * 20}%`,
             left: `${10 + i * 20}%`,
+            color: token.colorTextSecondary,
+            opacity: 0.05,
           }}
           animate={reduce ? {} : {
             x: [xStart, xEnd, xStart],
@@ -42,109 +62,163 @@ const BackgroundElements = () => {
             delay,
           }}
         >
-          <Icon size={80 + i * 20} />
+          <Icon style={{ fontSize: 80 + i * 20 }} />
         </motion.div>
       ))}
 
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/10 blur-3xl opacity-40" />
-      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-secondary/8 blur-3xl opacity-30" />
+      <div
+        style={{
+          position: 'absolute',
+          top: '25%',
+          left: '25%',
+          width: 384,
+          height: 384,
+          borderRadius: '50%',
+          backgroundColor: token.colorPrimary,
+          opacity: 0.08,
+          filter: 'blur(60px)',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '25%',
+          right: '25%',
+          width: 320,
+          height: 320,
+          borderRadius: '50%',
+          backgroundColor: token.colorInfo,
+          opacity: 0.06,
+          filter: 'blur(60px)',
+        }}
+      />
     </div>
   )
+}
+
+type LoginFormValues = {
+  username: string
+  password: string
 }
 
 export const UserFrom = () => {
   const router = useRouter()
   const t = useTranslations()
   const reduce = useReducedMotion()
-  
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const { token } = theme.useToken()
+
+  const [form] = Form.useForm<LoginFormValues>()
   const [loading, setLoading] = useState(false)
   const [logoError, setLogoError] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    const usernameField = document.querySelector('input[type="text"]') as HTMLInputElement | null
-    usernameField?.focus()
   }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!username || !password) {
-      setError(t('Login.invalidFormat'))
-      return
-    }
-    
-    setError('')
-    setLoading(true)
-
-    try {
-      const res = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, email: username }),
-      })
-
-      if (!res.ok) {
-        let data: { message?: string } = {}
-        try { data = await res.json() } catch {}
-        setError(resolveLoginApiErrorMessage(data.message, t))
-        setLoading(false)
-        return
-      }
-
-      toast.success(t('Login.loginSuccess'))
-      router.refresh()
-      router.push('/admin')
-    } catch (err) {
-      console.error(err)
-      setError(t('Login.unknownError'))
-      setLoading(false)
-    }
-  }
-
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 font-sans relative bg-background overflow-hidden">
+    <motion.div
+      style={{
+        minHeight: '100vh',
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: token.margin,
+        position: 'relative',
+        backgroundColor: token.colorBgLayout,
+        overflow: 'hidden',
+      }}
+      initial={reduce ? {} : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6 }}
+    >
       <BackgroundElements />
 
-      <div className="fixed inset-0 pointer-events-none z-[60] opacity-[0.03]" 
-           style={{
-             backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")',
-           }} />
-
-      <Link 
-        href="/" 
-        className="absolute top-6 left-6 md:top-8 md:left-8 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all duration-300 hover:-translate-x-1 z-30"
+      <Link
+        href="/"
+        style={{
+          position: 'absolute',
+          top: token.marginLG,
+          left: token.marginLG,
+          display: 'flex',
+          alignItems: 'center',
+          gap: token.marginXS,
+          color: token.colorTextSecondary,
+          zIndex: 30,
+          textDecoration: 'none',
+          fontSize: token.fontSize,
+        }}
       >
-        <ArrowLeft className="w-4 h-4" />
-        <span className="text-sm font-medium tracking-wide">{t('Login.goHome')}</span>
+        <ArrowLeftOutlined />
+        <span style={{ fontSize: token.fontSizeSM, fontWeight: 500 }}>
+          {t('Login.goHome')}
+        </span>
       </Link>
 
       <motion.div
         initial={reduce ? {} : { opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-md relative z-20"
+        style={{
+          width: '100%',
+          maxWidth: 420,
+          position: 'relative',
+          zIndex: 20,
+        }}
       >
-        <div className="glass-card dark:glass-card backdrop-blur-2xl bg-card/70 dark:bg-card/60 border border-border/50 dark:border-border/40 rounded-3xl shadow-xl dark:shadow-2xl p-8 md:p-10">
-          <div className="relative mb-8 flex flex-col items-center">
+        <div
+          style={{
+            backgroundColor: token.colorBgContainer,
+            border: `1px solid ${token.colorBorderSecondary}`,
+            borderRadius: token.borderRadiusLG * 2,
+            boxShadow: token.boxShadowSecondary,
+            padding: token.marginLG * 1.5,
+            backdropFilter: 'blur(16px)',
+          }}
+        >
+          <Space
+            orientation="vertical"
+            size={token.marginLG}
+            style={{ width: '100%', alignItems: 'center' }}
+          >
             <motion.div
               initial={reduce ? {} : { scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative"
+              style={{ position: 'relative' }}
             >
-              <div className="flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-muted shadow-lg dark:shadow-primary/10 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-transparent opacity-60" />
+              <div
+                style={{
+                  width: 96,
+                  height: 96,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: token.borderRadiusLG,
+                  backgroundColor: token.colorPrimaryBg,
+                  border: `1px solid ${token.colorPrimaryBorder}`,
+                  boxShadow: token.boxShadow,
+                  overflow: 'hidden',
+                  position: 'relative',
+                }}
+              >
                 {logoError ? (
-                  <span className="text-xl font-bold text-foreground relative z-10">XP</span>
+                  <span
+                    style={{
+                      fontSize: token.fontSizeHeading5,
+                      fontWeight: 700,
+                      color: token.colorText,
+                    }}
+                  >
+                    XP
+                  </span>
                 ) : (
                   <Image
                     src="/favicon.svg"
                     alt="XPhotos"
                     width={48}
                     height={48}
-                    className="object-contain relative z-10"
+                    style={{ objectFit: 'contain' }}
                     onError={() => setLogoError(true)}
                     priority
                   />
@@ -156,100 +230,220 @@ export const UserFrom = () => {
               initial={reduce ? {} : { opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.35 }}
-              className="mt-6 text-center"
+              style={{ textAlign: 'center' }}
             >
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-foreground via-foreground to-muted-foreground bg-clip-text text-transparent tracking-tight">
+              <Title
+                level={3}
+                style={{
+                  margin: 0,
+                  textAlign: 'center',
+                  color: token.colorText,
+                }}
+              >
                 XPhotos
-              </h1>
-              <p className="text-muted-foreground text-sm md:text-base mt-3 leading-relaxed">
+              </Title>
+              <Paragraph
+                type="secondary"
+                style={{
+                  marginTop: token.marginXS,
+                  marginBottom: 0,
+                  fontSize: token.fontSizeLG,
+                }}
+              >
                 专业摄影作品集管理系统
-              </p>
+              </Paragraph>
             </motion.div>
-          </div>
+          </Space>
 
-          <motion.form
+          <motion.div
             initial={reduce ? {} : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.5 }}
-            onSubmit={handleSubmit}
-            className="w-full flex flex-col gap-5"
+            style={{ marginTop: token.marginLG }}
           >
-            <div className="space-y-2">
-              <label htmlFor="username" className="text-sm font-medium text-foreground/90">
-                {t('Login.usernameOrEmail')}
-              </label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-all duration-300">
-                  <Mail className="w-5 h-5" />
-                </div>
-                <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 rounded-xl border border-border bg-muted/60 focus:bg-background focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm transition-all duration-300 text-foreground placeholder:text-muted-foreground/60"
-                  placeholder="请输入用户名或邮箱"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-foreground/90">
-                {t('Login.password')}
-              </label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-all duration-300">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 rounded-xl border border-border bg-muted/60 focus:bg-background focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm transition-all duration-300 text-foreground placeholder:text-muted-foreground/60"
-                  placeholder="请输入密码"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <motion.div
-                initial={reduce ? {} : { opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-xs text-red-500 dark:text-red-400 pl-1 pt-1"
-              >
-                {error}
-              </motion.div>
-            )}
-
-            <motion.button
-              whileHover={reduce ? {} : { scale: 1.01 }}
-              whileTap={reduce ? {} : { scale: 0.98 }}
-              type="submit"
-              disabled={loading}
-              className="w-full font-medium py-4 rounded-xl transition-all duration-300 mt-4 flex items-center justify-center gap-2 bg-gradient-to-r from-primary via-primary to-primary/90 hover:from-primary/95 hover:to-primary text-primary-foreground shadow-lg hover:shadow-primary/20 disabled:opacity-70 disabled:cursor-not-allowed"
+            <ConfigProvider
+              theme={{
+                token: {
+                  borderRadius: token.borderRadius,
+                  colorPrimary: token.colorPrimary,
+                },
+              }}
             >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>{t('Login.loggingIn')}</span>
-                </>
-              ) : (
-                <span className="font-medium tracking-wide">{t('Login.signIn')}</span>
-              )}
-            </motion.button>
-          </motion.form>
+              <AntdApp>
+                <LoginFormBody
+                  form={form}
+                  loading={loading}
+                  error={error}
+                  setError={setError}
+                  setLoading={setLoading}
+                  t={t}
+                  reduce={reduce}
+                  router={router}
+                />
+              </AntdApp>
+            </ConfigProvider>
+          </motion.div>
         </div>
 
-        <div className="text-center mt-8 text-muted-foreground/50 text-xs">
-          <p>© 2024 XPhotos. All rights reserved.</p>
+        <div
+          style={{
+            textAlign: 'center',
+            marginTop: token.marginXL,
+            color: token.colorTextTertiary,
+            fontSize: token.fontSizeSM,
+          }}
+        >
+          <p style={{ margin: 0 }}>© 2026 XPhotos. All rights reserved.</p>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }
 
-function resolveLoginApiErrorMessage(message: string | undefined, t: (key: string) => string) {
-  if (!message) return t('Login.unknownError')
-  return message
+function LoginFormBody({
+  form,
+  loading,
+  error,
+  setError,
+  setLoading,
+  t,
+  reduce,
+  router,
+}: {
+  form: FormInstance<LoginFormValues>
+  loading: boolean
+  error: string
+  setError: (error: string) => void
+  setLoading: (loading: boolean) => void
+  t: (key: string) => string
+  reduce: boolean | null
+  router: ReturnType<typeof useRouter>
+}) {
+  const { token } = theme.useToken()
+  const { message } = AntdApp.useApp()
+
+  const handleSubmit = async (values: LoginFormValues) => {
+    setError('')
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: values.username,
+          password: values.password,
+          email: values.username,
+        }),
+      })
+
+      if (!res.ok) {
+        let data: { message?: string } = {}
+        try {
+          data = await res.json()
+        } catch {
+        }
+        setError(resolveLoginApiErrorMessage(data.message, t))
+        setLoading(false)
+        return
+      }
+
+      message.success(t('Login.loginSuccess'))
+      router.refresh()
+      router.push('/admin')
+    } catch (err) {
+      console.error(err)
+      setError(t('Login.unknownError'))
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Form
+      form={form}
+      layout="vertical"
+      onFinish={handleSubmit}
+      requiredMark={false}
+      disabled={loading}
+    >
+      <Form.Item
+        label={t('Login.usernameOrEmail')}
+        name="username"
+        rules={[{ required: true, message: t('Login.invalidFormat') }]}
+      >
+        <Input
+          size="large"
+          prefix={<UserOutlined />}
+          placeholder="请输入用户名或邮箱"
+          autoFocus
+        />
+      </Form.Item>
+
+      <Form.Item
+        label={t('Login.password')}
+        name="password"
+        rules={[{ required: true, message: t('Login.invalidFormat') }]}
+      >
+        <Input.Password
+          size="large"
+          prefix={<LockOutlined />}
+          placeholder="请输入密码"
+        />
+      </Form.Item>
+
+      {error && (
+        <Form.Item style={{ marginBottom: 0 }}>
+          <Text type="danger" style={{ fontSize: token.fontSizeSM }}>
+            {error}
+          </Text>
+        </Form.Item>
+      )}
+
+      <Form.Item style={{ marginTop: token.margin, marginBottom: 0 }}>
+        <motion.div
+          whileHover={reduce ? {} : { scale: 1.01 }}
+          whileTap={reduce ? {} : { scale: 0.98 }}
+        >
+          <Button
+            type="primary"
+            htmlType="submit"
+            block
+            size="large"
+            loading={loading}
+            style={{ height: 44, fontSize: token.fontSize, fontWeight: 500 }}
+          >
+            {loading ? t('Login.loggingIn') : t('Login.signIn')}
+          </Button>
+        </motion.div>
+      </Form.Item>
+    </Form>
+  )
+}
+
+function resolveLoginApiErrorMessage(
+  raw: string | undefined,
+  t: (key: string) => string,
+): string {
+  const m = (raw ?? '').trim()
+  if (!m) return t('Login.credentialsError')
+
+  const lower = m.toLowerCase()
+
+  if (lower === 'invalid credentials' || /invalid credentials/i.test(m)) {
+    return t('Login.credentialsError')
+  }
+  if (
+    m === 'Username/Email and password are required' ||
+    lower.includes('username/email and password are required')
+  ) {
+    return t('Login.invalidFormat')
+  }
+  if (
+    m === 'Password login not supported for this user' ||
+    lower.includes('password login not supported')
+  ) {
+    return t('Login.passwordLoginNotSupported')
+  }
+
+  return m
 }
