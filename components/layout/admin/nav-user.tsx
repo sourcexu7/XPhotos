@@ -42,6 +42,27 @@ export function NavUser() {
   const { data: session } = authClient.useSession()
   const t = useTranslations()
   const [avatarUploading, setAvatarUploading] = useState(false)
+  const [defaultStorage, setDefaultStorage] = useState('')
+  const VALID_STORAGES = new Set(['s3', 'cos', 'alist'])
+
+  React.useEffect(() => {
+    const load = async () => {
+      try {
+        const resp = await fetch('/api/v1/settings/get-custom-info')
+        const data = await resp.json()
+        if (Array.isArray(data)) {
+          const storageConfig = data.find(
+            (item: { config_key: string; config_value: string }) => item.config_key === 'default_storage'
+          )
+          const raw = (storageConfig?.config_value || '').trim().toLowerCase()
+          setDefaultStorage(VALID_STORAGES.has(raw) ? raw : '')
+        }
+      } catch (e) {
+        console.error('load default storage failed', e)
+      }
+    }
+    load()
+  }, [])
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -68,7 +89,7 @@ export function NavUser() {
       }
 
       const { uploadFile } = await import('~/lib/utils/file')
-      const resp = await uploadFile(new File([compressedFile], 'avatar.webp', { type: 'image/webp' }), '/about/avatar', 's3', '')
+      const resp = await uploadFile(new File([compressedFile], 'avatar.webp', { type: 'image/webp' }), '/about/avatar', defaultStorage, '')
       
       if (resp.code === 200) {
         const saveResp = await fetch('/api/v1/settings/update-custom-info', {

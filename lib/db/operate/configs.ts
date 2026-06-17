@@ -123,69 +123,65 @@ export async function updateCustomInfo(payload: {
   // 新增：头像 URL
   aboutAvatarUrl?: string
 }) {
-  const configUpdates: { key: string; value: string }[] = [
-    { key: 'custom_title', value: payload.title },
-    { key: 'custom_favicon_url', value: payload.customFaviconUrl },
-    { key: 'custom_author', value: payload.customAuthor },
-    { key: 'rss_feed_id', value: payload.feedId },
-    { key: 'rss_user_id', value: payload.userId },
-    { key: 'umami_host', value: payload.umamiHost },
-    { key: 'umami_analytics', value: payload.umamiAnalytics },
-    { key: 'custom_index_style', value: (payload.customIndexStyle ?? 2).toString() },
-    {
-      key: 'custom_index_download_enable',
-      value: payload.customIndexDownloadEnable ? 'true' : 'false',
-    },
-    {
-      key: 'custom_index_copy_link_enable',
-      value: payload.customIndexCopyLinkEnable ? 'true' : 'false',
-    },
-    {
-      key: 'custom_index_copy_direct_link_enable',
-      value: payload.customIndexCopyDirectLinkEnable ? 'true' : 'false',
-    },
-    {
-      key: 'custom_index_copy_share_link_enable',
-      value: payload.customIndexCopyShareLinkEnable ? 'true' : 'false',
-    },
-    {
-      key: 'custom_index_language_toggle',
-      value: payload.customIndexLanguageToggle ? 'true' : 'false',
-    },
-    {
-      key: 'preview_max_width_limit_switch',
-      value: payload.enablePreviewImageMaxWidthLimit ? '1' : '0',
-    },
-    { key: 'max_upload_files', value: payload.maxUploadFiles.toString() },
-    {
-      key: 'custom_index_origin_enable',
-      value: payload.customIndexOriginEnable ? 'true' : 'false',
-    },
-    {
-      key: 'admin_images_per_page',
-      value: payload.adminImagesPerPage.toString(),
-    },
+  const configUpdates: { key: string; value: string }[] = []
+
+  // 字符串类字段：只有真正提供了非空值才写入
+  const stringFields: Array<[string, string | undefined]> = [
+    ['custom_title', payload.title],
+    ['custom_favicon_url', payload.customFaviconUrl],
+    ['custom_author', payload.customAuthor],
+    ['rss_feed_id', payload.feedId],
+    ['rss_user_id', payload.userId],
+    ['umami_host', payload.umamiHost],
+    ['umami_analytics', payload.umamiAnalytics],
   ]
-
-  if (payload.defaultStorage) {
-    configUpdates.push({
-      key: 'default_storage',
-      value: payload.defaultStorage,
-    })
+  for (const [key, value] of stringFields) {
+    if (typeof value === 'string') {
+      configUpdates.push({ key, value })
+    }
   }
 
-  // 添加可选配置
-  if (payload.previewImageMaxWidth > 0) {
-    configUpdates.push({
-      key: 'preview_max_width_limit',
-      value: payload.previewImageMaxWidth.toString(),
-    })
+  // 布尔类字段：只有显式为 boolean 才写入（避免把 undefined 转成 'false'）
+  if (typeof payload.customIndexDownloadEnable === 'boolean') {
+    configUpdates.push({ key: 'custom_index_download_enable', value: payload.customIndexDownloadEnable ? 'true' : 'false' })
   }
-  if (payload.previewQuality > 0) {
-    configUpdates.push({
-      key: 'preview_quality',
-      value: payload.previewQuality.toString(),
-    })
+  if (typeof payload.customIndexCopyLinkEnable === 'boolean') {
+    configUpdates.push({ key: 'custom_index_copy_link_enable', value: payload.customIndexCopyLinkEnable ? 'true' : 'false' })
+  }
+  if (typeof payload.customIndexCopyDirectLinkEnable === 'boolean') {
+    configUpdates.push({ key: 'custom_index_copy_direct_link_enable', value: payload.customIndexCopyDirectLinkEnable ? 'true' : 'false' })
+  }
+  if (typeof payload.customIndexCopyShareLinkEnable === 'boolean') {
+    configUpdates.push({ key: 'custom_index_copy_share_link_enable', value: payload.customIndexCopyShareLinkEnable ? 'true' : 'false' })
+  }
+  if (typeof payload.customIndexLanguageToggle === 'boolean') {
+    configUpdates.push({ key: 'custom_index_language_toggle', value: payload.customIndexLanguageToggle ? 'true' : 'false' })
+  }
+  if (typeof payload.enablePreviewImageMaxWidthLimit === 'boolean') {
+    configUpdates.push({ key: 'preview_max_width_limit_switch', value: payload.enablePreviewImageMaxWidthLimit ? '1' : '0' })
+  }
+  if (typeof payload.customIndexOriginEnable === 'boolean') {
+    configUpdates.push({ key: 'custom_index_origin_enable', value: payload.customIndexOriginEnable ? 'true' : 'false' })
+  }
+
+  // 数字类字段：Number.isFinite 才写入，避免 undefined.toString() 抛错
+  if (typeof payload.customIndexStyle === 'number' && Number.isFinite(payload.customIndexStyle)) {
+    configUpdates.push({ key: 'custom_index_style', value: payload.customIndexStyle.toString() })
+  }
+  if (typeof payload.maxUploadFiles === 'number' && Number.isFinite(payload.maxUploadFiles)) {
+    configUpdates.push({ key: 'max_upload_files', value: payload.maxUploadFiles.toString() })
+  }
+  if (typeof payload.adminImagesPerPage === 'number' && Number.isFinite(payload.adminImagesPerPage)) {
+    configUpdates.push({ key: 'admin_images_per_page', value: payload.adminImagesPerPage.toString() })
+  }
+  if (typeof payload.previewImageMaxWidth === 'number' && payload.previewImageMaxWidth > 0) {
+    configUpdates.push({ key: 'preview_max_width_limit', value: payload.previewImageMaxWidth.toString() })
+  }
+  if (typeof payload.previewQuality === 'number' && payload.previewQuality > 0) {
+    configUpdates.push({ key: 'preview_quality', value: payload.previewQuality.toString() })
+  }
+  if (payload.defaultStorage && typeof payload.defaultStorage === 'string') {
+    configUpdates.push({ key: 'default_storage', value: payload.defaultStorage })
   }
 
   // 新增：「关于我」相关配置（仅在有值时写入）

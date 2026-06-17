@@ -27,6 +27,8 @@ export function AdminHeader({ onMenuClick, showMenuButton = false }: AdminHeader
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState('')
   const [avatarUploading, setAvatarUploading] = useState(false)
+  const [defaultStorage, setDefaultStorage] = useState('')
+  const VALID_STORAGES = new Set(['s3', 'cos', 'alist'])
   
   useEffect(() => {
     const fetchAvatarUrl = async () => {
@@ -38,6 +40,9 @@ export function AdminHeader({ onMenuClick, showMenuButton = false }: AdminHeader
           if (avatarConfig?.config_value) {
             setAvatarUrl(avatarConfig.config_value)
           }
+          const storageConfig = data.find((item: { config_key: string; config_value: string }) => item.config_key === 'default_storage')
+          const raw = (storageConfig?.config_value || '').trim().toLowerCase()
+          setDefaultStorage(VALID_STORAGES.has(raw) ? raw : '')
         }
       } catch (e) {
         console.error('加载头像失败:', e)
@@ -67,7 +72,7 @@ export function AdminHeader({ onMenuClick, showMenuButton = false }: AdminHeader
         })
         const compressedFile = new File([compressedBlob], 'avatar.webp', { type: 'image/webp' })
         
-        const resp = await uploadFile(compressedFile, '/about/avatar', 's3', '')
+        const resp = await uploadFile(compressedFile, '/about/avatar', defaultStorage, '')
         
         if (resp.code === 200 && resp.data?.url) {
           const newAvatarUrl = resp.data.url

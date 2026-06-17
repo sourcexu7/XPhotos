@@ -2,17 +2,17 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
-const SECRET_KEY = process.env.JWT_SECRET || ''
-if (!SECRET_KEY) {
-  throw new Error('JWT_SECRET environment variable is required')
+function getKey() {
+  const SECRET_KEY = process.env.JWT_SECRET || ''
+  if (!SECRET_KEY) {
+    throw new Error('JWT_SECRET environment variable is required')
+  }
+  return new TextEncoder().encode(SECRET_KEY)
 }
-const key = new TextEncoder().encode(SECRET_KEY)
-
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // 后台鉴权：仅 /admin 开头
   if (pathname.startsWith('/admin')) {
     const token = request.cookies.get('auth_token')?.value
 
@@ -23,7 +23,7 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      await jwtVerify(token, key)
+      await jwtVerify(token, getKey())
     } catch {
       const url = new URL('/login', request.url)
       return NextResponse.redirect(url)
