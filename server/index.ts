@@ -6,6 +6,7 @@ import images from './images'
 import albums from './albums'
 import alist from './storage/alist'
 import auth from './auth'
+import captcha from './captcha'
 import publicApi from './public'
 import analytics from './analytics'
 import guides from './guides'
@@ -57,6 +58,7 @@ function defaultMessageFor(status: number): string {
 
 // Public routes (no authentication required)
 route.route('/auth', auth)
+route.route('/captcha', captcha)
 route.route('/public', publicApi)
 
 // Protected routes middleware

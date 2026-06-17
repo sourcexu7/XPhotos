@@ -12,13 +12,12 @@ const TagManager = dynamic(
 
 export default function AdminSettingsTagPage() {
   const { token } = theme.useToken()
-  const t = useTranslations()
+  const t = useTranslations('TagManager')
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title={t('Link.tags')}
-        description={t('AdminHeader.tagsDesc')}
-        breadcrumbs={[{ title: t('Link.settings') }, { title: t('Link.tags') }]}
+        title={t('title')}
+        description={t('primaryTags') + ' / ' + t('secondaryTags')}
       />
       <div style={{ padding: token.paddingMD, background: token.colorBgLayout, minHeight: '100%', borderRadius: token.borderRadiusLG }}>
         <TagManager />

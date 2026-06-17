@@ -26,6 +26,7 @@ import {
 import { authClient } from '~/lib/auth-client'
 import { useTheme } from 'next-themes'
 import * as React from 'react'
+import { useState } from 'react'
 import { setUserLocale } from '~/lib/utils/locale'
 import { useTranslations } from 'next-intl'
 import { SunMoonIcon } from '~/components/icons/sun-moon'
@@ -33,12 +34,61 @@ import { SunMediumIcon } from '~/components/icons/sun-medium'
 import { LanguagesIcon } from '~/components/icons/languages'
 import { LogoutIcon } from '~/components/icons/logout'
 import { ChevronsDownUpIcon } from '~/components/icons/chevrons-up-down'
+import { CameraIcon } from '~/components/icons/camera'
 
 export function NavUser() {
   const { isMobile } = useSidebar()
   const { resolvedTheme, setTheme } = useTheme()
   const { data: session } = authClient.useSession()
   const t = useTranslations()
+  const [avatarUploading, setAvatarUploading] = useState(false)
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      return
+    }
+
+    setAvatarUploading(true)
+
+    try {
+      const { compressImage } = await import('~/lib/utils/compress')
+      const compressedFile = await compressImage(file, {
+        quality: 0.85,
+        maxWidth: 200,
+        maxWidthEnabled: true,
+        mimeType: 'image/webp',
+      })
+
+      if (!compressedFile) {
+        return
+      }
+
+      const { uploadFile } = await import('~/lib/utils/file')
+      const resp = await uploadFile(new File([compressedFile], 'avatar.webp', { type: 'image/webp' }), '/about/avatar', 's3', '')
+      
+      if (resp.code === 200) {
+        const saveResp = await fetch('/api/v1/settings/update-custom-info', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            aboutAvatarUrl: resp.data.url,
+          }),
+        })
+        const saveData = await saveResp.json()
+        if (saveData.code === 200) {
+          await fetch('/api/v1/settings/cache/clear')
+        }
+      }
+    } catch (e) {
+      console.error('avatar upload failed', e)
+    } finally {
+      setAvatarUploading(false)
+    }
+  }
 
   return (
     <SidebarMenu>
@@ -79,6 +129,18 @@ export function NavUser() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer" onClick={() => {
+              window.location.href = '/admin/settings/preferences'
+            }}>
+              <CameraIcon size={18} />
+              <span>{t('Settings.title')}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer" onClick={() => {
+              document.getElementById('sidebar-avatar-input')?.click()
+            }}>
+              <CameraIcon size={18} />
+              <span>{t('Admin.avatarManagement')}</span>
+            </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme(resolvedTheme === 'light' ? 'dark' : 'light')}>
               {resolvedTheme === 'light' ? <SunMoonIcon size={18} /> : <SunMediumIcon size={18} />}
               <span>{ resolvedTheme === 'light' ? t('Button.dark') : t('Button.light') }</span>
@@ -92,6 +154,14 @@ export function NavUser() {
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
+            <input
+              id="sidebar-avatar-input"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleAvatarUpload}
+              disabled={avatarUploading}
+              style={{ display: 'none' }}
+            />
             <DropdownMenuItem className="cursor-pointer" onClick={async () => {
               try {
                 await authClient.signOut({

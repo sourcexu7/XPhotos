@@ -26,9 +26,14 @@ import {
   RightOutlined,
   SearchOutlined,
   BookOutlined,
+  CameraOutlined,
+  GlobalOutlined,
 } from '@ant-design/icons'
+import { Avatar, message } from 'antd'
 import { authClient } from '~/lib/auth-client'
 import { clearAllAuthData } from '~/lib/utils/auth-utils'
+import { uploadFile } from '~/lib/utils/file'
+import { compressImage } from '~/lib/utils/compress'
 
 interface SidebarItem {
   key: string
@@ -51,6 +56,83 @@ export function AdminSidebar({ collapsed: controlledCollapsed, onCollapse }: Adm
   const [isMobile, setIsMobile] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [searchValue, setSearchValue] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState<string>('')
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
+  
+  // 点击外部关闭菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('.profile-section')) {
+        setShowProfileMenu(false)
+      }
+    }
+    
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showProfileMenu])
+  
+  // 处理头像上传
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    
+    // 检查文件类型
+    if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type)) {
+      message.error('不支持的图片格式，请上传 JPG、PNG 或 WebP 格式')
+      return
+    }
+    
+    setAvatarUploading(true)
+    
+    const processUpload = async () => {
+      try {
+        // 压缩头像图片（使用较小的尺寸）
+        const compressedBlob = await compressImage(file, {
+          quality: 0.85,
+          maxWidth: 200,
+          maxWidthEnabled: true,
+          mimeType: 'image/webp',
+        })
+        const compressedFile = new File([compressedBlob], file.name.replace(/\.\w+$/, '.webp'), { type: 'image/webp' })
+        
+        // 上传到 /about/avatar 目录，使用 S3 存储
+        const resp = await uploadFile(compressedFile, '/about/avatar', 's3', '')
+        
+        if (resp.code === 200 && resp.data?.url) {
+          const newAvatarUrl = resp.data.url
+          setAvatarUrl(newAvatarUrl)
+          
+          // 保存头像到数据库
+          await fetch('/api/v1/settings/update-custom-info', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ aboutAvatarUrl: newAvatarUrl }),
+          })
+          
+          // 清除缓存
+          await fetch('/api/v1/settings/cache/clear')
+          message.success('头像上传成功')
+        } else {
+          message.error('头像上传失败')
+        }
+      } catch (e) {
+        console.error('头像上传失败:', e)
+        message.error('头像上传失败')
+      } finally {
+        setAvatarUploading(false)
+        event.target.value = ''
+      }
+    }
+    
+    processUpload()
+  }
   
   const collapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed
   
@@ -68,6 +150,25 @@ export function AdminSidebar({ collapsed: controlledCollapsed, onCollapse }: Adm
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+  
+  // 加载已保存的头像 URL
+  useEffect(() => {
+    const fetchAvatarUrl = async () => {
+      try {
+        const resp = await fetch('/api/v1/settings/get-custom-info')
+        const data = await resp.json()
+        if (Array.isArray(data)) {
+          const avatarConfig = data.find((item: { config_key: string; config_value: string }) => item.config_key === 'about_avatar_url')
+          if (avatarConfig?.config_value) {
+            setAvatarUrl(avatarConfig.config_value)
+          }
+        }
+      } catch (e) {
+        console.error('加载头像失败:', e)
+      }
+    }
+    fetchAvatarUrl()
   }, [])
   
   const mainItems: SidebarItem[] = [
@@ -386,56 +487,159 @@ export function AdminSidebar({ collapsed: controlledCollapsed, onCollapse }: Adm
             </button>
           </div>
 
-          {/* Profile Section */}
-          <div className={cn('border-b border-slate-200 bg-slate-50/30', collapsed ? 'py-3 px-2' : 'p-3')}>
+          {/* Profile Section - Dropdown */}
+          <div className={cn('border-b border-slate-200 bg-slate-50/30 relative', collapsed ? 'py-3 px-2' : 'p-3')}>
             {!collapsed ? (
-              <div className="flex items-center px-3 py-2 rounded-md bg-white hover:bg-slate-50 transition-colors duration-200">
-                <div className="w-8 h-8 bg-[var(--admin-primary)] rounded-full flex items-center justify-center">
-                  <span className="text-white font-medium text-sm">A</span>
+              <div className="profile-section">
+                <div 
+                  className="flex items-center px-3 py-2 rounded-md bg-white hover:bg-slate-50 transition-colors duration-200 cursor-pointer"
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                >
+                  <Avatar
+                    size={32}
+                    src={avatarUrl}
+                    icon={<UserOutlined />}
+                    style={{ backgroundColor: !avatarUrl ? 'var(--admin-primary)' : undefined }}
+                  />
+                  <div className="flex-1 min-w-0 ml-2.5">
+                    <p className="text-sm font-medium text-slate-800 truncate">{t('Admin.fallbackName')}</p>
+                    <p className="text-xs text-slate-600 truncate">{t('Admin.fallbackEmail')}</p>
+                  </div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full ml-2" title="Online" />
                 </div>
-                <div className="flex-1 min-w-0 ml-2.5">
-                  <p className="text-sm font-medium text-slate-800 truncate">{t('Admin.fallbackName')}</p>
-                  <p className="text-xs text-slate-600 truncate">{t('Admin.fallbackEmail')}</p>
-                </div>
-                <div className="w-2 h-2 bg-green-500 rounded-full ml-2" title="Online" />
+                
+                {showProfileMenu && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                    <button
+                      onClick={() => {
+                        router.push('/admin/settings/preferences')
+                        setShowProfileMenu(false)
+                        if (isMobile) setIsOpen(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 transition-colors"
+                    >
+                      <SettingOutlined className="text-slate-500" />
+                      <span className="text-sm">{t('Settings.title')}</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        document.getElementById('sidebar-avatar-input')?.click()
+                        setShowProfileMenu(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 transition-colors"
+                    >
+                      <CameraOutlined className="text-slate-500" />
+                      <span className="text-sm">{t('Admin.avatarManagement')}</span>
+                    </button>
+                    <div className="border-t border-slate-200 my-1" />
+                    <button
+                      onClick={() => {
+                        const currentLang = document.documentElement.lang
+                        const newLang = currentLang === 'zh' ? 'en' : 'zh'
+                        document.cookie = `NEXT_LOCALE=${newLang};path=/;max-age=31536000`
+                        window.location.reload()
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 transition-colors"
+                    >
+                      <GlobalOutlined className="text-slate-500" />
+                      <span className="text-sm">{t('Settings.language')}</span>
+                    </button>
+                    <div className="border-t border-slate-200 my-1" />
+                    <button
+                      onClick={() => {
+                        handleLogout()
+                        setShowProfileMenu(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+                    >
+                      <LogoutOutlined className="text-red-500" />
+                      <span className="text-sm">{t('Login.logout')}</span>
+                    </button>
+                  </div>
+                )}
+                <input
+                  id="sidebar-avatar-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleAvatarUpload}
+                  disabled={avatarUploading}
+                  style={{ display: 'none' }}
+                />
               </div>
             ) : (
-              <div className="flex justify-center">
-                <div className="relative">
-                  <div className="w-9 h-9 bg-[var(--admin-primary)] rounded-full flex items-center justify-center">
-                    <span className="text-white font-medium text-sm">A</span>
-                  </div>
+              <div className="profile-section">
+                <div 
+                  className="relative cursor-pointer"
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                >
+                  <Avatar
+                    size={36}
+                    src={avatarUrl}
+                    icon={<UserOutlined />}
+                    style={{ backgroundColor: !avatarUrl ? 'var(--admin-primary)' : undefined }}
+                  />
                   <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
                 </div>
+                
+                {showProfileMenu && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                    <button
+                      onClick={() => {
+                        router.push('/admin/settings/preferences')
+                        setShowProfileMenu(false)
+                        if (isMobile) setIsOpen(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 transition-colors"
+                    >
+                      <SettingOutlined className="text-slate-500" />
+                      <span className="text-sm">{t('Settings.title')}</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        document.getElementById('sidebar-avatar-input-collapsed')?.click()
+                        setShowProfileMenu(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 transition-colors"
+                    >
+                      <CameraOutlined className="text-slate-500" />
+                      <span className="text-sm">{t('Admin.avatarManagement')}</span>
+                    </button>
+                    <div className="border-t border-slate-200 my-1" />
+                    <button
+                      onClick={() => {
+                        const currentLang = document.documentElement.lang
+                        const newLang = currentLang === 'zh' ? 'en' : 'zh'
+                        document.cookie = `NEXT_LOCALE=${newLang};path=/;max-age=31536000`
+                        window.location.reload()
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 transition-colors"
+                    >
+                      <GlobalOutlined className="text-slate-500" />
+                      <span className="text-sm">{t('Settings.language')}</span>
+                    </button>
+                    <div className="border-t border-slate-200 my-1" />
+                    <button
+                      onClick={() => {
+                        handleLogout()
+                        setShowProfileMenu(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+                    >
+                      <LogoutOutlined className="text-red-500" />
+                      <span className="text-sm">{t('Login.logout')}</span>
+                    </button>
+                  </div>
+                )}
+                <input
+                  id="sidebar-avatar-input-collapsed"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleAvatarUpload}
+                  disabled={avatarUploading}
+                  style={{ display: 'none' }}
+                />
               </div>
             )}
-          </div>
-
-          {/* Logout Button */}
-          <div className="p-3">
-            <button
-              onClick={handleLogout}
-              className={cn(
-                'w-full flex items-center rounded-md text-left transition-all duration-200 group',
-                'text-red-600 hover:bg-red-50 hover:text-red-700',
-                collapsed ? 'justify-center p-2.5' : 'space-x-2.5 px-3 py-2.5'
-              )}
-              title={collapsed ? t('Login.logout') : undefined}
-            >
-              <div className="flex items-center justify-center min-w-[24px]">
-                <LogoutOutlined className="flex-shrink-0 text-red-500 group-hover:text-red-600" />
-              </div>
-              
-              {!collapsed && <span className="text-sm">{t('Login.logout')}</span>}
-              
-              {/* Tooltip for collapsed state */}
-              {collapsed && (
-                <div className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-                  {t('Login.logout')}
-                  <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-1.5 h-1.5 bg-slate-800 rotate-45" />
-                </div>
-              )}
-            </button>
           </div>
         </div>
       </aside>

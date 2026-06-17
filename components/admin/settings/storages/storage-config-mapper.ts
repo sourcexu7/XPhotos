@@ -28,7 +28,7 @@ export function valuesToConfigs(values: Record<string, any>, base: Config[] | un
   return next
 }
 
-export function normalizeStorageValues(storageType: 's3' | 'cos' | 'r2' | 'alist', values: Record<string, any>): { ok: boolean; values: Record<string, any>; message?: string } {
+export function normalizeStorageValues(storageType: 's3' | 'cos' | 'alist', values: Record<string, any>): { ok: boolean; values: Record<string, any>; message?: string } {
   const next = { ...values }
 
   if (storageType === 's3') {
@@ -66,15 +66,6 @@ export function normalizeStorageValues(storageType: 's3' | 'cos' | 'r2' | 'alist
     }
     if (!next.cos_cdn) next.cos_cdn_url = ''
 
-    return { ok: true, values: next }
-  }
-
-  if (storageType === 'r2') {
-    const required = ['r2_accesskey_id', 'r2_accesskey_secret', 'r2_account_id', 'r2_bucket']
-    const missing = required.filter((k) => !next[k])
-    if (missing.length) return { ok: false, values: next, message: `缺少必要配置：${missing.join(', ')}` }
-
-    next.r2_storage_folder = normalizeStorageFolder(next.r2_storage_folder)
     return { ok: true, values: next }
   }
 

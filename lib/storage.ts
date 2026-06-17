@@ -2,16 +2,12 @@ import 'server-only'
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { fetchConfigsByKeys } from '~/lib/db/query/configs'
 import { getClient } from '~/lib/s3'
-import { getR2Client } from '~/lib/r2'
 import type { Config, ImageType } from '~/types'
 import { Readable } from 'stream'
 
-function detectStorageByUrl(url: string): 's3' | 'r2' | 'alist' | 'local' {
+function detectStorageByUrl(url: string): 's3' | 'alist' | 'local' {
   if (!url) return 's3' // Default
   const lower = url.toLowerCase()
-  if (lower.includes('.r2.') || lower.includes('.r2.dev') || lower.includes('r2.cloudflarestorage')) {
-    return 'r2'
-  }
   if (lower.includes('alist')) {
     // A simple check, might need refinement
     return 'alist'
@@ -42,8 +38,8 @@ export async function streamImage(imageMeta: ImageType): Promise<{ stream: Reada
   const url = imageMeta.url
   const storageType = detectStorageByUrl(url)
 
-  // For non-S3/R2 storage, we buffer the whole file
-  if (storageType !== 's3' && storageType !== 'r2') {
+  // For non-S3 storage, we buffer the whole file
+  if (storageType !== 's3') {
     console.warn(`Buffering download for storage type: ${storageType}`)
     const response = await fetch(url)
     if (!response.ok) throw new Error(`Failed to fetch image from ${url}`)
@@ -55,7 +51,7 @@ export async function streamImage(imageMeta: ImageType): Promise<{ stream: Reada
     return { stream, exif: null }
   }
 
-  // S3/R2 true streaming logic
+  // S3 true streaming logic
   const key = getKeyFromImage({ id: imageMeta.id, url, original_key: imageMeta.original_key })
   if (!key) {
     throw new Error(`Could not determine file key for image ID ${imageMeta.id}`)
@@ -67,10 +63,6 @@ export async function streamImage(imageMeta: ImageType): Promise<{ stream: Reada
     'region',
     'endpoint',
     'bucket',
-    'r2_accesskey_id',
-    'r2_accesskey_secret',
-    'r2_account_id',
-    'r2_bucket',
   ])
 
   const toConfigMap = (configs: Config[]) =>
@@ -84,8 +76,8 @@ export async function streamImage(imageMeta: ImageType): Promise<{ stream: Reada
 
   const configMap = toConfigMap(configs)
 
-  const client = storageType === 's3' ? getClient(configs) : getR2Client(configs)
-  const bucket = storageType === 's3' ? configMap['bucket'] : configMap['r2_bucket']
+  const client = getClient(configs)
+  const bucket = configMap['bucket']
 
   if (!client || !bucket) {
     throw new Error(`Storage client or bucket not configured for ${storageType}`)
@@ -95,10 +87,10 @@ export async function streamImage(imageMeta: ImageType): Promise<{ stream: Reada
   const response = await client.send(command)
 
   if (!response.Body || !(response.Body instanceof Readable)) {
-    throw new Error('S3/R2 response body is not a readable stream.')
+    throw new Error('S3 response body is not a readable stream.')
   }
 
-  // Directly return the stream from S3/R2
+  // Directly return the stream from S3
   // NOTE: EXIF reading is disabled for simplicity and stability in this version
   return { stream: response.Body, exif: null }
 }

@@ -61,22 +61,22 @@ export default function S3Tabs() {
                   const json = isJson ? await res.json() : null
                   if (!json || json.code !== 200) {
                     const text = await res.text().catch(() => '')
-                    throw new Error(text || '验证失败')
+                    throw new Error(text || t('Config.validateFailed', { message: '' }))
                   }
                   const { bucket, endpoint, checks } = json.data || {}
                   const summary = [
-                    `HeadBucket: ${checks?.headBucket || 'unknown'}`,
-                    `PutObject: ${checks?.putObject || 'unknown'}`,
-                    `GetObject: ${checks?.getObject || 'unknown'}`,
-                    `DeleteObject: ${checks?.deleteObject || 'unknown'}`,
+                    `${t('Config.headBucket')}: ${checks?.headBucket || 'unknown'}`,
+                    `${t('Config.putObject')}: ${checks?.putObject || 'unknown'}`,
+                    `${t('Config.getObject')}: ${checks?.getObject || 'unknown'}`,
+                    `${t('Config.deleteObject')}: ${checks?.deleteObject || 'unknown'}`,
                   ].join(' | ')
-                  message.success(`S3 验证成功：${bucket} @ ${endpoint} — ${summary}`)
+                  message.success(t('Config.validateSuccess', { bucket, endpoint, summary }))
                 } catch (e: any) {
-                  message.error(`S3 验证失败：${e?.message || ''}`)
+                  message.error(t('Config.validateFailed', { message: e?.message || '' }))
                 }
               }}
             >
-              验证配置
+              {t('Config.validateConfig')}
             </Button>
             <Button
               type="primary"

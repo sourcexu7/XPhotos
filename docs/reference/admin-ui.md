@@ -23,8 +23,7 @@
 | `/admin/settings/tag` | 标签管理（二级树） | `components/admin/tags/tag-manager.tsx` | 3.7 settings tags（`get`、`add`、`update`、`move`、`delete`、`delete-with-children`、`check-completeness`） |
 | `/admin/settings/storages` | 存储设置（S3 / R2 / COS / AList） | `components/admin/settings/storages/*`（`s3-tabs`、`r2-tabs`、`cos-tabs`、`alist-tabs`、对应 edit-sheet、`storage-config-mapper`） | 3.7 settings storage（`*-info` 读、`update-*-info` 写、`validate-s3/cos` 连通性、`/storage/alist/info`、`/storage/alist/storages`） |
 | `/admin/settings/account` | 账号设置（头像、密码） | Ant Design `Form`、`Upload`、`Input` | 3.1 auth（`update-user`、`change-password`） |
-| `/admin/settings/authenticator` | 双因素认证（Authenticator TOTP） | `components/auth/passkey-register.tsx` 类似结构 + TOTP 流程 | Better Auth / `authClient`（auth v1 接口下） |
-| `/admin/settings/passkey` | Passkey 管理 | `components/auth/passkey-register.tsx`、`passkey-login.tsx` | Better Auth / `authClient.passkey.*` |
+| `/admin/settings/authenticator` | 双因素认证（Authenticator TOTP） | TOTP 流程 + QR Code 组件 | Better Auth / `authClient.twoFactor.*` |
 
 ---
 
@@ -224,13 +223,6 @@
 - 使用 Better Auth 的 Authenticator 模块（前端 `authClient.*`）
 - 流程：显示 TOTP 二维码 → 输入验证码激活 → 展示恢复码（一次性）
 - 陷阱：激活后必须让用户妥善保存恢复码
-
-#### 2.8.6 passkey Passkey 管理
-
-- 列表：`authClient.passkey.listUserPasskeys()`（本地 / 线上）
-- 注册新 Passkey：`PasskeyRegister`（Better Auth `passkey.register`）
-- 删除：需要二次确认（`passkey.removePasskey`）
-- 陷阱：Passkey 依赖浏览器支持 WebAuthn；非安全上下文下无法使用
 
 ---
 

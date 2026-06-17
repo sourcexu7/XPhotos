@@ -12,7 +12,7 @@ type TagTreeNode = { id?: string | null; category: string | null; children: TagI
 export default function TagManager() {
   const { message } = App.useApp()
   const { token } = theme.useToken()
-  const t = useTranslations()
+  const t = useTranslations('TagManager')
   const [tree, setTree] = useState<TagTreeNode[]>([])
   const [loading, setLoading] = useState(false)
   const [addingPrimary, setAddingPrimary] = useState(false)
@@ -30,7 +30,7 @@ export default function TagManager() {
   const [editingPrimaryValue, setEditingPrimaryValue] = useState<string>('')
   const [editingSecondaryId, setEditingSecondaryId] = useState<string | null>(null)
   const [editingSecondaryValue, setEditingSecondaryValue] = useState<string>('')
-  
+
   // move tag states
   const [movingTagId, setMovingTagId] = useState<string | null>(null)
   const [movingTagName, setMovingTagName] = useState<string>('')
@@ -43,11 +43,11 @@ export default function TagManager() {
       const res = await fetcher('/api/v1/settings/tags/get?tree=true')
       if (res?.data) setTree(res.data)
     } catch (_err) {
-      message.error('加载标签失败')
+      message.error(t('loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [message])
+  }, [message, t])
 
   useEffect(() => { loadTree() }, [loadTree])
 
@@ -59,63 +59,63 @@ export default function TagManager() {
   const filteredTree = useMemo(() => tree, [tree])
 
   const addPrimary = async () => {
-    if (!primaryName?.trim()) return message.warning('请输入一级标签名')
+    if (!primaryName?.trim()) return message.warning(t('inputPrimaryTagName'))
     setAddingPrimary(true)
     try {
       const res = await fetch('/api/v1/settings/tags/add', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: primaryName.trim() })
       }).then(r => r.json())
       if (res?.code === 200) {
-        message.success('添加一级标签成功')
+        message.success(t('addPrimarySuccess'))
         const newId = res?.data?.id
         setPrimaryName('')
         await loadTree()
         // auto-select the newly created parent so user can immediately add children
         if (newId) setSelectedPrimary(newId)
-      } else message.error(res?.message || '添加失败')
-    } catch (_e) { message.error('添加失败') } finally { setAddingPrimary(false) }
+      } else message.error(res?.message || t('addFailed'))
+    } catch (_e) { message.error(t('addFailed')) } finally { setAddingPrimary(false) }
   }
 
   const addSecondary = async () => {
-    if (!selectedPrimary) return message.warning('请先选择一级分类')
-    if (!secondaryName?.trim()) return message.warning('请输入二级标签名')
+    if (!selectedPrimary) return message.warning(t('selectPrimaryCategoryFirst'))
+    if (!secondaryName?.trim()) return message.warning(t('inputSecondaryTagName'))
     setAddingSecondary(true)
     try {
       const res = await fetch('/api/v1/settings/tags/add', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: secondaryName.trim(), parentId: selectedPrimary })
       }).then(r => r.json())
       if (res?.code === 200) {
-        message.success('添加二级标签成功')
+        message.success(t('addSecondarySuccess'))
         setSecondaryName('')
         await loadTree()
-      } else message.error(res?.message || '添加失败')
-    } catch (_e) { message.error('添加失败') } finally { setAddingSecondary(false) }
+      } else message.error(res?.message || t('addFailed'))
+    } catch (_e) { message.error(t('addFailed')) } finally { setAddingSecondary(false) }
   }
 
   const removeTag = async (id: string) => {
     try {
       const res = await fetch(`/api/v1/settings/tags/delete/${id}`, { method: 'DELETE' }).then(r => r.json())
       if (res?.code === 200) {
-        message.success('已删除')
+        message.success(t('deleteSuccess'))
         await loadTree()
         setSelectedPrimary(null)
-      } else message.error(res?.message || '删除失败')
+      } else message.error(res?.message || t('deleteFailed'))
     } catch (_err) {
-      message.error('删除失败')
+      message.error(t('deleteFailed'))
     }
   }
 
   const copy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      message.success('已复制')
+      message.success(t('copySuccess'))
     } catch (_err) {
-      message.error('复制失败')
+      message.error(t('copyFailed'))
     }
   }
 
   const startEditPrimary = (node: TagTreeNode) => {
-    if (!node.id) return message.warning('无法编辑：无对应父标签记录')
+    if (!node.id) return message.warning(t('cannotEditNoRecord'))
     setEditingPrimaryKey(node.id)
     setEditingPrimaryValue(node.category ?? '')
   }
@@ -123,39 +123,39 @@ export default function TagManager() {
   const savePrimaryEdit = async () => {
     if (!editingPrimaryKey) return
     const name = editingPrimaryValue?.trim()
-    if (!name) return message.warning('请输入标签名')
+    if (!name) return message.warning(t('inputTagName'))
     try {
       // update both name and category for primary tags so tree display stays in sync
       const res = await fetch(`/api/v1/settings/tags/update/${editingPrimaryKey}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, category: name }) }).then(r => r.json())
       if (res?.code === 200) {
-        message.success('修改成功')
+        message.success(t('updateSuccess'))
         setEditingPrimaryKey(null)
         setEditingPrimaryValue('')
         await loadTree()
-      } else message.error(res?.message || '修改失败')
-    } catch (_e) { message.error('修改失败') }
+      } else message.error(res?.message || t('updateFailed'))
+    } catch (_e) { message.error(t('updateFailed')) }
   }
 
   const cancelPrimaryEdit = () => { setEditingPrimaryKey(null); setEditingPrimaryValue('') }
 
-  const startEditSecondary = (t: TagItem) => {
-    setEditingSecondaryId(t.id)
-    setEditingSecondaryValue(t.name)
+  const startEditSecondary = (tagItem: TagItem) => {
+    setEditingSecondaryId(tagItem.id)
+    setEditingSecondaryValue(tagItem.name)
   }
 
   const saveSecondaryEdit = async () => {
     if (!editingSecondaryId) return
     const name = editingSecondaryValue?.trim()
-    if (!name) return message.warning('请输入标签名')
+    if (!name) return message.warning(t('inputTagName'))
     try {
       const res = await fetch(`/api/v1/settings/tags/update/${editingSecondaryId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).then(r => r.json())
       if (res?.code === 200) {
-        message.success('修改成功')
+        message.success(t('updateSuccess'))
         setEditingSecondaryId(null)
         setEditingSecondaryValue('')
         await loadTree()
-      } else message.error(res?.message || '修改失败')
-    } catch (_e) { message.error('修改失败') }
+      } else message.error(res?.message || t('updateFailed'))
+    } catch (_e) { message.error(t('updateFailed')) }
   }
 
   const cancelSecondaryEdit = () => { setEditingSecondaryId(null); setEditingSecondaryValue('') }
@@ -173,27 +173,27 @@ export default function TagManager() {
       setMovingTagName(node.category ?? '')
       setTargetParentId(null)
     } else {
-      message.warning('无法移动：无对应标签记录')
+      message.warning(t('cannotMoveNoRecord'))
     }
   }
 
   // 确认移动（使用新的API接口，包含验证和图片标签同步）
   const confirmMove = async () => {
     if (!movingTagId) return
-    
+
     setMoving(true)
     try {
       const res = await fetch('/api/v1/settings/tags/move', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           tagId: movingTagId,
           targetParentId: targetParentId || null
         })
       }).then(r => r.json())
-      
+
       if (res?.code === 200) {
-        message.success('移动成功，图片标签关联已自动同步')
+        message.success(t('moveSuccess'))
         setMovingTagId(null)
         setMovingTagName('')
         setTargetParentId(null)
@@ -205,10 +205,10 @@ export default function TagManager() {
           setSelectedPrimary(null)
         }
       } else {
-        message.error(res?.message || '移动失败')
+        message.error(res?.message || t('moveFailed'))
       }
     } catch (_e) {
-      message.error('移动失败')
+      message.error(t('moveFailed'))
     } finally {
       setMoving(false)
     }
@@ -231,20 +231,24 @@ export default function TagManager() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ batchSize: 100 })
       }).then(r => r.json())
-      
+
       if (res?.code === 200) {
         const data = res.data
         message.success(
-          `检查完成：共检查 ${data.totalImages} 张图片，修复 ${data.fixedImages} 张，发现 ${data.invalidRelations} 个无效关联`
+          t('checkComplete', {
+            total: data.totalImages,
+            fixed: data.fixedImages,
+            invalid: data.invalidRelations
+          })
         )
         if (data.errors && data.errors.length > 0) {
           console.warn('部分图片处理失败:', data.errors)
         }
       } else {
-        message.error(res?.message || '检查失败')
+        message.error(res?.message || t('checkFailed'))
       }
     } catch (_e) {
-      message.error('检查失败')
+      message.error(t('checkFailed'))
     } finally {
       setCheckingCompleteness(false)
     }
@@ -254,13 +258,13 @@ export default function TagManager() {
     <div style={{ padding: token.paddingMD }}>
       <Space orientation="vertical" size={token.marginLG} style={{ width: '100%' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography.Title level={4} style={{ margin: 0 }}>{t('Link.tags')}</Typography.Title>
-          <Button 
-            type="default" 
+          <Typography.Title level={4} style={{ margin: 0 }}>{t('title')}</Typography.Title>
+          <Button
+            type="default"
             onClick={checkTagCompleteness}
             loading={checkingCompleteness}
           >
-            历史图片标签补全检查
+            {t('completenessCheck')}
           </Button>
         </div>
         <Row gutter={token.margin}>
@@ -268,12 +272,12 @@ export default function TagManager() {
             <Card
               size="small"
               styles={{ body: { padding: token.paddingSM } }}
-              title={<Typography.Text strong>一级标签</Typography.Text>}
+              title={<Typography.Text strong>{t('primaryTags')}</Typography.Text>}
               extra={
                 <Space.Compact style={{ width: 220 }}>
                   <Input
                     size="small"
-                    placeholder="新一级标签"
+                    placeholder={t('newPrimaryTag')}
                     value={primaryName}
                     onChange={e => setPrimaryName(e.target.value)}
                     onPressEnter={addPrimary}
@@ -284,14 +288,14 @@ export default function TagManager() {
                     icon={<PlusOutlined />}
                     onClick={addPrimary}
                     loading={addingPrimary}
-                  >添加</Button>
+                  >{t('add')}</Button>
                 </Space.Compact>
               }
             >
               <Space orientation="vertical" style={{ width: '100%' }} size={token.margin}>
                 <Spin spinning={loading}>
                   {filteredTree.length === 0 ? (
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无一级标签" style={{ margin: token.marginLG }} />
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('noPrimaryTags')} style={{ margin: token.marginLG }} />
                   ) : (
                     <div style={{ border: `1px solid ${token.colorBorderSecondary}`, borderRadius: token.borderRadius, overflow: 'hidden' }}>
                       {filteredTree.map((node, i) => (
@@ -316,23 +320,23 @@ export default function TagManager() {
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%' }}>
                               <Input size="small" value={editingPrimaryValue} onChange={e => { e.stopPropagation?.(); setEditingPrimaryValue(e.target.value) }} onPressEnter={savePrimaryEdit} />
                               <Space size={4}>
-                                <Button size="small" type="primary" onClick={savePrimaryEdit}>保存</Button>
-                                <Button size="small" onClick={cancelPrimaryEdit}>取消</Button>
+                                <Button size="small" type="primary" onClick={savePrimaryEdit}>{t('save')}</Button>
+                                <Button size="small" onClick={cancelPrimaryEdit}>{t('cancel')}</Button>
                               </Space>
                             </div>
                           ) : (
                             <>
                               <Space size={6} style={{ marginInlineEnd: 'auto' }}>
-                                <Typography.Text strong ellipsis>{node.category ?? '未分类'}</Typography.Text>
-                                <Tooltip title="子标签数量">
+                                <Typography.Text strong ellipsis>{node.category ?? t('uncategorized')}</Typography.Text>
+                                <Tooltip title={t('childTagCount')}>
                                   <Badge count={node.children.length} size="small" style={{ backgroundColor: token.colorPrimary }} />
                                 </Tooltip>
                               </Space>
                               <Space size={6}>
-                                <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); startEditPrimary(node) }}>编辑</Button>
-                                <Button type="link" size="small" icon={<SwapOutlined />} onClick={(e) => { e.stopPropagation(); openMoveModal(node) }}>移动</Button>
+                                <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); startEditPrimary(node) }}>{t('edit')}</Button>
+                                <Button type="link" size="small" icon={<SwapOutlined />} onClick={(e) => { e.stopPropagation(); openMoveModal(node) }}>{t('move')}</Button>
                                 <Popconfirm
-                                  title={node.children && node.children.length > 0 ? '删除该一级标签会同时删除其所有二级标签，确定吗？' : '确认删除该一级标签吗？'}
+                                  title={node.children && node.children.length > 0 ? t('confirmDeletePrimaryWithChildren') : t('confirmDeletePrimary')}
                                   onConfirm={async (e?: React.MouseEvent) => {
                                     e?.stopPropagation?.()
                                     try {
@@ -343,17 +347,17 @@ export default function TagManager() {
                                           await fetch(`/api/v1/settings/tags/delete/${node.id}`, { method: 'DELETE' }).then(r => r.json())
                                         }
                                       }
-                                      message.success('已删除一级标签及其子标签')
+                                      message.success(t('deleteWithChildrenSuccess'))
                                       await loadTree()
                                       setSelectedPrimary(null)
                                     } catch (err) {
-                                      message.error('删除失败')
+                                      message.error(t('deleteFailed'))
                                     }
                                   }}
-                                  okText="确定"
-                                  cancelText="取消"
+                                  okText={t('confirm')}
+                                  cancelText={t('cancel')}
                                 >
-                                  <Button danger type="link" size="small">删除</Button>
+                                  <Button danger type="link" size="small">{t('delete')}</Button>
                                 </Popconfirm>
                               </Space>
                             </>
@@ -367,26 +371,26 @@ export default function TagManager() {
             </Card>
           </Col>
           <Col xs={24} md={16} lg={17} xl={18}>
-            <Card size="small" styles={{ body: { padding: token.paddingSM } }} title={<Typography.Text strong>二级标签 {selectedPrimary ? `— ${selectedPrimaryName}` : ''}</Typography.Text>}>
+            <Card size="small" styles={{ body: { padding: token.paddingSM } }} title={<Typography.Text strong>{t('secondaryTags')}{selectedPrimary ? ` — ${selectedPrimaryName}` : ''}</Typography.Text>}>
               {!selectedPrimary ? (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="请选择左侧一级标签" style={{ margin: token.marginXL }} />
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('selectPrimaryTag')} style={{ margin: token.marginXL }} />
               ) : (
                 <Space orientation="vertical" style={{ width: '100%' }} size={token.margin}>
                   <Space.Compact style={{ width: '100%' }}>
-                    <Input placeholder={`在 ${selectedPrimaryName} 下添加`} value={secondaryName} onChange={e => setSecondaryName(e.target.value)} onPressEnter={addSecondary} />
-                    <Button type="primary" icon={<PlusOutlined />} onClick={addSecondary} loading={addingSecondary}>添加</Button>
+                    <Input placeholder={t('addUnderCategory', { name: selectedPrimaryName })} value={secondaryName} onChange={e => setSecondaryName(e.target.value)} onPressEnter={addSecondary} />
+                    <Button type="primary" icon={<PlusOutlined />} onClick={addSecondary} loading={addingSecondary}>{t('add')}</Button>
                   </Space.Compact>
                   <Spin spinning={loading}>
                     {(() => {
                       const children = selectedPrimary ? (tree.find(n => n.id === selectedPrimary)?.children || []) : []
                       if (children.length === 0) {
-                        return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无二级标签" style={{ margin: token.marginLG }} />
+                        return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('noSecondaryTags')} style={{ margin: token.marginLG }} />
                       }
                       return (
                         <div style={{ border: `1px solid ${token.colorBorderSecondary}`, borderRadius: token.borderRadius, overflow: 'hidden' }}>
-                          {children.map((t: TagItem, i: number) => (
+                          {children.map((tagItem: TagItem, i: number) => (
                             <div
-                              key={t.id}
+                              key={tagItem.id}
                               onMouseEnter={() => setHoverSecondaryIdx(i)}
                               onMouseLeave={() => setHoverSecondaryIdx(null)}
                               style={{
@@ -399,31 +403,31 @@ export default function TagManager() {
                                 transition: 'background-color .2s'
                               }}
                             >
-                              {editingSecondaryId === t.id ? (
+                              {editingSecondaryId === tagItem.id ? (
                                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%' }}>
                                   <Input size="small" value={editingSecondaryValue} onChange={e => setEditingSecondaryValue(e.target.value)} onPressEnter={saveSecondaryEdit} />
                                   <Space size={4}>
-                                    <Button size="small" type="primary" onClick={saveSecondaryEdit}>保存</Button>
-                                    <Button size="small" onClick={cancelSecondaryEdit}>取消</Button>
+                                    <Button size="small" type="primary" onClick={saveSecondaryEdit}>{t('save')}</Button>
+                                    <Button size="small" onClick={cancelSecondaryEdit}>{t('cancel')}</Button>
                                   </Space>
                                 </div>
                               ) : (
-                                <Tag color="blue" style={{ marginInlineEnd: 'auto' }}>{t.name}</Tag>
+                                <Tag color="blue" style={{ marginInlineEnd: 'auto' }}>{tagItem.name}</Tag>
                               )}
-                              {editingSecondaryId !== t.id && (
+                              {editingSecondaryId !== tagItem.id && (
                                 <Space size={6}>
-                                  <Button type="link" size="small" onClick={() => copy(t.name)}>复制</Button>
-                                  <Button type="link" size="small" onClick={() => startEditSecondary(t)}>编辑</Button>
-                                  <Button 
-                                    type="link" 
-                                    size="small" 
+                                  <Button type="link" size="small" onClick={() => copy(tagItem.name)}>{t('copy')}</Button>
+                                  <Button type="link" size="small" onClick={() => startEditSecondary(tagItem)}>{t('edit')}</Button>
+                                  <Button
+                                    type="link"
+                                    size="small"
                                     icon={<SwapOutlined />}
-                                    onClick={() => openMoveModal({ id: null, category: null, children: [] }, t.id, t.name)}
+                                    onClick={() => openMoveModal({ id: null, category: null, children: [] }, tagItem.id, tagItem.name)}
                                   >
-                                    移动
+                                    {t('move')}
                                   </Button>
-                                  <Popconfirm title="确认删除该标签吗？" onConfirm={() => removeTag(t.id)} okText="确定" cancelText="取消">
-                                    <Button danger type="link" size="small">删除</Button>
+                                  <Popconfirm title={t('confirmDeleteTag')} onConfirm={() => removeTag(tagItem.id)} okText={t('confirm')} cancelText={t('cancel')}>
+                                    <Button danger type="link" size="small">{t('delete')}</Button>
                                   </Popconfirm>
                                 </Space>
                               )}
@@ -439,51 +443,53 @@ export default function TagManager() {
           </Col>
         </Row>
       </Space>
-      
+
       {/* 移动标签对话框 */}
       <Modal
-        title="移动标签"
+        title={t('moveTag')}
         open={!!movingTagId}
         onOk={confirmMove}
         onCancel={cancelMove}
         confirmLoading={moving}
-        okText="确定"
-        cancelText="取消"
+        okText={t('confirm')}
+        cancelText={t('cancel')}
       >
         <Space orientation="vertical" style={{ width: '100%' }} size="middle">
           <div>
-            <Typography.Text>将标签 <Typography.Text strong>"{movingTagName}"</Typography.Text> 移动到：</Typography.Text>
+            <Typography.Text>
+              {t('moveTagPrefix')} <Typography.Text strong>"{movingTagName}"</Typography.Text> {t('moveTagSuffix')}
+            </Typography.Text>
             {(() => {
               const movingNode = tree.find(n => n.id === movingTagId)
               const childCount = movingNode?.children.length ?? 0
               const isSecondaryTag = movingNode ? false : tree.some(n => n.children.some(c => c.id === movingTagId))
-              
+
               if (childCount > 0) {
                 return (
                   <div style={{ marginTop: 8 }}>
                     <Typography.Text type="warning" style={{ fontSize: 12 }}>
-                      注意：该标签有 {childCount} 个子标签，移动后子标签将一起移动
+                      {t('hasChildTagsWarning', { count: childCount })}
                     </Typography.Text>
                   </div>
                 )
               }
-              
+
               if (isSecondaryTag) {
                 return (
                   <div style={{ marginTop: 8 }}>
                     <Typography.Text style={{ fontSize: 12 }}>
-                      提示：这是二级标签，可以升级为一级标签或移动到其他一级标签下
+                      {t('isSecondaryTagHint')}
                     </Typography.Text>
                   </div>
                 )
               }
-              
+
               return null
             })()}
           </div>
           <Select
             style={{ width: '100%' }}
-            placeholder="选择目标一级标签（留空表示升级为一级标签）"
+            placeholder={t('targetPrimaryPlaceholder')}
             value={targetParentId}
             onChange={setTargetParentId}
             allowClear
@@ -494,12 +500,12 @@ export default function TagManager() {
             options={filteredTree
               .filter(node => node.id && node.id !== movingTagId) // 排除自身
               .map(node => ({
-                label: `${node.category ?? '未分类'} (${node.children.length} 个子标签)`,
+                label: `${node.category ?? t('uncategorized')} (${node.children.length})`,
                 value: node.id!,
               }))}
           />
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            提示：留空表示升级为一级标签；选择目标一级标签表示移动到该一级标签下作为二级标签。移动后图片标签关联将自动同步。
+            {t('moveHint')}
           </Typography.Text>
         </Space>
       </Modal>

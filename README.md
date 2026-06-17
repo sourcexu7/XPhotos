@@ -29,7 +29,7 @@ XPhotos 是一个开箱即用的个人摄影图库系统，前台提供多种主
 - 🏷 **标签管理**：多级（父子）标签、图片标签自动关联、标签移动与补全工具
 - 📖 **攻略模块**：Markdown + 模块（行程 / 预算 / 清单 / 交通 / 贴士 / 配图）的富媒体攻略
 - 🏪 **多存储支持**：S3 / Cloudflare R2 / 腾讯云 COS / AList，可在后台切换默认存储
-- 🔐 **鉴权体系**：邮箱密码登录 + Passkey 无密码登录 + 两步验证（2FA / TOTP）
+- 🔐 **鉴权体系**：邮箱密码登录 + 图形验证码 + 两步验证（2FA / TOTP）
 - 📊 **数据统计**：访问日志、图片按年份分布、热门相机 / 镜头、后台仪表盘
 - ⚡ **性能优化**：Next.js 图片优化、SSR + Server Components、PostgreSQL 性能索引、防抖筛选
 - 🌍 **国际化**：`zh` / `en` 双语，由 `next-intl` 驱动
@@ -50,7 +50,7 @@ XPhotos 是一个开箱即用的个人摄影图库系统，前台提供多种主
 | 表单 | React Hook Form + Zod |
 | 国际化 | `next-intl`（`messages/zh.json`、`messages/en.json`） |
 | 服务端框架 | **Hono**（`/api/v1/*` 接口统一由 Hono 挂载） |
-| 认证 | better-auth（Password / Passkey / 2FA TOTP / Session） |
+| 认证 | better-auth（Password / 2FA TOTP / Session） |
 | 数据库 | **PostgreSQL** + **Prisma 6** |
 | 对象存储 | AWS S3 SDK v3（S3 / R2 / COS / AList 均走 S3 兼容通道） |
 | 图片处理 | Sharp、Compressor.js、HEIC→JPEG、BlurHash / ThumbHash |
@@ -177,8 +177,6 @@ pnpm exec tsx scripts/update-password.ts
 | `DATABASE_URL` | PostgreSQL 连接串，使用 Supabase 时建议追加 `?pgbouncer=true` |
 | `DIRECT_URL` | Prisma 迁移直连（可与 `DATABASE_URL` 相同，Serverless 数据库除外） |
 | `BETTER_AUTH_SECRET` | 鉴权密钥，建议 `npx auth secret` 生成 |
-| `BETTER_AUTH_PASSKEY_RP_ID` | Passkey Relying Party ID，例如部署域名 |
-| `BETTER_AUTH_PASSKEY_RP_NAME` | Passkey Relying Party 名称，例如 `XPhotos` |
 
 ### Netlify
 
@@ -280,10 +278,10 @@ pnpm start
 <summary><strong>🔐 认证与安全</strong></summary>
 
 - 邮箱 + 密码注册 / 登录（`bcryptjs`）
-- **Passkey**：`components/auth/passkey-login.tsx`、`passkey-register.tsx`，支持多 Passkey 管理
+- **图形验证码**：防暴力破解，支持刷新和验证
 - **两步验证（TOTP）**：`admin/settings/authenticator`，可启用 Authenticator App
 - Session / Token：`auth_token` Cookie，受 `middleware.ts` 保护的 `/admin/**` 路径
-- 环境变量：`BETTER_AUTH_SECRET`、`BETTER_AUTH_PASSKEY_RP_ID`、`BETTER_AUTH_PASSKEY_RP_NAME`
+- 环境变量：`BETTER_AUTH_SECRET`、`JWT_SECRET`
 
 </details>
 
@@ -335,10 +333,10 @@ XPhotos/
 │  │  ├─ list/                   # 图片列表与筛选
 │  │  ├─ album/                  # 相册管理 + 相册级排序
 │  │  ├─ upload/                 # 多图 / Live Photo / 简单上传
-│  │  ├─ settings/               # 偏好设置、账号、Passkey、2FA、标签、存储
+│  │  ├─ settings/               # 偏好设置、账号、2FA、标签、存储
 │  │  ├─ guides/                 # 攻略列表与编辑
 │  │  └─ analytics/              # 统计与数据概览
-│  ├─ login/                     # 登录页（密码 + Passkey）
+│  ├─ login/                     # 登录页（密码 + 图形验证码）
 │  ├─ api/[[...route]]/route.ts  # Hono 统一入口（/api/v1/* 与部分 /api/public/*）
 │  └─ rss.xml/route.ts           # RSS feed
 │
@@ -350,12 +348,12 @@ XPhotos/
 │  │  ├─ guide-editor/           # 攻略编辑器（封面、TOC、模块管理、内容编辑）
 │  │  ├─ settings/storages/      # S3 / R2 / COS / AList 存储配置表单
 │  │  └─ upload/                 # 多图上传、Live Photo、文件上传组件
-│  ├─ auth/                      # Passkey 登录/注册
+│  ├─ auth/                      # 登出按钮
 │  ├─ gallery/                   # 瀑布流 / 简单画廊组件
 │  ├─ ui/                        # shadcn/ui 风格基础组件
 │  └─ public/dashboard/          # 公开统计卡片
 │
-├─ hooks/                        # 业务 hooks（gallery filters、passkey status、SWR 等）
+├─ hooks/                        # 业务 hooks（gallery filters、SWR 等）
 │
 ├─ lib/                          # 核心业务逻辑
 │  ├─ db/                        # Prisma 入口 + query/ + operate/
@@ -419,7 +417,7 @@ XPhotos/
 |------|------|------|
 | 📚 文档入口 | [`docs/README.md`](docs/README.md) | 文档导航与目录说明 |
 | 🔌 API 总览 | [`docs/api/README.md`](docs/api/README.md) | 接口前缀、鉴权、通用响应约定 |
-| 🔐 认证接口 | [`docs/api/v1-auth.md`](docs/api/v1-auth.md) | 登录 / 注册 / Passkey / 2FA |
+| 🔐 认证接口 | [`docs/api/v1-auth.md`](docs/api/v1-auth.md) | 登录 / 注册 / 2FA |
 | ⚙️ 设置接口 | [`docs/api/v1-settings.md`](docs/api/v1-settings.md) | 系统配置、标签、存储 |
 | 🖼 图片接口 | [`docs/api/v1-images.md`](docs/api/v1-images.md) | 图片 CRUD、排序、筛选 |
 | 📚 相册接口 | [`docs/api/v1-albums.md`](docs/api/v1-albums.md) | 相册管理、封面、排序 |
@@ -446,8 +444,8 @@ A：PostgreSQL，通过 Prisma 6 访问。详见 `.env.example` 与 `prisma/sche
 **Q：如何配置对象存储？**
 A：进入后台 `设置 → 存储`，填写对应存储类型（S3 / R2 / COS / AList）的凭证与参数，并在 `default_storage` 中选择默认存储。上传时会走对应适配器。
 
-**Q：如何启用 Passkey / 2FA？**
-A：Passkey：后台 `设置 → Passkey` 注册设备；`BETTER_AUTH_PASSKEY_RP_ID` 需设为你的部署域名。2FA：后台 `设置 → Authenticator`，使用 TOTP 应用（如 Google Authenticator、1Password）绑定。
+**Q：如何启用 2FA？**
+A：进入后台 `设置 → Authenticator`，使用 TOTP 应用（如 Google Authenticator、1Password）绑定。
 
 **Q：图片加载慢？**
 A：1）开启并正确使用对象存储的 CDN 模式；2）在 `next.config.mjs` 中配置 `remotePatterns` 与图片优化；3）数据库层面执行 `prisma/add_performance_indexes.sql` 中的索引优化。

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Menu, Dropdown, Typography, Space, Divider, theme } from 'antd'
+import { Menu, Dropdown, Typography, Space, Divider, theme, Avatar } from 'antd'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -18,6 +18,8 @@ import {
   BarChartOutlined,
   BookOutlined,
   PieChartOutlined,
+  CameraOutlined,
+  GlobalOutlined,
 } from '@ant-design/icons'
 import { authClient } from '~/lib/auth-client'
 import { clearAllAuthData } from '~/lib/utils/auth-utils'
@@ -49,7 +51,7 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
     {
       key: '/admin/data-overview',
       icon: <PieChartOutlined />,
-      label: '数据一览',
+      label: t('Link.dataOverview'),
     },
     {
       key: '/admin/upload',
@@ -74,7 +76,7 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
     {
       key: '/admin/guides',
       icon: <BookOutlined />,
-      label: '攻略管理',
+      label: t('Link.guides'),
     },
   ]
 
@@ -114,12 +116,92 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
     }
   }
 
+  const [avatarUploading, setAvatarUploading] = useState(false)
+
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      return
+    }
+    
+    setAvatarUploading(true)
+    
+    import('~/lib/utils/compress').then(({ compressImage }) => {
+      compressImage(file, {
+        quality: 0.85,
+        maxWidth: 200,
+        maxWidthEnabled: true,
+        mimeType: 'image/webp',
+      }).then(async (compressedFile) => {
+        if (!compressedFile) {
+          setAvatarUploading(false)
+          return
+        }
+        
+        import('~/lib/utils/file').then(async ({ uploadFile }) => {
+          try {
+            const file = new File([compressedFile], 'avatar.webp', { type: 'image/webp' })
+            const resp = await uploadFile(file, '/about/avatar', 's3', '')
+            if (resp.code === 200) {
+              const saveResp = await fetch('/api/v1/settings/update-custom-info', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  aboutAvatarUrl: resp.data.url,
+                }),
+              })
+              const saveData = await saveResp.json()
+              if (saveData.code === 200) {
+                await fetch('/api/v1/settings/cache/clear')
+              }
+            }
+          } catch (e) {
+            console.error('avatar upload failed', e)
+          } finally {
+            setAvatarUploading(false)
+          }
+        })
+      })
+    })
+  }
+
   const userMenuItems = [
+    {
+      key: 'preferences',
+      icon: <SettingOutlined />,
+      label: t('Settings.title'),
+      onClick: () => router.push('/admin/settings/preferences'),
+    },
+    {
+      key: 'avatar',
+      icon: <CameraOutlined />,
+      label: t('Admin.avatarManagement'),
+      onClick: () => {
+        document.getElementById('sidebar-avatar-input')?.click()
+      },
+    },
     {
       key: 'home',
       icon: <HomeOutlined />,
       label: t('Login.goHome'),
       onClick: () => router.push('/'),
+    },
+    {
+      type: 'divider' as const,
+    },
+    {
+      key: 'language',
+      icon: <GlobalOutlined />,
+      label: t('Settings.language'),
+      onClick: () => {
+        const currentLang = document.documentElement.lang
+        const newLang = currentLang === 'zh' ? 'en' : 'zh'
+        document.cookie = `NEXT_LOCALE=${newLang};path=/;max-age=31536000`
+        window.location.reload()
+      },
     },
     {
       type: 'divider' as const,
@@ -131,14 +213,11 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
       danger: true,
       onClick: async () => {
         try {
-          // 调用服务端 signOut
           await authClient.signOut({ fetchOptions: { onSuccess: () => {} } })
         } catch (e) {
           console.error('logout failed', e)
         } finally {
-          // 彻底清除所有认证数据
           clearAllAuthData()
-          // 强制完全刷新页面
           window.location.href = '/login'
         }
       },
@@ -203,6 +282,14 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
           padding: token.paddingSM,
         }}
       >
+        <input
+          id="sidebar-avatar-input"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handleAvatarUpload}
+          disabled={avatarUploading}
+          style={{ display: 'none' }}
+        />
         <Dropdown menu={{ items: userMenuItems }} placement="topLeft" trigger={['click']}>
           <div
             style={{
@@ -213,6 +300,7 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
               padding: token.paddingXS,
               borderRadius: token.borderRadius,
               transition: 'background 0.3s',
+              gap: token.paddingSM,
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = token.colorBgTextHover
@@ -221,6 +309,11 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
               e.currentTarget.style.background = 'transparent'
             }}
           >
+            <Avatar
+              size={collapsed ? 32 : 40}
+              icon={<UserOutlined />}
+              style={{ backgroundColor: token.colorPrimary }}
+            />
             {!collapsed && (
               <Space orientation="vertical" size={0}>
                 <Text strong style={{ fontSize: 13 }}>

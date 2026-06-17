@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { Form, Input, Switch, Divider, FormInstance, FormRule } from 'antd'
+import { useTranslations } from 'next-intl'
 
 type StorageType = 's3' | 'r2' | 'cos' | 'alist'
 
@@ -13,13 +14,14 @@ interface StorageFormProps {
 }
 
 export function StorageForm({ form: formInstance, storageType, initialValues, onValuesChange }: StorageFormProps) {
+  const t = useTranslations()
   const commonRules: Record<string, FormRule[]> = {
-    required: [{ required: true, message: '该字段为必填项' }],
-    url: [{ type: 'url', message: '请输入合法的 URL（包含协议，例如 https://）' }],
+    required: [{ required: true, message: t('Config.requiredField') }],
+    url: [{ type: 'url', message: t('Config.invalidUrl') }],
     https: [{
       validator: (_: unknown, value: string) => {
         if (value && !/^https:\/\//i.test(value)) {
-          return Promise.reject(new Error('必须以 https:// 开头'))
+          return Promise.reject(new Error(t('Config.mustStartWithHttps')))
         }
         return Promise.resolve()
       }
@@ -31,44 +33,44 @@ export function StorageForm({ form: formInstance, storageType, initialValues, on
       return (
         <>
           <Form.Item
-            label="Access Key ID"
+            label={t('Config.accesskey_id')}
             name="accesskey_id"
             rules={commonRules.required}
           >
             <Input placeholder="AKIAXXXXXXXXXXXXXXXX" />
           </Form.Item>
           <Form.Item
-            label="Secret Access Key"
+            label={t('Config.secretAccessKey')}
             name="accesskey_secret"
             rules={commonRules.required}
           >
             <Input.Password placeholder="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" />
           </Form.Item>
           <Form.Item
-            label="Region"
+            label={t('Config.region')}
             name="region"
             rules={commonRules.required}
           >
             <Input placeholder="us-east-1" />
           </Form.Item>
           <Form.Item
-            label="Endpoint"
+            label={t('Config.endpoint')}
             name="endpoint"
             rules={[...commonRules.required, ...commonRules.url]}
           >
             <Input placeholder="https://s3.amazonaws.com" />
           </Form.Item>
           <Form.Item
-            label="Bucket"
+            label={t('Config.bucket')}
             name="bucket"
             rules={commonRules.required}
           >
             <Input placeholder="my-bucket" />
           </Form.Item>
           <Form.Item
-            label="Storage Folder"
+            label={t('Config.storageFolder')}
             name="storage_folder"
-            tooltip="Leave empty for root, no leading/trailing slashes"
+            tooltip={t('Config.storageFolderTooltip')}
           >
             <Input placeholder="path/to/folder" />
           </Form.Item>
@@ -80,44 +82,44 @@ export function StorageForm({ form: formInstance, storageType, initialValues, on
       return (
         <>
           <Form.Item
-            label="Secret ID"
+            label={t('Config.cos_secret_id')}
             name="cos_secret_id"
             rules={commonRules.required}
           >
             <Input placeholder="AKID****************" />
           </Form.Item>
           <Form.Item
-            label="Secret Key"
+            label={t('Config.cos_secret_key')}
             name="cos_secret_key"
             rules={commonRules.required}
           >
             <Input.Password placeholder="****************" />
           </Form.Item>
           <Form.Item
-            label="Region"
+            label={t('Config.cos_region')}
             name="cos_region"
             rules={commonRules.required}
           >
             <Input placeholder="ap-guangzhou" />
           </Form.Item>
           <Form.Item
-            label="Endpoint"
+            label={t('Config.cos_endpoint')}
             name="cos_endpoint"
             rules={[...commonRules.required, ...commonRules.https]}
           >
             <Input placeholder="https://cos.ap-guangzhou.myqcloud.com" />
           </Form.Item>
           <Form.Item
-            label="Bucket (with AppId)"
+            label={t('Config.bucketWithAppId')}
             name="cos_bucket"
             rules={commonRules.required}
           >
             <Input placeholder="example-1250000000" />
           </Form.Item>
           <Form.Item
-            label="Storage Folder"
+            label={t('Config.storageFolder')}
             name="cos_storage_folder"
-            tooltip="Leave empty for root, no leading/trailing slashes"
+            tooltip={t('Config.storageFolderTooltip')}
           >
             <Input placeholder="path/to/folder" />
           </Form.Item>
@@ -133,25 +135,25 @@ export function StorageForm({ form: formInstance, storageType, initialValues, on
     if (storageType === 's3') {
       return (
         <>
-          <Form.Item label="强制 Path-Style" name="force_path_style" valuePropName="checked">
+          <Form.Item label={t('Config.forcePathStyle')} name="force_path_style" valuePropName="checked">
             <Switch />
           </Form.Item>
 
-          <Form.Item label="启用 CDN" name="s3_cdn" valuePropName="checked">
+          <Form.Item label={t('Config.enableCDN')} name="s3_cdn" valuePropName="checked">
             <Switch />
           </Form.Item>
 
           <Form.Item noStyle shouldUpdate={(prev, cur) => prev.s3_cdn !== cur.s3_cdn}>
             {({ getFieldValue }) =>
               getFieldValue('s3_cdn') ? (
-                <Form.Item label="CDN URL" name="s3_cdn_url" rules={[...commonRules.required, ...commonRules.url]}>
+                <Form.Item label={t('Config.cdnUrl')} name="s3_cdn_url" rules={[...commonRules.required, ...commonRules.url]}>
                   <Input placeholder="https://cdn.example.com" />
                 </Form.Item>
               ) : null
             }
           </Form.Item>
 
-          <Form.Item label="直接下载" name="s3_direct_download" valuePropName="checked">
+          <Form.Item label={t('Config.directDownload')} name="s3_direct_download" valuePropName="checked">
             <Switch />
           </Form.Item>
         </>
@@ -161,25 +163,25 @@ export function StorageForm({ form: formInstance, storageType, initialValues, on
     if (storageType === 'cos') {
       return (
         <>
-          <Form.Item label="强制 Path-Style" name="cos_force_path_style" valuePropName="checked">
+          <Form.Item label={t('Config.forcePathStyle')} name="cos_force_path_style" valuePropName="checked">
             <Switch />
           </Form.Item>
 
-          <Form.Item label="启用 CDN" name="cos_cdn" valuePropName="checked">
+          <Form.Item label={t('Config.enableCDN')} name="cos_cdn" valuePropName="checked">
             <Switch />
           </Form.Item>
 
           <Form.Item noStyle shouldUpdate={(prev, cur) => prev.cos_cdn !== cur.cos_cdn}>
             {({ getFieldValue }) =>
               getFieldValue('cos_cdn') ? (
-                <Form.Item label="CDN URL" name="cos_cdn_url" rules={[...commonRules.required, ...commonRules.url]}>
+                <Form.Item label={t('Config.cdnUrl')} name="cos_cdn_url" rules={[...commonRules.required, ...commonRules.url]}>
                   <Input placeholder="https://cdn.example.com" />
                 </Form.Item>
               ) : null
             }
           </Form.Item>
 
-          <Form.Item label="直接下载" name="cos_direct_download" valuePropName="checked">
+          <Form.Item label={t('Config.directDownload')} name="cos_direct_download" valuePropName="checked">
             <Switch />
           </Form.Item>
         </>
@@ -198,7 +200,7 @@ export function StorageForm({ form: formInstance, storageType, initialValues, on
     >
       {renderBasicFields()}
       
-      <Divider titlePlacement="left" style={{ margin: '24px 0 16px' }}>Advanced Settings</Divider>
+      <Divider titlePlacement="left" style={{ margin: '24px 0 16px' }}>{t('Config.advancedSettings')}</Divider>
       
       {renderAdvancedFields()}
     </Form>

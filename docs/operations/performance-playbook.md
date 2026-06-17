@@ -40,7 +40,7 @@ CREATE INDEX idx_images_exif_model
 
 > 注意：JSONB 字段的 GIN 索引需要在迁移文件中手动创建，Prisma schema 不支持
 
-当前仓库**没有**任何针对 `labels` 的 GIN 索引迁移或 SQL（未找到 `db_optimizations.sql`），对 `labels` 的包含/匹配查询会退化为顺序扫描。建议（未实施）：在迁移文件中执行：
+当前仓库**没有**针对 `labels` 的 GIN 索引，对 `labels` 的包含/匹配查询会退化为顺序扫描。建议（未实施）：在迁移文件中执行：
 
 ```sql
 CREATE INDEX idx_images_labels_gin ON images USING GIN (labels jsonb_ops);
@@ -164,7 +164,7 @@ minimumCacheTTL: 3600,
 
 以下条目在旧文档 `analysis.md` / `summary.md` 中被描述为「已实施」或「预期」，但在当前代码中**实际未实施**，已从本节「已实施」列表中排除：
 
-- `images(labels)` GIN 索引（schema 注释说明「需在迁移文件中手动创建」，但仓库内没有对应迁移或 `db_optimizations.sql`）。
+- `images(labels)` GIN 索引（schema 注释说明「需在迁移文件中手动创建」，但仓库内没有对应迁移）。
 - `images_tags_relation(imageId, tagId)` 联合索引（schema 中仅有 `@@unique([imageId, tagId])` 约束与 `@@index([imageId])`、`@@index([tagId])`）。
 - 图片上传时自动生成多尺寸缩略图 / 自动压缩（前端没有 Sharp 调用，`lib/db/operate/images.ts` 中也未见相关逻辑）。
 - CDN 域名加速（`.env.example` 中没有 `NEXT_PUBLIC_CDN_URL`，`next.config.mjs` 中也没有相关读取）。

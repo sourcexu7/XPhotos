@@ -37,6 +37,7 @@ tsconfig.tsbuildinfo
 .trae
 .claude
 .agents
+skills-lock.json
 
 # Logs
 *.log
@@ -69,6 +70,7 @@ certificates
 *.temp
 *.bak
 *.backup
+backup/
 
 # Archive files
 *.zip

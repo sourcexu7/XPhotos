@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { useTheme } from 'next-themes'
+import { useTranslations } from 'next-intl'
 
 export type PhotosByYearChartProps = {
   data: Array<{ year: number; count: number }>
@@ -19,17 +20,18 @@ export type PhotosByYearChartProps = {
 export function PhotosByYearChart({ data }: PhotosByYearChartProps) {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
+  const t = useTranslations()
   
   const sortedData = [...data].sort((a, b) => a.year - b.year)
 
   return (
     <div className="bg-card p-6 rounded-xl border border-border">
       <h3 className="text-base font-semibold text-foreground mb-6">
-        年份照片分布
+        {t('Dashboard.photosByYear')}
       </h3>
       {data.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          <p className="text-sm">暂无数据</p>
+          <p className="text-sm">{t('ImageComponent.noData')}</p>
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={280}>

@@ -3,6 +3,7 @@
 import React from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { CameraOutlined, ExperimentOutlined } from '@ant-design/icons'
+import { useTranslations } from 'next-intl'
 
 export type HorizontalBarChartProps = {
   data: Array<{ name: string; count: number }>
@@ -20,6 +21,7 @@ export function HorizontalBarChart({
   variant = 'camera'
 }: HorizontalBarChartProps) {
   const reduce = useReducedMotion()
+  const t = useTranslations('Dashboard')
   
   const actualMaxCount = maxCount || Math.max(...data.map(d => d.count), 1)
   
@@ -56,7 +58,7 @@ export function HorizontalBarChart({
             {title}
           </h3>
           <p className="text-sm text-muted-foreground">
-            {variant === 'camera' ? '热门设备' : '镜头配置'}
+            {variant === 'camera' ? t('popularDevices') : t('lensConfig')}
           </p>
         </div>
       </div>

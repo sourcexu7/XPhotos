@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import { Modal, message, Button, Space, theme } from 'antd'
 import { ReloadOutlined } from '@ant-design/icons'
+import { useTranslations } from 'next-intl'
 import { DashboardView, type PublicDashboardStats } from '~/components/public/dashboard/dashboard-view'
 import AdminPageHeader from '~/components/admin/layout/page-header'
 
@@ -14,6 +15,7 @@ export default function DataOverviewPage() {
   const [clearing, setClearing] = useState(false)
   const { mutate } = useSWRConfig()
   const { token } = theme.useToken()
+  const t = useTranslations('DataOverview')
 
   useEffect(() => {
     setMounted(true)
@@ -31,10 +33,10 @@ export default function DataOverviewPage() {
 
   const handleClearCache = () => {
     Modal.confirm({
-      title: '确定要清空所有 Redis 缓存吗？',
-      content: '清除后系统将从数据库重新拉取数据，可能短暂增加数据库压力。',
-      okText: '确认清除',
-      cancelText: '取消',
+      title: t('clearConfirmTitle'),
+      content: t('clearConfirmContent'),
+      okText: t('clearConfirmOk'),
+      cancelText: t('clearConfirmCancel'),
       okButtonProps: { danger: true },
       centered: true,
       onOk: async () => {
@@ -44,7 +46,7 @@ export default function DataOverviewPage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
           })
-          if (!res.ok) throw new Error(`请求失败：${res.status}`)
+          if (!res.ok) throw new Error(t('clearRequestFailed', { status: res.status }))
           const body = await res.json().catch(() => ({}))
           const deleted = typeof body?.data?.deleted === 'number' ? body.data.deleted : undefined
 
@@ -56,12 +58,12 @@ export default function DataOverviewPage() {
 
           message.success(
             typeof deleted === 'number'
-              ? `缓存已清除，共删除 ${deleted} 条 key`
-              : '缓存已清除'
+              ? t('clearSuccessWithCount', { count: deleted })
+              : t('clearSuccess')
           )
         } catch (e) {
           console.error(e)
-          message.error(e instanceof Error ? `清除失败：${e.message}` : '清除失败')
+          message.error(e instanceof Error ? t('clearFailed', { message: e.message }) : t('clearFailedDefault'))
         } finally {
           setClearing(false)
         }
@@ -71,7 +73,7 @@ export default function DataOverviewPage() {
 
   return (
     <div style={{ padding: token.marginLG }}>
-      <AdminPageHeader title="数据一览" description="公开统计数据展示" />
+      <AdminPageHeader title={t('title')} description={t('description')} />
 
       <div
         style={{
@@ -89,7 +91,7 @@ export default function DataOverviewPage() {
             onClick={handleClearCache}
             loading={clearing}
           >
-            {clearing ? '正在清除…' : '一键清除 Redis 缓存'}
+            {clearing ? t('clearing') : t('clearCache')}
           </Button>
         </Space>
       </div>

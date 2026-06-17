@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { Button, Drawer, Space, App, Typography, Spin, Empty, Tooltip, Badge, theme } from 'antd'
 import { 
   UnorderedListOutlined,
@@ -78,6 +79,7 @@ const SPECIAL_TEMPLATES = ['itinerary', 'expense', 'checklist', 'transport', 'ph
 export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
   const { token } = theme.useToken()
   const { message } = App.useApp()
+  const t = useTranslations('Guides')
   const [selectedModule, setSelectedModule] = useState<Module | null>(null)
   const [isTocDrawerOpen, setIsTocDrawerOpen] = useState(false)
   const [isCoverDrawerOpen, setIsCoverDrawerOpen] = useState(false)
@@ -167,11 +169,11 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
         }),
       })
       
-      message.success('保存成功')
+      message.success(t('saveSuccess'))
       onSave?.()
     } catch (error) {
       console.error('handleSave error:', error)
-      message.error('保存失败')
+      message.error(t('saveFailed'))
     }
   }
 
@@ -194,7 +196,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center bg-gray-50">
-        <Spin size="large" tip="加载中...">
+        <Spin size="large" tip={t('loading')}>
           <div className="text-center p-8" />
         </Spin>
       </div>
@@ -207,7 +209,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
         <div className="text-center p-8">
           <Empty 
             description={
-              <span className="text-gray-600">加载失败，请刷新重试</span>
+              <span className="text-gray-600">{t('loadFailed')}</span>
             } 
           />
           <Button 
@@ -215,7 +217,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
             className="mt-4" 
             onClick={() => mutate(`${API_BASE}/module/${guideId}`)}
           >
-            刷新
+            {t('refresh')}
           </Button>
         </div>
       </div>
@@ -234,36 +236,36 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
             }} 
           />
           <span className="text-sm font-medium text-gray-700">
-            {isPreviewMode ? '预览模式' : '编辑模式'}
+            {isPreviewMode ? t('previewMode') : t('editMode')}
           </span>
         </div>
         <Space size="middle">
-          <Tooltip title="刷新数据">
+          <Tooltip title={t('refreshData')}>
             <Button 
               icon={<ReloadOutlined />} 
               onClick={() => mutate(`${API_BASE}/module/${guideId}`)}
               className="rounded-lg"
             />
           </Tooltip>
-          <Tooltip title="封面设置">
+          <Tooltip title={t('coverSettings')}>
             <Button 
               icon={<PictureOutlined />} 
               onClick={() => setIsCoverDrawerOpen(true)}
               className="rounded-lg"
             >
-              封面
+              {t('cover')}
             </Button>
           </Tooltip>
-          <Tooltip title={isPreviewMode ? '切换编辑' : '切换预览'}>
+          <Tooltip title={isPreviewMode ? t('switchToEdit') : t('switchToPreview')}>
             <Button 
               icon={isPreviewMode ? <EditOutlined /> : <EyeOutlined />} 
               onClick={togglePreview}
               className="rounded-lg"
             >
-              {isPreviewMode ? '编辑' : '预览'}
+              {isPreviewMode ? t('edit') : t('preview')}
             </Button>
           </Tooltip>
-          <Tooltip title={isFullscreen ? '退出全屏' : '全屏编辑'}>
+          <Tooltip title={isFullscreen ? t('exitFullscreen') : t('fullscreenEdit')}>
             <Button 
               icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />} 
               onClick={toggleFullscreen}
@@ -275,7 +277,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
             onClick={() => setIsTocDrawerOpen(true)}
             className="rounded-lg"
           >
-            目录管理
+            {t('tocManager')}
           </Button>
           <Button 
             type="primary" 
@@ -283,7 +285,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
             onClick={handleSave}
             className="rounded-lg bg-blue-600 hover:bg-blue-700"
           >
-            保存
+            {t('save')}
           </Button>
         </Space>
       </div>
@@ -295,7 +297,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
           <div className="flex-1 p-6 overflow-auto bg-gray-50">
             <div className="max-w-4xl mx-auto bg-white rounded-xl p-8 shadow-sm">
               {isLoadingModuleData ? (
-                <Spin size="large" tip="加载预览数据...">
+                <Spin size="large" tip={t('loadingPreviewData')}>
                   <div className="flex items-center justify-center py-12" />
                 </Spin>
               ) : (
@@ -331,7 +333,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
             <div className="w-96 overflow-auto bg-gray-50">
               <div className="p-4 sticky top-0 bg-gray-50 z-10 border-b border-gray-200">
                 <Typography.Text strong className="text-sm text-gray-700">
-                  📱 实时预览
+                  {t('realTimePreview')}
                 </Typography.Text>
               </div>
               <div className="h-[calc(100%-64px)] p-4">
@@ -347,7 +349,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
 
       {/* 目录管理抽屉 */}
       <Drawer
-        title="目录管理"
+        title={t('tocManager')}
         placement="right"
         size="large"
         onClose={() => setIsTocDrawerOpen(false)}
@@ -363,7 +365,7 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
 
       {/* 封面编辑抽屉 */}
       <Drawer
-        title="封面设置"
+        title={t('coverSettings')}
         placement="right"
         size="large"
         onClose={() => setIsCoverDrawerOpen(false)}

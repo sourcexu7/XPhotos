@@ -41,6 +41,7 @@ import AdminPageHeader from '~/components/admin/layout/page-header'
 import { useRouter } from 'next/navigation'
 import type { UploadFile } from 'antd'
 import GuideSortPanel from '~/components/admin/guide-editor/guide-sort-panel'
+import { useTranslations } from 'next-intl'
 
 const { Title, Text } = Typography
 const { TextArea } = Input
@@ -101,6 +102,7 @@ const ComponentEditor = ({
   const [componentData, setComponentData] = useState<any>({})
   const [loading, setLoading] = useState(false)
   const [imageFiles, setImageFiles] = useState<UploadFile[]>([])
+  const t = useTranslations('Guides')
 
   // 添加组件
   const addComponent = async () => {
@@ -119,16 +121,16 @@ const ComponentEditor = ({
       })
 
       if (res.ok) {
-        message.success('组件添加成功')
+        message.success(t('componentAdded'))
         setComponentType('text')
         setComponentData({})
         setImageFiles([])
         onUpdate()
       } else {
-        message.error('组件添加失败')
+        message.error(t('componentAddFailed'))
       }
     } catch (error) {
-      message.error('组件添加失败')
+      message.error(t('componentAddFailed'))
       console.error(error)
     } finally {
       setLoading(false)
@@ -143,13 +145,13 @@ const ComponentEditor = ({
       })
 
       if (res.ok) {
-        message.success('组件删除成功')
+        message.success(t('componentDeleted'))
         onUpdate()
       } else {
-        message.error('组件删除失败')
+        message.error(t('componentDeleteFailed'))
       }
     } catch (error) {
-      message.error('组件删除失败')
+      message.error(t('componentDeleteFailed'))
       console.error(error)
     }
   }
@@ -159,26 +161,26 @@ const ComponentEditor = ({
       case 'image':
         return (
           <div className="space-y-4">
-            <Form.Item label="图片URL">
+            <Form.Item label={t('imageUrl')}>
               <Input
-                placeholder="请输入图片URL"
+                placeholder={t('imageUrlPlaceholder')}
                 value={componentData.url}
                 onChange={(e) => setComponentData({ ...componentData, url: e.target.value })}
               />
             </Form.Item>
-            <Form.Item label="或上传图片">
+            <Form.Item label={t('orUploadImage')}>
               <Upload
                 fileList={imageFiles}
                 onChange={({ fileList }) => setImageFiles(fileList)}
                 beforeUpload={() => false}
                 listType="picture"
               >
-                <Button icon={<UploadOutlined />}>选择图片</Button>
+                <Button icon={<UploadOutlined />}>{t('selectImage')}</Button>
               </Upload>
             </Form.Item>
-            <Form.Item label="图片说明">
+            <Form.Item label={t('imageCaption')}>
               <Input
-                placeholder="请输入图片说明"
+                placeholder={t('imageCaptionPlaceholder')}
                 value={componentData.caption}
                 onChange={(e) => setComponentData({ ...componentData, caption: e.target.value })}
               />
@@ -188,10 +190,10 @@ const ComponentEditor = ({
       case 'text':
         return (
           <div className="space-y-4">
-            <Form.Item label="文本内容">
+            <Form.Item label={t('textContent')}>
               <TextArea
                 rows={6}
-                placeholder="请输入文本内容（支持HTML）"
+                placeholder={t('textContentPlaceholder')}
                 value={componentData.text}
                 onChange={(e) => setComponentData({ ...componentData, text: e.target.value })}
               />
@@ -201,16 +203,16 @@ const ComponentEditor = ({
       case 'table':
         return (
           <div className="space-y-4">
-            <Form.Item label="表格标题">
+            <Form.Item label={t('tableTitle')}>
               <Input
-                placeholder="请输入表格标题"
+                placeholder={t('tableTitlePlaceholder')}
                 value={componentData.title}
                 onChange={(e) => setComponentData({ ...componentData, title: e.target.value })}
               />
             </Form.Item>
-            <Form.Item label="表头（逗号分隔）">
+            <Form.Item label={t('tableHeaders')}>
               <Input
-                placeholder="例如：日期,事项,费用,备注"
+                placeholder={t('tableHeadersPlaceholder')}
                 value={componentData.headers?.join(',')}
                 onChange={(e) => setComponentData({ 
                   ...componentData, 
@@ -218,10 +220,10 @@ const ComponentEditor = ({
                 })}
               />
             </Form.Item>
-            <Form.Item label="表格数据（JSON格式）">
+            <Form.Item label={t('tableData')}>
               <TextArea
                 rows={6}
-                placeholder='例如：[["2024-01-01","吃饭","100","午餐"],["2024-01-02","住宿","500","酒店"]]'
+                placeholder={t('tableDataPlaceholder')}
                 value={JSON.stringify(componentData.rows || [], null, 2)}
                 onChange={(e) => {
                   try {
@@ -237,17 +239,17 @@ const ComponentEditor = ({
       case 'list':
         return (
           <div className="space-y-4">
-            <Form.Item label="清单标题">
+            <Form.Item label={t('listTitle')}>
               <Input
-                placeholder="请输入清单标题"
+                placeholder={t('listTitlePlaceholder')}
                 value={componentData.title}
                 onChange={(e) => setComponentData({ ...componentData, title: e.target.value })}
               />
             </Form.Item>
-            <Form.Item label="清单项（每行一个）">
+            <Form.Item label={t('listItems')}>
               <TextArea
                 rows={6}
-                placeholder="请输入清单项，每行一个"
+                placeholder={t('listItemsPlaceholder')}
                 value={componentData.items?.join('\n')}
                 onChange={(e) => setComponentData({ 
                   ...componentData, 
@@ -260,16 +262,16 @@ const ComponentEditor = ({
       case 'map':
         return (
           <div className="space-y-4">
-            <Form.Item label="地图标题">
+            <Form.Item label={t('mapTitle')}>
               <Input
-                placeholder="请输入地图标题"
+                placeholder={t('mapTitlePlaceholder')}
                 value={componentData.title}
                 onChange={(e) => setComponentData({ ...componentData, title: e.target.value })}
               />
             </Form.Item>
-            <Form.Item label="地图链接">
+            <Form.Item label={t('mapUrl')}>
               <Input
-                placeholder="请输入Google Maps或其他地图链接"
+                placeholder={t('mapUrlPlaceholder')}
                 value={componentData.url}
                 onChange={(e) => setComponentData({ ...componentData, url: e.target.value })}
                 prefix={<GlobalOutlined />}
@@ -284,7 +286,7 @@ const ComponentEditor = ({
 
   return (
     <div className="space-y-6">
-      <Card title="添加组件">
+      <Card title={t('addComponent')}>
         <div className="mb-4">
           <Select
             value={componentType}
@@ -293,19 +295,19 @@ const ComponentEditor = ({
             size="large"
           >
             <Select.Option value="text">
-              <FileTextOutlined /> 文本
+              <FileTextOutlined /> {t('text')}
             </Select.Option>
             <Select.Option value="image">
-              <PictureOutlined /> 图片
+              <PictureOutlined /> {t('image')}
             </Select.Option>
             <Select.Option value="table">
-              <TableOutlined /> 表格
+              <TableOutlined /> {t('table')}
             </Select.Option>
             <Select.Option value="list">
-              <UnorderedListOutlined /> 清单
+              <UnorderedListOutlined /> {t('list')}
             </Select.Option>
             <Select.Option value="map">
-              <GlobalOutlined /> 地图
+              <GlobalOutlined /> {t('map')}
             </Select.Option>
           </Select>
         </div>
@@ -320,12 +322,12 @@ const ComponentEditor = ({
             loading={loading}
             size="large"
           >
-            添加组件
+            {t('addComponent')}
           </Button>
         </div>
       </Card>
 
-      <Card title="组件列表">
+      <Card title={t('componentList')}>
         {components.length > 0 ? (
           <div className="space-y-4">
             {components
@@ -337,13 +339,13 @@ const ComponentEditor = ({
                   extra={
                     <Space>
                       <Popconfirm
-                        title="确定删除这个组件吗？"
+                        title={t('confirmDeleteComponent')}
                         onConfirm={() => deleteComponent(component.id)}
-                        okText="确定"
-                        cancelText="取消"
+                        okText={t('confirm')}
+                        cancelText={t('cancel')}
                       >
                         <Button danger size="small" icon={<DeleteOutlined />}>
-                          删除
+                          {t('delete')}
                         </Button>
                       </Popconfirm>
                     </Space>
@@ -358,18 +360,18 @@ const ComponentEditor = ({
                       {component.type === 'list' && <UnorderedListOutlined />}
                       {component.type === 'map' && <GlobalOutlined />}
                       {' '}
-                      {component.type === 'text' ? '文本' : 
-                       component.type === 'image' ? '图片' :
-                       component.type === 'table' ? '表格' :
-                       component.type === 'list' ? '清单' :
-                       component.type === 'map' ? '地图' : component.type}
+                      {component.type === 'text' ? t('text') : 
+                       component.type === 'image' ? t('image') :
+                       component.type === 'table' ? t('table') :
+                       component.type === 'list' ? t('list') :
+                       component.type === 'map' ? t('map') : component.type}
                     </Text>
                   </div>
                 </Card>
               ))}
           </div>
         ) : (
-          <Empty description="暂无组件" />
+          <Empty description={t('noComponents')} />
         )}
       </Card>
     </div>
@@ -387,8 +389,9 @@ export default function GuidesAdminPage() {
   const [detailModalVisible, setDetailModalVisible] = useState(false)
   const [selectedGuide, setSelectedGuide] = useState<GuideWithRelations | null>(null)
   const [albums, setAlbums] = useState<Album[]>([])
-  const [activeTab, setActiveTab] = useState<string>('list')
+  const [activeTab, setActiveTab] = useState<string>('info')
   const [sortPanelOpen, setSortPanelOpen] = useState(false)
+  const t = useTranslations('Guides')
 
   // 获取攻略列表
   const fetchGuides = useCallback(async () => {
@@ -400,12 +403,12 @@ export default function GuidesAdminPage() {
         setGuides(result.data)
       }
     } catch (error) {
-      message.error('获取攻略列表失败')
+      message.error(t('fetchFailed'))
       console.error(error)
     } finally {
       setLoading(false)
     }
-  }, [message])
+  }, [message, t])
 
   // 获取相册列表
   const fetchAlbums = useCallback(async () => {
@@ -475,14 +478,14 @@ export default function GuidesAdminPage() {
       }
 
       if (res.ok) {
-        message.success(editingGuide ? '更新成功' : '创建成功')
+        message.success(editingGuide ? t('updateSuccess') : t('createSuccess'))
         setModalVisible(false)
         fetchGuides()
       } else {
-        message.error(editingGuide ? '更新失败' : '创建失败')
+        message.error(editingGuide ? t('updateFailed') : t('createFailed'))
       }
     } catch (error) {
-      message.error('操作失败')
+      message.error(t('updateFailed'))
       console.error(error)
     }
   }
@@ -492,13 +495,13 @@ export default function GuidesAdminPage() {
     try {
       const res = await fetch(`/api/v1/guides/${id}`, { method: 'DELETE' })
       if (res.ok) {
-        message.success('删除成功')
+        message.success(t('deleteSuccess'))
         fetchGuides()
       } else {
-        message.error('删除失败')
+        message.error(t('deleteFailed'))
       }
     } catch (error) {
-      message.error('删除失败')
+      message.error(t('deleteFailed'))
       console.error(error)
     }
   }
@@ -513,21 +516,21 @@ export default function GuidesAdminPage() {
         setDetailModalVisible(true)
       }
     } catch (error) {
-      message.error('获取详情失败')
+      message.error(t('getDetailFailed'))
       console.error(error)
     }
   }
 
   const columns = [
     {
-      title: '排序',
+      title: t('sort'),
       dataIndex: 'sort',
       key: 'sort',
       width: 80,
       render: (sort: number) => <Text strong>{sort}</Text>,
     },
     {
-      title: '标题',
+      title: t('title'),
       dataIndex: 'title',
       key: 'title',
       render: (text: string, record: Guide) => (
@@ -540,31 +543,31 @@ export default function GuidesAdminPage() {
       ),
     },
     {
-      title: '行程天数',
+      title: t('days'),
       dataIndex: 'days',
       key: 'days',
       render: (days: number) => (
-        <Tag color="blue">{days} 天</Tag>
+        <Tag color="blue">{days} {t('days')}</Tag>
       ),
     },
     {
-      title: '状态',
+      title: t('status'),
       dataIndex: 'show',
       key: 'show',
       render: (show: number) => (
         <Tag color={show === 1 ? 'green' : 'red'}>
-          {show === 1 ? '公开' : '隐藏'}
+          {show === 1 ? t('public') : t('hidden')}
         </Tag>
       ),
     },
     {
-      title: '创建时间',
+      title: t('createTime'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date: string) => new Date(date).toLocaleDateString(),
     },
     {
-      title: '操作',
+      title: t('actions'),
       key: 'action',
       render: (_: any, record: Guide) => (
         <Space>
@@ -573,28 +576,28 @@ export default function GuidesAdminPage() {
             icon={<FormOutlined />}
             onClick={() => router.push(`/admin/guides/${record.id}/edit`)}
           >
-            编辑内容
+            {t('editContent')}
           </Button>
           <Button
             icon={<EyeOutlined />}
             onClick={() => handleViewDetail(record.id)}
           >
-            详情
+            {t('viewDetail')}
           </Button>
           <Button
             icon={<EditOutlined />}
             onClick={() => openModal(record)}
           >
-            编辑信息
+            {t('editInfo')}
           </Button>
           <Popconfirm
-            title="确定删除这个攻略吗？"
+            title={t('confirmDelete')}
             onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
+            okText={t('confirm')}
+            cancelText={t('cancel')}
           >
             <Button danger icon={<DeleteOutlined />}>
-              删除
+              {t('delete')}
             </Button>
           </Popconfirm>
         </Space>
@@ -605,8 +608,8 @@ export default function GuidesAdminPage() {
   return (
     <div className="bg-gray-50 p-6 space-y-6">
       <AdminPageHeader
-        title="攻略管理"
-        description="管理您的旅行攻略"
+        title={t('title')}
+        description={t('description')}
       />
 
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
@@ -615,14 +618,14 @@ export default function GuidesAdminPage() {
             icon={<SortAscendingOutlined />}
             onClick={() => setSortPanelOpen(true)}
           >
-            管理排序
+            {t('manageSort')}
           </Button>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => openModal()}
           >
-            新增攻略
+            {t('addGuide')}
           </Button>
         </div>
 
@@ -636,7 +639,7 @@ export default function GuidesAdminPage() {
 
       {/* 编辑/新增弹窗 */}
       <Modal
-        title={editingGuide ? '编辑攻略' : '新增攻略'}
+        title={editingGuide ? t('editGuide') : t('newGuide')}
         open={modalVisible}
         onOk={handleSave}
         onCancel={() => setModalVisible(false)}
@@ -649,68 +652,68 @@ export default function GuidesAdminPage() {
           items={[
             {
               key: 'info',
-              label: '基本信息',
+              label: t('basicInfo'),
               children: (
                 <Form form={form} layout="vertical">
                   <Form.Item
-                    label="标题"
+                    label={t('title')}
                     name="title"
-                    rules={[{ required: true, message: '请输入标题' }]}
+                    rules={[{ required: true, message: t('titlePlaceholder') }]}
                   >
-                    <Input placeholder="请输入标题" size="large" />
+                    <Input placeholder={t('titlePlaceholder')} size="large" />
                   </Form.Item>
 
                   <Row gutter={16}>
                     <Col span={12}>
                       <Form.Item
-                        label="国家"
+                        label={t('country')}
                         name="country"
-                        rules={[{ required: true, message: '请输入国家' }]}
+                        rules={[{ required: true, message: t('countryPlaceholder') }]}
                       >
-                        <Input placeholder="请输入国家" size="large" />
+                        <Input placeholder={t('countryPlaceholder')} size="large" />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
                       <Form.Item
-                        label="城市"
+                        label={t('city')}
                         name="city"
-                        rules={[{ required: true, message: '请输入城市' }]}
+                        rules={[{ required: true, message: t('cityPlaceholder') }]}
                       >
-                        <Input placeholder="请输入城市" size="large" />
+                        <Input placeholder={t('cityPlaceholder')} size="large" />
                       </Form.Item>
                     </Col>
                   </Row>
 
                   <Form.Item
-                    label="行程天数"
+                    label={t('days')}
                     name="days"
-                    rules={[{ required: true, message: '请输入行程天数' }]}
+                    rules={[{ required: true, message: t('daysPlaceholder') }]}
                   >
-                    <InputNumber min={1} placeholder="请输入天数" size="large" style={{ width: '100%' }} />
+                    <InputNumber min={1} placeholder={t('daysPlaceholder')} size="large" style={{ width: '100%' }} />
                   </Form.Item>
 
                   <Row gutter={16}>
                     <Col span={12}>
-                      <Form.Item label="出发日期" name="start_date">
+                      <Form.Item label={t('startDate')} name="start_date">
                         <Input type="date" size="large" />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
-                      <Form.Item label="返回日期" name="end_date">
+                      <Form.Item label={t('endDate')} name="end_date">
                         <Input type="date" size="large" />
                       </Form.Item>
                     </Col>
                   </Row>
 
-                  <Form.Item label="封面图片" name="cover_image">
-                    <Input placeholder="请输入封面图片URL" prefix={<PictureOutlined />} size="large" />
+                  <Form.Item label={t('coverImage')} name="cover_image">
+                    <Input placeholder={t('coverImagePlaceholder')} prefix={<PictureOutlined />} size="large" />
                   </Form.Item>
 
-                  <Form.Item label="排序" name="sort">
-                    <InputNumber min={0} placeholder="请输入排序值" size="large" style={{ width: '100%' }} />
+                  <Form.Item label={t('sortOrder')} name="sort">
+                    <InputNumber min={0} placeholder={t('sortPlaceholder')} size="large" style={{ width: '100%' }} />
                   </Form.Item>
 
-                  <Form.Item label="公开" name="show" valuePropName="checked">
+                  <Form.Item label={t('public')} name="show" valuePropName="checked">
                     <Switch />
                   </Form.Item>
                 </Form>
@@ -720,7 +723,7 @@ export default function GuidesAdminPage() {
               ? [
                   {
                     key: 'components',
-                    label: '组件编辑',
+                    label: t('componentEditor'),
                     children: (
                       <ComponentEditor
                         guideId={editingGuide.id}
@@ -732,12 +735,12 @@ export default function GuidesAdminPage() {
                   },
                   {
                     key: 'albums',
-                    label: '关联相册',
+                    label: t('relatedAlbums'),
                     children: (
                       <div className="space-y-4">
                         <div>
                           <Select
-                            placeholder="选择要关联的相册"
+                            placeholder={t('selectAlbum')}
                             style={{ width: '100%' }}
                             size="large"
                             onChange={async (albumId) => {
@@ -748,13 +751,13 @@ export default function GuidesAdminPage() {
                                   body: JSON.stringify({ album_id: albumId }),
                                 })
                                 if (res.ok) {
-                                  message.success('相册关联成功')
+                                  message.success(t('albumAssociated'))
                                   await handleViewDetail(editingGuide.id)
                                 } else {
-                                  message.error('相册关联失败')
+                                  message.error(t('albumAssociateFailed'))
                                 }
                               } catch (error) {
-                                message.error('相册关联失败')
+                                message.error(t('albumAssociateFailed'))
                                 console.error(error)
                               }
                             }}
@@ -766,7 +769,7 @@ export default function GuidesAdminPage() {
                             ))}
                           </Select>
                         </div>
-                        <Card title="已关联相册" size="small">
+                        <Card title={t('associatedAlbums')} size="small">
                           {selectedGuide?.albums && selectedGuide.albums.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                               {selectedGuide.albums.map((relation) => (
@@ -780,13 +783,13 @@ export default function GuidesAdminPage() {
                                         method: 'DELETE',
                                       })
                                       if (res.ok) {
-                                        message.success('相册关联已取消')
+                                        message.success(t('albumDisassociated'))
                                         await handleViewDetail(editingGuide.id)
                                       } else {
-                                        message.error('取消关联失败')
+                                        message.error(t('albumDisassociateFailed'))
                                       }
                                     } catch (error) {
-                                      message.error('取消关联失败')
+                                      message.error(t('albumDisassociateFailed'))
                                       console.error(error)
                                     }
                                   }}
@@ -796,7 +799,7 @@ export default function GuidesAdminPage() {
                               ))}
                             </div>
                           ) : (
-                            <Empty description="暂无关联相册" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                            <Empty description={t('noAssociatedAlbums')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
                           )}
                         </Card>
                       </div>
@@ -809,17 +812,17 @@ export default function GuidesAdminPage() {
 
         <div className="flex justify-end gap-2 mt-4">
           <Button onClick={() => setModalVisible(false)}>
-            取消
+            {t('cancel')}
           </Button>
           <Button type="primary" onClick={handleSave}>
-            保存
+            {t('save')}
           </Button>
         </div>
       </Modal>
 
       {/* 详情弹窗 */}
       <Modal
-        title="攻略详情"
+        title={t('guideDetail')}
         open={detailModalVisible}
         onCancel={() => setDetailModalVisible(false)}
         footer={null}
@@ -832,7 +835,7 @@ export default function GuidesAdminPage() {
               <Space wrap>
                 <Tag color="blue">{selectedGuide.country}</Tag>
                 <Tag color="green">{selectedGuide.city}</Tag>
-                <Tag color="orange">{selectedGuide.days} 天</Tag>
+                <Tag color="orange">{selectedGuide.days} {t('days')}</Tag>
               </Space>
             </div>
 
@@ -840,13 +843,13 @@ export default function GuidesAdminPage() {
               <div>
                 <img
                   src={selectedGuide.cover_image}
-                  alt="封面"
+                  alt={t('coverImage')}
                   className="w-full h-48 object-cover rounded"
                 />
               </div>
             )}
 
-            <Card title="关联相册" size="small">
+            <Card title={t('relatedAlbums')} size="small">
               {selectedGuide.albums?.length > 0 ? (
                 <Space wrap>
                   {selectedGuide.albums.map((relation) => (
@@ -854,11 +857,11 @@ export default function GuidesAdminPage() {
                   ))}
                 </Space>
               ) : (
-                <Text type="secondary">暂无关联相册</Text>
+                <Text type="secondary">{t('noAlbums')}</Text>
               )}
             </Card>
 
-            <Card title="组件列表" size="small">
+            <Card title={t('componentList')} size="small">
               {selectedGuide.components?.length > 0 ? (
                 <div className="space-y-2">
                   {selectedGuide.components
@@ -870,7 +873,7 @@ export default function GuidesAdminPage() {
                     ))}
                 </div>
               ) : (
-                <Text type="secondary">暂无组件</Text>
+                <Text type="secondary">{t('noComponents')}</Text>
               )}
             </Card>
           </div>

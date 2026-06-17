@@ -1,10 +1,9 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { message } from 'antd'
 import { useTranslations } from 'next-intl'
 import { authClient } from '~/lib/auth-client'
-import { Button, Input, Form, Card, Space, Divider, theme } from 'antd'
+import { App as AntApp, Button, Input, Form, Card, Space, Divider, theme } from 'antd'
 import { SaveOutlined } from '@ant-design/icons'
 import AdminPageHeader from '~/components/admin/layout/page-header'
 
@@ -18,6 +17,7 @@ export default function Account() {
   const { token } = theme.useToken()
   const t = useTranslations()
   const { data: session, isPending } = authClient.useSession()
+  const { message: antMessage } = AntApp.useApp()
   
   async function updateUserInfo(values: any) {
     try {
@@ -26,12 +26,12 @@ export default function Account() {
         image: values.avatar,
       })
       if (error) {
-        message.error(t('Tips.updateFailed'))
+        antMessage.error(t('Tips.updateFailed'))
       } else {
-        message.success(t('Tips.updateSuccess'))
+        antMessage.success(t('Tips.updateSuccess'))
       }
     } catch (e) {
-      message.error(t('Tips.updateFailed'))
+      antMessage.error(t('Tips.updateFailed'))
     } finally {
       setAvatarLoading(false)
     }
@@ -40,17 +40,17 @@ export default function Account() {
   async function updatePassword(values: any) {
     // 校验旧密码规则，不小于 8 位
     if (values.currentPassword.length < 8) {
-      message.error(t('Password.passwordMinLength'))
+      antMessage.error(t('Password.passwordMinLength'))
       return
     }
     // 校验新密码规则，不小于 8 位
     if (values.newPassword.length < 8) {
-      message.error(t('Password.passwordMinLength'))
+      antMessage.error(t('Password.passwordMinLength'))
       return
     }
     // 校验 2 个新密码是否一致
     if (values.newPassword !== values.confirmPassword) {
-      message.error(t('Password.passwordMismatch'))
+      antMessage.error(t('Password.passwordMismatch'))
       return
     }
     try {
@@ -61,13 +61,13 @@ export default function Account() {
         revokeOtherSessions: true,
       })
       if (error) {
-        message.error(t('Tips.updateFailed'))
+        antMessage.error(t('Tips.updateFailed'))
       } else {
-        message.success(t('Tips.updateSuccess'))
+        antMessage.success(t('Tips.updateSuccess'))
         passwordForm.resetFields()
       }
     } catch (e) {
-      message.error(t('Tips.updateFailed'))
+      antMessage.error(t('Tips.updateFailed'))
     } finally {
       setPasswordLoading(false)
     }

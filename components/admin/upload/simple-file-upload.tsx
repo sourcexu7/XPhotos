@@ -379,7 +379,7 @@ export default function SimpleFileUpload() {
   const btnText = isUploading
     ? t('Upload.uploading')
     : isSubmitting
-      ? '提交中...'
+      ? t('Upload.submitting')
       : isDuplicate
         ? t('Upload.duplicateImageAsNew')
         : t('Button.submit')
@@ -391,7 +391,7 @@ export default function SimpleFileUpload() {
         <div style={{ marginTop: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: token.colorTextSecondary, marginBottom: 4 }}>
             <LoadingOutlined style={{ color: token.colorPrimary }} />
-            <span>{fileUploadHook.uploadStage || '上传中...'}</span>
+            <span>{fileUploadHook.uploadStage || t('Upload.uploading')}</span>
           </div>
           <AntProgress
             percent={Math.round(fileUploadHook.uploadProgress)}
@@ -409,7 +409,7 @@ export default function SimpleFileUpload() {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: token.colorTextSecondary, marginTop: 8 }}>
           <LoadingOutlined />
-          <span>验证存储可访问性...</span>
+          <span>{t('Upload.verifyingStorage')}</span>
         </div>
       )
     }
@@ -420,13 +420,13 @@ export default function SimpleFileUpload() {
         <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 500, color: allOk ? token.colorSuccess : token.colorWarning }}>
             {allOk
-              ? <><CheckCircleOutlined /><span>已上传并验证可访问</span></>
-              : <><ExclamationCircleOutlined /><span>上传完成，部分 URL 暂时无法访问</span></>
+              ? <><CheckCircleOutlined /><span>{t('Upload.uploadedAndVerified')}</span></>
+              : <><ExclamationCircleOutlined /><span>{t('Upload.uploadedWithPartialUnavailable')}</span></>
             }
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: token.colorTextSecondary }}>
-            <span>原图 {originVerified === false ? <span style={{ color: token.colorError }}>✗</span> : <span style={{ color: token.colorSuccess }}>✓</span>}</span>
-            <span>预览图 {previewVerified === false ? <span style={{ color: token.colorError }}>✗</span> : <span style={{ color: token.colorSuccess }}>✓</span>}</span>
+            <span>{t('Upload.originalImage')} {originVerified === false ? <span style={{ color: token.colorError }}>✗</span> : <span style={{ color: token.colorSuccess }}>✓</span>}</span>
+            <span>{t('Upload.previewImage')} {previewVerified === false ? <span style={{ color: token.colorError }}>✗</span> : <span style={{ color: token.colorSuccess }}>✓</span>}</span>
           </div>
           {isDuplicate && (
             <AntTag color="warning" icon={<ExclamationCircleOutlined />} style={{ marginTop: 4 }}>
@@ -441,7 +441,7 @@ export default function SimpleFileUpload() {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: token.colorError, marginTop: 8 }}>
           <CloseCircleOutlined />
-          <span>上传或验证失败，请重试</span>
+          <span>{t('Upload.uploadOrVerifyFailed')}</span>
         </div>
       )
     }
@@ -655,7 +655,7 @@ export default function SimpleFileUpload() {
                     </div>
                   </AntForm.Item>
 
-                  <AntForm.Item label="ISO">
+                  <AntForm.Item label={t('Upload.exifIsoLabel')}>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <Select
                         value={exif?.iso_speed_rating || undefined}
@@ -724,7 +724,7 @@ export default function SimpleFileUpload() {
                   </div>
                   <div>
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.previewUrl')}</label>
-                    <AntInput disabled value={previewUrl.startsWith('data:') ? '（本地预览）' : previewUrl} style={{ borderRadius: token.borderRadius, borderColor: token.colorBorder, backgroundColor: token.colorBgContainer }} />
+                    <AntInput disabled value={previewUrl.startsWith('data:') ? t('Upload.localPreview') : previewUrl} style={{ borderRadius: token.borderRadius, borderColor: token.colorBorder, backgroundColor: token.colorBgContainer }} />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -935,7 +935,7 @@ export default function SimpleFileUpload() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">ISO</label>
+            <label className="block text-sm font-medium text-text-secondary mb-2">{t('Upload.exifIsoLabel')}</label>
             <AntInput.TextArea
               value={exifPresets.editingText.isos}
               onChange={(e) => exifPresets.setEditingText({ ...exifPresets.editingText, isos: e.target.value })}

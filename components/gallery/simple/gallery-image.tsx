@@ -167,6 +167,8 @@ type ActionsProps = {
   albumLicense: string | null | undefined
   variant: 'mobile' | 'desktop'
   enableDownload: boolean
+  enableCopyDirectLink: boolean
+  enableCopyShareLink: boolean
 }
 
 function ImageActionsImpl({
@@ -175,6 +177,8 @@ function ImageActionsImpl({
   albumLicense,
   variant,
   enableDownload,
+  enableCopyDirectLink,
+  enableCopyShareLink,
 }: ActionsProps) {
   const baseIconClass =
     'text-muted-foreground cursor-pointer hover:opacity-70 transition-opacity'
@@ -223,7 +227,14 @@ function ImageActionsImpl({
       }
       toast.warning(msg, { duration: 1500 })
 
-      const storageType = photoUrl.includes('s3') ? 's3' : 'r2'
+      let storageType = 's3'
+      if (photoUrl.includes('r2')) {
+        storageType = 'r2'
+      } else if (photoUrl.includes('cos')) {
+        storageType = 'cos'
+      } else if (photoUrl.includes('alist')) {
+        storageType = 'alist'
+      }
       let response = await fetch(`/api/public/download/${photoId}?storage=${storageType}`)
       const contentType = response.headers.get('content-type')
       if (contentType?.includes('application/json')) {
@@ -255,16 +266,20 @@ function ImageActionsImpl({
 
   return (
     <div className={wrapperClass}>
-      <CopyIcon
-        className={cn(baseIconClass, sizeClass)}
-        size={iconSize}
-        onClick={handleCopyImageUrl}
-      />
-      <LinkIcon
-        className={cn(baseIconClass, sizeClass)}
-        size={iconSize}
-        onClick={handleCopyShareLink}
-      />
+      {enableCopyDirectLink && (
+        <CopyIcon
+          className={cn(baseIconClass, sizeClass)}
+          size={iconSize}
+          onClick={handleCopyImageUrl}
+        />
+      )}
+      {enableCopyShareLink && (
+        <LinkIcon
+          className={cn(baseIconClass, sizeClass)}
+          size={iconSize}
+          onClick={handleCopyShareLink}
+        />
+      )}
       {enableDownload && (
         <DownloadIcon
           className={cn(baseIconClass, sizeClass)}
@@ -374,6 +389,26 @@ function GalleryImageImpl({
           item.config_key === 'custom_index_download_enable',
       )?.config_value.toString() === 'true'
 
+    const enableCopyDirectLink =
+      (configData?.find(
+        (item: { config_key: string; config_value: unknown }) =>
+          item.config_key === 'custom_index_copy_direct_link_enable',
+      )?.config_value.toString() === 'true') ||
+      (configData?.find(
+        (item: { config_key: string; config_value: unknown }) =>
+          item.config_key === 'custom_index_copy_link_enable',
+      )?.config_value.toString() === 'true')
+
+    const enableCopyShareLink =
+      (configData?.find(
+        (item: { config_key: string; config_value: unknown }) =>
+          item.config_key === 'custom_index_copy_share_link_enable',
+      )?.config_value.toString() === 'true') ||
+      (configData?.find(
+        (item: { config_key: string; config_value: unknown }) =>
+          item.config_key === 'custom_index_copy_link_enable',
+      )?.config_value.toString() === 'true')
+
     return {
       imageSrc,
       imgW,
@@ -385,6 +420,8 @@ function GalleryImageImpl({
       hasLabels,
       showInfoBlock,
       enableDownload,
+      enableCopyDirectLink,
+      enableCopyShareLink,
     }
   }, [photo, configData])
 
@@ -474,6 +511,8 @@ function GalleryImageImpl({
               albumLicense={photo.album_license}
               variant="mobile"
               enableDownload={derived.enableDownload}
+              enableCopyDirectLink={derived.enableCopyDirectLink}
+              enableCopyShareLink={derived.enableCopyShareLink}
             />
           </>
         )}
@@ -494,6 +533,8 @@ function GalleryImageImpl({
               albumLicense={photo.album_license}
               variant="desktop"
               enableDownload={derived.enableDownload}
+              enableCopyDirectLink={derived.enableCopyDirectLink}
+              enableCopyShareLink={derived.enableCopyShareLink}
             />
           </div>
         )}

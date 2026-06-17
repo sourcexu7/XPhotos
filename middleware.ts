@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
-const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key-should-be-long-and-random'
+const SECRET_KEY = process.env.JWT_SECRET || ''
+if (!SECRET_KEY) {
+  throw new Error('JWT_SECRET environment variable is required')
+}
 const key = new TextEncoder().encode(SECRET_KEY)
 
 

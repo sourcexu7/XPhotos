@@ -5,7 +5,7 @@ import type { Config } from '~/types'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
-import { updateAListConfig, updateCustomInfo, updateR2Config, updateS3Config, updateCOSConfig } from '~/lib/db/operate/configs'
+import { updateAListConfig, updateCustomInfo, updateS3Config, updateCOSConfig } from '~/lib/db/operate/configs'
 
 import { fetchTagsList, fetchTagsTree, fetchTagsByCategory } from '~/lib/db/query/tags'
 import { createTag, updateTag, deleteTag, deleteTagAndChildren } from '~/lib/db/operate/tags'
@@ -14,7 +14,8 @@ import { checkAndFixImageTagCompleteness } from '~/lib/services/image-tag-sync-s
 import { getClient } from '~/lib/s3'
 import { getCOSClient } from '~/lib/cos'
 import { HeadBucketCommand, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
-import { cacheFlushAll } from '~/lib/redis'
+import { cacheFlushAll, cacheInvalidateByPattern } from '~/lib/redis'
+import { invalidateTagsCache } from '~/lib/db/query/tags'
 
 const app = new Hono()
 
@@ -73,6 +74,7 @@ app.post('/tags/add', async (c) => {
     const payload = await c.req.json()
     // payload may include parentName for creating child tags under a parent (uses existing `category` field for compatibility)
     const res = await createTag(payload)
+    await invalidateTagsCache()
     return c.json({ code: 200, data: res })
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed', cause: e })
@@ -84,6 +86,7 @@ app.put('/tags/update/:id', async (c) => {
     const id = c.req.param('id')
     const payload = await c.req.json()
     const res = await updateTag(id, payload)
+    await invalidateTagsCache()
     return c.json({ code: 200, data: res })
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed', cause: e })
@@ -112,6 +115,7 @@ app.post('/tags/move', async (c) => {
       return c.json({ code: 400, message: result.error })
     }
 
+    await invalidateTagsCache()
     return c.json({ code: 200, data: result.tag, message: '移动成功' })
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed', cause: e })
@@ -133,6 +137,7 @@ app.delete('/tags/delete/:id', async (c) => {
   try {
     const id = c.req.param('id')
     await deleteTag(id)
+    await invalidateTagsCache()
     return c.json({ code: 200, message: 'Success' })
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed', cause: e })
@@ -144,6 +149,7 @@ app.delete('/tags/delete-with-children/:id', async (c) => {
   try {
     const id = c.req.param('id')
     await deleteTagAndChildren(id)
+    await invalidateTagsCache()
     return c.json({ code: 200, message: 'Success' })
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed', cause: e })
@@ -160,6 +166,10 @@ app.get('/get-custom-info', async (c) => {
       'rss_user_id',
       'custom_index_style',
       'custom_index_download_enable',
+      'custom_index_copy_link_enable',
+      'custom_index_copy_direct_link_enable',
+      'custom_index_copy_share_link_enable',
+      'custom_index_language_toggle',
       'preview_max_width_limit',
       'preview_max_width_limit_switch',
       'preview_quality',
@@ -175,8 +185,9 @@ app.get('/get-custom-info', async (c) => {
       'about_ins_url',
       'about_xhs_url',
       'about_weibo_url',
-         'about_github_url',
-         'about_gallery_images',
+      'about_github_url',
+      'about_gallery_images',
+      'about_avatar_url',
     ])
     return c.json(data)
   } catch (error) {
@@ -189,19 +200,6 @@ app.get('/alist-info', async (c) => {
   const data = await fetchConfigsByKeys([
     'alist_url',
     'alist_token'
-  ])
-  return c.json(data)
-})
-
-app.get('/r2-info', async (c) => {
-  const data = await fetchConfigsByKeys([
-    'r2_accesskey_id',
-    'r2_accesskey_secret',
-    'r2_account_id',
-    'r2_bucket',
-    'r2_storage_folder',
-    'r2_public_domain',
-    'r2_direct_download'
   ])
   return c.json(data)
 })
@@ -411,21 +409,8 @@ app.put('/update-alist-info', async (c) => {
   const alistToken = query?.find((item: Config) => item.config_key === 'alist_token').config_value
 
   const data = await updateAListConfig({ alistUrl, alistToken })
-  return c.json(data)
-})
-
-app.put('/update-r2-info', async (c) => {
-  const query = await c.req.json()
-
-  const r2AccesskeyId = query?.find((item: Config) => item.config_key === 'r2_accesskey_id').config_value
-  const r2AccesskeySecret = query?.find((item: Config) => item.config_key === 'r2_accesskey_secret').config_value
-  const r2AccountId = query?.find((item: Config) => item.config_key === 'r2_account_id').config_value
-  const r2Bucket = query?.find((item: Config) => item.config_key === 'r2_bucket').config_value
-  const r2StorageFolder = query?.find((item: Config) => item.config_key === 'r2_storage_folder').config_value
-  const r2PublicDomain = query?.find((item: Config) => item.config_key === 'r2_public_domain').config_value
-  const r2DirectDownload = query?.find((item: Config) => item.config_key === 'r2_direct_download').config_value
-
-  const data = await updateR2Config({ r2AccesskeyId, r2AccesskeySecret, r2AccountId, r2Bucket, r2StorageFolder, r2PublicDomain, r2DirectDownload })
+  await cacheInvalidateByPattern('configs:*')
+  await cacheInvalidateByPattern('config:*')
   return c.json(data)
 })
 
@@ -445,6 +430,8 @@ app.put('/update-s3-info', async (c) => {
   const s3DirectDownload = query?.find((item: Config) => item.config_key === 's3_direct_download').config_value
 
   const data = await updateS3Config({ accesskeyId, accesskeySecret, region, endpoint, bucket, storageFolder, forcePathStyle, s3ForceServerUpload, s3Cdn, s3CdnUrl, s3DirectDownload })
+  await cacheInvalidateByPattern('configs:*')
+  await cacheInvalidateByPattern('config:*')
   return c.json(data)
 })
 
@@ -463,6 +450,8 @@ app.put('/update-cos-info', async (c) => {
   const cosDirectDownload = query?.find((item: Config) => item.config_key === 'cos_direct_download').config_value
 
   const data = await updateCOSConfig({ cosSecretId, cosSecretKey, cosRegion, cosEndpoint, cosBucket, cosStorageFolder, cosForcePathStyle, cosCdn, cosCdnUrl, cosDirectDownload })
+  await cacheInvalidateByPattern('configs:*')
+  await cacheInvalidateByPattern('config:*')
   return c.json(data)
 })
 
@@ -475,6 +464,9 @@ app.put('/update-custom-info', async (c) => {
     userId: string
     customIndexStyle?: number
     customIndexDownloadEnable: boolean
+    customIndexCopyLinkEnable: boolean
+    customIndexCopyDirectLinkEnable: boolean
+    customIndexCopyShareLinkEnable: boolean
     enablePreviewImageMaxWidthLimit: boolean
     previewImageMaxWidth: number
     previewQuality: number
@@ -494,9 +486,13 @@ app.put('/update-custom-info', async (c) => {
     aboutGalleryImages?: string[]
     // 新增：关于我画廊图片完整数据（包含原图和预览图）
     aboutGalleryImagesFull?: Array<{ original: string; preview: string }>
+    // 新增：头像 URL
+    aboutAvatarUrl?: string
   }
   try {
     await updateCustomInfo(query)
+    await cacheInvalidateByPattern('configs:*')
+    await cacheInvalidateByPattern('config:*')
     return c.json({
       code: 200,
       message: 'Success'

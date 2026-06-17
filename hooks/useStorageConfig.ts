@@ -16,7 +16,7 @@ interface StorageConfig {
   isStorageSelect: boolean
 }
 
-const VALID_STORAGES = new Set(['s3', 'cos', 'r2', 'alist'])
+const VALID_STORAGES = new Set(['s3', 'cos', 'alist'])
 
 export function useStorageConfig() {
   const { data: configs } = useSWR<{ config_key: string, config_value: string }[]>(
@@ -80,9 +80,8 @@ export function useStorageConfig() {
   }, [])
 
   const storages = [
-    { label: 'Cloudflare R2', value: 'r2' },
-    { label: 'Amazon S3', value: 's3' },
     { label: 'Tencent COS', value: 'cos' },
+    { label: 'Amazon S3', value: 's3' },
     { label: 'AList API', value: 'alist' },
   ]
 

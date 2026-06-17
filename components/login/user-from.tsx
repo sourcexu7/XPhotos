@@ -16,7 +16,12 @@ import {
   ApartmentOutlined,
   PictureOutlined,
   ClusterOutlined,
+  ReloadOutlined,
+  SunOutlined,
+  MoonOutlined,
 } from '@ant-design/icons'
+import { useTheme } from 'next-themes'
+import { useUserThemeToggle } from '~/lib/theme/use-user-theme-toggle'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -99,6 +104,7 @@ const BackgroundElements = () => {
 type LoginFormValues = {
   username: string
   password: string
+  captchaCode: string
 }
 
 export const UserFrom = () => {
@@ -106,13 +112,17 @@ export const UserFrom = () => {
   const t = useTranslations()
   const reduce = useReducedMotion()
   const { token } = theme.useToken()
+  const { resolvedTheme } = useTheme()
+  const { toggle } = useUserThemeToggle()
 
   const [form] = Form.useForm<LoginFormValues>()
   const [loading, setLoading] = useState(false)
   const [logoError, setLogoError] = useState(false)
   const [error, setError] = useState('')
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
   }, [])
 
   return (
@@ -154,6 +164,34 @@ export const UserFrom = () => {
           {t('Login.goHome')}
         </span>
       </Link>
+
+      {mounted && (
+        <button
+          onClick={toggle}
+          style={{
+            position: 'absolute',
+            top: token.marginLG,
+            right: token.marginLG,
+            width: 36,
+            height: 36,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: token.borderRadius,
+            backgroundColor: token.colorBgContainer,
+            border: `1px solid ${token.colorBorder}`,
+            cursor: 'pointer',
+            zIndex: 30,
+          }}
+          aria-label={resolvedTheme === 'dark' ? t('Theme.lightMode') : t('Theme.darkMode')}
+        >
+          {resolvedTheme === 'dark' ? (
+            <SunOutlined style={{ color: token.colorTextSecondary }} />
+          ) : (
+            <MoonOutlined style={{ color: token.colorTextSecondary }} />
+          )}
+        </button>
+      )}
 
       <motion.div
         initial={reduce ? {} : { opacity: 0, y: 20 }}
@@ -250,7 +288,7 @@ export const UserFrom = () => {
                   fontSize: token.fontSizeLG,
                 }}
               >
-                专业摄影作品集管理系统
+                {t('Login.systemTitle')}
               </Paragraph>
             </motion.div>
           </Space>
@@ -321,6 +359,32 @@ function LoginFormBody({
 }) {
   const { token } = theme.useToken()
   const { message } = AntdApp.useApp()
+  const [captchaId, setCaptchaId] = useState<string>('')
+  const [captchaSvg, setCaptchaSvg] = useState<string>('')
+  const [captchaLoading, setCaptchaLoading] = useState(false)
+
+  // 获取验证码
+  const fetchCaptcha = async () => {
+    setCaptchaLoading(true)
+    try {
+      const res = await fetch('/api/v1/captcha')
+      if (res.ok) {
+        const data = await res.json()
+        setCaptchaId(data.id)
+        setCaptchaSvg(data.svg)
+        form.setFieldValue('captchaCode', '')
+      }
+    } catch {
+      message.error(t('Login.captchaFailed'))
+    } finally {
+      setCaptchaLoading(false)
+    }
+  }
+
+  // 组件挂载时获取验证码
+  useEffect(() => {
+    fetchCaptcha()
+  }, [])
 
   const handleSubmit = async (values: LoginFormValues) => {
     setError('')
@@ -334,6 +398,8 @@ function LoginFormBody({
           username: values.username,
           password: values.password,
           email: values.username,
+          captchaId: captchaId,
+          captchaCode: values.captchaCode,
         }),
       })
 
@@ -345,6 +411,8 @@ function LoginFormBody({
         }
         setError(resolveLoginApiErrorMessage(data.message, t))
         setLoading(false)
+        // 登录失败后刷新验证码
+        fetchCaptcha()
         return
       }
 
@@ -355,6 +423,7 @@ function LoginFormBody({
       console.error(err)
       setError(t('Login.unknownError'))
       setLoading(false)
+      fetchCaptcha()
     }
   }
 
@@ -374,7 +443,7 @@ function LoginFormBody({
         <Input
           size="large"
           prefix={<UserOutlined />}
-          placeholder="请输入用户名或邮箱"
+          placeholder={t('Login.usernamePlaceholder')}
           autoFocus
         />
       </Form.Item>
@@ -387,8 +456,47 @@ function LoginFormBody({
         <Input.Password
           size="large"
           prefix={<LockOutlined />}
-          placeholder="请输入密码"
+          placeholder={t('Login.passwordPlaceholder')}
         />
+      </Form.Item>
+
+      <Form.Item
+        label={t('Login.captcha')}
+        name="captchaCode"
+        rules={[{ required: true, message: t('Login.captchaRequired') }]}
+      >
+        <Space style={{ width: '100%' }}>
+          <Input
+            size="large"
+            placeholder={t('Login.captchaPlaceholder')}
+            style={{ flex: 1 }}
+            maxLength={5}
+          />
+          <div
+            onClick={fetchCaptcha}
+            style={{
+              width: 120,
+              height: 40,
+              cursor: 'pointer',
+              border: `1px solid ${token.colorBorder}`,
+              borderRadius: token.borderRadius,
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: token.colorBgContainer,
+            }}
+            title={t('Login.captchaRefreshTitle')}
+          >
+            {captchaLoading ? (
+              <ReloadOutlined spin style={{ color: token.colorPrimary }} />
+            ) : captchaSvg ? (
+              <div dangerouslySetInnerHTML={{ __html: captchaSvg }} />
+            ) : (
+              <ReloadOutlined style={{ color: token.colorTextSecondary }} />
+            )}
+          </div>
+        </Space>
       </Form.Item>
 
       {error && (

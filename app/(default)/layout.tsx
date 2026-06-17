@@ -14,12 +14,13 @@ export default async function DefaultLayout({
   children: React.ReactNode
 }>) {
   const [configs, albums] = await Promise.all([
-    fetchConfigsByKeys(['custom_index_style', 'custom_title']),
+    fetchConfigsByKeys(['custom_index_style', 'custom_title', 'custom_index_language_toggle']),
     fetchAlbumsShow(),
   ])
 
   const currentStyle = configs.find((c) => c.config_key === 'custom_index_style')?.config_value || DEFAULT_STYLE
   const siteTitle = configs.find((c) => c.config_key === 'custom_title')?.config_value || DEFAULT_TITLE
+  const showLanguageToggle = configs.find((c) => c.config_key === 'custom_index_language_toggle')?.config_value === 'true'
 
   return (
     <DarkThemeEnforcer>
@@ -28,6 +29,7 @@ export default async function DefaultLayout({
         currentAlbum="/"
         currentTheme={currentStyle}
         siteTitle={siteTitle}
+        showLanguageToggle={showLanguageToggle}
       />
       <ScrollRestoration />
       <div className="pt-14">

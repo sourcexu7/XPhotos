@@ -5,7 +5,6 @@ import { HTTPException } from 'hono/http-exception'
 import { alistUpload } from '~/lib/file-upload'
 import { fetchConfigsByKeys } from '~/lib/db/query/configs'
 import type { Config } from '~/types'
-import { getR2Client } from '~/lib/r2'
 import { generatePresignedUrl } from '~/lib/s3api'
 import { getClient } from '~/lib/s3'
 import { getCOSClient } from '~/lib/cos'
@@ -76,37 +75,6 @@ app.post('/presigned-url', async (c) => {
     }
 
     switch (storage) {
-      case 'r2': {
-        // 获取 R2 配置
-        const configs = await fetchConfigsByKeys([
-          'r2_accesskey_id',
-          'r2_accesskey_secret',
-          'r2_account_id',
-          'r2_bucket',
-          'r2_storage_folder',
-          'r2_public_domain',
-        ])
-        const cfg = toConfigMap(configs) // 优化点: 统一转为 map，减少重复 find
-
-        const bucket = cfg['r2_bucket'] || ''
-        const storageFolder = normalizeStorageFolder(cfg['r2_storage_folder'])
-        const typeSegment = type && type !== '/' ? String(type).slice(1) : ''
-        const parts = [storageFolder, typeSegment].filter(Boolean)
-        const prefix = parts.length ? parts.join('/') : ''
-        const filePath = prefix ? `${prefix}/${filename}` : filename
-
-        const client = getR2Client(configs)
-        const presignedUrl = await generatePresignedUrl(client, bucket, filePath, contentType, 'put')
-
-        return c.json({
-          code: 200,
-          data: {
-            presignedUrl,
-            key: filePath,
-          },
-        })
-      }
-
       case 's3': {
         const configs = await fetchConfigsByKeys([
           'accesskey_id',
@@ -442,23 +410,6 @@ app.post('/getObjectUrl', async (c) => {
       const url = buildCOSPublicUrl(cfg, key)
       return Response.json({ code: 200, data: url })
     }
-    case 'r2': {
-      // 获取 R2 配置
-      const configs = await fetchConfigsByKeys([
-        'r2_accesskey_id',
-        'r2_accesskey_secret',
-        'r2_account_id',
-        'r2_bucket',
-        'r2_storage_folder',
-        'r2_public_domain',
-      ])
-
-      const r2PublicDomain = configs.find((item: Config) => item.config_key === 'r2_public_domain')?.config_value || ''
-
-      return Response.json({
-        code: 200, data: `${r2PublicDomain}/${key}`
-      })
-    }
   }
 })
 
@@ -475,14 +426,6 @@ app.post('/delete', async (c) => {
         const bucket = configs.find((i: Config) => i.config_key === 'bucket')?.config_value || ''
         if (!bucket) throw new HTTPException(400, { message: 'S3 bucket 未配置' })
         const client = getClient(configs)
-        const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
-        await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
-        return Response.json({ code: 200, message: 'deleted' })
-      }
-      case 'r2': {
-        const configs = await fetchConfigsByKeys(['r2_account_id','r2_accesskey_id','r2_accesskey_secret','r2_bucket'])
-        const client = getR2Client(configs)
-        const bucket = configs.find((i: Config) => i.config_key === 'r2_bucket')?.config_value || ''
         const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
         await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
         return Response.json({ code: 200, message: 'deleted' })

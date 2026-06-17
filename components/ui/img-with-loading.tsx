@@ -9,6 +9,7 @@ import { useState, useEffect, forwardRef } from 'react'
 import type { SyntheticEvent, ImgHTMLAttributes } from 'react'
 import { ImageLoadingAnimation } from './image-loading-animation'
 import { cn } from '~/lib/utils'
+import { useTranslations } from 'next-intl'
 
 export interface ImgWithLoadingProps extends ImgHTMLAttributes<HTMLImageElement> {
   /**
@@ -62,6 +63,7 @@ export const ImgWithLoading = forwardRef<HTMLImageElement, ImgWithLoadingProps>(
   ) => {
     const [isLoading, setIsLoading] = useState(true)
     const [hasError, setHasError] = useState(false)
+    const t = useTranslations()
 
     const handleLoad = (e: SyntheticEvent<HTMLImageElement, Event>) => {
       setIsLoading(false)
@@ -105,7 +107,7 @@ export const ImgWithLoading = forwardRef<HTMLImageElement, ImgWithLoadingProps>(
         />
         {hasError && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
-            <span className="text-muted-foreground text-sm">加载失败</span>
+            <span className="text-muted-foreground text-sm">{t('ImageComponent.loadFailed')}</span>
           </div>
         )}
       </div>

@@ -4,6 +4,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion'
 import { cn } from '~/lib/utils'
 import type { ImageType } from '~/types'
+import { useTranslations } from 'next-intl'
 
 // 简单的 matchMedia hook：用于在移动端禁用 3D 倾斜
 function useIsCoarsePointer() {
@@ -48,6 +49,7 @@ export const MagicImageCard = React.memo(function MagicImageCard({
   const isCoarsePointer = useIsCoarsePointer()
   // 禁用条件：reduce-motion / 触屏 / 显式不可见（组件已提供 isVisible prop）
   const disable3D = reduceMotion || isCoarsePointer
+  const t = useTranslations()
 
   const [inView, setInView] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -172,7 +174,7 @@ export const MagicImageCard = React.memo(function MagicImageCard({
       {(inView || isVisible) && src && (
         <motion.img
           src={src}
-          alt={image.detail || image.title || '摄影作品'}
+          alt={image.detail || image.title || t('ImageComponent.photoWork')}
           width={w}
           height={h}
           loading={priority ? 'eager' : 'lazy'}

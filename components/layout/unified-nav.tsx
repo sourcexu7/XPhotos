@@ -9,12 +9,14 @@ import { authClient } from '~/lib/auth-client'
 import { useTheme } from 'next-themes'
 import { useUserThemeToggle } from '~/lib/theme/use-user-theme-toggle'
 import { cn } from '~/lib/utils'
+import { setUserLocale } from '~/lib/utils/locale'
 import type { AlbumType } from '~/types'
 import {
   SunIcon,
   MoonIcon,
   HamburgerMenuIcon,
-  Cross1Icon
+  Cross1Icon,
+  GlobeIcon
 } from '@radix-ui/react-icons'
 
 interface UnifiedNavProps {
@@ -23,16 +25,19 @@ interface UnifiedNavProps {
   currentTheme?: string
   siteTitle?: string
   hideThemeToggle?: boolean
+  showLanguageToggle?: boolean
 }
 
 export default function UnifiedNav({
   albums,
   siteTitle = 'XPhotos',
   hideThemeToggle = false,
+  showLanguageToggle = true,
 }: UnifiedNavProps & {
   albums: any[]
   siteTitle?: string
   hideThemeToggle?: boolean
+  showLanguageToggle?: boolean
 }) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -68,11 +73,11 @@ export default function UnifiedNav({
   }, [pathname])
 
   const navLinks = [
-    { name: '序章', href: '/' },
-    { name: '城隅寻迹', href: '/covers' },
-    { name: '景行集', href: '/albums' },
-    { name: '攻略路书', href: '/guides' },
-    { name: '关于我', href: '/about' },
+    { name: t('Nav.home'), href: '/' },
+    { name: t('Nav.covers'), href: '/covers' },
+    { name: t('Nav.albums'), href: '/albums' },
+    { name: t('Nav.guides'), href: '/guides' },
+    { name: t('Nav.about'), href: '/about' },
   ]
 
   const visibleAlbums = albums.filter((album) => album.album_value !== '/' && album.show === 0)
@@ -163,6 +168,25 @@ export default function UnifiedNav({
                 )}
               </button>
             )}
+
+            {/* Language Toggle */}
+            {showLanguageToggle && (
+              <button
+                onClick={async () => {
+                  const currentLang = document.documentElement.lang || 'zh'
+                  const newLocale = currentLang === 'zh' ? 'en' : 'zh'
+                  await setUserLocale(newLocale)
+                  window.location.reload()
+                }}
+                className="ml-2 inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted/60 transition-all duration-300"
+                style={{ touchAction: 'manipulation' }}
+                aria-label={t('Button.language')}
+                type="button"
+                title={t('Button.language')}
+              >
+                <GlobeIcon className="w-4 h-4 text-foreground" />
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -243,7 +267,7 @@ export default function UnifiedNav({
             {visibleAlbums.length > 0 && (
               <div className="mt-8 pt-6 border-t border-border/40">
                 <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/60">
-                  相册
+                  {t('Nav.albumSection')}
                 </span>
                 <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1">
                   {visibleAlbums.map((album) => (
@@ -270,6 +294,24 @@ export default function UnifiedNav({
                 {session ? t('Link.dashboard') : t('Login.signIn')}
               </Link>
             </div>
+
+            {/* Language Switch */}
+            {showLanguageToggle && (
+              <div className="mt-8 pt-6 border-t border-border/40">
+                <button
+                  onClick={async () => {
+                    const currentLang = document.documentElement.lang || 'zh'
+                    const newLocale = currentLang === 'zh' ? 'en' : 'zh'
+                    await setUserLocale(newLocale)
+                    window.location.reload()
+                  }}
+                  className="flex items-center gap-2 text-[15px] text-muted-foreground hover:text-foreground transition-colors duration-200"
+                >
+                  <GlobeIcon className="w-4 h-4" />
+                  {t('Button.language')}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -14,6 +14,7 @@ import { useTheme } from 'next-themes'
 import { motion, useReducedMotion } from 'motion/react'
 import { CalendarOutlined } from '@ant-design/icons'
 import { theme as AntTheme } from 'antd'
+import { useTranslations } from 'next-intl'
 
 export type PhotosByYearChartProps = {
   data: Array<{ year: number; count: number }>
@@ -24,6 +25,7 @@ export function PhotosByYearChart({ data }: PhotosByYearChartProps) {
   const { token } = AntTheme.useToken()
   const isDark = theme === 'dark'
   const reduce = useReducedMotion()
+  const t = useTranslations('Dashboard')
   
   const sortedData = [...data].sort((a, b) => a.year - b.year)
 
@@ -44,10 +46,10 @@ export function PhotosByYearChart({ data }: PhotosByYearChartProps) {
         </div>
         <div>
           <h3 className="text-lg font-semibold text-foreground tracking-tight">
-            照片分布
+            {t('photosByYear')}
           </h3>
           <p className="text-sm text-muted-foreground">
-            按年份
+            {t('byYear')}
           </p>
         </div>
       </div>

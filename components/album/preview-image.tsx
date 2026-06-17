@@ -46,6 +46,15 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
   const downloadEnabled =
     configData?.find((item) => item.config_key === 'custom_index_download_enable')?.config_value?.toString() === 'true'
 
+  const copyLinkEnabled =
+    configData?.find((item) => item.config_key === 'custom_index_copy_link_enable')?.config_value?.toString() === 'true'
+
+  const copyDirectLinkEnabled =
+    configData?.find((item) => item.config_key === 'custom_index_copy_direct_link_enable')?.config_value?.toString() === 'true' || copyLinkEnabled
+
+  const copyShareLinkEnabled =
+    configData?.find((item) => item.config_key === 'custom_index_copy_share_link_enable')?.config_value?.toString() === 'true' || copyLinkEnabled
+
   // Fetch image list for prev/next navigation
   useEffect(() => {
     const album = props.data?.album_value || '/'
@@ -124,7 +133,15 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
       if (props.data?.album_license) msg += t('Tips.downloadLicense', { license: props.data.album_license })
       toast.warning(msg, { duration: 1500 })
 
-      const storageType = props.data?.url?.includes('s3') ? 's3' : 'r2'
+      const imageUrl = props.data?.url || ''
+      let storageType = 's3'
+      if (imageUrl.includes('r2')) {
+        storageType = 'r2'
+      } else if (imageUrl.includes('cos')) {
+        storageType = 'cos'
+      } else if (imageUrl.includes('alist')) {
+        storageType = 'alist'
+      }
       let response = await fetch(`/api/public/download/${props.id}?storage=${storageType}`)
       const contentType = response.headers.get('content-type')
 
@@ -307,8 +324,8 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
       <section>
         <div className="pt-2 border-t border-border/60">
           <div className="grid grid-cols-2 gap-2 pt-4 pb-2">
-            <ActionButton icon={<CopyIcon size={14} />} label={t('Preview.copyLink')} onClick={handleCopyUrl} disabled={!props.data!.url} />
-            <ActionButton icon={<LinkIcon size={14} />} label={t('Preview.shareLink')} onClick={handleCopyShare} disabled={!props.id} />
+            {copyDirectLinkEnabled && <ActionButton icon={<CopyIcon size={14} />} label={t('Preview.copyLink')} onClick={handleCopyUrl} disabled={!props.data!.url} />}
+            {copyShareLinkEnabled && <ActionButton icon={<LinkIcon size={14} />} label={t('Preview.shareLink')} onClick={handleCopyShare} disabled={!props.id} />}
             {downloadEnabled && (
               <ActionButton
                 icon={downloading ? <RefreshCWIcon size={14} className="animate-spin" /> : <DownloadIcon size={14} />}

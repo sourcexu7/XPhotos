@@ -5,12 +5,15 @@
 
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { SettingOutlined, LogoutOutlined, MenuOutlined, MoonOutlined, SunOutlined } from '@ant-design/icons'
+import { SettingOutlined, LogoutOutlined, MenuOutlined, MoonOutlined, SunOutlined, CameraOutlined, GlobalOutlined, UserOutlined } from '@ant-design/icons'
 import { useTheme } from 'next-themes'
+import { Avatar, message } from 'antd'
 import { clearAllAuthData } from '~/lib/utils/auth-utils'
+import { uploadFile } from '~/lib/utils/file'
+import { compressImage } from '~/lib/utils/compress'
 
 interface AdminHeaderProps {
   onMenuClick?: () => void
@@ -22,6 +25,76 @@ export function AdminHeader({ onMenuClick, showMenuButton = false }: AdminHeader
   const router = useRouter()
   const { setTheme, resolvedTheme } = useTheme()
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  
+  useEffect(() => {
+    const fetchAvatarUrl = async () => {
+      try {
+        const resp = await fetch('/api/v1/settings/get-custom-info')
+        const data = await resp.json()
+        if (Array.isArray(data)) {
+          const avatarConfig = data.find((item: { config_key: string; config_value: string }) => item.config_key === 'about_avatar_url')
+          if (avatarConfig?.config_value) {
+            setAvatarUrl(avatarConfig.config_value)
+          }
+        }
+      } catch (e) {
+        console.error('加载头像失败:', e)
+      }
+    }
+    fetchAvatarUrl()
+  }, [])
+  
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    
+    if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type)) {
+      message.error('不支持的图片格式')
+      return
+    }
+    
+    setAvatarUploading(true)
+    
+    const processUpload = async () => {
+      try {
+        const compressedBlob = await compressImage(file, {
+          quality: 0.85,
+          maxWidth: 200,
+          maxWidthEnabled: true,
+          mimeType: 'image/webp',
+        })
+        const compressedFile = new File([compressedBlob], 'avatar.webp', { type: 'image/webp' })
+        
+        const resp = await uploadFile(compressedFile, '/about/avatar', 's3', '')
+        
+        if (resp.code === 200 && resp.data?.url) {
+          const newAvatarUrl = resp.data.url
+          setAvatarUrl(newAvatarUrl)
+          
+          await fetch('/api/v1/settings/update-custom-info', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ aboutAvatarUrl: newAvatarUrl }),
+          })
+          
+          await fetch('/api/v1/settings/cache/clear')
+          message.success('头像上传成功')
+        } else {
+          message.error('头像上传失败')
+        }
+      } catch (e) {
+        console.error('头像上传失败:', e)
+        message.error('头像上传失败')
+      } finally {
+        setAvatarUploading(false)
+        event.target.value = ''
+      }
+    }
+    
+    processUpload()
+  }
   
   const handleLogout = async () => {
     try {
@@ -67,16 +140,19 @@ export function AdminHeader({ onMenuClick, showMenuButton = false }: AdminHeader
             )}
           </button>
 
-          {/* 精简用户菜单：仅圆形头像，无文字 */}
+          {/* 用户菜单：圆形头像 */}
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-2 px-2 py-1.5 rounded-[var(--admin-radius-md)] hover:bg-[var(--admin-bg-secondary)] transition-colors"
               aria-label="用户菜单"
             >
-              <div className="w-9 h-9 rounded-full bg-[var(--admin-primary)] flex items-center justify-center text-white text-xs font-medium">
-                A
-              </div>
+              <Avatar
+                size={36}
+                src={avatarUrl}
+                icon={<UserOutlined />}
+                style={{ backgroundColor: !avatarUrl ? 'var(--admin-primary)' : undefined }}
+              />
             </button>
             
             {showUserMenu && (
@@ -96,7 +172,30 @@ export function AdminHeader({ onMenuClick, showMenuButton = false }: AdminHeader
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--admin-text-primary)] hover:bg-[var(--admin-bg-secondary)] transition-colors"
                   >
                     <SettingOutlined />
-                    <span>{t('Link.preferences')}</span>
+                    <span>{t('Settings.title')}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      document.getElementById('header-avatar-input')?.click()
+                      setShowUserMenu(false)
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--admin-text-primary)] hover:bg-[var(--admin-bg-secondary)] transition-colors"
+                  >
+                    <CameraOutlined />
+                    <span>{t('Admin.avatarManagement')}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const currentLang = document.documentElement.lang
+                      const newLang = currentLang === 'zh' ? 'en' : 'zh'
+                      document.cookie = `NEXT_LOCALE=${newLang};path=/;max-age=31536000`
+                      window.location.reload()
+                      setShowUserMenu(false)
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--admin-text-primary)] hover:bg-[var(--admin-bg-secondary)] transition-colors"
+                  >
+                    <GlobalOutlined />
+                    <span>{t('Settings.language')}</span>
                   </button>
                   <button
                     onClick={() => {
@@ -109,6 +208,14 @@ export function AdminHeader({ onMenuClick, showMenuButton = false }: AdminHeader
                     <span>{t('Button.logout')}</span>
                   </button>
                 </div>
+                <input
+                  id="header-avatar-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleAvatarUpload}
+                  disabled={avatarUploading}
+                  style={{ display: 'none' }}
+                />
               </>
             )}
           </div>

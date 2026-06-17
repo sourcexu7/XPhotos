@@ -20,6 +20,7 @@ export default function Preferences() {
   // 多图画廊状态 - 存储原图和预览图
   const [galleryImages, setGalleryImages] = useState<Array<{ original: string; preview: string }>>([])
   const [galleryUploading, setGalleryUploading] = useState(false)
+  const [selectedGalleryStorage, setSelectedGalleryStorage] = useState<string>('s3')
   // 拖拽排序状态
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
@@ -87,23 +88,26 @@ export default function Preferences() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: values.title,
-          customFaviconUrl: values.customFaviconUrl,
-          customAuthor: values.customAuthor,
-          feedId: values.feedId,
-          userId: values.userId,
-          // 瀑布流(2) / 单列(1)，默认瀑布流
-          customIndexStyle: values.customIndexStyle ?? '2',
-          customIndexDownloadEnable: values.customIndexDownloadEnable,
-          enablePreviewImageMaxWidthLimit: values.enablePreviewImageMaxWidthLimit,
-          previewImageMaxWidth: maxWidth,
-          previewQuality,
-          umamiHost: values.umamiHost,
-          umamiAnalytics: values.umamiAnalytics,
-          maxUploadFiles: maxFiles,
-          customIndexOriginEnable: values.customIndexOriginEnable,
-          adminImagesPerPage: imagesPerPage,
-          defaultStorage: values.defaultStorage || 's3',
+            title: values.title,
+            customFaviconUrl: values.customFaviconUrl,
+            customAuthor: values.customAuthor,
+            feedId: values.feedId,
+            userId: values.userId,
+            // 瀑布流(2) / 单列(1)，默认瀑布流
+            customIndexStyle: values.customIndexStyle ?? '2',
+            customIndexDownloadEnable: values.customIndexDownloadEnable,
+            customIndexCopyDirectLinkEnable: values.customIndexCopyDirectLinkEnable,
+            customIndexCopyShareLinkEnable: values.customIndexCopyShareLinkEnable,
+            customIndexLanguageToggle: values.customIndexLanguageToggle,
+            enablePreviewImageMaxWidthLimit: values.enablePreviewImageMaxWidthLimit,
+            previewImageMaxWidth: maxWidth,
+            previewQuality,
+            umamiHost: values.umamiHost,
+            umamiAnalytics: values.umamiAnalytics,
+            maxUploadFiles: maxFiles,
+            customIndexOriginEnable: values.customIndexOriginEnable,
+            adminImagesPerPage: imagesPerPage,
+            defaultStorage: values.defaultStorage || 's3',
           // 「关于我」前台展示配置
           aboutIntro: values.aboutIntro,
           aboutInsUrl: values.aboutInsUrl,
@@ -134,6 +138,10 @@ export default function Preferences() {
         // 仅保留单列(1)与瀑布流(2)，默认瀑布流
         customIndexStyle: data?.find((item) => item.config_key === 'custom_index_style')?.config_value || '2',
         customIndexDownloadEnable: data?.find((item) => item.config_key === 'custom_index_download_enable')?.config_value.toString() === 'true' || false,
+        // 两个独立开关：若无新字段则回退到旧 copy_link_enable 值
+        customIndexCopyDirectLinkEnable: (data?.find((item) => item.config_key === 'custom_index_copy_direct_link_enable')?.config_value.toString() === 'true') || (data?.find((item) => item.config_key === 'custom_index_copy_link_enable')?.config_value.toString() === 'true') || false,
+        customIndexCopyShareLinkEnable: (data?.find((item) => item.config_key === 'custom_index_copy_share_link_enable')?.config_value.toString() === 'true') || (data?.find((item) => item.config_key === 'custom_index_copy_link_enable')?.config_value.toString() === 'true') || false,
+        customIndexLanguageToggle: data?.find((item) => item.config_key === 'custom_index_language_toggle')?.config_value.toString() === 'true' || false,
         previewImageMaxWidth: data?.find((item) => item.config_key === 'preview_max_width_limit')?.config_value?.toString() || '0',
         enablePreviewImageMaxWidthLimit: data?.find((item) => item.config_key === 'preview_max_width_limit_switch')?.config_value === '1',
         previewQuality: data?.find((item) => item.config_key === 'preview_quality')?.config_value || '0.2',
@@ -179,6 +187,10 @@ export default function Preferences() {
           // 解析失败，使用空数组
         }
       }
+
+      // 设置画廊上传默认存储类型为后台配置的默认存储桶
+      const defaultStorage = data?.find((item) => item.config_key === 'default_storage')?.config_value || 's3'
+      setSelectedGalleryStorage(defaultStorage)
     }
   }, [data, form])
 
@@ -189,7 +201,7 @@ export default function Preferences() {
 
     // 限制最多上传 10 张
     if (galleryImages.length + files.length > 10) {
-      message.error('画廊最多支持 10 张图片')
+      message.error(t('Preferences.galleryMaxImages'))
       return
     }
 
@@ -213,8 +225,8 @@ export default function Preferences() {
         })
         const compressedFile = new File([compressedBlob], file.name.replace(/\.\w+$/, '.webp'), { type: 'image/webp' })
 
-        // 上传到画廊目录
-        const resp = await uploadFile(compressedFile, '/about/gallery', 's3', '')
+        // 上传到画廊目录，使用选中的存储类型
+        const resp = await uploadFile(compressedFile, '/about/gallery', selectedGalleryStorage, '')
         if (resp.code === 200 && resp.data?.url) {
           newUrls.push({ original: resp.data.url, preview: resp.data.url })
           message.success(`上传成功: ${file.name}`)
@@ -224,7 +236,34 @@ export default function Preferences() {
       }
 
       if (newUrls.length > 0) {
-        setGalleryImages(prev => [...prev, ...newUrls])
+        const updatedImages = [...galleryImages, ...newUrls]
+        setGalleryImages(updatedImages)
+
+        // 自动保存画廊图片配置到数据库
+        try {
+          const saveResp = await fetch('/api/v1/settings/update-custom-info', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              aboutGalleryImages: updatedImages.map(img => img.preview),
+              aboutGalleryImagesFull: updatedImages,
+            }),
+          })
+          const saveData = await saveResp.json()
+          if (saveData.code === 200) {
+            message.success(t('Tips.updateSuccess'))
+            // 清除缓存，确保前台能获取最新数据
+            await fetch('/api/v1/settings/cache/clear')
+          } else {
+            message.error('保存失败: ' + (saveData.message || '未知错误'))
+            console.error('保存画廊配置失败:', saveData)
+          }
+        } catch (e) {
+          console.error('保存画廊配置失败:', e)
+          message.error('保存失败: 网络错误')
+        }
       }
     } catch (e) {
       console.error(e)
@@ -237,8 +276,24 @@ export default function Preferences() {
 
   // 删除画廊图片
   const handleDeleteGalleryImage = useCallback((index: number) => {
-    setGalleryImages(prev => prev.filter((_, i) => i !== index))
-    message.success('已删除')
+    setGalleryImages(prev => {
+      const updatedImages = prev.filter((_, i) => i !== index)
+      // 自动保存到数据库并清除缓存
+      fetch('/api/v1/settings/update-custom-info', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          aboutGalleryImages: updatedImages.map(img => img.preview),
+          aboutGalleryImagesFull: updatedImages,
+        }),
+      }).then(async () => {
+        await fetch('/api/v1/settings/cache/clear')
+      })
+      message.success('已删除')
+      return updatedImages
+    })
   }, [])
 
   // 拖拽排序 - 开始拖拽
@@ -261,6 +316,19 @@ export default function Preferences() {
         const newImages = [...prev]
         const [removed] = newImages.splice(draggedIndex, 1)
         newImages.splice(dragOverIndex, 0, removed)
+        // 自动保存排序到数据库并清除缓存
+        fetch('/api/v1/settings/update-custom-info', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            aboutGalleryImages: newImages.map(img => img.preview),
+            aboutGalleryImagesFull: newImages,
+          }),
+        }).then(async () => {
+          await fetch('/api/v1/settings/cache/clear')
+        })
         return newImages
       })
     }
@@ -315,7 +383,7 @@ export default function Preferences() {
                 </Form.Item>
 
                 <Form.Item
-                  label="favicon"
+                  label={t('Preferences.favicon')}
                   name="customFaviconUrl"
                 >
                   <Input placeholder={t('Preferences.favicon')} />
@@ -337,20 +405,20 @@ export default function Preferences() {
                   {t('AdminHeader.preferencesSectionRss')}
                 </Typography.Title>
                 <Form.Item
-                  label="RSS feedId"
+                  label={t('Preferences.rssFeedId')}
                   name="feedId"
                 >
                   <Input placeholder={t('Preferences.inputFeedId')} />
                 </Form.Item>
 
                 <Form.Item
-                  label="RSS userId"
+                  label={t('Preferences.rssUserId')}
                   name="userId"
                 >
                   <Input placeholder={t('Preferences.inputUserId')} />
                 </Form.Item>
 
-                <Form.Item label="RSS URI">
+                <Form.Item label={t('Preferences.rssUri')}>
                   <Compact style={{ width: '100%' }}>
                     <Input
                       readOnly
@@ -404,8 +472,8 @@ export default function Preferences() {
                   <Select
                     placeholder={t('Preferences.indexThemeSelect')}
                     options={[
-                      { label: '单列主题', value: '1' },
-                      { label: '瀑布流主题（默认）', value: '2' }
+                      { label: t('Preferences.themeSingle'), value: '1' },
+                      { label: t('Preferences.themeWaterfall'), value: '2' }
                     ]}
                   />
                 </Form.Item>
@@ -439,16 +507,16 @@ export default function Preferences() {
                 </Form.Item>
 
                 <Form.Item
-                  label="默认上传方式"
+                  label={t('Preferences.defaultStorage')}
                   name="defaultStorage"
                 >
                   <Select
-                    placeholder="选择默认上传方式"
+                    placeholder={t('Preferences.selectDefaultStorage')}
                     options={[
-                      { label: 'S3', value: 's3' },
-                      { label: '腾讯云 COS', value: 'cos' },
-                      { label: 'Cloudflare R2', value: 'r2' },
-                      { label: 'AList', value: 'alist' }
+                      { label: t('Preferences.storageS3'), value: 's3' },
+                      { label: t('Preferences.storageCOS'), value: 'cos' },
+                      { label: t('Preferences.storageR2'), value: 'r2' },
+                      { label: t('Preferences.storageAlist'), value: 'alist' }
                     ]}
                   />
                 </Form.Item>
@@ -474,6 +542,48 @@ export default function Preferences() {
                     </Typography.Text>
                     <Form.Item
                       name="customIndexDownloadEnable"
+                      valuePropName="checked"
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Switch />
+                    </Form.Item>
+                  </Space>
+                </Card>
+
+                <Card
+                  size="small"
+                  style={{
+                    borderRadius: token.borderRadiusLG,
+                    borderColor: token.colorBorder
+                  }}
+                >
+                  <Space orientation="vertical" size={token.marginXS} style={{ width: '100%' }}>
+                    <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+                      {t('Preferences.customIndexCopyDirectLinkEnable')}
+                    </Typography.Text>
+                    <Form.Item
+                      name="customIndexCopyDirectLinkEnable"
+                      valuePropName="checked"
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Switch />
+                    </Form.Item>
+                  </Space>
+                </Card>
+
+                <Card
+                  size="small"
+                  style={{
+                    borderRadius: token.borderRadiusLG,
+                    borderColor: token.colorBorder
+                  }}
+                >
+                  <Space orientation="vertical" size={token.marginXS} style={{ width: '100%' }}>
+                    <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+                      {t('Preferences.customIndexCopyShareLinkEnable')}
+                    </Typography.Text>
+                    <Form.Item
+                      name="customIndexCopyShareLinkEnable"
                       valuePropName="checked"
                       style={{ marginBottom: 0 }}
                     >
@@ -523,6 +633,27 @@ export default function Preferences() {
                     </Form.Item>
                   </Space>
                 </Card>
+
+                <Card
+                  size="small"
+                  style={{
+                    borderRadius: token.borderRadiusLG,
+                    borderColor: token.colorBorder
+                  }}
+                >
+                  <Space orientation="vertical" size={token.marginXS} style={{ width: '100%' }}>
+                    <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
+                      {t('Preferences.customIndexLanguageToggle')}
+                    </Typography.Text>
+                    <Form.Item
+                      name="customIndexLanguageToggle"
+                      valuePropName="checked"
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Switch />
+                    </Form.Item>
+                  </Space>
+                </Card>
               </Space>
             </Col>
           </Row>
@@ -536,7 +667,7 @@ export default function Preferences() {
                   borderRadius: token.borderRadiusLG,
                   borderColor: token.colorBorder,
                 }}
-                title="前台『关于我』配置"
+                title={t('Preferences.aboutConfig')}
               >
                 <Space orientation="vertical" size={token.margin} style={{ width: '100%' }}>
                   <Row gutter={[token.marginLG, token.marginLG]}>
@@ -544,45 +675,45 @@ export default function Preferences() {
                     <Col xs={24} md={8} className="flex flex-col justify-start">
                       <Space orientation="vertical" size={token.margin} style={{ width: '100%' }}>
                         <Form.Item
-                          label="个人介绍"
+                          label={t('Preferences.aboutIntro')}
                           name="aboutIntro"
                         >
                           <Input.TextArea
                             rows={6}
-                            placeholder="例如：偏爱自然光人像与城市夜景，记录每一束真实的光。"
+                            placeholder={t('Preferences.aboutIntroPlaceholder')}
                           />
                         </Form.Item>
 
                         <Form.Item
-                          label="INS 链接"
+                          label={t('Preferences.aboutInsUrl')}
                           name="aboutInsUrl"
-                          rules={[{ type: 'url', message: '请输入合法的链接' }]}
+                          rules={[{ type: 'url', message: t('Tips.invalidUrl') }]}
                         >
-                          <Input placeholder="例如：https://instagram.com/yourname" />
+                          <Input placeholder={t('Preferences.aboutInsUrlPlaceholder')} />
                         </Form.Item>
 
                         <Form.Item
-                          label="小红书链接"
+                          label={t('Preferences.aboutXhsUrl')}
                           name="aboutXhsUrl"
-                          rules={[{ type: 'url', message: '请输入合法的链接' }]}
+                          rules={[{ type: 'url', message: t('Tips.invalidUrl') }]}
                         >
-                          <Input placeholder="例如：https://www.xiaohongshu.com/user/xxxx" />
+                          <Input placeholder={t('Preferences.aboutXhsUrlPlaceholder')} />
                         </Form.Item>
 
                         <Form.Item
-                          label="微博链接"
+                          label={t('Preferences.aboutWeiboUrl')}
                           name="aboutWeiboUrl"
-                          rules={[{ type: 'url', message: '请输入合法的链接' }]}
+                          rules={[{ type: 'url', message: t('Tips.invalidUrl') }]}
                         >
-                          <Input placeholder="例如：https://weibo.com/xxxx" />
+                          <Input placeholder={t('Preferences.aboutWeiboUrlPlaceholder')} />
                         </Form.Item>
 
                         <Form.Item
-                          label="GitHub 链接"
+                          label={t('Preferences.aboutGithubUrl')}
                           name="aboutGithubUrl"
-                          rules={[{ type: 'url', message: '请输入合法的链接' }]}
+                          rules={[{ type: 'url', message: t('Tips.invalidUrl') }]}
                         >
-                          <Input placeholder="例如：https://github.com/yourname" />
+                          <Input placeholder={t('Preferences.aboutGithubUrlPlaceholder')} />
                         </Form.Item>
                       </Space>
                     </Col>
@@ -592,15 +723,27 @@ export default function Preferences() {
                       <Space orientation="vertical" size={token.margin} style={{ width: '100%' }}>
                         <div className="flex items-center justify-between w-full">
                           <Typography.Text strong>
-                            画廊图片（最多 10 张，可拖拽排序）
+                            {t('Preferences.galleryImages')}
                           </Typography.Text>
                           <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
                             {galleryImages.length} / 10
                           </Typography.Text>
                         </div>
 
-                        {/* 上传按钮 */}
+                        {/* 存储类型选择 + 上传按钮 */}
                         <div className="flex items-center gap-2">
+                          <Select
+                            value={selectedGalleryStorage}
+                            onChange={setSelectedGalleryStorage}
+                            style={{ width: 120 }}
+                            options={[
+                              { label: 'S3', value: 's3' },
+                              { label: 'COS', value: 'cos' },
+                              { label: 'R2', value: 'r2' },
+                              { label: 'Alist', value: 'alist' },
+                            ]}
+                            disabled={galleryUploading}
+                          />
                           <input
                             ref={el => { galleryInputRef.current = el }}
                             type="file"
@@ -616,7 +759,7 @@ export default function Preferences() {
                             loading={galleryUploading}
                             disabled={galleryUploading || galleryImages.length >= 10}
                           >
-                            添加图片
+                            {t('Preferences.addImage')}
                           </Button>
                         </div>
 
@@ -637,7 +780,7 @@ export default function Preferences() {
                             >
                               <img
                                 src={img.preview}
-                                alt={`画廊图片 ${idx + 1}`}
+                                alt={t('Preferences.galleryImageAlt', { index: idx + 1 })}
                                 className="w-full h-full object-cover"
                                 draggable={false}
                               />
@@ -667,12 +810,12 @@ export default function Preferences() {
                             onClick={() => galleryInputRef.current?.click()}
                           >
                             <PlusOutlined className="text-2xl mb-2" />
-                            <span className="text-sm">点击添加画廊图片</span>
+                            <span className="text-sm">{t('Preferences.clickAddGalleryImage')}</span>
                           </div>
                         )}
 
                         <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                          提示：画廊图片将在前台「关于我」页面以轮播形式展示
+                          {t('Preferences.galleryHint')}
                         </Typography.Text>
                       </Space>
                     </Col>

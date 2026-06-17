@@ -113,7 +113,7 @@ Images  ─── ImagesAlbumsRelation  ─── Albums  ─── GuideAlbumsR
 
 Configs （键值对，站点配置）
 VisitLog （访问日志，供后台统计）
-User / Account / Session / TwoFactor / Passkey / Verification （认证表族，better-auth）
+User / Account / Session / TwoFactor / Verification （认证表族，better-auth）
 ```
 
 - **Images ↔ Albums**：多对多，通过 `ImagesAlbumsRelation`，额外承载**相册内图片排序**（`sort` 字段 + `(album_value, sort)` 索引）。
@@ -171,7 +171,6 @@ User / Account / Session / TwoFactor / Passkey / Verification （认证表族，
 | `/admin/analytics`、`/admin/analytics/api` | 访问统计、统计数据接口 |
 | `/admin/settings/preferences` | 站点偏好 |
 | `/admin/settings/account` | 账号 |
-| `/admin/settings/passkey` | Passkey |
 | `/admin/settings/authenticator` | 2FA |
 | `/admin/settings/tag` | 标签管理 |
 | `/admin/settings/storages` | 存储配置（S3/R2/COS/AList） |
@@ -187,7 +186,7 @@ User / Account / Session / TwoFactor / Passkey / Verification （认证表族，
 ## 八、性能与缓存要点
 
 - **React.cache** 与服务端数据获取去重：查询层在 `lib/db/query/` 中使用。
-- **数据库索引**：`Images(del,show,featured)`、`ImagesAlbumsRelation(album_value,sort)`、`Tags/Guides/VisitLog` 等关键索引，详见 `prisma/schema.prisma` + `db_optimizations.sql`。
+- **数据库索引**：`Images(del,show,featured)`、`ImagesAlbumsRelation(album_value,sort)`、`Tags/Guides/VisitLog` 等关键索引，详见 `prisma/schema.prisma`。
 - **Redis 缓存层**：`lib/redis.ts`，用于热点数据（配置、列表缓存）。
 - **前端虚拟滚动**：`components/ui/virtual-waterfall-gallery.tsx`，长列表关键优化。
 - **图片压缩管线**：`lib/utils/compress.ts` + 预览图尺寸/质量配置。

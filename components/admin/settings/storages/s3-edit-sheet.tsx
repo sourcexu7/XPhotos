@@ -35,7 +35,7 @@ export default function S3EditSheet() {
     const required = ['accesskey_id','accesskey_secret','region','endpoint','bucket']
     const missing = required.filter(k => !getVal(data, k))
     if (missing.length) {
-      return { ok: false, next: data || [], message: `缺少必要配置：${missing.join(', ')}` }
+      return { ok: false, next: data || [], message: t('Config.missingRequired', { fields: missing.join(', ') }) }
     }
 
     let next = [...(data || [])]
@@ -52,7 +52,7 @@ export default function S3EditSheet() {
     // Force path style suggestion for AWS
     const forcePathStyle = getVal(next, 'force_path_style')
     if (/amazonaws\.com/i.test(getVal(next, 'endpoint')) && forcePathStyle === 'true') {
-      message.info('AWS S3 通常使用虚拟主机风格，建议将 force_path_style 设为 false')
+      message.info(t('Config.awsS3PathStyleTip'))
     }
     return { ok: true, next }
   }
@@ -62,7 +62,7 @@ export default function S3EditSheet() {
     try {
       const { ok, next, message: errorMsg } = normalizeAndValidate(s3Data)
       if (!ok) {
-        message.error(errorMsg || '配置不完整')
+        message.error(errorMsg || t('Config.incomplete'))
         return
       }
       setS3EditData(next)

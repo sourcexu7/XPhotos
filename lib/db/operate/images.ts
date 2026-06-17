@@ -280,9 +280,8 @@ async function deleteImageStorageObjects(
 
     // --- 懒加载配置，按 URL 的 endpoint 推断存储类型
     const { fetchConfigsByKeys } = await import('~/lib/db/query/configs')
-    const [s3Raw, r2Raw, cosRaw] = await Promise.all([
+    const [s3Raw, cosRaw] = await Promise.all([
       fetchConfigsByKeys(['accesskey_id', 'accesskey_secret', 'region', 'endpoint', 'bucket', 'force_path_style']),
-      fetchConfigsByKeys(['r2_account_id', 'r2_accesskey_id', 'r2_accesskey_secret', 'r2_bucket']),
       fetchConfigsByKeys(['cos_secret_id', 'cos_secret_key', 'cos_region', 'cos_endpoint', 'cos_bucket', 'cos_force_path_style']),
     ])
 
@@ -291,7 +290,6 @@ async function deleteImageStorageObjects(
 
     const s3Endpoint = (cfgValue(s3Raw, 'endpoint') || '').replace(/^https?:\/\//, '')
     const s3Bucket = cfgValue(s3Raw, 'bucket') || ''
-    const r2Bucket = cfgValue(r2Raw, 'r2_bucket') || ''
     const cosEndpoint = (cfgValue(cosRaw, 'cos_endpoint') || '').replace(/^https?:\/\//, '')
     const cosBucket = cfgValue(cosRaw, 'cos_bucket') || ''
 
@@ -302,10 +300,6 @@ async function deleteImageStorageObjects(
       const { getClient } = await import('~/lib/s3')
       return getClient(s3Raw)
     }
-    const r2ClientFn = async () => {
-      const { getR2Client } = await import('~/lib/r2')
-      return getR2Client(r2Raw)
-    }
     const cosClientFn = async () => {
       const { getCOSClient } = await import('~/lib/cos')
       return getCOSClient(cosRaw)
@@ -313,21 +307,16 @@ async function deleteImageStorageObjects(
 
     // 懒缓存客户端，避免重复初始化
     let s3Client: any = undefined
-    let r2Client: any = undefined
     let cosClient: any = undefined
 
     for (const { key, urlField } of urlKeys) {
       try {
         const useCos = cosEndpoint && cosBucket && urlField.includes(cosEndpoint)
-        const useR2 = !useCos && /r2\.cloudflarestorage\.com|r2|cdn-?r2/i.test(urlField)
-        const useS3 = !useCos && !useR2 && (s3Endpoint ? urlField.includes(s3Endpoint) : !!s3Bucket)
+        const useS3 = !useCos && (s3Endpoint ? urlField.includes(s3Endpoint) : !!s3Bucket)
 
         if (useCos && cosBucket) {
           cosClient = cosClient || (await cosClientFn())
           await cosClient.send(new DeleteObjectCommand({ Bucket: cosBucket, Key: key }))
-        } else if (useR2 && r2Bucket) {
-          r2Client = r2Client || (await r2ClientFn())
-          await r2Client.send(new DeleteObjectCommand({ Bucket: r2Bucket, Key: key }))
         } else if (useS3 && s3Bucket) {
           s3Client = s3Client || (await s3ClientFn())
           await s3Client.send(new DeleteObjectCommand({ Bucket: s3Bucket, Key: key }))

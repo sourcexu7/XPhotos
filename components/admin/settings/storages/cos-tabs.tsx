@@ -61,7 +61,7 @@ export default function COSTabs() {
                   const json = isJson ? await res.json() : null
                   if (!json || json.code !== 200) {
                     const text = await res.text().catch(() => '')
-                    throw new Error(text || '验证失败')
+                    throw new Error(text || t('Config.validateFailed', { message: '' }))
                   }
                   const { bucket, endpoint, checks } = json.data || {}
                   const summary = [
@@ -70,9 +70,9 @@ export default function COSTabs() {
                     `GetObject: ${checks?.getObject || 'unknown'}`,
                     `DeleteObject: ${checks?.deleteObject || 'unknown'}`,
                   ].join(' | ')
-                  message.success(`COS 验证成功：${bucket} @ ${endpoint} — ${summary}`)
+                  message.success(t('Config.cosValidateSuccess', { bucket, endpoint, summary }))
                 } catch (e: any) {
-                  message.error(`COS 验证失败：${e?.message || ''}`)
+                  message.error(t('Config.cosValidateFailed', { message: e?.message || '' }))
                 }
               }}
             >

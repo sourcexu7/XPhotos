@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { Spin, Empty, Row, Col, theme } from 'antd'
+import { useTranslations } from 'next-intl'
 import { StatCardsGrid, type StatCardProps } from './stat-card'
 import { HorizontalBarChart } from './horizontal-bar-chart'
 import { PhotosByYearChart } from './photos-by-year-chart'
@@ -37,6 +38,7 @@ export function DashboardView({
   error?: Error
 }) {
   const { token } = theme.useToken()
+  const t = useTranslations()
 
   if (isLoading) {
     return (
@@ -56,7 +58,7 @@ export function DashboardView({
   if (error) {
     return (
       <Empty
-        description="加载失败，请稍后重试"
+        description={t('ImageComponent.loadFailed')}
         style={{ padding: `${token.marginXL}px 0` }}
       />
     )
@@ -65,7 +67,7 @@ export function DashboardView({
   if (!data) {
     return (
       <Empty
-        description="暂无数据"
+        description={t('ImageComponent.noData')}
         style={{ padding: `${token.marginXL}px 0` }}
       />
     )
@@ -74,21 +76,21 @@ export function DashboardView({
   const stats: StatCardProps[] = [
     {
       id: 'images',
-      label: '照片总数',
+      label: t('Dashboard.totalPhotos'),
       value: data.images.total,
       icon: 'images',
       color: 'emerald',
     },
     {
       id: 'albums',
-      label: '相册数量',
+      label: t('Dashboard.totalAlbums'),
       value: data.albums.total,
       icon: 'albums',
       color: 'blue',
     },
     {
       id: 'guides',
-      label: '攻略数量',
+      label: t('Dashboard.totalGuides'),
       value: data.guides.total,
       icon: 'guides',
       color: 'violet',
@@ -106,7 +108,7 @@ export function DashboardView({
               name: item.camera,
               count: item.count,
             }))}
-            title="相机使用 TOP5"
+            title={t('Dashboard.cameraTop5')}
             color={token.colorSuccess}
           />
         </Col>
@@ -116,7 +118,7 @@ export function DashboardView({
               name: item.lens,
               count: item.count,
             }))}
-            title="镜头使用 TOP5"
+            title={t('Dashboard.lensTop5')}
             color={token.colorPrimary}
           />
         </Col>

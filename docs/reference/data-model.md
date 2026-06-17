@@ -23,11 +23,10 @@
 | `GuideModuleContents` | `guide_module_contents` | 模块内容（支持多类型） | `GuideModules` |
 | `GuideTableOfContents` | `guide_table_of_contents` | 攻略目录 | `Guides` |
 | `GuideAlbumsRelation` | `guide_albums_relation` | 攻略 ↔ 相册多对多 | `Guides`、`Albums` |
-| `User` | `user` | 用户（better-auth） | `Account`、`Session`、`TwoFactor`、`Passkey` |
+| `User` | `user` | 用户（better-auth） | `Account`、`Session`、`TwoFactor` |
 | `Account` | `account` | 登录账号（含 password） | `User` |
 | `Session` | `session` | 登录会话 | `User` |
 | `TwoFactor` | `two_factor` | 2FA 凭据 | `User` |
-| `Passkey` | `passkey` | Passkey 凭据 | `User` |
 | `Verification` | `verification` | 校验 token（邮箱/其它） | — |
 
 ---
@@ -424,7 +423,7 @@
 
 **约束**：`@@unique([email])`
 
-**关联**：`sessions: Session[]`、`accounts: Account[]`、`TwoFactor: TwoFactor[]`、`passkeys: Passkey[]`
+**关联**：`sessions: Session[]`、`accounts: Account[]`、`TwoFactor: TwoFactor[]`
 
 ### 4.2 Account（`account`）
 
@@ -468,23 +467,7 @@
 | `backupCodes` | `String` | 备用码 |
 | `userId` | `String` | 外键 → `User.id`（`onDelete: Cascade`） |
 
-### 4.5 Passkey（`passkey`）
-
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| `id` | `String @id` | 主键 |
-| `name` | `String?` | 设备名 |
-| `publicKey` | `String` | 公钥 |
-| `userId` | `String` | 外键 → `User.id`（`onDelete: Cascade`） |
-| `credentialID` | `String @unique` | WebAuthn 凭据 ID |
-| `counter` | `Int` | `0` |
-| `deviceType` | `String` | — |
-| `backedUp` | `Boolean` | — |
-| `transports` | `String?` | — |
-| `createdAt` | `DateTime @db.Timestamp` | — |
-| `aaguid` | `String?` | — |
-
-### 4.6 Verification（`verification`）
+### 4.5 Verification（`verification`）
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -499,7 +482,7 @@
 
 ## 五、索引与性能要点
 
-以下汇总 **Prisma schema 显式声明**的所有索引，并标注 **`db_optimizations.sql` 补充的脚本级索引**。
+以下汇总 **Prisma schema 显式声明**的所有索引。
 
 ### 5.1 Images（`images`）
 
@@ -510,7 +493,7 @@
 | `(createdAt)` | `schema.prisma` | 时间排序 |
 | `(show, show_on_mainpage)` | `schema.prisma` | 首页展示筛选 |
 | `(del, show, featured)` | `schema.prisma` | 多条件联合筛选 |
-| `(shoot_at)` | `db_optimizations.sql` | 按拍摄时间排序/筛选（迁移补充） |
+| `(shoot_at)` | `schema.prisma` | 按拍摄时间排序/筛选 |
 | `labels`（GIN） | 迁移脚本 | Prisma schema 不支持 JSONB 声明，需在迁移脚本中手动创建 |
 | `exif`（GIN） | 迁移脚本 | 同上 |
 
@@ -541,9 +524,9 @@
 
 | 索引 | 声明位置 |
 |---|---|
-| `(createdAt)` | `schema.prisma` + `db_optimizations.sql` |
-| `(path)` | `schema.prisma` + `db_optimizations.sql` |
-| `("pageType")` | `db_optimizations.sql`（补充） |
+| `(createdAt)` | `schema.prisma` |
+| `(path)` | `schema.prisma` |
+| `("pageType")` | `schema.prisma` |
 
 ### 5.6 Guides 系列
 
@@ -575,7 +558,7 @@
   👉 [`docs/api/v1-auth.md`](../api/v1-auth.md)
 
 - 补充性能索引脚本（Images.shoot_at、VisitLog.pageType 等）：  
-  👉 [`db_optimizations.sql`](../../db_optimizations.sql)（项目根目录）
+  👉 `prisma/schema.prisma` 中的索引声明
 
 ---
 
@@ -588,6 +571,6 @@
 3. `docs/guides/image-sorting-refactor.md` — 相册图片排序改造
 4. `docs/guides/tag-management-refactor.md` — 标签层级管理改造
 5. `docs/api/v1-auth.md` — 认证相关表与接口
-6. `db_optimizations.sql` — 补充性能索引脚本
+6. `prisma/schema.prisma` — 补充性能索引
 
 > ⚠️ `docs/api/v1-guides.md` 当前项目中不存在；攻略相关字段以 `prisma/schema.prisma` 为权威来源。

@@ -14,6 +14,7 @@ import { useTheme } from 'next-themes'
 import { motion, useReducedMotion } from 'motion/react'
 import { RiseOutlined } from '@ant-design/icons'
 import { theme as AntTheme } from 'antd'
+import { useTranslations } from 'next-intl'
 
 export type VisitTrendChartProps = {
   data: Array<{ date: string; count: number }>
@@ -24,6 +25,7 @@ export function VisitTrendChart({ data }: VisitTrendChartProps) {
   const { token } = AntTheme.useToken()
   const isDark = theme === 'dark'
   const reduce = useReducedMotion()
+  const t = useTranslations('Dashboard')
   
   const formattedData = data.map((item) => ({
     ...item,
@@ -50,10 +52,10 @@ export function VisitTrendChart({ data }: VisitTrendChartProps) {
         </div>
         <div>
           <h3 className="text-lg font-semibold text-foreground tracking-tight">
-            访问趋势
+            {t('visitTrend')}
           </h3>
           <p className="text-sm text-muted-foreground">
-            近7天
+            {t('last7Days')}
           </p>
         </div>
       </div>

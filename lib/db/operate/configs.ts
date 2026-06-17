@@ -3,6 +3,7 @@
 'use server'
 
 import { db } from '~/lib/db'
+import { cacheInvalidateByPattern } from '~/lib/redis'
 
 /**
  * 更新 S3 配置
@@ -27,28 +28,6 @@ export async function updateS3Config(configs: Record<string, unknown>) {
     END,
         updated_at = NOW()
     WHERE config_key IN ('accesskey_id', 'accesskey_secret', 'region', 'endpoint', 'bucket', 'storage_folder', 'force_path_style', 's3_force_server_upload', 's3_cdn', 's3_cdn_url', 's3_direct_download');
-  `
-}
-
-/**
- * 更新 R2 配置
- * @param configs 配置信息
- */
-export async function updateR2Config(configs: Record<string, unknown>) {
-  return await db.$executeRaw`
-    UPDATE "public"."configs"
-    SET config_value = CASE
-       WHEN config_key = 'r2_accesskey_id' THEN ${configs.r2AccesskeyId}
-       WHEN config_key = 'r2_accesskey_secret' THEN ${configs.r2AccesskeySecret}
-       WHEN config_key = 'r2_account_id' THEN ${configs.r2AccountId}
-       WHEN config_key = 'r2_bucket' THEN ${configs.r2Bucket}
-       WHEN config_key = 'r2_storage_folder' THEN ${configs.r2StorageFolder}
-       WHEN config_key = 'r2_public_domain' THEN ${configs.r2PublicDomain}
-       WHEN config_key = 'r2_direct_download' THEN ${configs.r2DirectDownload}
-       ELSE 'N&A'
-    END,
-        updated_at = NOW()
-    WHERE config_key IN ('r2_accesskey_id', 'r2_accesskey_secret', 'r2_account_id', 'r2_bucket', 'r2_storage_folder', 'r2_public_domain', 'r2_direct_download');
   `
 }
 
@@ -117,6 +96,9 @@ export async function updateCustomInfo(payload: {
   userId: string
   customIndexStyle?: number
   customIndexDownloadEnable: boolean
+  customIndexCopyLinkEnable: boolean
+  customIndexCopyDirectLinkEnable: boolean
+  customIndexCopyShareLinkEnable: boolean
   enablePreviewImageMaxWidthLimit: boolean
   previewImageMaxWidth: number
   previewQuality: number
@@ -126,6 +108,8 @@ export async function updateCustomInfo(payload: {
   customIndexOriginEnable: boolean
   adminImagesPerPage: number
   defaultStorage?: string
+  // 新增：前台语言切换按钮显示配置
+  customIndexLanguageToggle?: boolean
   // 新增：前台「关于我」配置
   aboutIntro?: string
   aboutInsUrl?: string
@@ -136,6 +120,8 @@ export async function updateCustomInfo(payload: {
   aboutGalleryImages?: string[]
   // 新增：关于我画廊图片完整数据（包含原图和预览图）
   aboutGalleryImagesFull?: Array<{ original: string; preview: string }>
+  // 新增：头像 URL
+  aboutAvatarUrl?: string
 }) {
   const configUpdates: { key: string; value: string }[] = [
     { key: 'custom_title', value: payload.title },
@@ -149,6 +135,22 @@ export async function updateCustomInfo(payload: {
     {
       key: 'custom_index_download_enable',
       value: payload.customIndexDownloadEnable ? 'true' : 'false',
+    },
+    {
+      key: 'custom_index_copy_link_enable',
+      value: payload.customIndexCopyLinkEnable ? 'true' : 'false',
+    },
+    {
+      key: 'custom_index_copy_direct_link_enable',
+      value: payload.customIndexCopyDirectLinkEnable ? 'true' : 'false',
+    },
+    {
+      key: 'custom_index_copy_share_link_enable',
+      value: payload.customIndexCopyShareLinkEnable ? 'true' : 'false',
+    },
+    {
+      key: 'custom_index_language_toggle',
+      value: payload.customIndexLanguageToggle ? 'true' : 'false',
     },
     {
       key: 'preview_max_width_limit_switch',
@@ -238,6 +240,14 @@ export async function updateCustomInfo(payload: {
     }
   }
 
+  // 新增：头像 URL
+  if (payload.aboutAvatarUrl) {
+    configUpdates.push({
+      key: 'about_avatar_url',
+      value: payload.aboutAvatarUrl,
+    })
+  }
+
   // 优化点：使用 upsert，确保新配置项不存在时自动创建，避免 update 抛错
   await db.$transaction(
     configUpdates.map((config) =>
@@ -254,4 +264,7 @@ export async function updateCustomInfo(payload: {
       })
     )
   )
+
+  // 清除配置相关的缓存，确保前端能读取到最新配置
+  await cacheInvalidateByPattern('configs:*')
 }

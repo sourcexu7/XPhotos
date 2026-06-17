@@ -911,7 +911,7 @@ export default function LivephotoFileUpload() {
                       <AntInput value={exif?.exposure_time || ''} onChange={(e) => setExif({ ...(exif || {}), exposure_time: e.target.value })} placeholder={t('Upload.orManualInputPlaceholder')} />
                     </div>
                   </AntForm.Item>
-                  <AntForm.Item label="ISO">
+                  <AntForm.Item label={t('Upload.exifIsoLabel')}>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <Select
                         value={exif?.iso_speed_rating || undefined}
@@ -1220,7 +1220,7 @@ export default function LivephotoFileUpload() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">ISO</label>
+            <label className="block text-sm font-medium text-text-secondary mb-2">{t('Upload.exifIsoLabel')}</label>
             <AntInput.TextArea
               value={exifPresets.editingText.isos}
               onChange={(e) => exifPresets.setEditingText({ ...exifPresets.editingText, isos: e.target.value })}

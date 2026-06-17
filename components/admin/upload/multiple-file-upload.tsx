@@ -658,7 +658,7 @@ export default function MultipleFileUpload() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-text-secondary mb-1">ISO</label>
+                  <label className="block text-xs text-text-secondary mb-1">{t('Upload.exifIsoLabel')}</label>
                   <AntInput
                     value={batchExif.iso_speed_rating?.toString() || ''}
                     onChange={(e) => setBatchExif({ ...batchExif, iso_speed_rating: parseInt(e.target.value) || null })}
@@ -1007,7 +1007,7 @@ export default function MultipleFileUpload() {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs text-text-secondary mb-1">ISO</label>
+                              <label className="block text-xs text-text-secondary mb-1">{t('Upload.exifIsoLabel')}</label>
                               <AntInput
                                 value={file.exif?.iso_speed_rating?.toString() || ''}
                                 onChange={(e) => {

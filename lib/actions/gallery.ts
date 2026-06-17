@@ -40,6 +40,9 @@ export async function getImageCountByAlbum(
 export async function getGalleryConfig() {
   return await fetchConfigsByKeys([
     'custom_index_download_enable',
+    'custom_index_copy_link_enable',
+    'custom_index_copy_direct_link_enable',
+    'custom_index_copy_share_link_enable',
     'custom_index_origin_enable',
     'custom_index_style',
   ])

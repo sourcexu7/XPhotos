@@ -1,6 +1,9 @@
 import { SignJWT, jwtVerify } from 'jose'
 
-const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key-should-be-long-and-random'
+const SECRET_KEY = process.env.JWT_SECRET || ''
+if (!SECRET_KEY) {
+  throw new Error('JWT_SECRET environment variable is required')
+}
 const key = new TextEncoder().encode(SECRET_KEY)
 
 export async function signJWT(payload: Record<string, unknown>) {
