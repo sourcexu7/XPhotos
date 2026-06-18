@@ -465,6 +465,7 @@
     "noTitle": "无标题",
     "rule": "从高到低",
     "pleaseSelectAlbum": "请选择相册",
+    "showStatus": "公开状态",
     "selectShowStatus": "选择公开状态",
     "selectCamera": "选择相机",
     "selectLens": "选择镜头",
@@ -652,6 +653,10 @@
     "inputUsername": "请输入新的用户名。",
     "avatar": "头像",
     "inputAvatar": "请输入新的头像地址。"
+  },
+  "Settings": {
+    "title": "设置",
+    "language": "语言"
   },
   "Config": {
     "accesskey_id": "阿里 OSS / AWS S3 AccessKey_ID",

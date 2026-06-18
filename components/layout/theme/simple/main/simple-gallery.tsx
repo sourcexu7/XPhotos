@@ -74,10 +74,11 @@ function SimpleGalleryImpl(props: Readonly<ImageHandleProps>) {
   const dataList = useMemo(() => flattenImageData(data), [data])
 
   // 系统配置：整页只拉一次，传给每张 GalleryImage，避免每张独立 useSWR
+  const { configHandle } = props
   const configFetcher = useCallback(() => {
-    if (typeof props.configHandle !== 'function') return []
-    return props.configHandle()
-  }, [props.configHandle])
+    if (typeof configHandle !== 'function') return []
+    return configHandle()
+  }, [configHandle])
   const { data: configData = [] } = useSWR(['simple-gallery-config'], configFetcher, {
     revalidateOnFocus: false,
     revalidateIfStale: false,

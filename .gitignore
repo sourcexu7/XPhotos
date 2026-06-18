@@ -71,6 +71,7 @@ certificates
 *.bak
 *.backup
 backup/
+_backup_redundant_files/
 
 # Archive files
 *.zip

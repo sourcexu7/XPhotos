@@ -51,10 +51,14 @@ async function getClient(): Promise<RedisClient | null> {
 
 /**
  * 通用缓存包装：先读缓存，miss 时执行 fn 并写入。
- * 不设 TTL，依赖 allkeys-lfu 按访问频率淘汰。
+ * 默认带兜底 TTL（秒），即使写操作漏调用 invalidate，也至多保持一致。
  * Redis 不可用时静默 fallback，不影响正常请求。
  */
-export async function cacheWrap<T>(key: string, fn: () => Promise<T>): Promise<T> {
+export async function cacheWrap<T>(
+  key: string,
+  fn: () => Promise<T>,
+  ttlSeconds: number = 60 * 60, // 默认 1h 兜底
+): Promise<T> {
   try {
     const client = await getClient()
     if (client) {
@@ -69,7 +73,15 @@ export async function cacheWrap<T>(key: string, fn: () => Promise<T>): Promise<T
 
   try {
     const client = await getClient()
-    if (client) await client.set(key, JSON.stringify(data))
+    if (client) {
+      const serialized = JSON.stringify(data)
+      const safeTtl = Number.isFinite(ttlSeconds) && ttlSeconds > 0 ? Math.floor(ttlSeconds) : 0
+      if (safeTtl > 0) {
+        await client.set(key, serialized, { EX: safeTtl })
+      } else {
+        await client.set(key, serialized)
+      }
+    }
   } catch (err: unknown) {
     console.warn('[Redis] set failed:', key, err instanceof Error ? err.message : err)
   }

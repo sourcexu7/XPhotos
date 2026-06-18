@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -373,6 +373,18 @@ function LoginFormBody({
         setCaptchaId(data.id)
         setCaptchaSvg(data.svg)
         form.setFieldValue('captchaCode', '')
+      } else {
+        // 对 4xx / 5xx 响应也给出用户可见的错误提示，并清空失效的验证码缓存
+        setCaptchaId('')
+        setCaptchaSvg('')
+        try {
+          const errData = await res.json().catch(() => null)
+          message.error(
+            (errData && errData.message) || t('Login.captchaFailed')
+          )
+        } catch {
+          message.error(t('Login.captchaFailed'))
+        }
       }
     } catch {
       message.error(t('Login.captchaFailed'))
@@ -381,9 +393,13 @@ function LoginFormBody({
     }
   }
 
+  // 用 ref 稳定地引用最新 fetchCaptcha，避免 useEffect 依赖变化导致重复请求
+  const fetchCaptchaRef = useRef(fetchCaptcha)
+  fetchCaptchaRef.current = fetchCaptcha
+
   // 组件挂载时获取验证码
   useEffect(() => {
-    fetchCaptcha()
+    fetchCaptchaRef.current()
   }, [])
 
   const handleSubmit = async (values: LoginFormValues) => {

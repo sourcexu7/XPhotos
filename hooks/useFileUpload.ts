@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { uploadFile } from '~/lib/utils/file'
 import { uploadPreviewImage } from '~/lib/utils/uploadUtils'
 import { heicTo, isHeic } from 'heic-to'
@@ -28,6 +28,10 @@ export interface UseFileUploadOptions {
 }
 
 export function useFileUpload(options: UseFileUploadOptions) {
+  // 用 ref 保持最新 options，避免回调因依赖变化反复重建
+  const optionsRef = useRef(options)
+  optionsRef.current = options
+
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadStage, setUploadStage] = useState('')
@@ -35,9 +39,9 @@ export function useFileUpload(options: UseFileUploadOptions) {
   const handleProgress = useCallback((progress: number, stage: string) => {
     setUploadProgress(progress)
     setUploadStage(stage)
-    options.onProgress?.(progress, stage)
-    options.onStageChange?.(stage)
-  }, [options.onProgress, options.onStageChange])
+    optionsRef.current.onProgress?.(progress, stage)
+    optionsRef.current.onStageChange?.(stage)
+  }, [])
 
   const upload = useCallback(async (file: File, existingImageId?: string): Promise<UploadResult> => {
     setIsUploading(true)
@@ -63,9 +67,9 @@ export function useFileUpload(options: UseFileUploadOptions) {
       handleProgress(20, '上传原图中')
       const originRes = await uploadFile(
         uploadFileObj,
-        options.album,
-        options.storage,
-        options.alistMountPath,
+        optionsRef.current.album,
+        optionsRef.current.storage,
+        optionsRef.current.alistMountPath,
         {
           existingImageId,
           onProgress: (p: number) => {
@@ -86,16 +90,16 @@ export function useFileUpload(options: UseFileUploadOptions) {
 
       // 上传预览图
       handleProgress(60, '上传预览图中')
-      const previewType = options.album === '/' ? '/preview' : options.album + '/preview'
+      const previewType = optionsRef.current.album === '/' ? '/preview' : optionsRef.current.album + '/preview'
       const previewRes = await uploadPreviewImage(
         file,
         previewType,
         {
-          storage: options.storage,
-          alistMountPath: options.alistMountPath,
-          previewCompressQuality: options.previewCompressQuality,
-          previewImageMaxWidthLimitSwitchOn: options.previewImageMaxWidthLimitSwitchOn,
-          previewImageMaxWidthLimit: options.previewImageMaxWidthLimit,
+          storage: optionsRef.current.storage,
+          alistMountPath: optionsRef.current.alistMountPath,
+          previewCompressQuality: optionsRef.current.previewCompressQuality,
+          previewImageMaxWidthLimitSwitchOn: optionsRef.current.previewImageMaxWidthLimitSwitchOn,
+          previewImageMaxWidthLimit: optionsRef.current.previewImageMaxWidthLimit,
           existingImageId,
           onProgress: (p: number) => {
             const mappedProgress = 60 + (p * 0.35)
@@ -118,16 +122,16 @@ export function useFileUpload(options: UseFileUploadOptions) {
         previewKey: previewRes.key,
       }
 
-      options.onSuccess?.(result)
+      optionsRef.current.onSuccess?.(result)
       return result
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Upload failed')
-      options.onError?.(err)
+      optionsRef.current.onError?.(err)
       throw err
     } finally {
       setIsUploading(false)
     }
-  }, [options.album, options.storage, options.alistMountPath, options.previewCompressQuality, options.previewImageMaxWidthLimitSwitchOn, options.previewImageMaxWidthLimit, options.onSuccess, options.onError, handleProgress])
+  }, [handleProgress])
 
   return {
     isUploading,

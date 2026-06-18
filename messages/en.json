@@ -62,7 +62,8 @@
     "captchaFailed": "Failed to get captcha",
     "usernamePlaceholder": "Enter username or email",
     "passwordPlaceholder": "Enter password",
-    "captchaRefreshTitle": "Click to refresh captcha"
+    "captchaRefreshTitle": "Click to refresh captcha",
+    "logout": "Logout"
   },
   "Link": {
     "home": "Home",
@@ -492,6 +493,7 @@
     "batchDownloadMarkDeleted": "Record marked as deleted",
     "rule": "From high to low",
     "pleaseSelectAlbum": "Please select an album",
+    "showStatus": "Show Status",
     "selectShowStatus": "Select Show Status",
     "selectCamera": "Select Camera",
     "selectLens": "Select Lens",
@@ -681,6 +683,10 @@
     "inputUsername": "Please enter the new username.",
     "avatar": "Avatar",
     "inputAvatar": "Please enter the avatar URL."
+  },
+  "Settings": {
+    "title": "Settings",
+    "language": "Language"
   },
   "Config": {
     "accesskey_id": "Aliyun OSS / AWS S3 AccessKey_ID",

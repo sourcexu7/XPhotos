@@ -33,8 +33,10 @@ import {
   invalidateFeaturedCache,
   invalidateGalleryCache,
   invalidateCameraLensListCache,
+  invalidateExifPresetsCache,
 } from '~/lib/db/query/images'
 import { invalidateAlbumsListCache } from '~/lib/db/query/albums'
+import { invalidateTagsCache } from '~/lib/db/query/tags'
 
 async function invalidateImageRelatedCaches(album?: string) {
   await Promise.all([
@@ -42,7 +44,9 @@ async function invalidateImageRelatedCaches(album?: string) {
     invalidateFeaturedCache(),
     invalidateGalleryCache(album),
     invalidateCameraLensListCache(),
+    invalidateExifPresetsCache(),
     invalidateAlbumsListCache(),
+    invalidateTagsCache(),
   ])
 }
 
