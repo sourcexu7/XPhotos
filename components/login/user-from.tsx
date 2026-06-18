@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -16,7 +16,6 @@ import {
   ApartmentOutlined,
   PictureOutlined,
   ClusterOutlined,
-  ReloadOutlined,
   SunOutlined,
   MoonOutlined,
 } from '@ant-design/icons'
@@ -104,7 +103,6 @@ const BackgroundElements = () => {
 type LoginFormValues = {
   username: string
   password: string
-  captchaCode: string
 }
 
 export const UserFrom = () => {
@@ -359,72 +357,6 @@ function LoginFormBody({
 }) {
   const { token } = theme.useToken()
   const { message } = AntdApp.useApp()
-  const [captchaId, setCaptchaId] = useState<string>('')
-  const [captchaSvg, setCaptchaSvg] = useState<string>('')
-  const [captchaLoading, setCaptchaLoading] = useState(false)
-
-  // 获取验证码
-  const fetchCaptcha = async () => {
-    // 防止重复点击：如果正在加载中，直接返回
-    if (captchaLoading) {
-      return
-    }
-    setCaptchaLoading(true)
-    try {
-      const res = await fetch('/api/v1/captcha', {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        cache: 'no-store', // 确保不缓存，每次都获取新验证码
-      })
-      if (res.ok) {
-        const data = await res.json()
-        if (data && data.id && data.svg) {
-          // 成功获取验证码：更新状态
-          setCaptchaId(data.id)
-          setCaptchaSvg(data.svg)
-          form.setFieldValue('captchaCode', '')
-        } else {
-          // 响应格式异常：显示错误并清空
-          console.error('[Login] Invalid captcha response format:', data)
-          message.error(t('Login.captchaFailed'))
-          setCaptchaId('')
-          setCaptchaSvg('')
-        }
-      } else {
-        // 对 4xx / 5xx 响应也给出用户可见的错误提示，并清空失效的验证码缓存
-        console.error(`[Login] Captcha request failed with status ${res.status}`)
-        setCaptchaId('')
-        setCaptchaSvg('')
-        try {
-          const errData = await res.json().catch(() => null)
-          message.error(
-            (errData && errData.message) || t('Login.captchaFailed')
-          )
-        } catch {
-          message.error(t('Login.captchaFailed'))
-        }
-      }
-    } catch (err) {
-      // 网络错误或其他异常：显示错误并清空
-      console.error('[Login] Captcha request error:', err)
-      setCaptchaId('')
-      setCaptchaSvg('')
-      message.error(t('Login.captchaFailed'))
-    } finally {
-      setCaptchaLoading(false)
-    }
-  }
-
-  // 用 ref 稳定地引用最新 fetchCaptcha，避免 useEffect 依赖变化导致重复请求
-  const fetchCaptchaRef = useRef(fetchCaptcha)
-  fetchCaptchaRef.current = fetchCaptcha
-
-  // 组件挂载时获取验证码
-  useEffect(() => {
-    fetchCaptchaRef.current()
-  }, [])
 
   const handleSubmit = async (values: LoginFormValues) => {
     setError('')
@@ -438,8 +370,6 @@ function LoginFormBody({
           username: values.username,
           password: values.password,
           email: values.username,
-          captchaId: captchaId,
-          captchaCode: values.captchaCode,
         }),
       })
 
@@ -451,8 +381,6 @@ function LoginFormBody({
         }
         setError(resolveLoginApiErrorMessage(data.message, t))
         setLoading(false)
-        // 登录失败后刷新验证码
-        fetchCaptcha()
         return
       }
 
@@ -463,7 +391,6 @@ function LoginFormBody({
       console.error(err)
       setError(t('Login.unknownError'))
       setLoading(false)
-      fetchCaptcha()
     }
   }
 
@@ -498,75 +425,6 @@ function LoginFormBody({
           prefix={<LockOutlined />}
           placeholder={t('Login.passwordPlaceholder')}
         />
-      </Form.Item>
-
-      <Form.Item
-        label={t('Login.captcha')}
-        name="captchaCode"
-        rules={[{ required: true, message: t('Login.captchaRequired') }]}
-      >
-        <Space style={{ width: '100%' }}>
-          <Input
-            size="large"
-            placeholder={t('Login.captchaPlaceholder')}
-            style={{ flex: 1 }}
-            maxLength={5}
-          />
-          <div
-            onClick={fetchCaptcha}
-            onTouchEnd={(e) => {
-              // 移动端触摸事件：确保能响应
-              e.preventDefault()
-              fetchCaptcha()
-            }}
-            style={{
-              width: 120,
-              height: 40,
-              cursor: 'pointer',
-              border: `1px solid ${token.colorBorder}`,
-              borderRadius: token.borderRadius,
-              overflow: 'hidden',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: token.colorBgContainer,
-              userSelect: 'none',
-              WebkitUserSelect: 'none',
-              transition: 'opacity 0.2s',
-              opacity: captchaLoading ? 0.5 : 1,
-            }}
-            title={t('Login.captchaRefreshTitle')}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                fetchCaptcha()
-              }
-            }}
-          >
-            {captchaLoading ? (
-              <ReloadOutlined spin style={{ color: token.colorPrimary, fontSize: 24 }} />
-            ) : captchaSvg ? (
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  pointerEvents: 'none', // 防止 SVG 内部元素阻止点击
-                }}
-                dangerouslySetInnerHTML={{ __html: captchaSvg }}
-              />
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, fontSize: 12, color: token.colorTextSecondary }}>
-                <ReloadOutlined style={{ color: token.colorPrimary, fontSize: 18 }} />
-                <span>{t('Login.captchaRefreshTitle')}</span>
-              </div>
-            )}
-          </div>
-        </Space>
       </Form.Item>
 
       {error && (
