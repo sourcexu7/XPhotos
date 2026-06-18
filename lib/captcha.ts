@@ -46,6 +46,7 @@ async function getRedisClient() {
   if (!process.env.REDIS_URL || process.env.REDIS_DISABLED === 'true' || process.env.REDIS_DISABLED === '1') {
     redisResolved = true
     redisClient = null
+    console.log('[Captcha] Redis disabled or REDIS_URL not configured, using in-memory store')
     return null
   }
 
@@ -59,14 +60,18 @@ async function getRedisClient() {
       },
     })
     redisClient.on('error', (err) => {
-      console.warn('[Captcha Redis] client error, falling back to in-memory store:', err?.message ?? err)
+      console.error('[Captcha Redis] client error, falling back to in-memory store:', err?.message ?? err)
+      // 出错时标记为已解析，避免每次请求都重新尝试连接，减少资源浪费
+      redisResolved = true
+      redisClient = null
     })
     await redisClient.connect()
-    console.warn('[Captcha Redis] connected, using Redis for captcha storage')
+    console.log('[Captcha Redis] successfully connected, using Redis for captcha storage')
     redisResolved = true
     return redisClient
   } catch (err) {
-    console.warn('[Captcha Redis] connect failed, falling back to in-memory store:', err instanceof Error ? err.message : err)
+    console.error('[Captcha Redis] connect failed, falling back to in-memory store:', err instanceof Error ? err.message : err)
+    console.error('[Captcha Redis] Please verify: REDIS_URL format, network connectivity, firewall rules, and password (if required)')
     redisClient = null
     redisResolved = true
     return null
