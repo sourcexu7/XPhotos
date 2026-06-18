@@ -24,14 +24,14 @@ XPhotos
 XPhotos 是一个开箱即用的个人摄影图库系统，前台提供多种主题画廊（瀑布流 / 单列 / 模板），后台提供完整的作品、相册、标签、存储、攻略、统计管理能力。核心亮点：
 
 - 🎨 **前台多主题**：瀑布流、单列、模板三种画廊主题，可在后台按相册切换
-- 🖼 **作品管理**：多图上传、Live Photo 支持、EXIF 解析、精选/隐藏、批量操作
-- 📚 **相册与排序**：创建相册、设置封面，**相册级独立排序**（置顶 / 置底 / 上移 / 下移）
-- 🏷 **标签管理**：多级（父子）标签、图片标签自动关联、标签移动与补全工具
-- 📖 **攻略模块**：Markdown + 模块（行程 / 预算 / 清单 / 交通 / 贴士 / 配图）的富媒体攻略
-- 🏪 **多存储支持**：S3 / Cloudflare R2 / 腾讯云 COS / AList，可在后台切换默认存储
-- 🔐 **鉴权体系**：邮箱密码登录 + 图形验证码 + 两步验证（2FA / TOTP）
-- 📊 **数据统计**：访问日志、图片按年份分布、热门相机 / 镜头、后台仪表盘
-- ⚡ **性能优化**：Next.js 图片优化、SSR + Server Components、PostgreSQL 性能索引、防抖筛选
+- 🖼 **作品管理**：多图上传、Live Photo 支持、EXIF 解析、**EXIF 预设模板**、精选/隐藏、批量操作
+- 📚 **相册与排序**：创建相册、设置封面，**相册级独立排序**（置顶 / 置底 / 上移 / 下移；`images_albums_relation` 持久化）
+- 🏷 **标签管理**：多级（父子）标签、图片标签自动关联、标签移动与历史补全工具
+- 📖 **攻略模块**：可视化编辑器 + 模块（行程 / 预算 / 清单 / 交通 / 贴士 / 配图），含 TOC、相册关联、批量排序、缓存失效
+- 🏪 **多存储支持**：S3 / Cloudflare R2 / 腾讯云 COS / AList，可在后台切换默认存储；上传前 HeadObject 校验对象存在性
+- 🔐 **鉴权体系**：邮箱/用户名密码登录 + 图形验证码 + 两步验证（TOTP）；`middleware.ts` 对 `/admin/**` 做 Cookie JWT 守卫
+- 📊 **数据统计**：访问日志、图片按年份分布、热门相机/镜头、后台仪表盘、**公开 Dashboard**
+- ⚡ **性能优化**：Next.js 图片优化、SSR + Server Components、PostgreSQL 性能索引、防抖筛选、**Redis 缓存（`lib/redis.ts`，可通过 `REDIS_DISABLED=true` 关闭）**
 - 🌍 **国际化**：`zh` / `en` 双语，由 `next-intl` 驱动
 - 📱 **响应式**：桌面 / 平板 / 移动端统一适配，移动端筛选可达性优化
 - 🐳 **Docker 部署**：根目录自带 `Dockerfile` 与 `docker-compose.yml`
@@ -46,13 +46,13 @@ XPhotos 是一个开箱即用的个人摄影图库系统，前台提供多种主
 | 后台 UI | **Ant Design 6** + Pro Components |
 | 前台 UI | TailwindCSS 4、Radix UI、Framer Motion、shadcn/ui 风格组件 |
 | 动画 / 动效 | Framer Motion、`motion`、`yet-another-react-lightbox` |
-| 状态管理 | Zustand、SWR（数据获取）、React Cache（服务端查询缓存） |
+| 状态管理 | Zustand、SWR（数据获取）、React Cache（服务端查询缓存）|
 | 表单 | React Hook Form + Zod |
-| 国际化 | `next-intl`（`messages/zh.json`、`messages/en.json`） |
-| 服务端框架 | **Hono**（`/api/v1/*` 接口统一由 Hono 挂载） |
-| 认证 | better-auth（Password / 2FA TOTP / Session） |
+| 国际化 | `next-intl`（`messages/zh.json`、`messages/en.json`）|
+| 服务端框架 | **Hono**（`/api/v1/*` 接口统一由 Hono 挂载）|
+| 认证 | 自签 JWT（Cookie `auth_token`）+ 图形验证码 + 两步验证（TOTP）；`middleware.ts` 对 `/admin/**` 做守卫 |
 | 数据库 | **PostgreSQL** + **Prisma 6** |
-| 对象存储 | AWS S3 SDK v3（S3 / R2 / COS / AList 均走 S3 兼容通道） |
+| 对象存储 | AWS S3 SDK v3（S3 / R2 / COS / AList 均走 S3 兼容通道）|
 | 图片处理 | Sharp、Compressor.js、HEIC→JPEG、BlurHash / ThumbHash |
 | 构建 / 开发 | pnpm、Turbopack（`--turbopack`）、TypeScript 5.9 |
 | 性能监控 | 内置访问日志 + `admin/analytics` 仪表盘 |
@@ -67,7 +67,7 @@ XPhotos 是一个开箱即用的个人摄影图库系统，前台提供多种主
 
 | 视图 | 截图 |
 |------|------|
-| 首页（Hero + 瀑布流） | ![首页预览](public/screenshots/home-desktop.png) |
+| 首页（Hero + 瀑布流）| ![首页预览](public/screenshots/home-desktop.png) |
 | 瀑布流画廊 | ![瀑布流预览](public/screenshots/waterfall.png) |
 | 单列画廊 | ![单列预览](public/screenshots/detail.png) |
 | 相册列表 | ![相册预览](public/screenshots/album.png) |
@@ -105,10 +105,12 @@ cp .env.example .env
 DATABASE_URL="postgresql://user:password@host:5432/xphotos?connection_limit=20&pool_timeout=10&connect_timeout=10"
 DIRECT_URL="postgresql://user:password@host:5432/xphotos"
 
-# better-auth 相关（请随机生成，例如执行 `npx auth secret`）
-BETTER_AUTH_SECRET=please-change-me-to-a-long-random-string
-BETTER_AUTH_PASSKEY_RP_ID=localhost
-BETTER_AUTH_PASSKEY_RP_NAME=XPhotos
+# JWT 签名密钥（请随机生成，例如：node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+JWT_SECRET=please-change-me-to-a-long-random-string
+
+# Redis 缓存（可选；未配置或 REDIS_DISABLED=true 时自动降级）
+# REDIS_URL=redis://127.0.0.1:6379/0
+# REDIS_DISABLED=true
 ```
 
 其他可选变量（对象存储、Umami 等）见 `.env.example` 与 `docs/performance/configuration.md`。
@@ -168,15 +170,15 @@ pnpm exec tsx scripts/update-password.ts
 
 点击按钮一键部署，**部署后请在 Vercel 项目设置中将 Build Command 设置为 `pnpm run build:vercel`**：
 
-<a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsourcexu7%2FXPhotos&env=DATABASE_URL,BETTER_AUTH_SECRET,BETTER_AUTH_PASSKEY_RP_ID,BETTER_AUTH_PASSKEY_RP_NAME"><img src="https://vercel.com/button" alt="Deploy with Vercel"/></a>
+<a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsourcexu7%2FXPhotos&env=DATABASE_URL,JWT_SECRET"><img src="https://vercel.com/button" alt="Deploy with Vercel"/></a>
 
 必须的环境变量：
 
 | Key | 说明 |
 |-----|------|
 | `DATABASE_URL` | PostgreSQL 连接串，使用 Supabase 时建议追加 `?pgbouncer=true` |
-| `DIRECT_URL` | Prisma 迁移直连（可与 `DATABASE_URL` 相同，Serverless 数据库除外） |
-| `BETTER_AUTH_SECRET` | 鉴权密钥，建议 `npx auth secret` 生成 |
+| `DIRECT_URL` | Prisma 迁移直连（可与 `DATABASE_URL` 相同，Serverless 数据库除外）|
+| `JWT_SECRET` | JWT 签名密钥，建议随机生成 |
 
 ### Netlify
 
@@ -200,7 +202,7 @@ docker build -t xphotos .
 docker run -d --name xphotos \
   -p 3000:3000 \
   -e DATABASE_URL=... \
-  -e BETTER_AUTH_SECRET=... \
+  -e JWT_SECRET=... \
   xphotos
 ```
 
@@ -281,7 +283,7 @@ pnpm start
 - **图形验证码**：防暴力破解，支持刷新和验证
 - **两步验证（TOTP）**：`admin/settings/authenticator`，可启用 Authenticator App
 - Session / Token：`auth_token` Cookie，受 `middleware.ts` 保护的 `/admin/**` 路径
-- 环境变量：`BETTER_AUTH_SECRET`、`JWT_SECRET`
+- 环境变量：`JWT_SECRET`（Redis 等其他见 `.env.example`）
 
 </details>
 
@@ -303,6 +305,7 @@ pnpm start
 - **服务端查询缓存**：`React.cache` + 服务端数据复用，避免同一渲染周期内重复查询
 - **Next.js 图片**：`remotePatterns`、`formats: [avif, webp]`、`deviceSizes / imageSizes`、`minimumCacheTTL`（详见 `next.config.mjs`）
 - **前端交互**：SWR、防抖输入、虚拟列表（`react-window`）、懒加载与渐进式加载（BlurHash / ThumbHash）
+- **Redis 缓存**：`lib/redis.ts` 提供 `cacheWrap / cacheInvalidate / cacheFlushAll` 接口，用于图片 / 相册 / 攻略 / 设置等热点数据缓存；可通过 `REDIS_DISABLED=true` 关闭或不配置 `REDIS_URL` 降级为内存缓存
 
 </details>
 
@@ -362,8 +365,8 @@ XPhotos/
 │  │  └─ operate/                # 写操作（images / albums / configs / tags）
 │  ├─ services/                  # 领域服务（图片标签同步、标签移动）
 │  ├─ utils/                     # 通用工具（locale / file / upload / fetcher / blurhash-client ...）
-│  ├─ auth-client.ts             # better-auth 客户端
 │  ├─ jwt.ts                     # JWT 工具
+│  ├─ redis.ts                     # Redis 缓存工具（cacheWrap / cacheInvalidate / cacheFlushAll）
 │  └─ s3.ts / r2.ts / cos.ts     # 对象存储适配器
 │
 ├─ server/                       # Hono 服务端路由实现
@@ -371,11 +374,11 @@ XPhotos/
 │  ├─ middleware/auth.ts         # JWT + Cookie 鉴权
 │  ├─ albums.ts / images.ts      # 相册 / 图片 / 排序接口
 │  ├─ guides.ts / guide-modules.ts # 攻略与模块接口
-│  ├─ settings.ts                # 设置接口
-│  ├─ file.ts                    # 文件 / 上传预签名接口
+│  ├─ settings.ts                # 设置接口（含 cache/clear）
+│  ├─ file.ts                    # 文件 / 上传预签名 / verify-url
 │  ├─ analytics.ts               # 统计接口
-│  ├─ auth.ts                    # 认证接口（better-auth 集成）
-│  ├─ public.ts                  # 公开接口（站点信息、关于、封面、访问日志）
+│  ├─ auth.ts                    # 认证接口（登录 / 2FA / 图形验证码）
+│  ├─ public.ts                  # 公开接口（站点信息、关于、封面、访问日志、dashboard、guides）
 │  └─ open/                      # 公开下载 / 画廊 / 图片代理
 │     ├─ download.ts
 │     ├─ gallery.ts
@@ -418,12 +421,13 @@ XPhotos/
 | 📚 文档入口 | [`docs/README.md`](docs/README.md) | 文档导航与目录说明 |
 | 🔌 API 总览 | [`docs/api/README.md`](docs/api/README.md) | 接口前缀、鉴权、通用响应约定 |
 | 🔐 认证接口 | [`docs/api/v1-auth.md`](docs/api/v1-auth.md) | 登录 / 注册 / 2FA |
-| ⚙️ 设置接口 | [`docs/api/v1-settings.md`](docs/api/v1-settings.md) | 系统配置、标签、存储 |
-| 🖼 图片接口 | [`docs/api/v1-images.md`](docs/api/v1-images.md) | 图片 CRUD、排序、筛选 |
+| ⚙️ 设置接口 | [`docs/api/v1-settings.md`](docs/api/v1-settings.md) | 系统配置、标签、存储、cache/clear |
+| 🖼 图片接口 | [`docs/api/v1-images.md`](docs/api/v1-images.md) | 图片 CRUD、相册排序、by-ids |
 | 📚 相册接口 | [`docs/api/v1-albums.md`](docs/api/v1-albums.md) | 相册管理、封面、排序 |
+| 📖 攻略接口 | [`docs/api/v1-guides.md`](docs/api/v1-guides.md) | 攻略 / 模块 / TOC / 相册关联 |
 | 🏪 存储接口 | [`docs/api/v1-storage.md`](docs/api/v1-storage.md) | S3 / R2 / COS / AList |
 | 📊 统计接口 | [`docs/api/v1-analytics.md`](docs/api/v1-analytics.md) | 访问日志与数据汇总 |
-| 🌐 公开接口 | [`docs/api/public.md`](docs/api/public.md) | 站点信息、封面、下载、图片代理 |
+| 🌐 公开接口 | [`docs/api/public.md`](docs/api/public.md) | 站点信息、封面、dashboard、guides |
 | 🎨 前台 UI | [`docs/ui/frontend.md`](docs/ui/frontend.md) | 首页 / 相册 / 预览 / 攻略 |
 | 🛠 后台 UI | [`docs/ui/admin.md`](docs/ui/admin.md) | Dashboard、列表、相册、设置、攻略 |
 | 🗃 数据模型 | [`docs/data/prisma-models.md`](docs/data/prisma-models.md) | 所有 Prisma 模型说明 |

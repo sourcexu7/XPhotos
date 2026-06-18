@@ -19,13 +19,14 @@ const eslintConfig = [
       'react-hooks/exhaustive-deps': 'warn',
       // 允许使用 <img>（项目中有大量静态/特定需求场景），关闭以避免噪声
       '@next/next/no-img-element': 'off',
-      // eslint-plugin-import 在部分带 exports 的包上可能出现误报（例如 react-window、piexifjs）
-      // 我们仍然保留该规则用于本地/相对路径的保护，但对已知误报包做忽略。
+      // eslint-plugin-import 在部分带 exports 的包上可能出现误报
+      // 以及路径别名（~, @）的解析问题，放宽该规则为 warning
       'import/no-unresolved': [
-        'error',
+        'warn',
         {
-          // ignore 既支持包名也支持正则风格字符串；这里用更严格的“精确匹配”避免失效
-          ignore: ['^react-window$', '^piexifjs$'],
+          // 忽略路径别名（~/、@/）和已知误报包
+          ignore: ['^react-window$', '^piexifjs$', '^~', '^@/'],
+          caseSensitive: false,
         },
       ],
 
@@ -73,7 +74,22 @@ const eslintConfig = [
       'components/ui/origin/',
       'scripts/',
       'prisma/',
+      '_backup_redundant_files/',
     ],
+  },
+  // 全局配置：设置 eslint-import-resolver-alias 来处理路径别名，避免误报
+  {
+    settings: {
+      'import/resolver': {
+        alias: {
+          map: [
+            ['~', '.'],
+            ['@', '.'],
+          ],
+          extensions: ['.ts', '.tsx', '.js', '.jsx'],
+        },
+      },
+    },
   },
 ]
 

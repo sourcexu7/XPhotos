@@ -8,6 +8,7 @@ import type { ImageType } from '~/types'
 import { fetchConfigValue } from './configs'
 import { cache } from 'react'
 import { cacheWrap, cacheInvalidate, cacheInvalidateByPattern } from '~/lib/redis'
+import { createImageQueryBuilder } from './builders/image-query-builder'
 
 // 使用枚举替代魔法值，提升可维护性
 enum AlbumImageSorting {
@@ -91,57 +92,7 @@ function buildClientFilters(options: FilterOptions) {
   return { cameraFilter, lensFilter, tagsFilter }
 }
 
-function buildServerFilters(options: FilterOptions) {
-  const labelsArray = Array.isArray(options.labels) ? options.labels : (options.labels ? [String(options.labels)] : [])
 
-  const showStatusFilter = options.showStatus !== undefined && options.showStatus !== -1
-    ? Prisma.sql`AND image.show = ${options.showStatus}`
-    : Prisma.empty
-
-  const featuredFilter = options.featured !== undefined && options.featured !== -1
-    ? Prisma.sql`AND image.featured = ${options.featured}`
-    : Prisma.empty
-
-  const cameraFilter = options.camera
-    ? Prisma.sql`AND COALESCE(image.exif->>'model', 'Unknown') = ${options.camera}`
-    : Prisma.empty
-
-  const lensFilter = options.lens
-    ? Prisma.sql`AND COALESCE(image.exif->>'lens_model', 'Unknown') = ${options.lens}`
-    : Prisma.empty
-
-  const exposureFilter = options.exposure
-    ? Prisma.sql`AND COALESCE(image.exif->>'exposure_time', '') = ${options.exposure}`
-    : Prisma.empty
-
-  const fNumberFilter = options.f_number
-    ? Prisma.sql`AND COALESCE(image.exif->>'f_number', '') = ${options.f_number}`
-    : Prisma.empty
-
-  const isoFilter = options.iso
-    ? Prisma.sql`AND COALESCE(image.exif->>'iso_speed_rating', '') = ${options.iso}`
-    : Prisma.empty
-
-  const labelsFilter = labelsArray.length > 0
-    ? options.labelsOperator === 'and'
-      ? Prisma.sql`AND image.labels::jsonb @> ${JSON.stringify(labelsArray)}::jsonb`
-      : Prisma.sql`AND (${Prisma.join(
-          labelsArray.map(l => Prisma.sql`image.labels::jsonb @> ${JSON.stringify([l])}::jsonb`),
-          ' OR '
-        )})`
-    : Prisma.empty
-
-  return {
-    showStatusFilter,
-    featuredFilter,
-    cameraFilter,
-    lensFilter,
-    exposureFilter,
-    fNumberFilter,
-    isoFilter,
-    labelsFilter,
-  }
-}
 
 export type ServerImagesPageResult = {
   items: ImageType[]
@@ -152,6 +103,7 @@ export type ServerImagesPageResult = {
 
 /**
  * 后台：一次查询返回列表 + 总数（避免列表与 count 两次重查询）
+ * ——使用 ImageQueryBuilder 统一处理：特定相册走 INNER JOIN，所有相册走 LEFT JOIN
  */
 export async function fetchServerImagesPageByAlbum(
   pageNum: number,
@@ -175,160 +127,24 @@ export async function fetchServerImagesPageByAlbum(
     pageSize = parseInt(configPageSize, 10) || 8
   }
 
-  const offset = (normalizedPageNum - 1) * pageSize
-
-  const filters = buildServerFilters({
-    showStatus,
-    featured,
-    camera,
-    lens,
-    exposure,
-    f_number: f_number,
-    iso,
-    labels,
-    labelsOperator,
+  const builder = createImageQueryBuilder({
+    album: normalizedAlbum,
+    pageNum: normalizedPageNum,
+    pageSize,
+    filters: {
+      showStatus,
+      featured,
+      camera,
+      lens,
+      exposure,
+      f_number,
+      iso,
+      labels,
+      labelsOperator,
+    },
   })
 
-  const selectFields = `
-    image.id,
-    image.image_name,
-    image.url,
-    image.preview_url,
-    image.video_url,
-    image.blurhash,
-    image.width,
-    image.height,
-    image.title,
-    image.detail,
-    image.type,
-    image.show,
-    image.show_on_mainpage,
-    image.featured,
-    image.sort,
-    image.created_at,
-    image.updated_at,
-    image.labels,
-    image.exif
-  `
-
-  // 管理端图片维护：sort 优先级最高，确保用户手动排序生效
-  const orderByFinal = Prisma.sql`image.sort ASC, image.created_at DESC, image.updated_at DESC`
-
-  if (normalizedAlbum && normalizedAlbum !== '') {
-    const rows = await db.$queryRaw<Array<ImageType & { total: number }>>`
-      WITH filtered AS (
-        SELECT DISTINCT
-          image.id,
-          image.created_at,
-          image.updated_at
-        FROM "public"."images" AS image
-        INNER JOIN "public"."images_albums_relation" AS relation
-          ON image.id = relation."imageId"
-        INNER JOIN "public"."albums" AS albums
-          ON relation.album_value = albums.album_value
-        WHERE
-          image.del = 0
-          AND albums.del = 0
-          AND albums.album_value = ${normalizedAlbum}
-          ${filters.showStatusFilter}
-          ${filters.featuredFilter}
-          ${filters.cameraFilter}
-          ${filters.lensFilter}
-          ${filters.exposureFilter}
-          ${filters.fNumberFilter}
-          ${filters.isoFilter}
-          ${filters.labelsFilter}
-      ),
-      counted AS (
-        SELECT id, (SELECT COUNT(*) FROM filtered) AS total
-        FROM filtered
-        ORDER BY created_at DESC, updated_at DESC, id DESC
-        LIMIT ${pageSize} OFFSET ${offset}
-      )
-      SELECT
-        ${Prisma.raw(selectFields)},
-        albums.name AS album_name,
-        albums.id AS album_value,
-        counted.total AS total
-      FROM counted
-      INNER JOIN "public"."images" AS image
-        ON image.id = counted.id
-      INNER JOIN "public"."images_albums_relation" AS relation
-        ON image.id = relation."imageId"
-      INNER JOIN "public"."albums" AS albums
-        ON relation.album_value = albums.album_value
-      WHERE
-        image.del = 0
-        AND albums.del = 0
-        AND albums.album_value = ${normalizedAlbum}
-      ORDER BY ${orderByFinal}
-    `
-
-    const total = rows.length > 0 ? Number((rows[0] as any).total ?? 0) : 0
-    const items = rows.map(({ total: _t, ...rest }) => rest as unknown as ImageType)
-
-    return {
-      items,
-      total,
-      pageTotal: total > 0 ? Math.ceil(total / pageSize) : 0,
-      pageSize,
-    }
-  }
-
-  const rows = await db.$queryRaw<Array<ImageType & { total: number }>>`
-    WITH filtered AS (
-      SELECT DISTINCT
-        image.id,
-        image.created_at,
-        image.updated_at
-      FROM "public"."images" AS image
-      LEFT JOIN "public"."images_albums_relation" AS relation
-        ON image.id = relation."imageId"
-      LEFT JOIN "public"."albums" AS albums
-        ON relation.album_value = albums.album_value
-      WHERE
-        image.del = 0
-        ${filters.showStatusFilter}
-        ${filters.featuredFilter}
-        ${filters.cameraFilter}
-        ${filters.lensFilter}
-        ${filters.exposureFilter}
-        ${filters.fNumberFilter}
-        ${filters.isoFilter}
-        ${filters.labelsFilter}
-    ),
-    counted AS (
-      SELECT id, (SELECT COUNT(*) FROM filtered) AS total
-      FROM filtered
-      ORDER BY created_at DESC, updated_at DESC, id DESC
-      LIMIT ${pageSize} OFFSET ${offset}
-    )
-    SELECT
-      ${Prisma.raw(selectFields)},
-      albums.name AS album_name,
-      albums.id AS album_value,
-      counted.total AS total
-    FROM counted
-    INNER JOIN "public"."images" AS image
-      ON image.id = counted.id
-    LEFT JOIN "public"."images_albums_relation" AS relation
-      ON image.id = relation."imageId"
-    LEFT JOIN "public"."albums" AS albums
-      ON relation.album_value = albums.album_value
-    WHERE
-      image.del = 0
-    ORDER BY ${orderByFinal}
-  `
-
-  const total = rows.length > 0 ? Number((rows[0] as any).total ?? 0) : 0
-  const items = rows.map(({ total: _t, ...rest }) => rest as unknown as ImageType)
-
-  return {
-    items,
-    total,
-    pageTotal: total > 0 ? Math.ceil(total / pageSize) : 0,
-    pageSize,
-  }
+  return builder.buildPaginatedQuery()
 }
 
 /**
@@ -379,6 +195,7 @@ export async function fetchImageIdsByAlbum(userId: string, albumValue: string): 
 
 /**
  * 根据相册获取图片分页列表（服务端）
+ * ——使用 ImageQueryBuilder 统一处理：特定相册走 INNER JOIN，所有相册走 LEFT JOIN
  */
 export async function fetchServerImagesListByAlbum(
   pageNum: number,
@@ -402,105 +219,29 @@ export async function fetchServerImagesListByAlbum(
     pageSize = parseInt(configPageSize, 10) || 8
   }
 
-  const offset = (normalizedPageNum - 1) * pageSize
-
-  const filters = buildServerFilters({
-    showStatus,
-    featured,
-    camera,
-    lens,
-    exposure,
-    f_number: f_number,
-    iso,
-    labels,
-    labelsOperator,
+  const builder = createImageQueryBuilder({
+    album: normalizedAlbum,
+    pageNum: normalizedPageNum,
+    pageSize,
+    filters: {
+      showStatus,
+      featured,
+      camera,
+      lens,
+      exposure,
+      f_number,
+      iso,
+      labels,
+      labelsOperator,
+    },
   })
 
-  const selectFields = `
-    image.id,
-    image.image_name,
-    image.url,
-    image.preview_url,
-    image.video_url,
-    image.blurhash,
-    image.width,
-    image.height,
-    image.title,
-    image.detail,
-    image.type,
-    image.show,
-    image.show_on_mainpage,
-    image.featured,
-    image.sort,
-    image.created_at,
-    image.updated_at,
-    image.labels,
-    image.exif
-  `
-
-  let result: ImageType[]
-
-  if (normalizedAlbum) {
-    result = await db.$queryRaw`
-      SELECT 
-          ${Prisma.raw(selectFields)},
-          albums.name AS album_name,
-          albums.id AS album_value
-      FROM 
-          "public"."images" AS image
-      INNER JOIN "public"."images_albums_relation" AS relation
-          ON image.id = relation."imageId"
-      INNER JOIN "public"."albums" AS albums
-          ON relation.album_value = albums.album_value
-      WHERE
-          image.del = 0
-      AND
-          albums.del = 0
-      AND
-          albums.album_value = ${normalizedAlbum}
-          ${filters.showStatusFilter}
-          ${filters.featuredFilter}
-          ${filters.cameraFilter}
-          ${filters.lensFilter}
-          ${filters.exposureFilter}
-          ${filters.fNumberFilter}
-          ${filters.isoFilter}
-          ${filters.labelsFilter}
-      ORDER BY image.sort ASC, image.created_at DESC, image.updated_at DESC
-      LIMIT ${pageSize} OFFSET ${offset}
-    `
-  } else {
-    result = await db.$queryRaw`
-      SELECT 
-          ${Prisma.raw(selectFields)},
-          albums.name AS album_name,
-          albums.id AS album_value
-      FROM 
-          "public"."images" AS image
-      LEFT JOIN "public"."images_albums_relation" AS relation
-          ON image.id = relation."imageId"
-      LEFT JOIN "public"."albums" AS albums
-          ON relation.album_value = albums.album_value
-      WHERE 
-          image.del = 0
-        ${filters.showStatusFilter}
-        ${filters.featuredFilter}
-        ${filters.cameraFilter}
-        ${filters.lensFilter}
-        ${filters.exposureFilter}
-        ${filters.fNumberFilter}
-        ${filters.isoFilter}
-        ${filters.labelsFilter}
-      ORDER BY image.sort ASC, image.created_at DESC, image.updated_at DESC
-      LIMIT ${pageSize} OFFSET ${offset}
-    `
-  }
-
-  return result
+  return builder.buildListQuery()
 }
 
 /**
  * 根据相册获取图片分页总数（服务端）
+ * ——使用 ImageQueryBuilder 统一处理：特定相册走 INNER JOIN，所有相册走 LEFT JOIN
  */
 export async function fetchServerImagesPageTotalByAlbum(
   album: string,
@@ -514,73 +255,24 @@ export async function fetchServerImagesPageTotalByAlbum(
   labels?: string[],
   labelsOperator: 'and' | 'or' = 'and'
 ): Promise<number> {
-  const filters = buildServerFilters({
-    showStatus,
-    featured,
-    camera,
-    lens,
-    exposure,
-    f_number: f_number,
-    iso,
-    labels,
-    labelsOperator,
-  })
-
   const normalizedAlbum = album === 'all' ? '' : album
 
-  let count: number
+  const builder = createImageQueryBuilder({
+    album: normalizedAlbum,
+    filters: {
+      showStatus,
+      featured,
+      camera,
+      lens,
+      exposure,
+      f_number,
+      iso,
+      labels,
+      labelsOperator,
+    },
+  })
 
-  if (normalizedAlbum && normalizedAlbum !== '') {
-    const pageTotal = await db.$queryRaw`
-      SELECT COALESCE(COUNT(DISTINCT image.id), 0) AS total
-      FROM 
-          "public"."images" AS image
-      INNER JOIN "public"."images_albums_relation" AS relation
-          ON image.id = relation."imageId"
-      INNER JOIN "public"."albums" AS albums
-          ON relation.album_value = albums.album_value
-      WHERE 
-          image.del = 0
-      AND
-          albums.del = 0
-      AND
-          albums.album_value = ${normalizedAlbum}
-          ${filters.showStatusFilter}
-          ${filters.featuredFilter}
-          ${filters.cameraFilter}
-          ${filters.lensFilter}
-          ${filters.exposureFilter}
-          ${filters.fNumberFilter}
-          ${filters.isoFilter}
-          ${filters.labelsFilter}
-    `
-    // @ts-expect-error - The query result is guaranteed to have a total field
-    count = Array.isArray(pageTotal) && pageTotal.length > 0 ? Number(pageTotal[0].total ?? 0) : 0
-  } else {
-    const pageTotal = await db.$queryRaw`
-      SELECT COALESCE(COUNT(DISTINCT image.id), 0) AS total
-      FROM
-          "public"."images" AS image
-      LEFT JOIN "public"."images_albums_relation" AS relation
-          ON image.id = relation."imageId"
-      LEFT JOIN "public"."albums" AS albums
-          ON relation.album_value = albums.album_value
-      WHERE
-          image.del = 0
-          ${filters.showStatusFilter}
-          ${filters.featuredFilter}
-          ${filters.cameraFilter}
-          ${filters.lensFilter}
-          ${filters.exposureFilter}
-          ${filters.fNumberFilter}
-          ${filters.isoFilter}
-          ${filters.labelsFilter}
-    `
-    // @ts-expect-error - The query result is guaranteed to have a total field
-    count = Array.isArray(pageTotal) && pageTotal.length > 0 ? Number(pageTotal[0].total ?? 0) : 0
-  }
-
-  return count
+  return builder.buildCountQuery()
 }
 
 /**
@@ -889,8 +581,7 @@ export async function fetchClientImagesPageTotalByAlbum(
             ${tagsFilter}
     ) AS unique_images;
   `
-      // @ts-expect-error -- $queryRaw returns an untyped row object from SQL
-      const totalCount = Array.isArray(pageTotal) && pageTotal.length > 0 ? Number(pageTotal[0].total ?? 0) : 0
+      const totalCount = Array.isArray(pageTotal) && pageTotal.length > 0 ? Number((pageTotal[0] as any).total ?? 0) : 0
       return totalCount > 0 ? Math.ceil(totalCount / pageSize) : 0
     }
     const pageTotal = await db.$queryRaw`
@@ -919,8 +610,7 @@ export async function fetchClientImagesPageTotalByAlbum(
             ${tagsFilter}
     ) AS unique_images;
   `
-    // @ts-expect-error -- $queryRaw returns an untyped row object from SQL; page total
-    const totalCount2 = Array.isArray(pageTotal) && pageTotal.length > 0 ? Number(pageTotal[0].total ?? 0) : 0
+    const totalCount2 = Array.isArray(pageTotal) && pageTotal.length > 0 ? Number((pageTotal[0] as any).total ?? 0) : 0
     return totalCount2 > 0 ? Math.ceil(totalCount2 / pageSize) : 0
   })
 }
