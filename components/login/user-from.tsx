@@ -16,7 +16,6 @@ import {
   ApartmentOutlined,
   PictureOutlined,
   ClusterOutlined,
-  ReloadOutlined,
   SunOutlined,
   MoonOutlined,
 } from '@ant-design/icons'
@@ -104,7 +103,6 @@ const BackgroundElements = () => {
 type LoginFormValues = {
   username: string
   password: string
-  captchaCode: string
 }
 
 export const UserFrom = () => {
@@ -359,32 +357,6 @@ function LoginFormBody({
 }) {
   const { token } = theme.useToken()
   const { message } = AntdApp.useApp()
-  const [captchaId, setCaptchaId] = useState<string>('')
-  const [captchaSvg, setCaptchaSvg] = useState<string>('')
-  const [captchaLoading, setCaptchaLoading] = useState(false)
-
-  // 获取验证码
-  const fetchCaptcha = async () => {
-    setCaptchaLoading(true)
-    try {
-      const res = await fetch('/api/v1/captcha')
-      if (res.ok) {
-        const data = await res.json()
-        setCaptchaId(data.id)
-        setCaptchaSvg(data.svg)
-        form.setFieldValue('captchaCode', '')
-      }
-    } catch {
-      message.error(t('Login.captchaFailed'))
-    } finally {
-      setCaptchaLoading(false)
-    }
-  }
-
-  // 组件挂载时获取验证码
-  useEffect(() => {
-    fetchCaptcha()
-  }, [])
 
   const handleSubmit = async (values: LoginFormValues) => {
     setError('')
@@ -398,8 +370,6 @@ function LoginFormBody({
           username: values.username,
           password: values.password,
           email: values.username,
-          captchaId: captchaId,
-          captchaCode: values.captchaCode,
         }),
       })
 
@@ -411,8 +381,6 @@ function LoginFormBody({
         }
         setError(resolveLoginApiErrorMessage(data.message, t))
         setLoading(false)
-        // 登录失败后刷新验证码
-        fetchCaptcha()
         return
       }
 
@@ -423,7 +391,6 @@ function LoginFormBody({
       console.error(err)
       setError(t('Login.unknownError'))
       setLoading(false)
-      fetchCaptcha()
     }
   }
 
@@ -458,45 +425,6 @@ function LoginFormBody({
           prefix={<LockOutlined />}
           placeholder={t('Login.passwordPlaceholder')}
         />
-      </Form.Item>
-
-      <Form.Item
-        label={t('Login.captcha')}
-        name="captchaCode"
-        rules={[{ required: true, message: t('Login.captchaRequired') }]}
-      >
-        <Space style={{ width: '100%' }}>
-          <Input
-            size="large"
-            placeholder={t('Login.captchaPlaceholder')}
-            style={{ flex: 1 }}
-            maxLength={5}
-          />
-          <div
-            onClick={fetchCaptcha}
-            style={{
-              width: 120,
-              height: 40,
-              cursor: 'pointer',
-              border: `1px solid ${token.colorBorder}`,
-              borderRadius: token.borderRadius,
-              overflow: 'hidden',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: token.colorBgContainer,
-            }}
-            title={t('Login.captchaRefreshTitle')}
-          >
-            {captchaLoading ? (
-              <ReloadOutlined spin style={{ color: token.colorPrimary }} />
-            ) : captchaSvg ? (
-              <div dangerouslySetInnerHTML={{ __html: captchaSvg }} />
-            ) : (
-              <ReloadOutlined style={{ color: token.colorTextSecondary }} />
-            )}
-          </div>
-        </Space>
       </Form.Item>
 
       {error && (

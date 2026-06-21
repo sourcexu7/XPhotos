@@ -1,11 +1,16 @@
 /**
  * 图形验证码模块
- * 
+ *
  * 防爆破措施：
  * 1. 验证码有效期 5 分钟
  * 2. 每个验证码只能使用一次
  * 3. 同一 IP 每分钟最多生成 10 次验证码
  * 4. 同一 IP 登录失败 5 次后锁定 15 分钟
+ *
+ * 存储策略：
+ * - 优先使用 Redis（配置了 REDIS_URL 且未显式禁用）
+ * - Redis 不可用或未配置时，自动回退到进程内内存存储
+ *   （便于单机部署 / 开发环境无 Redis 时仍能正常使用）
  */
 
 import 'server-only'
@@ -31,26 +36,170 @@ const CAPTCHA_USED_KEY_PREFIX = 'captcha_used:'
 const RATE_LIMIT_KEY_PREFIX = 'captcha_rate:'
 const LOGIN_ATTEMPTS_KEY_PREFIX = 'login_attempts:'
 
-// Redis 客户端（延迟初始化）
+// ============= Redis 客户端（延迟初始化） =============
 let redisClient: ReturnType<typeof createClient> | null = null
+let redisResolved = false // 是否已完成首次解析（成功或失败）
 
 async function getRedisClient() {
-  if (!redisClient && process.env.REDIS_URL) {
+  if (redisResolved) return redisClient
+
+  if (!process.env.REDIS_URL || process.env.REDIS_DISABLED === 'true' || process.env.REDIS_DISABLED === '1') {
+    redisResolved = true
+    redisClient = null
+    console.log('[Captcha] Redis disabled or REDIS_URL not configured, using in-memory store')
+    return null
+  }
+
+  try {
     redisClient = createClient({
       url: process.env.REDIS_URL,
       password: process.env.REDIS_PASSWORD,
+      socket: {
+        reconnectStrategy: (retries) => Math.min(retries * 100, 3000),
+        connectTimeout: 5000,
+      },
     })
     redisClient.on('error', (err) => {
-      console.warn('[Captcha Redis] error:', err?.message ?? err)
-    })
-    try {
-      await redisClient.connect()
-    } catch (err) {
-      console.warn('[Captcha Redis] connect failed:', err)
+      console.error('[Captcha Redis] client error, falling back to in-memory store:', err?.message ?? err)
+      // 出错时标记为已解析，避免每次请求都重新尝试连接，减少资源浪费
+      redisResolved = true
       redisClient = null
-    }
+    })
+    await redisClient.connect()
+    console.log('[Captcha Redis] successfully connected, using Redis for captcha storage')
+    redisResolved = true
+    return redisClient
+  } catch (err) {
+    console.error('[Captcha Redis] connect failed, falling back to in-memory store:', err instanceof Error ? err.message : err)
+    console.error('[Captcha Redis] Please verify: REDIS_URL format, network connectivity, firewall rules, and password (if required)')
+    redisClient = null
+    redisResolved = true
+    return null
   }
-  return redisClient
+}
+
+// ============= 内存存储（Redis 不可用时的回退方案） =============
+interface InMemoryEntry {
+  value: string
+  expireAt: number // 毫秒时间戳
+}
+
+// 每个进程一个单例 Map
+const inMemoryStore = new Map<string, InMemoryEntry>()
+
+function nowMs(): number {
+  return Date.now()
+}
+
+function inMemoryGet(key: string): string | null {
+  const entry = inMemoryStore.get(key)
+  if (!entry) return null
+  if (entry.expireAt < nowMs()) {
+    inMemoryStore.delete(key)
+    return null
+  }
+  return entry.value
+}
+
+function inMemorySetEx(key: string, ttlSec: number, value: string): void {
+  inMemoryStore.set(key, { value, expireAt: nowMs() + ttlSec * 1000 })
+}
+
+function inMemoryExists(key: string): boolean {
+  const v = inMemoryGet(key)
+  return v !== null
+}
+
+function inMemoryDel(key: string): void {
+  inMemoryStore.delete(key)
+}
+
+function inMemoryIncr(key: string, ttlSec: number): number {
+  const existing = inMemoryGet(key)
+  if (existing === null) {
+    inMemorySetEx(key, ttlSec, '1')
+    return 1
+  }
+  const next = parseInt(existing, 10) + 1
+  // 保留原剩余 TTL：不更改已存在的 expireAt
+  const entry = inMemoryStore.get(key)!
+  entry.value = String(next)
+  return next
+}
+
+function inMemoryTtl(key: string): number {
+  const entry = inMemoryStore.get(key)
+  if (!entry) return -2
+  const remain = entry.expireAt - nowMs()
+  if (remain <= 0) return -1
+  return Math.ceil(remain / 1000)
+}
+
+function inMemoryExpire(key: string, ttlSec: number): boolean {
+  const entry = inMemoryStore.get(key)
+  if (!entry) return false
+  entry.expireAt = nowMs() + ttlSec * 1000
+  return true
+}
+
+// 统一存储接口
+async function storeGet(key: string): Promise<string | null> {
+  const client = await getRedisClient()
+  if (client) return client.get(key)
+  return inMemoryGet(key)
+}
+
+async function storeSetEx(key: string, ttlSec: number, value: string): Promise<void> {
+  const client = await getRedisClient()
+  if (client) {
+    await client.setEx(key, ttlSec, value)
+    return
+  }
+  inMemorySetEx(key, ttlSec, value)
+}
+
+async function storeExists(key: string): Promise<boolean> {
+  const client = await getRedisClient()
+  if (client) {
+    const n = await client.exists(key)
+    return n > 0
+  }
+  return inMemoryExists(key)
+}
+
+async function storeDel(key: string): Promise<void> {
+  const client = await getRedisClient()
+  if (client) {
+    await client.del(key)
+    return
+  }
+  inMemoryDel(key)
+}
+
+async function storeIncr(key: string, ttlSec: number): Promise<number> {
+  const client = await getRedisClient()
+  if (client) {
+    const exists = await client.exists(key)
+    if (exists) return client.incr(key)
+    await client.setEx(key, ttlSec, '1')
+    return 1
+  }
+  return inMemoryIncr(key, ttlSec)
+}
+
+async function storeTtl(key: string): Promise<number> {
+  const client = await getRedisClient()
+  if (client) return client.ttl(key)
+  return inMemoryTtl(key)
+}
+
+async function storeExpire(key: string, ttlSec: number): Promise<void> {
+  const client = await getRedisClient()
+  if (client) {
+    await client.expire(key, ttlSec)
+    return
+  }
+  inMemoryExpire(key, ttlSec)
 }
 
 /**
@@ -123,10 +272,8 @@ export function generateCaptchaSvg(text: string): string {
 export async function isRateLimited(ip: string): Promise<boolean> {
   const key = RATE_LIMIT_KEY_PREFIX + ip
   try {
-    const client = await getRedisClient()
-    if (!client) return false
-    const count = await client.get(key)
-    if (count && parseInt(count) >= CAPTCHA_CONFIG.MAX_GENERATE_PER_MINUTE) {
+    const count = await storeGet(key)
+    if (count && parseInt(count, 10) >= CAPTCHA_CONFIG.MAX_GENERATE_PER_MINUTE) {
       return true
     }
     return false
@@ -141,14 +288,7 @@ export async function isRateLimited(ip: string): Promise<boolean> {
 async function incrementGenerateCount(ip: string): Promise<void> {
   const key = RATE_LIMIT_KEY_PREFIX + ip
   try {
-    const client = await getRedisClient()
-    if (!client) return
-    const exists = await client.exists(key)
-    if (exists) {
-      await client.incr(key)
-    } else {
-      await client.setEx(key, 60, '1')
-    }
+    await storeIncr(key, 60)
   } catch {
     // ignore
   }
@@ -160,9 +300,7 @@ async function incrementGenerateCount(ip: string): Promise<void> {
 export async function isLoginLocked(ip: string): Promise<{ locked: boolean; remainingTime?: number }> {
   const key = LOGIN_ATTEMPTS_KEY_PREFIX + ip
   try {
-    const client = await getRedisClient()
-    if (!client) return { locked: false }
-    const ttl = await client.ttl(key)
+    const ttl = await storeTtl(key)
     if (ttl > 0) {
       return { locked: true, remainingTime: ttl }
     }
@@ -178,25 +316,13 @@ export async function isLoginLocked(ip: string): Promise<{ locked: boolean; rema
 export async function recordLoginFailure(ip: string): Promise<{ attempts: number; locked: boolean }> {
   const key = LOGIN_ATTEMPTS_KEY_PREFIX + ip
   try {
-    const client = await getRedisClient()
-    if (!client) return { attempts: 0, locked: false }
-    
-    const exists = await client.exists(key)
-    let attempts = 1
-    
-    if (exists) {
-      attempts = await client.incr(key)
-    } else {
-      await client.setEx(key, CAPTCHA_CONFIG.LOCK_TIME, '1')
-    }
-    
-    // 如果达到最大失败次数，设置锁定
+    const attempts = await storeIncr(key, CAPTCHA_CONFIG.LOCK_TIME)
+
     if (attempts >= CAPTCHA_CONFIG.MAX_LOGIN_ATTEMPTS) {
-      // 重置过期时间为锁定时间
-      await client.expire(key, CAPTCHA_CONFIG.LOCK_TIME)
+      await storeExpire(key, CAPTCHA_CONFIG.LOCK_TIME)
       return { attempts, locked: true }
     }
-    
+
     return { attempts, locked: false }
   } catch {
     return { attempts: 0, locked: false }
@@ -209,8 +335,7 @@ export async function recordLoginFailure(ip: string): Promise<{ attempts: number
 export async function clearLoginAttempts(ip: string): Promise<void> {
   const key = LOGIN_ATTEMPTS_KEY_PREFIX + ip
   try {
-    const client = await getRedisClient()
-    if (client) await client.del(key)
+    await storeDel(key)
   } catch {
     // ignore
   }
@@ -218,27 +343,28 @@ export async function clearLoginAttempts(ip: string): Promise<void> {
 
 /**
  * 生成验证码并存储
+ *
+ * 注意：此函数保证总是尝试生成验证码；仅当 isRateLimited 命中或存储失败时才返回 null。
  */
 export async function generateCaptcha(ip: string): Promise<{ id: string; svg: string } | null> {
   // 检查是否被限制
   if (await isRateLimited(ip)) {
     return null
   }
-  
+
   // 生成验证码
   const id = Math.random().toString(36).substring(2, 15)
   const text = generateCaptchaText(CAPTCHA_CONFIG.LENGTH)
   const svg = generateCaptchaSvg(text)
-  
-  // 存储验证码
+
+  // 存储验证码（Redis 或内存存储，二者之一）
   const key = CAPTCHA_KEY_PREFIX + id
   try {
-    const client = await getRedisClient()
-    if (!client) return null
-    await client.setEx(key, CAPTCHA_CONFIG.EXPIRE_TIME, text.toUpperCase())
+    await storeSetEx(key, CAPTCHA_CONFIG.EXPIRE_TIME, text.toUpperCase())
     await incrementGenerateCount(ip)
     return { id, svg }
-  } catch {
+  } catch (err) {
+    console.warn('[Captcha] generate failed:', err instanceof Error ? err.message : err)
     return null
   }
 }
@@ -250,37 +376,30 @@ export async function verifyCaptcha(id: string, code: string): Promise<{ valid: 
   if (!id || !code) {
     return { valid: false, reason: '验证码不能为空' }
   }
-  
+
   const key = CAPTCHA_KEY_PREFIX + id
   const usedKey = CAPTCHA_USED_KEY_PREFIX + id
-  
+
   try {
-    const client = await getRedisClient()
-    if (!client) return { valid: false, reason: '验证服务不可用' }
-    
-    // 检查是否已使用
-    const used = await client.exists(usedKey)
+    const used = await storeExists(usedKey)
     if (used) {
       return { valid: false, reason: '验证码已使用' }
     }
-    
-    // 获取存储的验证码
-    const storedCode = await client.get(key)
+
+    const storedCode = await storeGet(key)
     if (!storedCode) {
       return { valid: false, reason: '验证码已过期' }
     }
-    
-    // 验证
+
     if (storedCode.toUpperCase() === code.toUpperCase()) {
-      // 标记为已使用
-      await client.setEx(usedKey, CAPTCHA_CONFIG.EXPIRE_TIME, '1')
-      // 删除原验证码
-      await client.del(key)
+      await storeSetEx(usedKey, CAPTCHA_CONFIG.EXPIRE_TIME, '1')
+      await storeDel(key)
       return { valid: true }
     }
-    
+
     return { valid: false, reason: '验证码错误' }
-  } catch {
+  } catch (err) {
+    console.warn('[Captcha] verify failed:', err instanceof Error ? err.message : err)
     return { valid: false, reason: '验证失败' }
   }
 }

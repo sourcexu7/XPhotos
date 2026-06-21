@@ -262,5 +262,9 @@ export async function updateCustomInfo(payload: {
   )
 
   // 清除配置相关的缓存，确保前端能读取到最新配置
-  await cacheInvalidateByPattern('configs:*')
+  // 读取层同时使用 `configs:{keys}`（批量）与 `config:{key}`（单值）两套 key
+  await Promise.all([
+    cacheInvalidateByPattern('configs:*'),
+    cacheInvalidateByPattern('config:*'),
+  ])
 }

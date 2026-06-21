@@ -19,6 +19,7 @@ app.get('/', async (c) => {
   
   // 检查是否被限制
   if (await isRateLimited(clientIp)) {
+    console.log(`[Captcha] Rate limited for IP ${clientIp}`)
     return c.json({
       code: 'RATE_LIMITED',
       message: '请求过于频繁，请稍后再试'
@@ -26,14 +27,19 @@ app.get('/', async (c) => {
   }
   
   // 生成验证码
+  const startTime = Date.now()
   const result = await generateCaptcha(clientIp)
+  const duration = Date.now() - startTime
   
   if (!result) {
+    console.error(`[Captcha] Generate FAILED for IP ${clientIp} after ${duration}ms`)
     return c.json({
       code: 'GENERATE_FAILED',
-      message: '验证码生成失败'
+      message: '验证码生成失败，请稍后重试'
     }, 500)
   }
+  
+  console.log(`[Captcha] Generated new captcha (id=${result.id.substring(0,8)}..., ip=${clientIp}, duration=${duration}ms)`)
   
   // 返回 SVG 图片和 ID
   return c.json({

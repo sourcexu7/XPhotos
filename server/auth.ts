@@ -5,47 +5,12 @@ import { signJWT } from '~/lib/jwt'
 import bcrypt from 'bcryptjs'
 import { HTTPException } from 'hono/http-exception'
 import { jwtAuth } from './middleware/auth'
-import {
-  verifyCaptcha,
-  isLoginLocked,
-  recordLoginFailure,
-  clearLoginAttempts,
-  getCaptchaConfig,
-} from '~/lib/captcha'
-
-const CAPTCHA_CONFIG = getCaptchaConfig()
 
 const app = new Hono()
 
-// 获取客户端 IP
-function getClientIp(c: any): string {
-  return c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
-         c.req.header('x-real-ip') ||
-         'unknown'
-}
-
 app.post('/login', async (c) => {
-  const { email, password, username, captchaId, captchaCode } = await c.req.json()
+  const { email, password, username } = await c.req.json()
   const identifier = email || username // 支持邮箱或用户名
-  const clientIp = getClientIp(c)
-
-  // 检查是否被锁定
-  const lockStatus = await isLoginLocked(clientIp)
-  if (lockStatus.locked) {
-    throw new HTTPException(429, {
-      message: `登录失败次数过多，请 ${Math.ceil((lockStatus.remainingTime || 0) / 60)} 分钟后再试`
-    })
-  }
-
-  // 验证验证码
-  if (!captchaId || !captchaCode) {
-    throw new HTTPException(400, { message: '请输入验证码' })
-  }
-
-  const captchaResult = await verifyCaptcha(captchaId, captchaCode)
-  if (!captchaResult.valid) {
-    throw new HTTPException(400, { message: captchaResult.reason || '验证码错误' })
-  }
 
   if (!identifier || !password) {
     throw new HTTPException(400, { message: 'Username/Email and password are required' })
@@ -66,8 +31,6 @@ app.post('/login', async (c) => {
   }
 
   if (!user) {
-    // 记录失败
-    await recordLoginFailure(clientIp)
     throw new HTTPException(401, { message: 'Invalid credentials' })
   }
 
@@ -80,18 +43,8 @@ app.post('/login', async (c) => {
   const isValid = await bcrypt.compare(password, account.password)
 
   if (!isValid) {
-    // 记录失败
-    const result = await recordLoginFailure(clientIp)
-    if (result.locked) {
-      throw new HTTPException(429, {
-        message: `登录失败次数过多，账户已被锁定 ${Math.ceil(CAPTCHA_CONFIG.lockTime / 60)} 分钟`
-      })
-    }
     throw new HTTPException(401, { message: 'Invalid credentials' })
   }
-
-  // 登录成功，清除失败记录
-  await clearLoginAttempts(clientIp)
 
   const token = await signJWT({
     id: user.id,
