@@ -89,7 +89,7 @@
     "albumDesc": "创建、编辑与整理相册展示顺序。",
     "tagsDesc": "维护一级/二级标签，供前台筛选与后台归档使用。",
     "storagesDesc": "配置对象存储服务与访问参数。",
-    "accountDesc": "维护头像地址与登录密码。",
+    "accountDesc": "维护登录密码。",
     "preferencesDesc": "维护站点信息、展示选项、RSS 与关于页配置。",
     "authenticatorDesc": "启用或关闭 TOTP 验证，提升后台账号安全性。",
     "preferencesHint": "建议先完成基础信息与显示设置，再配置“关于我”内容。",
@@ -100,8 +100,7 @@
   },
   "Admin": {
     "fallbackName": "管理员",
-    "fallbackEmail": "暂无邮箱",
-    "avatarManagement": "头像管理"
+    "fallbackEmail": "暂无邮箱"
   },
   "Tips": {
     "noImg": "暂无图片",
@@ -650,9 +649,7 @@
     "email": "邮箱",
     "inputEmail": "请输入新的邮箱地址。",
     "username": "用户名",
-    "inputUsername": "请输入新的用户名。",
-    "avatar": "头像",
-    "inputAvatar": "请输入新的头像地址。"
+    "inputUsername": "请输入新的用户名。"
   },
   "Settings": {
     "title": "设置",
@@ -1165,8 +1162,21 @@
     "cannotMoveNoRecord": "无法移动：无对应标签记录",
     "confirmDeletePrimary": "确认删除该一级标签吗？",
     "confirmDeletePrimaryWithChildren": "删除该一级标签会同时删除其所有二级标签，确定吗？",
+    "confirmDeleteUncategorized": "确认删除所有未分类标签吗？",
     "confirmDeleteTag": "确认删除该标签吗？",
     "checkComplete": "检查完成：共检查 {total} 张图片，修复 {fixed} 张，发现 {invalid} 个无效关联",
-    "checkFailed": "检查失败"
+    "checkFailed": "检查失败",
+    "cleanupOrphan": "清理孤立标签",
+    "cleanupOrphanDescription": "孤立标签是指没有任何图片关联的标签。清理后将删除这些标签。",
+    "noOrphanTags": "暂无孤立标签",
+    "orphanTagsCount": "共发现 {count} 个孤立标签：",
+    "cleanupOrphanWarning": "警告：此操作将永久删除这些标签，请谨慎操作。",
+    "cleanupOrphanSuccess": "清理成功！共删除 {count} 个孤立标签：{tags}",
+    "cleanupOrphanFailed": "清理失败",
+    "loadOrphanFailed": "加载孤立标签失败",
+    "renameSyncSuccess": "标签重命名同步成功！更新了 {images} 张图片的 labels 字段，更新了 {tags} 个子标签的 category 字段",
+    "renameSyncFailed": "标签重命名同步失败",
+    "createdTags": "（新创建 {count} 个标签）",
+    "noChange": "标签名称未变化"
   }
 }

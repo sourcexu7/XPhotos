@@ -41,77 +41,80 @@ export async function createTag(payload: { name: string; category?: string; pare
 
 /**
  * 更新标签
- * 支持标签移动，并自动同步图片标签关联
+ * 支持标签移动和重命名，并自动同步图片标签关联和images.labels字段
  */
 export async function updateTag(id: string, payload: { name?: string; category?: string; parentName?: string; parentId?: string | null; detail?: string }) {
-  // 如果涉及标签移动（parentId变化），需要先获取原父标签ID
-  let oldParentId: string | null = null
-  let shouldSyncImages = false
-
-  if ('parentId' in payload && payload.parentId !== undefined) {
-    const currentTag = await db.tags.findUnique({
+  return await db.$transaction(async (tx) => {
+    const currentTag = await tx.tags.findUnique({
       where: { id },
-      select: { parentId: true }
+      select: { parentId: true, name: true }
     })
     
-    if (currentTag) {
-      oldParentId = currentTag.parentId
-      // 如果父标签ID发生变化，需要同步图片标签
+    if (!currentTag) throw new Error('tagNotFound')
+    
+    const oldParentId = currentTag.parentId
+    const oldName = currentTag.name
+    let shouldSyncImages = false
+    let nameChanged = false
+
+    if (payload.name && payload.name !== oldName) {
+      const existing = await tx.tags.findFirst({ where: { name: payload.name, id: { not: id } } })
+      if (existing) throw new Error('tagNameExists')
+      nameChanged = true
+    }
+
+    if ('parentId' in payload && payload.parentId !== undefined) {
       if (oldParentId !== payload.parentId) {
         shouldSyncImages = true
       }
     }
-  }
 
-  const updateData: { name?: string; category?: string; parentId?: string | null; detail?: string } = {}
-  
-  // 复制其他字段
-  if (payload.name !== undefined) updateData.name = payload.name
-  if (payload.detail !== undefined) updateData.detail = payload.detail
-  
-  // 优先使用 parentId（直接指定父标签 ID）
-  if ('parentId' in payload && payload.parentId !== undefined) {
-    updateData.parentId = payload.parentId
-    // 如果指定了 parentId，需要更新 category 为父标签的 name
-    if (payload.parentId) {
-      const parent = await db.tags.findUnique({ where: { id: payload.parentId } })
-      if (parent) {
-        updateData.category = parent.name
+    const updateData: { name?: string; category?: string; parentId?: string | null; detail?: string } = {}
+    
+    if (payload.name !== undefined) updateData.name = payload.name
+    if (payload.detail !== undefined) updateData.detail = payload.detail
+    
+    if ('parentId' in payload && payload.parentId !== undefined) {
+      updateData.parentId = payload.parentId
+      if (payload.parentId) {
+        const parent = await tx.tags.findUnique({ where: { id: payload.parentId } })
+        if (parent) {
+          updateData.category = parent.name
+        }
+      } else {
+        updateData.category = payload.name || oldName
       }
-    } else {
-      // parentId 为 null，表示移动到顶级，category 设为标签自己的 name
-      const tag = await db.tags.findUnique({ where: { id } })
-      if (tag) {
-        updateData.category = tag.name
+    } else if (payload.parentName) {
+      const parent = await tx.tags.upsert({ where: { name: payload.parentName }, update: {}, create: { name: payload.parentName, category: '' } })
+      updateData.parentId = parent.id
+      updateData.category = payload.parentName
+    } else if (payload.category !== undefined) {
+      updateData.category = payload.category
+    }
+    
+    const updatedTag = await tx.tags.update({
+      where: { id },
+      data: updateData
+    })
+
+    if (shouldSyncImages && 'parentId' in payload && payload.parentId !== undefined) {
+      try {
+        const { syncImageTagsAfterTagMove } = await import('~/lib/services/image-tag-sync-service')
+        await syncImageTagsAfterTagMove(id, oldParentId, payload.parentId, tx)
+      } catch (error) {
+        console.error('同步图片标签关联失败:', error)
       }
     }
-  } else if (payload.parentName) {
-    // 向后兼容：使用 parentName 解析 parentId
-    const parent = await db.tags.upsert({ where: { name: payload.parentName }, update: {}, create: { name: payload.parentName, category: '' } })
-    updateData.parentId = parent.id
-    updateData.category = payload.parentName
-  } else if (payload.category !== undefined) {
-    // 如果只更新 category（不改变 parentId）
-    updateData.category = payload.category
-  }
-  
-  const updatedTag = await db.tags.update({
-    where: { id },
-    data: updateData
+
+    if (nameChanged && oldName && payload.name) {
+      await tx.tags.updateMany({
+        where: { category: oldName },
+        data: { category: payload.name }
+      })
+    }
+    
+    return updatedTag
   })
-
-  // 如果标签移动了，同步图片标签关联
-  if (shouldSyncImages && 'parentId' in payload && payload.parentId !== undefined) {
-    try {
-      const { syncImageTagsAfterTagMove } = await import('~/lib/services/image-tag-sync-service')
-      await syncImageTagsAfterTagMove(id, oldParentId, payload.parentId)
-    } catch (error) {
-      console.error('同步图片标签关联失败:', error)
-      // 不抛出错误，因为标签移动已经成功，图片标签同步失败可以后续修复
-    }
-  }
-  
-  return updatedTag
 }
 
 /**
@@ -133,6 +136,35 @@ export async function deleteTagAndChildren(id: string) {
     // 删除父标签本身
     return await tx.tags.delete({ where: { id } })
   })
+}
+
+/**
+ * 批量删除标签（用于删除未分类下的所有标签）
+ * @param ids 标签ID数组
+ * @returns 删除结果
+ */
+export async function batchDeleteTags(ids: string[]): Promise<{ success: boolean; deletedCount: number; error?: string }> {
+  try {
+    if (ids.length === 0) {
+      return { success: true, deletedCount: 0 }
+    }
+
+    const result = await db.$transaction(async (tx) => {
+      const deleteResult = await tx.tags.deleteMany({
+        where: { id: { in: ids } }
+      })
+      return deleteResult.count
+    })
+
+    return { success: true, deletedCount: result }
+  } catch (error) {
+    console.error('批量删除标签失败:', error)
+    return {
+      success: false,
+      deletedCount: 0,
+      error: error instanceof Error ? error.message : '批量删除失败'
+    }
+  }
 }
 
 /**
@@ -251,4 +283,191 @@ export async function upsertTagsByName(tx: Omit<PrismaClient, '$connect' | '$dis
 
 export async function findTagsByCategory(category: string) {
   return await db.tags.findMany({ where: { category }, orderBy: { name: 'asc' } })
+}
+
+/**
+ * 标签重命名后同步更新所有关联数据
+ * 包括：
+ * 1. images.labels JSON 字段中的标签名称
+ * 2. 子标签的 category 字段
+ * @param tagId 标签ID
+ * @param oldName 旧名称
+ * @param newName 新名称
+ * @returns 同步结果
+ */
+export async function updateTagNameSync(
+  tagId: string,
+  oldName: string,
+  newName: string
+): Promise<{ success: boolean; updatedImages: number; updatedTags: number; error?: string }> {
+  try {
+    const tag = await db.tags.findUnique({ where: { id: tagId } })
+    if (!tag) {
+      return { success: false, updatedImages: 0, updatedTags: 0, error: '标签不存在' }
+    }
+
+    if (oldName === newName) {
+      return { success: true, updatedImages: 0, updatedTags: 0 }
+    }
+
+    const results = await db.$transaction(async (tx) => {
+      let updatedImages = 0
+      let updatedTags = 0
+
+      const imageRelations = await tx.imagesTagsRelation.findMany({
+        where: { tagId },
+        select: { imageId: true }
+      })
+
+      if (imageRelations.length > 0) {
+        const imageIds = imageRelations.map(r => r.imageId)
+        
+        const images = await tx.images.findMany({
+          where: { id: { in: imageIds } },
+          select: { id: true, labels: true }
+        })
+
+        for (const image of images) {
+          if (image.labels && Array.isArray(image.labels)) {
+            const newLabels = image.labels.map(l => 
+              typeof l === 'string' && l.trim().toLowerCase() === oldName.trim().toLowerCase() 
+                ? newName 
+                : l
+            )
+            if (JSON.stringify(image.labels) !== JSON.stringify(newLabels)) {
+              await tx.images.update({
+                where: { id: image.id },
+                data: { labels: newLabels }
+              })
+              updatedImages++
+            }
+          }
+        }
+      }
+
+      const childTags = await tx.tags.findMany({
+        where: { parentId: tagId }
+      })
+
+      for (const childTag of childTags) {
+        if (childTag.category !== newName) {
+          await tx.tags.update({
+            where: { id: childTag.id },
+            data: { category: newName }
+          })
+          updatedTags++
+        }
+      }
+
+      return { updatedImages, updatedTags }
+    })
+
+    return { success: true, updatedImages: results.updatedImages, updatedTags: results.updatedTags }
+  } catch (error) {
+    console.error('标签重命名同步失败:', error)
+    return { 
+      success: false, 
+      updatedImages: 0, 
+      updatedTags: 0, 
+      error: error instanceof Error ? error.message : '同步失败' 
+    }
+  }
+}
+
+/**
+ * 清理孤立标签（没有任何图片关联且没有子标签的标签）
+ * @returns 清理结果
+ */
+export async function cleanupOrphanTags(): Promise<{ success: boolean; cleanedCount: number; cleanedTags: string[]; skippedParentTags: string[]; error?: string }> {
+  try {
+    const results = await db.$transaction(async (tx) => {
+      const allTags = await tx.tags.findMany({
+        select: { id: true, name: true, parentId: true }
+      })
+
+      const childTagIds = new Set<string>()
+      allTags.forEach(tag => {
+        if (tag.parentId) {
+          childTagIds.add(tag.parentId)
+        }
+      })
+
+      const orphanTags: { id: string; name: string }[] = []
+      const skippedParentTags: string[] = []
+
+      for (const tag of allTags) {
+        const hasChildren = childTagIds.has(tag.id)
+        if (hasChildren) {
+          skippedParentTags.push(tag.name)
+          continue
+        }
+
+        const relationCount = await tx.imagesTagsRelation.count({
+          where: { tagId: tag.id }
+        })
+
+        if (relationCount === 0) {
+          orphanTags.push({ id: tag.id, name: tag.name })
+        }
+      }
+
+      if (orphanTags.length === 0) {
+        return { cleanedCount: 0, cleanedTags: [], skippedParentTags }
+      }
+
+      const idsToDelete = orphanTags.map(t => t.id)
+      await tx.tags.deleteMany({
+        where: { id: { in: idsToDelete } }
+      })
+
+      return { 
+        cleanedCount: orphanTags.length, 
+        cleanedTags: orphanTags.map(t => t.name),
+        skippedParentTags
+      }
+    })
+
+    return { success: true, cleanedCount: results.cleanedCount, cleanedTags: results.cleanedTags, skippedParentTags: results.skippedParentTags }
+  } catch (error) {
+    console.error('清理孤立标签失败:', error)
+    return { 
+      success: false, 
+      cleanedCount: 0, 
+      cleanedTags: [], 
+      skippedParentTags: [],
+      error: error instanceof Error ? error.message : '清理失败' 
+    }
+  }
+}
+
+/**
+ * 获取孤立标签列表（不删除，仅查询）
+ * @returns 孤立标签列表
+ */
+export async function getOrphanTags(): Promise<{ id: string; name: string; category: string | null; parentId: string | null; hasChildren: boolean }[]> {
+  const allTags = await db.tags.findMany({
+    select: { id: true, name: true, category: true, parentId: true }
+  })
+
+  const childTagIds = new Set<string>()
+  allTags.forEach(tag => {
+    if (tag.parentId) {
+      childTagIds.add(tag.parentId)
+    }
+  })
+
+  const orphanTags: { id: string; name: string; category: string | null; parentId: string | null; hasChildren: boolean }[] = []
+
+  for (const tag of allTags) {
+    const hasChildren = childTagIds.has(tag.id)
+    const relationCount = await db.imagesTagsRelation.count({
+      where: { tagId: tag.id }
+    })
+
+    if (relationCount === 0) {
+      orphanTags.push({ ...tag, hasChildren })
+    }
+  }
+
+  return orphanTags
 }

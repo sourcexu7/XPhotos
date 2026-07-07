@@ -89,7 +89,7 @@
     "albumDesc": "Create, edit, and organize album display order.",
     "tagsDesc": "Manage primary/secondary tags for frontend filtering and backend archival.",
     "storagesDesc": "Configure object storage services and access parameters.",
-    "accountDesc": "Update avatar URL and login password.",
+    "accountDesc": "Update login password.",
     "preferencesDesc": "Manage site info, display options, RSS, and About page configuration.",
     "authenticatorDesc": "Enable or disable TOTP verification to strengthen admin security.",
     "preferencesHint": "Finish basic info and display settings first, then configure the About section.",
@@ -100,8 +100,7 @@
   },
   "Admin": {
     "fallbackName": "Admin",
-    "fallbackEmail": "No email",
-    "avatarManagement": "Avatar Management"
+    "fallbackEmail": "No email"
   },
   "Tips": {
     "noImg": "No images",
@@ -680,9 +679,7 @@
     "email": "Email",
     "inputEmail": "Please enter the new email address.",
     "username": "Username",
-    "inputUsername": "Please enter the new username.",
-    "avatar": "Avatar",
-    "inputAvatar": "Please enter the avatar URL."
+    "inputUsername": "Please enter the new username."
   },
   "Settings": {
     "title": "Settings",
@@ -1161,8 +1158,21 @@
     "cannotMoveNoRecord": "Cannot move: no corresponding tag record",
     "confirmDeletePrimary": "Are you sure you want to delete this primary tag?",
     "confirmDeletePrimaryWithChildren": "Deleting this primary tag will also delete all its secondary tags. Are you sure?",
+    "confirmDeleteUncategorized": "Are you sure you want to delete all uncategorized tags?",
     "confirmDeleteTag": "Are you sure you want to delete this tag?",
     "checkComplete": "Check complete: Checked {total} images, fixed {fixed} images, found {invalid} invalid associations",
-    "checkFailed": "Check failed"
+    "checkFailed": "Check failed",
+    "cleanupOrphan": "Cleanup Orphan Tags",
+    "cleanupOrphanDescription": "Orphan tags are tags that have no image associations. They will be deleted after cleanup.",
+    "noOrphanTags": "No orphan tags",
+    "orphanTagsCount": "Found {count} orphan tags:",
+    "cleanupOrphanWarning": "Warning: This operation will permanently delete these tags. Please proceed with caution.",
+    "cleanupOrphanSuccess": "Cleanup successful! Deleted {count} orphan tags: {tags}",
+    "cleanupOrphanFailed": "Cleanup failed",
+    "loadOrphanFailed": "Failed to load orphan tags",
+    "renameSyncSuccess": "Tag rename sync successful! Updated labels field for {images} images, updated category field for {tags} child tags",
+    "renameSyncFailed": "Tag rename sync failed",
+    "createdTags": "(Created {count} new tags)",
+    "noChange": "Tag name unchanged"
   }
 }

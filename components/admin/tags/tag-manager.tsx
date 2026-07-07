@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { fetcher } from '~/lib/utils/fetcher'
 import { Input, Button, Tag, Popconfirm, App, Spin, Row, Col, Card, Space, Typography, theme, Empty, Badge, Tooltip, Modal, Select } from 'antd'
-import { PlusOutlined, EditOutlined, SwapOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, SwapOutlined, DeleteOutlined, SyncOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 
 type TagItem = { id: string; name: string }
@@ -125,7 +125,6 @@ export default function TagManager() {
     const name = editingPrimaryValue?.trim()
     if (!name) return message.warning(t('inputTagName'))
     try {
-      // update both name and category for primary tags so tree display stays in sync
       const res = await fetch(`/api/v1/settings/tags/update/${editingPrimaryKey}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, category: name }) }).then(r => r.json())
       if (res?.code === 200) {
         message.success(t('updateSuccess'))
@@ -234,13 +233,15 @@ export default function TagManager() {
 
       if (res?.code === 200) {
         const data = res.data
-        message.success(
-          t('checkComplete', {
-            total: data.totalImages,
-            fixed: data.fixedImages,
-            invalid: data.invalidRelations
-          })
-        )
+        let msg = t('checkComplete', {
+          total: data.totalImages,
+          fixed: data.fixedImages,
+          invalid: data.invalidRelations
+        })
+        if (data.totalCreatedTags && data.totalCreatedTags > 0) {
+          msg += ' ' + t('createdTags', { count: data.totalCreatedTags })
+        }
+        message.success(msg)
         if (data.errors && data.errors.length > 0) {
           console.warn('部分图片处理失败:', data.errors)
         }
@@ -254,18 +255,75 @@ export default function TagManager() {
     }
   }
 
+  // 清理孤立标签
+  const [cleaningOrphan, setCleaningOrphan] = useState(false)
+  const [orphanTags, setOrphanTags] = useState<{ id: string; name: string; category: string | null; parentId: string | null }[]>([])
+  const [showOrphanModal, setShowOrphanModal] = useState(false)
+
+  const loadOrphanTags = async () => {
+    try {
+      const res = await fetch('/api/v1/settings/tags/orphan').then(r => r.json())
+      if (res?.code === 200) {
+        setOrphanTags(res.data)
+      }
+    } catch (_e) {
+      message.error(t('loadOrphanFailed'))
+    }
+  }
+
+  const cleanupOrphanTags = async () => {
+    setCleaningOrphan(true)
+    try {
+      const res = await fetch('/api/v1/settings/tags/cleanup-orphan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }).then(r => r.json())
+
+      if (res?.code === 200) {
+        const data = res.data
+        message.success(
+          t('cleanupOrphanSuccess', {
+            count: data.cleanedCount,
+            tags: data.cleanedTags.join(', ')
+          })
+        )
+        setOrphanTags([])
+        setShowOrphanModal(false)
+        await loadTree()
+      } else {
+        message.error(res?.message || t('cleanupOrphanFailed'))
+      }
+    } catch (_e) {
+      message.error(t('cleanupOrphanFailed'))
+    } finally {
+      setCleaningOrphan(false)
+    }
+  }
+
+  
+
   return (
     <div style={{ padding: token.paddingMD }}>
       <Space orientation="vertical" size={token.marginLG} style={{ width: '100%' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography.Title level={4} style={{ margin: 0 }}>{t('title')}</Typography.Title>
-          <Button
-            type="default"
-            onClick={checkTagCompleteness}
-            loading={checkingCompleteness}
-          >
-            {t('completenessCheck')}
-          </Button>
+          <Space size={8}>
+            <Button
+              type="default"
+              onClick={() => { loadOrphanTags(); setShowOrphanModal(true) }}
+              icon={<DeleteOutlined />}
+            >
+              {t('cleanupOrphan')}
+            </Button>
+            <Button
+              type="default"
+              onClick={checkTagCompleteness}
+              loading={checkingCompleteness}
+              icon={<SyncOutlined />}
+            >
+              {t('completenessCheck')}
+            </Button>
+          </Space>
         </div>
         <Row gutter={token.margin}>
           <Col xs={24} md={8} lg={7} xl={6}>
@@ -336,7 +394,7 @@ export default function TagManager() {
                                 <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); startEditPrimary(node) }}>{t('edit')}</Button>
                                 <Button type="link" size="small" icon={<SwapOutlined />} onClick={(e) => { e.stopPropagation(); openMoveModal(node) }}>{t('move')}</Button>
                                 <Popconfirm
-                                  title={node.children && node.children.length > 0 ? t('confirmDeletePrimaryWithChildren') : t('confirmDeletePrimary')}
+                                  title={node.id ? (node.children && node.children.length > 0 ? t('confirmDeletePrimaryWithChildren') : t('confirmDeletePrimary')) : t('confirmDeleteUncategorized')}
                                   onConfirm={async (e?: React.MouseEvent) => {
                                     e?.stopPropagation?.()
                                     try {
@@ -346,8 +404,17 @@ export default function TagManager() {
                                         } else {
                                           await fetch(`/api/v1/settings/tags/delete/${node.id}`, { method: 'DELETE' }).then(r => r.json())
                                         }
+                                      } else {
+                                        const childIds = node.children?.map(child => child.id) || []
+                                        if (childIds.length > 0) {
+                                          await fetch('/api/v1/settings/tags/batch-delete', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ ids: childIds })
+                                          }).then(r => r.json())
+                                        }
                                       }
-                                      message.success(t('deleteWithChildrenSuccess'))
+                                      message.success(t('deleteSuccess'))
                                       await loadTree()
                                       setSelectedPrimary(null)
                                     } catch (err) {
@@ -498,7 +565,7 @@ export default function TagManager() {
               (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
             }
             options={filteredTree
-              .filter(node => node.id && node.id !== movingTagId) // 排除自身
+              .filter(node => node.id && node.id !== movingTagId)
               .map(node => ({
                 label: `${node.category ?? t('uncategorized')} (${node.children.length})`,
                 value: node.id!,
@@ -507,6 +574,42 @@ export default function TagManager() {
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             {t('moveHint')}
           </Typography.Text>
+        </Space>
+      </Modal>
+
+      {/* 孤立标签清理对话框 */}
+      <Modal
+        title={t('cleanupOrphan')}
+        open={showOrphanModal}
+        onOk={cleanupOrphanTags}
+        onCancel={() => setShowOrphanModal(false)}
+        confirmLoading={cleaningOrphan}
+        okText={t('confirm')}
+        cancelText={t('cancel')}
+        destroyOnClose
+      >
+        <Space orientation="vertical" style={{ width: '100%' }} size="middle">
+          <Typography.Text>{t('cleanupOrphanDescription')}</Typography.Text>
+          {orphanTags.length === 0 ? (
+            <Empty description={t('noOrphanTags')} />
+          ) : (
+            <div>
+              <Typography.Text type="warning">{t('orphanTagsCount', { count: orphanTags.length })}</Typography.Text>
+              <div style={{ maxHeight: 300, overflowY: 'auto', marginTop: 12 }}>
+                {orphanTags.map(tag => (
+                  <div key={tag.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px dashed #f0f0f0' }}>
+                    <span>{tag.name}</span>
+                    {tag.category && tag.category !== tag.name && (
+                      <Tag color="default" style={{ fontSize: 12 }}>{tag.category}</Tag>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <Typography.Text type="danger" style={{ fontSize: 12, marginTop: 12, display: 'block' }}>
+                {t('cleanupOrphanWarning')}
+              </Typography.Text>
+            </div>
+          )}
         </Space>
       </Modal>
     </div>

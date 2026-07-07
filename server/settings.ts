@@ -8,7 +8,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { updateAListConfig, updateCustomInfo, updateS3Config, updateCOSConfig } from '~/lib/db/operate/configs'
 
 import { fetchTagsList, fetchTagsTree, fetchTagsByCategory } from '~/lib/db/query/tags'
-import { createTag, updateTag, deleteTag, deleteTagAndChildren } from '~/lib/db/operate/tags'
+import { createTag, updateTag, deleteTag, deleteTagAndChildren, batchDeleteTags, cleanupOrphanTags, getOrphanTags } from '~/lib/db/operate/tags'
 import { moveTag, validateTagMove } from '~/lib/services/tag-move-service'
 import { checkAndFixImageTagCompleteness } from '~/lib/services/image-tag-sync-service'
 import { getClient } from '~/lib/s3'
@@ -133,6 +133,39 @@ app.post('/tags/check-completeness', async (c) => {
   }
 })
 
+// 获取孤立标签列表接口
+app.get('/tags/orphan', async (c) => {
+  try {
+    const tags = await getOrphanTags()
+    return c.json({ code: 200, data: tags })
+  } catch (e) {
+    throw new HTTPException(500, { message: 'Failed', cause: e })
+  }
+})
+
+// 清理孤立标签接口（跳过有子标签的父标签）
+app.post('/tags/cleanup-orphan', async (c) => {
+  try {
+    const result = await cleanupOrphanTags()
+    await invalidateTagsCache()
+    
+    if (!result.success) {
+      return c.json({ code: 400, message: result.error })
+    }
+    
+    return c.json({ 
+      code: 200, 
+      data: { 
+        cleanedCount: result.cleanedCount,
+        cleanedTags: result.cleanedTags,
+        skippedParentTags: result.skippedParentTags
+      } 
+    })
+  } catch (e) {
+    throw new HTTPException(500, { message: 'Failed', cause: e })
+  }
+})
+
 app.delete('/tags/delete/:id', async (c) => {
   try {
     const id = c.req.param('id')
@@ -151,6 +184,31 @@ app.delete('/tags/delete-with-children/:id', async (c) => {
     await deleteTagAndChildren(id)
     await invalidateTagsCache()
     return c.json({ code: 200, message: 'Success' })
+  } catch (e) {
+    throw new HTTPException(500, { message: 'Failed', cause: e })
+  }
+})
+
+// 批量删除标签（用于删除未分类下的所有标签）
+app.post('/tags/batch-delete', async (c) => {
+  try {
+    const { ids } = await c.req.json()
+    
+    if (!ids || !Array.isArray(ids)) {
+      throw new HTTPException(400, { message: '标签ID数组不能为空' })
+    }
+
+    const result = await batchDeleteTags(ids)
+    await invalidateTagsCache()
+    
+    if (!result.success) {
+      return c.json({ code: 400, message: result.error })
+    }
+    
+    return c.json({ 
+      code: 200, 
+      data: { deletedCount: result.deletedCount } 
+    })
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed', cause: e })
   }
