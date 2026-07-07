@@ -1,14 +1,12 @@
 'use client'
 
-import { Drawer } from 'antd'
+import { App as AntApp, Drawer, Button, Select, Switch } from 'antd'
 import { useButtonStore } from '~/app/providers/button-store-providers'
 import type { AlbumType } from '~/types'
 import type { HandleProps } from '~/types/props'
 import React, { useState, useEffect } from 'react'
-import { message } from 'antd'
 import { useSwrHydrated } from '~/hooks/use-swr-hydrated'
 import { ReloadOutlined } from '@ant-design/icons'
-import { Button, Select, Switch } from 'antd'
 import { useTranslations } from 'next-intl'
 
 const InputField = ({ label, id, value, onChange, type = 'text', placeholder = '' }: any) => (
@@ -36,6 +34,7 @@ export default function AlbumEditSheet(props : Readonly<HandleProps>) {
   const [data, setData] = useState<AlbumType>({} as AlbumType)
   const [loading, setLoading] = useState(false)
   const t = useTranslations()
+  const { message } = AntApp.useApp()
 
   useEffect(() => {
     if (album) {
