@@ -11,6 +11,23 @@ import { ReloadOutlined } from '@ant-design/icons'
 import { Button, Select, Switch } from 'antd'
 import { useTranslations } from 'next-intl'
 
+const InputField = ({ label, id, value, onChange, type = 'text', placeholder = '' }: any) => (
+  <label
+    htmlFor={id}
+    className="block overflow-hidden rounded-lg border border-border px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 bg-card transition-all duration-200"
+  >
+    <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    <input
+      type={type}
+      id={id}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 text-sm text-foreground font-normal placeholder:text-muted-foreground"
+    />
+  </label>
+)
+
 export default function AlbumEditSheet(props : Readonly<HandleProps>) {
   const { mutate } = useSwrHydrated(props)
   const { albumEdit, setAlbumEdit, album } = useButtonStore(
@@ -58,23 +75,6 @@ export default function AlbumEditSheet(props : Readonly<HandleProps>) {
     }
   }
 
-  const InputField = ({ label, id, value, onChange, type = 'text', placeholder = '' }: any) => (
-    <label
-      htmlFor={id}
-      className="block overflow-hidden rounded-lg border border-border px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 bg-card transition-all duration-200"
-    >
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <input
-        type={type}
-        id={id}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 text-sm text-foreground font-normal placeholder:text-muted-foreground"
-      />
-    </label>
-  )
-
   return (
     <Drawer
       title={t('Album.editAlbum')}
@@ -114,7 +114,7 @@ export default function AlbumEditSheet(props : Readonly<HandleProps>) {
           label={t('Album.sort')} 
           id="sort" 
           type="number" 
-          value={data?.sort} 
+          value={data?.sort ?? ''} 
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setData({...data, sort: Number(e.target.value)})} 
           placeholder="0" 
         />

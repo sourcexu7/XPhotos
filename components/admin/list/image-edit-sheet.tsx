@@ -4,13 +4,36 @@ import { useButtonStore } from '~/app/providers/button-store-providers'
 import type { ImageType } from '~/types'
 import type { ImageServerHandleProps } from '~/types/props'
 import { useSwrInfiniteServerHook } from '~/hooks/use-swr-infinite-server-hook'
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useMemo } from 'react'
 import { message } from 'antd'
 import { ReloadOutlined } from '@ant-design/icons'
 import { Button, Switch, Drawer } from 'antd'
 import { TagInput } from 'emblor'
 import { exifReader } from '~/lib/utils/file'
 import { useTranslations } from 'next-intl'
+
+const GroupTitle = ({ title }: { title: string }) => (
+  <div className="text-sm font-medium text-foreground uppercase tracking-wide mb-4 mt-6 pb-2 border-b border-border">
+    {title}
+  </div>
+)
+
+const InputField = ({ label, id, value, onChange, type = 'text', placeholder = '' }: any) => (
+  <label
+    htmlFor={id}
+    className="block overflow-hidden rounded-lg border border-border px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 mb-4 bg-card transition-all duration-200"
+  >
+    <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    <input
+      type={type}
+      id={id}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 text-sm text-foreground font-normal placeholder:text-muted-foreground"
+    />
+  </label>
+)
 
 export default function ImageEditSheet(props : Readonly<ImageServerHandleProps & { pageNum: number } & { album: string }>) {
   const { pageNum, album, ...restProps } = props
@@ -22,6 +45,11 @@ export default function ImageEditSheet(props : Readonly<ImageServerHandleProps &
   const [activeTagIndex, setActiveTagIndex] = useState<number | null>(null)
   const referenceInputRef = useRef<HTMLInputElement | null>(null)
   const t = useTranslations('List')
+
+  const tagItems = useMemo(() => {
+    if (!image?.labels) return []
+    return image.labels.map((label: string) => ({ id: label, text: label }))
+  }, [image?.labels])
 
   const applyReferenceExif = async (file: File) => {
     try {
@@ -52,29 +80,6 @@ export default function ImageEditSheet(props : Readonly<ImageServerHandleProps &
       await mutate()
     } catch (e) { message.error(t('updateFailed')) } finally { setLoading(false) }
   }
-
-  const GroupTitle = ({ title }: { title: string }) => (
-    <div className="text-sm font-medium text-foreground uppercase tracking-wide mb-4 mt-6 pb-2 border-b border-border">
-      {title}
-    </div>
-  )
-
-  const InputField = ({ label, id, value, onChange, type = 'text', placeholder = '' }: any) => (
-    <label
-      htmlFor={id}
-      className="block overflow-hidden rounded-lg border border-border px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 mb-4 bg-card transition-all duration-200"
-    >
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <input
-        type={type}
-        id={id}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 text-sm text-foreground font-normal placeholder:text-muted-foreground"
-      />
-    </label>
-  )
 
   return (
     <Drawer
@@ -112,7 +117,7 @@ export default function ImageEditSheet(props : Readonly<ImageServerHandleProps &
             <div className="mb-4">
               <label className="block text-xs font-medium text-muted-foreground mb-2">{t('tagLabel')}</label>
               <TagInput
-                tags={!image.labels ? [] : image.labels.map((label: string) => ({ id: Math.floor(Math.random() * 1000).toString(), text: label }))}
+                tags={tagItems}
                 setTags={(newTags: any) => setImageEditData({...image, labels: newTags?.map((label: any) => label.text)})}
                 placeholder={t('tagPlaceholder')}
                 styleClasses={{
