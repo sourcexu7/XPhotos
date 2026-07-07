@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+.next
+out
+dist
+build
+.output
+
+# Lock files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Generated files
+*.min.js
+*.min.css
+
+# UI component library (shadcn/ui)
+components/ui
+
+# Git and IDE
+.git
+.github
+.vscode
+.idea
+.DS_Store
+
+# Project specific
+prisma
+messages
+public
+scripts

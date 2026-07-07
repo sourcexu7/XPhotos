@@ -1,0 +1,259 @@
+/* Ant Design 全局样式优化 */
+
+/* ====== 亮色模式 Menu 样式 ====== */
+.ant-menu-horizontal {
+  border-bottom: none !important;
+}
+
+.ant-menu-item-selected {
+  color: #1677ff !important;
+}
+
+.ant-menu-item::after {
+  border-bottom-width: 2px !important;
+}
+
+.ant-menu-title-content {
+  color: rgba(0, 0, 0, 0.88);
+  font-size: 14px;
+  line-height: 46px;
+  transition: color 0.3s;
+}
+
+.ant-menu-title-content:hover {
+  color: #1677ff;
+}
+
+/* ====== 暗色模式 Menu 样式 ====== */
+.dark .ant-menu-horizontal {
+  background: transparent !important;
+  border-bottom: none !important;
+}
+
+.dark .ant-menu-item,
+.dark .ant-menu-submenu-title {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.dark .ant-menu-item:hover,
+.dark .ant-menu-submenu-title:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .ant-menu-item-selected {
+  color: #1677ff !important;
+  background: rgba(22, 119, 255, 0.1) !important;
+}
+
+.dark .ant-menu-submenu-selected .ant-menu-submenu-title {
+  color: #1677ff !important;
+}
+
+.dark .ant-menu-item::after {
+  border-bottom-color: #1677ff !important;
+}
+
+.dark .ant-menu-title-content {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.dark .ant-menu-title-content:hover {
+  color: #fff;
+}
+
+/* ====== 下拉菜单暗色 ====== */
+.dark .ant-menu-submenu-popup {
+  background: rgba(0, 0, 0, 0.95) !important;
+}
+
+.dark .ant-menu-vertical .ant-menu-item {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.dark .ant-menu-vertical .ant-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+}
+
+.dark .ant-menu-vertical .ant-menu-item-selected {
+  background: rgba(22, 119, 255, 0.15) !important;
+  color: #1677ff !important;
+}
+
+/* ====== Card 组件样式 ====== */
+.ant-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ant-card:hover {
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* ====== Layout 暗色模式 ====== */
+.dark .ant-layout {
+  background: #000000;
+}
+
+.dark .ant-layout-header,
+.dark .ant-layout-sider {
+  background: #141414 !important;
+}
+
+.dark .ant-layout-content > div {
+  background: #141414 !important;
+}
+
+/* ====== Button 样式优化 ====== */
+.ant-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ant-btn-primary {
+  box-shadow: 0 2px 0 rgba(22, 119, 255, 0.1);
+}
+
+.ant-btn-primary:hover {
+  box-shadow: 0 4px 8px rgba(22, 119, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+/* ====== Divider 暗色模式 ====== */
+.dark .ant-divider {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ====== Dropdown 暗色模式 ====== */
+.dark .ant-dropdown-menu {
+  background: #1f1f1f !important;
+}
+
+.dark .ant-dropdown-menu-item {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.dark .ant-dropdown-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ====== Avatar 优化 ====== */
+.ant-avatar {
+  transition: all 0.3s;
+}
+
+/* ====== Space 组件 ====== */
+.ant-space {
+  gap: 0 !important; /* 让 Space 组件的 size 属性生效 */
+}
+
+/* ====== Form 样式优化 ====== */
+.ant-form-item {
+  margin-bottom: 24px;
+}
+
+.ant-form-item-label > label {
+  font-weight: 500;
+}
+
+/* ====== Input 暗色模式 ====== */
+.dark .ant-input,
+.dark .ant-input-number,
+.dark .ant-select-selector {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.dark .ant-input:hover,
+.dark .ant-input-number:hover,
+.dark .ant-select-selector:hover {
+  border-color: rgba(255, 255, 255, 0.24) !important;
+}
+
+.dark .ant-input:focus,
+.dark .ant-input-number:focus,
+.dark .ant-select-focused .ant-select-selector {
+  border-color: #1677ff !important;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1) !important;
+}
+
+/* ====== Table 暗色模式 ====== */
+.dark .ant-table {
+  background: #141414 !important;
+}
+
+.dark .ant-table-thead > tr > th {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark .ant-table-tbody > tr > td {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.dark .ant-table-tbody > tr:hover > td {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* ====== Modal 暗色模式 ====== */
+.dark .ant-modal-content {
+  background: #1f1f1f !important;
+}
+
+.dark .ant-modal-header {
+  background: #1f1f1f !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark .ant-modal-title {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.dark .ant-modal-close {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.dark .ant-modal-close:hover {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* ====== Pagination 暗色模式 ====== */
+.dark .ant-pagination-item {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark .ant-pagination-item a {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.dark .ant-pagination-item-active {
+  background: #1677ff !important;
+  border-color: #1677ff !important;
+}
+
+.dark .ant-pagination-item-active a {
+  color: #fff !important;
+}
+
+/* ====== 滚动条样式 ====== */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+

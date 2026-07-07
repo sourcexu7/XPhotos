@@ -1,0 +1,53 @@
+'use client'
+
+import { CompassIcon } from '~/components/icons/compass.tsx'
+import { useButtonStore } from '~/app/providers/button-store-providers.tsx'
+import Command from '~/components/layout/command.tsx'
+import type { AlbumDataProps } from '~/types/props.ts'
+import { useEffect } from 'react'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip.tsx'
+import { useTranslations } from 'next-intl'
+import DarkModeToggle from '~/components/ui/dark-mode-toggle.tsx'
+
+export default function HeaderIconGroup(props: Readonly<AlbumDataProps>) {
+  const t = useTranslations()
+  const { setCommand } = useButtonStore(
+    (state) => state,
+  )
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setCommand(true)
+      }
+    }
+
+    document.addEventListener('keydown', down)
+    return () => document.removeEventListener('keydown', down)
+  }, [setCommand])
+
+  return (
+    <>
+      <div className="flex items-center space-x-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <CompassIcon 
+                onClick={() => setCommand(true)} 
+                size={18}
+                aria-label={t('Link.settings')}
+              />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{t('Link.settings')}</p>
+          </TooltipContent>
+        </Tooltip>
+        
+        <DarkModeToggle />
+      </div>
+      <Command {...props} />
+    </>
+  )
+}

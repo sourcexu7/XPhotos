@@ -1,0 +1,11 @@
+.customSidebarMenu :where(.ant-menu-item),
+.customSidebarMenu :where(.ant-menu-item) a {
+  color: #222 !important;
+}
+.customSidebarMenu :where(.ant-menu-item-selected),
+.customSidebarMenu :where(.ant-menu-item-selected) a {
+  color: #1677ff !important;
+}
+.customSidebarMenu :where(.ant-menu-item-icon) {
+  color: #222 !important;
+}

@@ -1,0 +1,118 @@
+# Dependencies
+node_modules
+.pnpm-store
+.pnp
+.pnp.js
+
+# Build outputs
+.next
+out
+dist
+build
+.output
+.vercel
+.turbopack
+tsconfig.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and Editor
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea
+.cursor
+*.swp
+*.swo
+*~
+.DS_Store
+.trae
+.claude
+.agents
+skills-lock.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Testing
+coverage
+.nyc_output
+
+# Prisma
+prisma/dev.db
+prisma/dev.db-journal
+prisma/migrations/migration_lock.toml
+
+# PWA (Service Worker)
+public/sw.js
+public/workbox-*.js
+public/worker-*.js
+public/fallback-*.js
+
+# HTTPS certificates
+certificates
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+backup/
+_backup_redundant_files/
+
+# Archive files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Project-specific temporary files
+checklist.json
+expense.json
+expense_utf8.bin
+expense_utf8.json
+itinerary.json
+response.json
+transport.json
+token.txt
+get-token.ps1
+performance-report-*.json
+performance-test.js
+test-build.tsx
+test-featured-images.ts
+hero-prompt.md
+
+# Prisma backup/archive files
+prisma.zip
+prisma/migrations.zip
+
+# Local project directories (skills/archives)
+design-system
+ui-ux-pro-max-skill
+攻略合集
+cos-cleanup-tool
+compress-demo.html
+
+# Miscellaneous
+*.pid
+*.seed
+*.pid.lock
+.cache/
+.parcel-cache/
+.eslintcache
+.prettiercache
+*.tsbuildinfo
