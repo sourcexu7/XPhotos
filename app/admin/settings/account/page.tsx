@@ -1,54 +1,28 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React from 'react'
 import { useTranslations } from 'next-intl'
 import { authClient } from '~/lib/auth-client'
-import { App as AntApp, Button, Input, Form, Card, Space, Divider, theme } from 'antd'
+import { App as AntApp, Button, Input, Form, Card, Space, theme } from 'antd'
 import { SaveOutlined } from '@ant-design/icons'
 import AdminPageHeader from '~/components/admin/layout/page-header'
 
-const { TextArea } = Input
-
 export default function Account() {
-  const [avatarForm] = Form.useForm()
   const [passwordForm] = Form.useForm()
-  const [avatarLoading, setAvatarLoading] = React.useState(false)
   const [passwordLoading, setPasswordLoading] = React.useState(false)
   const { token } = theme.useToken()
   const t = useTranslations()
-  const { data: session, isPending } = authClient.useSession()
   const { message: antMessage } = AntApp.useApp()
   
-  async function updateUserInfo(values: any) {
-    try {
-      setAvatarLoading(true)
-      const { error } = await authClient.updateUser({
-        image: values.avatar,
-      })
-      if (error) {
-        antMessage.error(t('Tips.updateFailed'))
-      } else {
-        antMessage.success(t('Tips.updateSuccess'))
-      }
-    } catch (e) {
-      antMessage.error(t('Tips.updateFailed'))
-    } finally {
-      setAvatarLoading(false)
-    }
-  }
-
   async function updatePassword(values: any) {
-    // 校验旧密码规则，不小于 8 位
     if (values.currentPassword.length < 8) {
       antMessage.error(t('Password.passwordMinLength'))
       return
     }
-    // 校验新密码规则，不小于 8 位
     if (values.newPassword.length < 8) {
       antMessage.error(t('Password.passwordMinLength'))
       return
     }
-    // 校验 2 个新密码是否一致
     if (values.newPassword !== values.confirmPassword) {
       antMessage.error(t('Password.passwordMismatch'))
       return
@@ -73,14 +47,6 @@ export default function Account() {
     }
   }
 
-  useEffect(()=>{
-    if (session?.user?.image) {
-      avatarForm.setFieldsValue({
-        avatar: session.user.image.toString()
-      })
-    }
-  },[session, avatarForm])
-
   return (
     <div className="space-y-4" style={{ height: '100%' }}>
       <AdminPageHeader
@@ -92,37 +58,6 @@ export default function Account() {
         style={{ height: '100%', borderRadius: token.borderRadiusLG }}
       >
         <Space orientation="vertical" size={token.marginLG} style={{ width: '100%', maxWidth: 600 }}>
-          {/* 头像设置 */}
-          <Form
-            form={avatarForm}
-            layout="vertical"
-            onFinish={updateUserInfo}
-            disabled={isPending}
-          >
-            <Form.Item
-              label={t('Account.avatar')}
-              name="avatar"
-            >
-              <TextArea
-                rows={4}
-                placeholder={t('Account.inputAvatar')}
-              />
-            </Form.Item>
-            <Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                icon={<SaveOutlined />}
-                loading={avatarLoading || isPending}
-              >
-                {t('Button.submit')}
-              </Button>
-            </Form.Item>
-          </Form>
-
-          <Divider />
-
-          {/* 修改密码 */}
           <Form
             form={passwordForm}
             layout="vertical"

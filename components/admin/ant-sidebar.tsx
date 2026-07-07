@@ -18,7 +18,6 @@ import {
   BarChartOutlined,
   BookOutlined,
   PieChartOutlined,
-  CameraOutlined,
   GlobalOutlined,
 } from '@ant-design/icons'
 import { authClient } from '~/lib/auth-client'
@@ -116,72 +115,12 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
     }
   }
 
-  const [avatarUploading, setAvatarUploading] = useState(false)
-
-  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp']
-    if (!validTypes.includes(file.type)) {
-      return
-    }
-    
-    setAvatarUploading(true)
-    
-    import('~/lib/utils/compress').then(({ compressImage }) => {
-      compressImage(file, {
-        quality: 0.85,
-        maxWidth: 200,
-        maxWidthEnabled: true,
-        mimeType: 'image/webp',
-      }).then(async (compressedFile) => {
-        if (!compressedFile) {
-          setAvatarUploading(false)
-          return
-        }
-        
-        import('~/lib/utils/file').then(async ({ uploadFile }) => {
-          try {
-            const file = new File([compressedFile], 'avatar.webp', { type: 'image/webp' })
-            const resp = await uploadFile(file, '/about/avatar', 's3', '')
-            if (resp.code === 200) {
-              const saveResp = await fetch('/api/v1/settings/update-custom-info', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  aboutAvatarUrl: resp.data.url,
-                }),
-              })
-              const saveData = await saveResp.json()
-              if (saveData.code === 200) {
-                await fetch('/api/v1/settings/cache/clear')
-              }
-            }
-          } catch (e) {
-            console.error('avatar upload failed', e)
-          } finally {
-            setAvatarUploading(false)
-          }
-        })
-      })
-    })
-  }
-
   const userMenuItems = [
     {
       key: 'preferences',
       icon: <SettingOutlined />,
       label: t('Settings.title'),
       onClick: () => router.push('/admin/settings/preferences'),
-    },
-    {
-      key: 'avatar',
-      icon: <CameraOutlined />,
-      label: t('Admin.avatarManagement'),
-      onClick: () => {
-        document.getElementById('sidebar-avatar-input')?.click()
-      },
     },
     {
       key: 'home',
@@ -282,14 +221,6 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
           padding: token.paddingSM,
         }}
       >
-        <input
-          id="sidebar-avatar-input"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={handleAvatarUpload}
-          disabled={avatarUploading}
-          style={{ display: 'none' }}
-        />
         <Dropdown menu={{ items: userMenuItems }} placement="topLeft" trigger={['click']}>
           <div
             style={{
