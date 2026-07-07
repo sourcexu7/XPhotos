@@ -5,9 +5,8 @@ import type { ImageType } from '~/types'
 import type { ImageServerHandleProps } from '~/types/props'
 import { useSwrInfiniteServerHook } from '~/hooks/use-swr-infinite-server-hook'
 import React, { useState, useRef, useMemo } from 'react'
-import { message } from 'antd'
+import { App as AntApp, Button, Switch, Drawer } from 'antd'
 import { ReloadOutlined } from '@ant-design/icons'
-import { Button, Switch, Drawer } from 'antd'
 import { TagInput } from 'emblor'
 import { exifReader } from '~/lib/utils/file'
 import { useTranslations } from 'next-intl'
@@ -45,6 +44,7 @@ export default function ImageEditSheet(props : Readonly<ImageServerHandleProps &
   const [activeTagIndex, setActiveTagIndex] = useState<number | null>(null)
   const referenceInputRef = useRef<HTMLInputElement | null>(null)
   const t = useTranslations('List')
+  const { message } = AntApp.useApp()
 
   const tagItems = useMemo(() => {
     if (!image?.labels) return []
