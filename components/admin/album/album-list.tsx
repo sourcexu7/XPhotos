@@ -3,14 +3,10 @@
 import React, { useEffect, useState } from 'react'
 import { useSwrHydrated } from '~/hooks/use-swr-hydrated'
 import { ArrowUpOutlined, ArrowDownOutlined, PushpinOutlined, SettingOutlined } from '@ant-design/icons'
-import { message } from 'antd'
 import type { AlbumType } from '~/types'
 import type { HandleProps } from '~/types/props'
 import { useButtonStore } from '~/app/providers/button-store-providers'
-import { Button, Switch, theme } from 'antd'
-import {
-  Modal as AntModal,
-} from 'antd'
+import { App as AntApp, Button, Switch, theme } from 'antd'
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
@@ -21,17 +17,16 @@ import { motion, useReducedMotion } from 'motion/react'
 export default function AlbumList(props : Readonly<HandleProps>) {
   const { data, mutate, isLoading } = useSwrHydrated(props)
   const router = useRouter()
-  const [album, setAlbum] = useState({} as AlbumType)
   const [albums, setAlbums] = useState<AlbumType[]>([])
   const [prevAlbums, setPrevAlbums] = useState<AlbumType[]>([])
   const [savingSort, setSavingSort] = useState(false)
-  const [deleteLoading, setDeleteLoading] = useState(false)
   const [updateAlbumLoading, setUpdateAlbumLoading] = useState(false)
   const [updateAlbumId, setUpdateAlbumId] = useState('')
   const { setAlbumEdit, setAlbumEditData } = useButtonStore(
     (state) => state,
   )
   const { token } = theme.useToken()
+  const { message, modal } = AntApp.useApp()
   const t = useTranslations()
   const reduce = useReducedMotion()
 
@@ -42,11 +37,10 @@ export default function AlbumList(props : Readonly<HandleProps>) {
     }
   }, [data])
 
-  async function deleteAlbum() {
-    setDeleteLoading(true)
-    if (!album.id) return
+  async function deleteAlbum(target: AlbumType) {
+    if (!target.id) return
     try {
-      const res = await fetch(`/api/v1/albums/delete/${album.id}`, {
+      const res = await fetch(`/api/v1/albums/delete/${target.id}`, {
         method: 'DELETE',
       })
       if (res.status === 200) {
@@ -54,11 +48,11 @@ export default function AlbumList(props : Readonly<HandleProps>) {
         await mutate()
       } else {
         message.error(t('Tips.deleteFailed'))
+        throw new Error('delete failed')
       }
-    } catch {
+    } catch (e) {
       message.error(t('Tips.deleteFailed'))
-    } finally {
-      setDeleteLoading(false)
+      throw e
     }
   }
 
@@ -382,8 +376,7 @@ export default function AlbumList(props : Readonly<HandleProps>) {
                     size="small"
                     danger
                     onClick={() => {
-                      setAlbum(album)
-                      AntModal.confirm({
+                      modal.confirm({
                         title: t('Tips.reallyDelete'),
                         content: (
                           <div style={{ fontSize: '14px', color: token.colorTextSecondary }}>
@@ -403,9 +396,9 @@ export default function AlbumList(props : Readonly<HandleProps>) {
                         ),
                         okText: t('Button.delete'),
                         cancelText: '取消',
-                        okButtonProps: { danger: true, loading: deleteLoading },
+                        okButtonProps: { danger: true },
                         centered: true,
-                        onOk: () => deleteAlbum(),
+                        onOk: () => deleteAlbum(album),
                       })
                     }}
                     title={t('Album.deleteAlbum')}
