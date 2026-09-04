@@ -12,7 +12,7 @@ import {
   theme,
 } from 'antd'
 import { CarOutlined } from '@ant-design/icons'
-import ModuleBase from './module-base'
+import ModuleBase, { FormGrid, FormDatePicker, FormTimePicker, MODAL_WIDTH, createRecordId, formatMoney } from './module-base'
 
 const { TextArea } = Input
 const { Text } = Typography
@@ -59,10 +59,10 @@ export default function TransportModule({ value, onChange }: TransportModuleProp
       icon={<CarOutlined />}
       records={(value || []) as any}
       onChange={(records) => onChange(records as TransportItem[])}
-      modalWidth={640}
+      modalWidth={MODAL_WIDTH.M}
       getDefaultRecord={() =>
         ({
-          id: Date.now().toString(),
+          id: createRecordId(),
           type: 'flight' as const,
           date: '',
           time: '',
@@ -83,7 +83,7 @@ export default function TransportModule({ value, onChange }: TransportModuleProp
               </Space>
               {item.price !== undefined && item.price !== null && (
                 <Text type="danger" strong>
-                  ¥{item.price}
+                  ¥{formatMoney(item.price)}
                 </Text>
               )}
             </div>
@@ -119,32 +119,41 @@ export default function TransportModule({ value, onChange }: TransportModuleProp
       }}
       renderEditForm={() => (
         <>
-          <Form.Item
-            label="交通类型"
-            name="type"
-            rules={[{ required: true, message: '请选择交通类型' }]}
-          >
-            <Select
-              options={transportTypes.map((t) => ({ value: t.value, label: t.label }))}
-              placeholder="请选择交通类型"
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="日期"
-            name="date"
-            rules={[{ required: true, message: '请输入日期' }]}
-          >
-            <Input placeholder="例如：2023-12-01" />
-          </Form.Item>
-
-          <Form.Item
-            label="时间"
-            name="time"
-            rules={[{ required: true, message: '请输入时间' }]}
-          >
-            <Input placeholder="例如：10:00" />
-          </Form.Item>
+          <FormGrid>
+            <Form.Item
+              label="交通类型"
+              name="type"
+              rules={[{ required: true, message: '请选择交通类型' }]}
+            >
+              <Select
+                options={transportTypes.map((t) => ({ value: t.value, label: t.label }))}
+                placeholder="请选择交通类型"
+              />
+            </Form.Item>
+            <Form.Item
+              label="日期"
+              name="date"
+              rules={[{ required: true, message: '请选择日期' }]}
+            >
+              <FormDatePicker placeholder="选择日期" />
+            </Form.Item>
+            <Form.Item
+              label="时间"
+              name="time"
+              rules={[{ required: true, message: '请选择时间' }]}
+            >
+              <FormTimePicker placeholder="选择时间" />
+            </Form.Item>
+            <Form.Item label="价格" name="price">
+              <InputNumber
+                placeholder="请输入价格"
+                style={{ width: '100%' }}
+                min={0}
+                precision={2}
+                prefix="¥"
+              />
+            </Form.Item>
+          </FormGrid>
 
           <Form.Item
             noStyle
@@ -153,7 +162,7 @@ export default function TransportModule({ value, onChange }: TransportModuleProp
             {({ getFieldValue }) => {
               const type = getFieldValue('type') as TransportItem['type']
               return (
-                <>
+                <FormGrid>
                   {type === 'flight' && (
                     <>
                       <Form.Item label="航线" name="route">
@@ -206,22 +215,13 @@ export default function TransportModule({ value, onChange }: TransportModuleProp
                       </Form.Item>
                     </>
                   )}
-                </>
+                </FormGrid>
               )
             }}
           </Form.Item>
 
-          <Form.Item label="价格" name="price">
-            <InputNumber
-              placeholder="请输入价格"
-              style={{ width: '100%' }}
-              min={0}
-              precision={2}
-            />
-          </Form.Item>
-
           <Form.Item label="备注" name="notes">
-            <TextArea rows={3} placeholder="请输入备注" />
+            <TextArea rows={3} placeholder="请输入备注" showCount maxLength={200} />
           </Form.Item>
         </>
       )}

@@ -1,6 +1,6 @@
 'use client'
 
-import { App as AntApp, Drawer, Button, Select, Switch } from 'antd'
+import { App as AntApp, Drawer, Button, Select, Switch, Input, InputNumber } from 'antd'
 import { useButtonStore } from '~/app/providers/button-store-providers'
 import type { AlbumType } from '~/types'
 import type { HandleProps } from '~/types/props'
@@ -10,20 +10,22 @@ import { ReloadOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 
 const InputField = ({ label, id, value, onChange, type = 'text', placeholder = '' }: any) => (
-  <label
-    htmlFor={id}
-    className="block overflow-hidden rounded-lg border border-border px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 bg-card transition-all duration-200"
-  >
-    <span className="text-xs font-medium text-muted-foreground">{label}</span>
-    <input
-      type={type}
-      id={id}
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 text-sm text-foreground font-normal placeholder:text-muted-foreground"
-    />
-  </label>
+  <div className="w-full space-y-1">
+    <label htmlFor={id} className="text-xs font-medium text-muted-foreground">
+      {label}
+    </label>
+    {type === 'number' ? (
+      <InputNumber
+        id={id}
+        placeholder={placeholder}
+        value={value}
+        onChange={(v) => onChange({ target: { value: v ?? '' } })}
+        className="w-full"
+      />
+    ) : (
+      <Input id={id} type={type} placeholder={placeholder} value={value} onChange={onChange} allowClear />
+    )}
+  </div>
 )
 
 export default function AlbumEditSheet(props : Readonly<HandleProps>) {

@@ -825,6 +825,8 @@
     "editRecord": "Edit Record",
     "noRecords": "No records yet, click the button above to add",
     "addFirst": "Add First Record",
+    "deleteConfirmTitle": "Delete this record?",
+    "deleteConfirmContent": "This action cannot be undone. Are you sure you want to delete it?",
     "deleteSuccess": "Deleted successfully",
     "updateSuccess": "Saved successfully",
     "updateFailed": "Save failed",

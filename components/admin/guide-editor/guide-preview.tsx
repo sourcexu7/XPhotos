@@ -1,7 +1,19 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Spin, Typography } from 'antd'
+import { Spin, Typography, Checkbox, theme } from 'antd'
+import {
+  CalendarOutlined,
+  DollarOutlined,
+  CheckSquareOutlined,
+  CarOutlined,
+  CameraOutlined,
+  BulbOutlined,
+  EnvironmentOutlined,
+  CoffeeOutlined,
+  FileTextOutlined,
+} from '@ant-design/icons'
+import { formatMoney } from './modules/module-base'
 
 const { Title } = Typography
 
@@ -21,7 +33,19 @@ interface Guide {
   albums?: any[]
 }
 
+const templateIcons: Record<string, React.ReactNode> = {
+  itinerary: <CalendarOutlined />,
+  expense: <DollarOutlined />,
+  checklist: <CheckSquareOutlined />,
+  transport: <CarOutlined />,
+  photo: <CameraOutlined />,
+  tips: <BulbOutlined />,
+  attraction: <EnvironmentOutlined />,
+  food: <CoffeeOutlined />,
+}
+
 export default function GuidePreview({ guideId }: { guideId: string }) {
+  const { token } = theme.useToken()
   const [guide, setGuide] = useState<Guide | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -54,61 +78,55 @@ export default function GuidePreview({ guideId }: { guideId: string }) {
 
   if (!guide) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-400">
+      <div className="flex items-center justify-center h-full" style={{ color: token.colorTextTertiary }}>
         攻略不存在
       </div>
     )
   }
 
   const renderModule = (module: any) => {
-    const templateIcons: Record<string, string> = {
-      itinerary: '🗓️',
-      expense: '💰',
-      checklist: '📋',
-      transport: '🚗',
-      photo: '📷',
-      tips: '💡',
-      attraction: '📍',
-      food: '🍜',
-    }
-
     return (
       <div key={module.id} className="mb-6">
-        <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
-          <span className="text-xl">{templateIcons[module.template || ''] || '📄'}</span>
+        <div
+          className="flex items-center gap-2 mb-3 pb-2"
+          style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}
+        >
+          <span style={{ color: token.colorPrimary, fontSize: token.fontSizeLG }}>
+            {templateIcons[module.template || ''] || <FileTextOutlined />}
+          </span>
           <Title level={4} className="m-0">{module.name}</Title>
         </div>
         <div className="pl-2">
           {module.moduleData && module.moduleData.length > 0 ? (
-            <div className="text-gray-600">
+            <div style={{ color: token.colorTextSecondary }}>
               {module.template === 'itinerary' && (
-                <div className="space-y-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginXS }}>
                   {module.moduleData.map((item: any) => (
-                    <div key={item.id} className="bg-gray-50 p-2 rounded">
-                      <div className="font-medium">{item.location}</div>
-                      <div className="text-sm">{item.description}</div>
+                    <div key={item.id} style={{ background: token.colorFillQuaternary, padding: token.paddingXS, borderRadius: token.borderRadius }}>
+                      <div style={{ fontWeight: 500 }}>{item.location}</div>
+                      <div style={{ fontSize: token.fontSizeSM }}>{item.description}</div>
                     </div>
                   ))}
                 </div>
               )}
               {module.template === 'expense' && (
-                <div className="space-y-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginXS }}>
                   {module.moduleData.map((item: any) => (
-                    <div key={item.id} className="flex justify-between p-2 bg-gray-50 rounded">
+                    <div key={item.id} className="flex justify-between" style={{ padding: token.paddingXS, background: token.colorFillQuaternary, borderRadius: token.borderRadius }}>
                       <div>{item.name}</div>
-                      <div className="font-medium">¥{item.amount}</div>
+                      <div style={{ fontWeight: 500 }}>¥{formatMoney(item.amount)}</div>
                     </div>
                   ))}
                 </div>
               )}
               {module.template === 'checklist' && (
-                <div className="space-y-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginXS }}>
                   {module.moduleData.map((cat: any) => (
-                    <div key={cat.id} className="bg-gray-50 p-2 rounded">
-                      <div className="font-medium mb-1">{cat.name}</div>
+                    <div key={cat.id} style={{ background: token.colorFillQuaternary, padding: token.paddingXS, borderRadius: token.borderRadius }}>
+                      <div style={{ fontWeight: 500, marginBottom: token.marginXXS }}>{cat.name}</div>
                       {cat.items?.map((item: any) => (
                         <div key={item.id} className="flex items-center gap-2">
-                          <input type="checkbox" checked={item.checked} disabled />
+                          <Checkbox checked={item.checked} disabled />
                           <div>{item.name}</div>
                         </div>
                       ))}
@@ -117,38 +135,38 @@ export default function GuidePreview({ guideId }: { guideId: string }) {
                 </div>
               )}
               {module.template === 'transport' && (
-                <div className="space-y-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginXS }}>
                   {module.moduleData.map((item: any) => (
-                    <div key={item.id} className="bg-gray-50 p-2 rounded">
-                      <div className="font-medium">{item.route || item.company}</div>
-                      <div className="text-sm">{item.date} {item.time}</div>
+                    <div key={item.id} style={{ background: token.colorFillQuaternary, padding: token.paddingXS, borderRadius: token.borderRadius }}>
+                      <div style={{ fontWeight: 500 }}>{item.route || item.company}</div>
+                      <div style={{ fontSize: token.fontSizeSM }}>{item.date} {item.time}</div>
                     </div>
                   ))}
                 </div>
               )}
               {module.template === 'photo' && (
-                <div className="space-y-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginXS }}>
                   {module.moduleData.map((spot: any) => (
-                    <div key={spot.id} className="bg-gray-50 p-2 rounded">
-                      <div className="font-medium">{spot.name}</div>
-                      <div className="text-sm">{spot.focalLength} · {spot.bestTime}</div>
+                    <div key={spot.id} style={{ background: token.colorFillQuaternary, padding: token.paddingXS, borderRadius: token.borderRadius }}>
+                      <div style={{ fontWeight: 500 }}>{spot.name}</div>
+                      <div style={{ fontSize: token.fontSizeSM }}>{spot.focalLength} · {spot.bestTime}</div>
                     </div>
                   ))}
                 </div>
               )}
               {module.template === 'tips' && (
-                <div className="space-y-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginXS }}>
                   {module.moduleData.map((tip: any) => (
-                    <div key={tip.id} className="bg-blue-50 p-2 rounded">
-                      <div className="font-medium">{tip.title}</div>
-                      <div className="text-sm">{tip.content}</div>
+                    <div key={tip.id} style={{ background: token.colorPrimaryBg, padding: token.paddingXS, borderRadius: token.borderRadius }}>
+                      <div style={{ fontWeight: 500 }}>{tip.title}</div>
+                      <div style={{ fontSize: token.fontSizeSM }}>{tip.content}</div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
           ) : (
-            <div className="text-gray-400">暂无内容</div>
+            <div style={{ color: token.colorTextTertiary }}>暂无内容</div>
           )}
         </div>
       </div>
@@ -159,7 +177,7 @@ export default function GuidePreview({ guideId }: { guideId: string }) {
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
         <Title level={1}>{guide.title}</Title>
-        <div className="text-gray-600 mb-4">
+        <div className="mb-4" style={{ color: token.colorTextSecondary }}>
           {guide.country} · {guide.city} · {guide.days} 天
         </div>
         {guide.cover_image && (
@@ -177,7 +195,7 @@ export default function GuidePreview({ guideId }: { guideId: string }) {
         {guide.modules && guide.modules.length > 0 ? (
           guide.modules.map(renderModule)
         ) : (
-          <div className="text-gray-400">暂无模块</div>
+          <div style={{ color: token.colorTextTertiary }}>暂无模块</div>
         )}
       </div>
     </div>

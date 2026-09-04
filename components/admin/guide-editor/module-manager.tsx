@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Button, Input, Modal, Dropdown, Spin, Empty, App, theme } from 'antd'
+import { Button, Input, Modal, Dropdown, Spin, Empty, App, theme, Tag, Typography } from 'antd'
 import {
   PlusOutlined,
   MoreOutlined,
@@ -26,6 +26,8 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import useSWR, { mutate } from 'swr'
+
+const { Text } = Typography
 
 const API_BASE = '/api/v1/guide-modules'
 
@@ -175,15 +177,15 @@ function SortableModuleItem({ module, onEdit, onDelete, onSelect, isSelected }: 
             <span style={getTemplateColor(module.template, token)} className="shrink-0">
               {(module.template && templateIcons[module.template]) || <FileTextOutlined />}
             </span>
-            <span className="font-medium text-gray-800 whitespace-nowrap" style={{ fontSize: token.fontSize }}>{module.name}</span>
+            <span className="font-medium whitespace-nowrap" style={{ fontSize: token.fontSize, color: token.colorText }}>{module.name}</span>
             {module.template && module.name !== templateNames[module.template] && (
-              <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+              <Tag style={{ margin: 0, fontSize: token.fontSizeSM, lineHeight: '18px', padding: '0 8px', borderRadius: 999 }} className="shrink-0 whitespace-nowrap">
                 {templateNames[module.template] || module.template}
-              </span>
+              </Tag>
             )}
           </div>
           <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-            <Button type="text" size="small" icon={<MoreOutlined />} onClick={e => e.stopPropagation()} className="text-gray-400 hover:text-gray-600 shrink-0" />
+            <Button type="text" size="small" icon={<MoreOutlined />} onClick={e => e.stopPropagation()} style={{ color: token.colorTextTertiary }} className="shrink-0" />
           </Dropdown>
         </div>
       </div>
@@ -380,7 +382,7 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
         <div className="text-center p-8">
           <Empty 
             description={
-              <span className="text-gray-600">{t('loadFailed') || '加载失败'}</span>
+              <span style={{ color: token.colorTextSecondary }}>{t('loadFailed') || '加载失败'}</span>
             } 
           />
           <Button 
@@ -397,13 +399,12 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-800 m-0">{t('moduleManager') || '模块管理'}</h3>
+      <div className="flex items-center justify-between mb-6 pb-3" style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+        <h3 className="m-0" style={{ fontSize: token.fontSizeLG, fontWeight: 600, color: token.colorText }}>{t('moduleManager') || '模块管理'}</h3>
         <Button
           type="primary"
           icon={<PlusOutlined />}
           onClick={() => setIsAddModalOpen(true)}
-          className="rounded-lg bg-blue-600 hover:bg-blue-700"
         >
           {t('addModule') || '添加模块'}
         </Button>
@@ -414,7 +415,7 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
           <div className="text-center py-12">
             <Empty 
               description={
-                <span className="text-gray-600">{t('noModules') || '暂无模块，点击上方按钮添加'}</span>
+                <span style={{ color: token.colorTextSecondary }}>{t('noModules') || '暂无模块，点击上方按钮添加'}</span>
               } 
             />
           </div>
@@ -448,12 +449,11 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
         confirmLoading={isSubmitting}
         okText={t('confirm') || '确认'}
         cancelText={t('cancel') || '取消'}
-        className="rounded-xl"
         width={600}
       >
         <div className="py-4">
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('moduleName') || '模块名称'}</label>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>{t('moduleName') || '模块名称'}</Text>
             <Input
               value={moduleName}
               onChange={e => setModuleName(e.target.value)}
@@ -462,26 +462,36 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">{t('moduleTemplate') || '模块模板'}</label>
+            <Text strong style={{ display: 'block', marginBottom: 12 }}>{t('moduleTemplate') || '模块模板'}</Text>
             <div className="grid grid-cols-3 gap-3">
               {Object.entries(templateNames).map(([key, name]) => (
                 <div
                   key={key}
-                  className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors ${moduleTemplate === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
+                  className="flex items-center gap-2 p-3 rounded-lg cursor-pointer"
+                  style={{
+                    border: `1px solid ${moduleTemplate === key ? token.colorPrimary : token.colorBorderSecondary}`,
+                    background: moduleTemplate === key ? token.colorPrimaryBg : token.colorBgContainer,
+                    transition: `all ${token.motionDurationMid}`,
+                  }}
                   onClick={() => setModuleTemplate(key)}
                 >
                   <span style={getTemplateColor(key, token)}>
                     {templateIcons[key]}
                   </span>
-                  <span className="text-sm text-gray-700">{name}</span>
+                  <span style={{ color: token.colorTextSecondary, fontSize: token.fontSizeSM }}>{name}</span>
                 </div>
               ))}
               <div
-                className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors ${moduleTemplate === null ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
+                className="flex items-center gap-2 p-3 rounded-lg cursor-pointer"
+                style={{
+                  border: `1px solid ${moduleTemplate === null ? token.colorPrimary : token.colorBorderSecondary}`,
+                  background: moduleTemplate === null ? token.colorPrimaryBg : token.colorBgContainer,
+                  transition: `all ${token.motionDurationMid}`,
+                }}
                 onClick={() => setModuleTemplate(null)}
               >
-                <FileTextOutlined className="text-gray-500" />
-                <span className="text-sm text-gray-700">{t('custom') || '自定义'}</span>
+                <FileTextOutlined style={{ color: token.colorTextSecondary }} />
+                <span style={{ color: token.colorTextSecondary, fontSize: token.fontSizeSM }}>{t('custom') || '自定义'}</span>
               </div>
             </div>
           </div>
@@ -501,12 +511,11 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
         confirmLoading={isSubmitting}
         okText={t('confirm') || '确认'}
         cancelText={t('cancel') || '取消'}
-        className="rounded-xl"
         width={600}
       >
         <div className="py-4">
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('moduleName') || '模块名称'}</label>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>{t('moduleName') || '模块名称'}</Text>
             <Input
               value={moduleName}
               onChange={e => setModuleName(e.target.value)}
@@ -515,26 +524,36 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">{t('moduleTemplate') || '模块模板'}</label>
+            <Text strong style={{ display: 'block', marginBottom: 12 }}>{t('moduleTemplate') || '模块模板'}</Text>
             <div className="grid grid-cols-3 gap-3">
               {Object.entries(templateNames).map(([key, name]) => (
                 <div
                   key={key}
-                  className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors ${moduleTemplate === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
+                  className="flex items-center gap-2 p-3 rounded-lg cursor-pointer"
+                  style={{
+                    border: `1px solid ${moduleTemplate === key ? token.colorPrimary : token.colorBorderSecondary}`,
+                    background: moduleTemplate === key ? token.colorPrimaryBg : token.colorBgContainer,
+                    transition: `all ${token.motionDurationMid}`,
+                  }}
                   onClick={() => setModuleTemplate(key)}
                 >
                   <span style={getTemplateColor(key, token)}>
                     {templateIcons[key]}
                   </span>
-                  <span className="text-sm text-gray-700">{name}</span>
+                  <span style={{ color: token.colorTextSecondary, fontSize: token.fontSizeSM }}>{name}</span>
                 </div>
               ))}
               <div
-                className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors ${moduleTemplate === null ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
+                className="flex items-center gap-2 p-3 rounded-lg cursor-pointer"
+                style={{
+                  border: `1px solid ${moduleTemplate === null ? token.colorPrimary : token.colorBorderSecondary}`,
+                  background: moduleTemplate === null ? token.colorPrimaryBg : token.colorBgContainer,
+                  transition: `all ${token.motionDurationMid}`,
+                }}
                 onClick={() => setModuleTemplate(null)}
               >
-                <FileTextOutlined className="text-gray-500" />
-                <span className="text-sm text-gray-700">{t('custom') || '自定义'}</span>
+                <FileTextOutlined style={{ color: token.colorTextSecondary }} />
+                <span style={{ color: token.colorTextSecondary, fontSize: token.fontSizeSM }}>{t('custom') || '自定义'}</span>
               </div>
             </div>
           </div>

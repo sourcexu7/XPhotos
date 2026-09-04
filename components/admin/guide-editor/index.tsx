@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslations } from 'next-intl'
-import { Button, Drawer, Space, App, Typography, Spin, Empty, Tooltip, Dropdown, theme } from 'antd'
+import { Button, Drawer, Space, App, Typography, Spin, Empty, Tooltip, theme } from 'antd'
 import { 
   UnorderedListOutlined,
   SaveOutlined,
@@ -13,7 +13,6 @@ import {
   ReloadOutlined,
   PictureOutlined,
   GlobalOutlined,
-  MoreOutlined,
 } from '@ant-design/icons'
 import ModuleManager from './module-manager'
 import ContentEditor from './content-editor'
@@ -255,28 +254,6 @@ export default function GuideEditor({ guideId, guideShow, onSave }: GuideEditorP
     )
   }
 
-  // 次操作菜单（低频操作收入 More 下拉）
-  const moreMenuItems = [
-    {
-      key: 'refresh',
-      icon: <ReloadOutlined />,
-      label: t('refreshData'),
-      onClick: () => mutate(`${API_BASE}/module/${guideId}`),
-    },
-    {
-      key: 'cover',
-      icon: <PictureOutlined />,
-      label: t('coverSettings'),
-      onClick: () => setIsCoverDrawerOpen(true),
-    },
-    {
-      key: 'fullscreen',
-      icon: isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />,
-      label: isFullscreen ? t('exitFullscreen') : t('fullscreenEdit'),
-      onClick: toggleFullscreen,
-    },
-  ]
-
   return (
     <div style={{
       height: '100%',
@@ -301,7 +278,7 @@ export default function GuideEditor({ guideId, guideShow, onSave }: GuideEditorP
             {isPreviewMode ? t('previewMode') : t('editMode')}
           </Typography.Text>
         </div>
-        <Space size="middle">
+        <Space size="middle" wrap>
           {/* 高频操作 */}
           <Tooltip title={isPreviewMode ? t('switchToEdit') : t('switchToPreview')}>
             <Button 
@@ -320,19 +297,34 @@ export default function GuideEditor({ guideId, guideShow, onSave }: GuideEditorP
               {t('frontendPreview') || '前台预览'}
             </Button>
           </Tooltip>
-          <Button 
-            icon={<UnorderedListOutlined />} 
+          <Button
+            icon={<UnorderedListOutlined />}
             onClick={() => setIsTocDrawerOpen(true)}
           >
             {t('tocManager')}
           </Button>
-          {/* 低频操作收入 More */}
-          <Dropdown menu={{ items: moreMenuItems }} placement="bottomRight">
-            <Button icon={<MoreOutlined />} />
-          </Dropdown>
-          <Button 
-            type="primary" 
-            icon={<SaveOutlined />} 
+          {/* 高频操作完整平铺：刷新数据 → 封面设置 → 全屏编辑/退出全屏 */}
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => mutate(`${API_BASE}/module/${guideId}`)}
+          >
+            {t('refreshData')}
+          </Button>
+          <Button
+            icon={<PictureOutlined />}
+            onClick={() => setIsCoverDrawerOpen(true)}
+          >
+            {t('coverSettings')}
+          </Button>
+          <Button
+            icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+            onClick={toggleFullscreen}
+          >
+            {isFullscreen ? t('exitFullscreen') : t('fullscreenEdit')}
+          </Button>
+          <Button
+            type="primary"
+            icon={<SaveOutlined />}
             onClick={handleSave}
           >
             {t('save')}
@@ -432,6 +424,17 @@ export default function GuideEditor({ guideId, guideShow, onSave }: GuideEditorP
         size="large"
         onClose={() => setIsCoverDrawerOpen(false)}
         open={isCoverDrawerOpen}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              onClick={handleSave}
+            >
+              {t('save')}
+            </Button>
+          </div>
+        }
       >
         <GuideCoverEditor
           guideId={guideId}

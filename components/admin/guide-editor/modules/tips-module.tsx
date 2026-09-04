@@ -11,7 +11,7 @@ import {
   theme,
 } from 'antd'
 import { BulbOutlined } from '@ant-design/icons'
-import ModuleBase from './module-base'
+import ModuleBase, { MODAL_WIDTH, createRecordId } from './module-base'
 
 const { TextArea } = Input
 const { Text } = Typography
@@ -53,10 +53,10 @@ export default function TipsModule({ value, onChange }: TipsModuleProps) {
       icon={<BulbOutlined />}
       records={(value || []) as any}
       onChange={(records) => onChange(records as Tip[])}
-      modalWidth={600}
+      modalWidth={MODAL_WIDTH.M}
       getDefaultRecord={() =>
         ({
-          id: Date.now().toString(),
+          id: createRecordId(),
           title: '',
           content: '',
           type: 'info' as const,
@@ -106,7 +106,7 @@ export default function TipsModule({ value, onChange }: TipsModuleProps) {
             name="content"
             rules={[{ required: true, message: '请输入内容' }]}
           >
-            <TextArea rows={4} placeholder="请输入内容" />
+            <TextArea rows={4} placeholder="请输入内容" showCount maxLength={300} />
           </Form.Item>
 
           <Form.Item label="类型" name="type">

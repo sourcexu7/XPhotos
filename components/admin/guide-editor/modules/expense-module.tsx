@@ -21,8 +21,9 @@ import {
   ShoppingCartOutlined,
   MoreOutlined,
 } from '@ant-design/icons'
-import ModuleBase from './module-base'
+import ModuleBase, { FormGrid, MODAL_WIDTH, createRecordId, formatMoney } from './module-base'
 
+const { TextArea } = Input
 const { Text } = Typography
 
 interface ExpenseItem {
@@ -88,13 +89,13 @@ export default function ExpenseModule({ value, onChange }: ExpenseModuleProps) {
         >
           {record.channel && <span>渠道：{record.channel}</span>}
           {record.unitPrice !== undefined && record.unitPrice !== null && (
-            <span>单价：¥{record.unitPrice}</span>
+            <span>单价：¥{formatMoney(record.unitPrice)}</span>
           )}
         </Space>
 
         <div style={{ marginTop: token.marginXS }}>
           <Text strong style={{ color: token.colorError }}>
-            {`小计：¥${record.subtotal || 0}`}
+            {`小计：¥${formatMoney(record.subtotal)}`}
           </Text>
         </div>
 
@@ -115,7 +116,7 @@ export default function ExpenseModule({ value, onChange }: ExpenseModuleProps) {
 
   const renderEditForm = () => (
     <>
-      <div className="grid grid-cols-2 gap-4">
+      <FormGrid>
         <Form.Item
           label="事项名称"
           name="name"
@@ -126,9 +127,9 @@ export default function ExpenseModule({ value, onChange }: ExpenseModuleProps) {
         <Form.Item label="详情" name="detail">
           <Input placeholder="例如：G189 19:45-21:01" />
         </Form.Item>
-      </div>
+      </FormGrid>
 
-      <div className="grid grid-cols-3 gap-4">
+      <FormGrid>
         <Form.Item label="类型" name="type">
           <Input placeholder="例如：高铁、飞机" />
         </Form.Item>
@@ -141,9 +142,9 @@ export default function ExpenseModule({ value, onChange }: ExpenseModuleProps) {
             placeholder="请选择分类"
           />
         </Form.Item>
-      </div>
+      </FormGrid>
 
-      <div className="grid grid-cols-2 gap-4">
+      <FormGrid>
         <Form.Item
           label="单价"
           name="unitPrice"
@@ -166,10 +167,10 @@ export default function ExpenseModule({ value, onChange }: ExpenseModuleProps) {
             min={0}
           />
         </Form.Item>
-      </div>
+      </FormGrid>
 
       <Form.Item label="备注" name="notes">
-        <Input placeholder="备注信息" />
+        <TextArea rows={2} placeholder="请输入备注" showCount maxLength={200} />
       </Form.Item>
     </>
   )
@@ -180,9 +181,9 @@ export default function ExpenseModule({ value, onChange }: ExpenseModuleProps) {
       icon={<DollarOutlined />}
       records={(value || []) as any}
       onChange={onChange as any}
-      modalWidth={640}
+      modalWidth={MODAL_WIDTH.M}
       getDefaultRecord={() => ({
-        id: Date.now().toString(),
+        id: createRecordId(),
         name: '',
         detail: '',
         type: '',

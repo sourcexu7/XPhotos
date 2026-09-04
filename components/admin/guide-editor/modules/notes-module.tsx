@@ -16,7 +16,7 @@ import {
   WarningOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons'
-import ModuleBase, { ModuleRecord } from './module-base'
+import ModuleBase, { ModuleRecord, FormGrid, MODAL_WIDTH, createRecordId } from './module-base'
 
 const { TextArea } = Input
 const { Text } = Typography
@@ -79,8 +79,12 @@ export default function NotesModule({ value, onChange }: NotesModuleProps) {
 
   const renderEditForm = () => (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: token.paddingMD }}>
-        <Form.Item label="标题" name="title">
+      <FormGrid>
+        <Form.Item
+          label="标题"
+          name="title"
+          rules={[{ required: true, message: '请输入要点标题' }]}
+        >
           <Input placeholder="请输入要点标题" />
         </Form.Item>
         <Form.Item label="优先级" name="priority">
@@ -89,9 +93,9 @@ export default function NotesModule({ value, onChange }: NotesModuleProps) {
         <Form.Item label="分类" name="category">
           <Input placeholder="例如：签证/安全/交通" />
         </Form.Item>
-      </div>
+      </FormGrid>
       <Form.Item label="内容" name="content">
-        <TextArea rows={4} placeholder="请输入详细内容" />
+        <TextArea rows={4} placeholder="请输入详细内容" showCount maxLength={500} />
       </Form.Item>
     </>
   )
@@ -102,10 +106,10 @@ export default function NotesModule({ value, onChange }: NotesModuleProps) {
       icon={<InfoCircleOutlined />}
       records={(value || []) as ModuleRecord[]}
       onChange={(records) => onChange(records as NoteItem[])}
-      modalWidth={640}
+      modalWidth={MODAL_WIDTH.M}
       addButtonText="添加要点"
       getDefaultRecord={() =>
-        ({ id: Date.now().toString(), priority: 'medium' } as NoteItem)
+        ({ id: createRecordId(), priority: 'medium' } as NoteItem)
       }
       renderItem={renderItem}
       renderEditForm={renderEditForm}

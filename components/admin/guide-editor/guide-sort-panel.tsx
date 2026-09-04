@@ -11,6 +11,8 @@ import {
   Tag,
   Tooltip,
   Popconfirm,
+  theme,
+  Alert,
 } from 'antd'
 import {
   ArrowUpOutlined,
@@ -46,6 +48,7 @@ export default function GuideSortPanel({ open, onClose, onSuccess }: GuideSortPa
   const [saving, setSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const [originalSorts, setOriginalSorts] = useState<Map<string, number>>(new Map())
+  const { token } = theme.useToken()
 
   useEffect(() => {
     if (open) {
@@ -204,7 +207,7 @@ export default function GuideSortPanel({ open, onClose, onSuccess }: GuideSortPa
       render: (text: string, record: Guide) => (
         <div>
           <Text strong>{text}</Text>
-          <div className="text-gray-500 text-xs mt-1">
+          <div className="mt-1" style={{ color: token.colorTextTertiary, fontSize: token.fontSizeSM }}>
             {record.country} · {record.city}
           </div>
         </div>
@@ -327,11 +330,12 @@ export default function GuideSortPanel({ open, onClose, onSuccess }: GuideSortPa
         </Button>,
       ]}
     >
-      <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-        <Text type="secondary" className="text-sm">
-          💡 提示：使用操作按钮调整攻略显示顺序，数值越小越靠前。调整完成后点击"保存排序"生效。
-        </Text>
-      </div>
+      <Alert
+        className="mb-4"
+        type="info"
+        showIcon
+        message="使用操作按钮调整攻略显示顺序，数值越小越靠前。调整完成后点击“保存排序”生效。"
+      />
 
       <Table
         columns={columns}
@@ -343,7 +347,7 @@ export default function GuideSortPanel({ open, onClose, onSuccess }: GuideSortPa
         scroll={{ y: 500 }}
       />
 
-      <div className="mt-4 text-gray-500 text-sm">
+      <div className="mt-4" style={{ color: token.colorTextTertiary, fontSize: token.fontSizeSM }}>
         共 {guides.length} 个攻略
       </div>
     </Modal>

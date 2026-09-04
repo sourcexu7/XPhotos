@@ -18,7 +18,7 @@ import {
   EnvironmentOutlined,
   BulbOutlined,
 } from '@ant-design/icons'
-import ModuleBase from './module-base'
+import ModuleBase, { FormGrid, FormDatePicker, FormTimePicker, MODAL_WIDTH, createRecordId } from './module-base'
 
 const { TextArea } = Input
 const { Text } = Typography
@@ -164,7 +164,7 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
 
   const renderEditForm = () => (
     <>
-      <div className="grid grid-cols-2 gap-4">
+      <FormGrid>
         <Form.Item
           label="第几天"
           name="day"
@@ -173,11 +173,8 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
           <InputNumber min={1} placeholder="例如：1" style={{ width: '100%' }} />
         </Form.Item>
         <Form.Item label="日期" name="date">
-          <Input placeholder="例如：2024-01-01" />
+          <FormDatePicker placeholder="选择日期" />
         </Form.Item>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <Form.Item
           label="活动类型"
           name="type"
@@ -186,15 +183,8 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
           <Select options={activityTypeOptions} placeholder="请选择活动类型" />
         </Form.Item>
         <Form.Item label="时间" name="time">
-          <Input placeholder="例如：09:00" />
+          <FormTimePicker placeholder="选择时间" />
         </Form.Item>
-      </div>
-
-      <Form.Item label="当日标题" name="title">
-        <Input placeholder="例如：第一天：落地科莫多" />
-      </Form.Item>
-
-      <div className="grid grid-cols-2 gap-4">
         <Form.Item label="时长" name="duration">
           <Input placeholder="例如：2小时" />
         </Form.Item>
@@ -208,7 +198,11 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
             placeholder="请输入地点"
           />
         </Form.Item>
-      </div>
+      </FormGrid>
+
+      <Form.Item label="当日标题" name="title">
+        <Input placeholder="例如：第一天：落地科莫多" />
+      </Form.Item>
 
       <Form.Item label="描述" name="description">
         <TextArea
@@ -244,9 +238,9 @@ export default function ItineraryModule({ value, onChange }: ItineraryModuleProp
       icon={<CalendarOutlined />}
       records={(value || []) as any}
       onChange={onChange as any}
-      modalWidth={640}
+      modalWidth={MODAL_WIDTH.M}
       getDefaultRecord={() => ({
-        id: Date.now().toString(),
+        id: createRecordId(),
         day: 1,
         title: '',
         date: '',

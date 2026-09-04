@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Drawer, Input, Button, Space, App, Card, Tag, Alert, Typography, Collapse, InputNumber, Progress } from 'antd'
+import { Drawer, Input, Button, Space, App, Card, Tag, Alert, Typography, Collapse, InputNumber, Progress, Checkbox, theme } from 'antd'
 import { RobotOutlined, ImportOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
@@ -141,6 +141,7 @@ function validateModule(mod: ParsedModule): { valid: boolean; warnings: string[]
 
 export default function AIImportDrawer({ open, onClose }: AIImportDrawerProps) {
   const { message } = App.useApp()
+  const { token } = theme.useToken()
   const t = useTranslations('Guides')
   const router = useRouter()
   const [rawContent, setRawContent] = useState('')
@@ -525,8 +526,7 @@ export default function AIImportDrawer({ open, onClose }: AIImportDrawerProps) {
                 key: String(index),
                 label: (
                   <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={selectedModules.has(index)}
                       onChange={() => handleToggleModule(index)}
                       className="cursor-pointer"
@@ -570,7 +570,7 @@ export default function AIImportDrawer({ open, onClose }: AIImportDrawerProps) {
                     {mod.moduleData && Array.isArray(mod.moduleData) && mod.moduleData.length > 0 && (
                       <div>
                         <Text type="secondary" className="text-xs">moduleData ({mod.moduleData.length} 条):</Text>
-                        <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded text-xs overflow-auto max-h-60 mt-1">
+                        <div className="p-3 rounded text-xs overflow-auto max-h-60 mt-1" style={{ background: token.colorBgLayout }}>
                           <pre className="whitespace-pre-wrap break-all">
                             {JSON.stringify(mod.moduleData, null, 2)}
                           </pre>
@@ -580,7 +580,7 @@ export default function AIImportDrawer({ open, onClose }: AIImportDrawerProps) {
                     {mod.contents && Array.isArray(mod.contents) && mod.contents.length > 0 && (
                       <div>
                         <Text type="secondary" className="text-xs">contents ({mod.contents.length} 条):</Text>
-                        <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded text-xs overflow-auto max-h-60 mt-1">
+                        <div className="p-3 rounded text-xs overflow-auto max-h-60 mt-1" style={{ background: token.colorBgLayout }}>
                           <pre className="whitespace-pre-wrap break-all">
                             {JSON.stringify(mod.contents, null, 2)}
                           </pre>

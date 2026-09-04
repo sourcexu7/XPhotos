@@ -16,7 +16,7 @@ import {
   DislikeOutlined,
   CommentOutlined,
 } from '@ant-design/icons'
-import ModuleBase from './module-base'
+import ModuleBase, { FormGrid, FormDatePicker, MODAL_WIDTH, createRecordId } from './module-base'
 
 const { TextArea } = Input
 const { Text, Paragraph } = Typography
@@ -64,9 +64,9 @@ export default function ReviewModule({ value, onChange }: ReviewModuleProps) {
       icon={<CommentOutlined />}
       records={value || []}
       onChange={onChange}
-      modalWidth={640}
+      modalWidth={MODAL_WIDTH.M}
       getDefaultRecord={() => ({
-        id: Date.now().toString(),
+        id: createRecordId(),
         rating: 5,
       })}
       renderItem={(item: ReviewItem) => (
@@ -120,8 +120,12 @@ export default function ReviewModule({ value, onChange }: ReviewModuleProps) {
       )}
       renderEditForm={() => (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: token.paddingMD }}>
-            <Form.Item label="景点名称" name="attractionName">
+          <FormGrid>
+            <Form.Item
+              label="景点名称"
+              name="attractionName"
+              rules={[{ required: true, message: '请输入景点名称' }]}
+            >
               <Input placeholder="例如：故宫" />
             </Form.Item>
             <Form.Item label="评分" name="rating">
@@ -134,20 +138,20 @@ export default function ReviewModule({ value, onChange }: ReviewModuleProps) {
               <Input placeholder="点评人昵称" />
             </Form.Item>
             <Form.Item label="日期" name="date">
-              <Input placeholder="例如：2024-01-15" />
+              <FormDatePicker placeholder="选择日期" />
             </Form.Item>
-          </div>
+          </FormGrid>
           <Form.Item label="点评内容" name="content">
-            <TextArea rows={4} placeholder="请输入点评内容" />
+            <TextArea rows={4} placeholder="请输入点评内容" showCount maxLength={500} />
           </Form.Item>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: token.paddingMD }}>
+          <FormGrid>
             <Form.Item label="优点" name="pros">
-              <TextArea rows={2} placeholder="景点优点" />
+              <TextArea rows={2} placeholder="景点优点" showCount maxLength={200} />
             </Form.Item>
             <Form.Item label="缺点" name="cons">
-              <TextArea rows={2} placeholder="景点不足之处" />
+              <TextArea rows={2} placeholder="景点不足之处" showCount maxLength={200} />
             </Form.Item>
-          </div>
+          </FormGrid>
         </>
       )}
     />

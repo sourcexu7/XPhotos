@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { Button, Dropdown, Spin, Empty, Modal, Input, Select, App, Alert, theme } from 'antd'
+import { Button, Dropdown, Spin, Empty, Modal, Input, Select, App, Alert, theme, Checkbox, Typography, Tag } from 'antd'
+import { createRecordId } from '~/components/admin/guide-editor/modules/module-base'
 import { 
   PlusOutlined,
   HolderOutlined,
@@ -37,6 +38,8 @@ import TimelineModule from './modules/timeline-module'
 import NotesModule from './modules/notes-module'
 import ReviewModule from './modules/review-module'
 import SeatModule from './modules/seat-module'
+
+const { Text } = Typography
 
 const API_BASE = '/api/v1/guide-modules'
 
@@ -101,6 +104,7 @@ interface SortableContentItemProps {
 function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemProps) {
   const t = useTranslations('GuideEditor')
   const { token } = theme.useToken()
+  const [hovered, setHovered] = useState(false)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: content.id })
 
   const style = {
@@ -132,15 +136,15 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
       case 'text':
       case 'markdown':
         return (
-          <div className="text-gray-700 text-sm line-clamp-3">
+          <div className="line-clamp-3" style={{ color: token.colorTextSecondary, fontSize: token.fontSizeSM }}>
             {content.content?.text?.slice(0, 100) || content.content?.content?.slice(0, 100) || '空文本'}
           </div>
         )
       case 'image':
         return (
           <div className="flex items-center gap-2">
-            <PictureOutlined className="text-green-500" />
-            <span className="text-sm text-gray-700">
+            <PictureOutlined style={{ color: token.colorSuccess }} />
+            <span style={{ color: token.colorTextSecondary, fontSize: token.fontSizeSM }}>
               {content.content?.caption || '图片'}
             </span>
           </div>
@@ -148,8 +152,8 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
       case 'video':
         return (
           <div className="flex items-center gap-2">
-            <VideoCameraOutlined className="text-purple-500" />
-            <span className="text-sm text-gray-700">
+            <VideoCameraOutlined style={{ color: token['purple-5'] }} />
+            <span style={{ color: token.colorTextSecondary, fontSize: token.fontSizeSM }}>
               {content.content?.caption || '视频'}
             </span>
           </div>
@@ -157,8 +161,8 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
       case 'code':
         return (
           <div className="flex items-center gap-2">
-            <CodeOutlined className="text-blue-500" />
-            <span className="text-sm text-gray-700">
+            <CodeOutlined style={{ color: token.colorPrimary }} />
+            <span style={{ color: token.colorTextSecondary, fontSize: token.fontSizeSM }}>
               {content.content?.language || '代码块'}
             </span>
           </div>
@@ -166,8 +170,8 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
       case 'link':
         return (
           <div className="flex items-center gap-2">
-            <LinkOutlined className="text-cyan-500" />
-            <span className="text-sm text-gray-700 truncate">
+            <LinkOutlined style={{ color: token['cyan-5'] }} />
+            <span className="truncate" style={{ color: token.colorTextSecondary, fontSize: token.fontSizeSM }}>
               {content.content?.title || content.content?.url || '链接'}
             </span>
           </div>
@@ -177,15 +181,23 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
         const completed = tasks.filter((t: any) => t.completed).length
         return (
           <div className="flex items-center gap-2">
-            <CheckSquareOutlined className="text-orange-500" />
-            <span className="text-sm text-gray-700">
+            <CheckSquareOutlined style={{ color: token.colorWarning }} />
+            <span style={{ color: token.colorTextSecondary, fontSize: token.fontSizeSM }}>
               任务列表 ({completed}/{tasks.length})
             </span>
           </div>
         )
       case 'quote':
         return (
-          <div className="border-l-4 border-gray-300 pl-3 text-gray-700 text-sm italic">
+          <div
+            className="italic"
+            style={{
+              borderLeft: `4px solid ${token.colorBorder}`,
+              paddingLeft: token.paddingSM,
+              color: token.colorTextSecondary,
+              fontSize: token.fontSizeSM,
+            }}
+          >
             {content.content?.text?.slice(0, 50) || '引用'}
           </div>
         )
@@ -198,7 +210,7 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
           />
         )
       case 'divider':
-        return <div className="border-t border-gray-200 my-2" />
+        return <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}`, margin: `${token.marginXS}px 0` }} />
       case 'highlight':
         return (
           <Alert
@@ -210,21 +222,21 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
       case 'table':
         return (
           <div className="flex items-center gap-2">
-            <TableOutlined className="text-indigo-500" />
-            <span className="text-sm text-gray-700">表格</span>
+            <TableOutlined style={{ color: token['geekblue-5'] }} />
+            <span style={{ color: token.colorTextSecondary, fontSize: token.fontSizeSM }}>表格</span>
           </div>
         )
       case 'latex':
         return (
           <div className="flex items-center gap-2">
-            <FunctionOutlined className="text-pink-500" />
-            <span className="text-sm text-gray-700 font-mono">
+            <FunctionOutlined style={{ color: token['magenta-5'] }} />
+            <span className="font-mono" style={{ color: token.colorTextSecondary, fontSize: token.fontSizeSM }}>
               {content.content?.formula?.slice(0, 30) || 'LaTeX'}
             </span>
           </div>
         )
       default:
-        return <span className="text-gray-500">未知类型</span>
+        return <span style={{ color: token.colorTextSecondary }}>未知类型</span>
     }
   }
 
@@ -246,14 +258,24 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
-      <div className="mb-3 p-4 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200">
+      <div
+        className="mb-3 p-4 rounded-lg"
+        style={{
+          border: `1px solid ${hovered ? token.colorPrimaryBorder : token.colorBorderSecondary}`,
+          background: hovered ? token.colorFillQuaternary : token.colorBgContainer,
+          transition: `all ${token.motionDurationMid}`,
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
         <div className="flex items-start gap-3">
           <div
             {...listeners}
             role="button"
             aria-label={t('dragToSort') || '拖拽调整顺序'}
             tabIndex={0}
-            className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 mt-1"
+            className="cursor-grab active:cursor-grabbing mt-1"
+            style={{ color: token.colorTextTertiary }}
           >
             <HolderOutlined />
           </div>
@@ -262,14 +284,14 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
               <span style={getContentTypeColor(content.type)}>
                 {contentTypeIcons[content.type]}
               </span>
-              <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+              <Tag style={{ margin: 0, fontSize: token.fontSizeSM, lineHeight: '18px', padding: '0 8px', borderRadius: 999 }}>
                 {contentTypeNames[content.type] || content.type}
-              </span>
+              </Tag>
             </div>
             {renderContentPreview()}
           </div>
           <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-            <Button type="text" size="small" icon={<MoreOutlined />} className="text-gray-400 hover:text-gray-600" />
+            <Button type="text" size="small" icon={<MoreOutlined />} style={{ color: token.colorTextTertiary }} />
           </Dropdown>
         </div>
       </div>
@@ -285,6 +307,7 @@ interface ContentEditorProps {
 export default function ContentEditor({ module, onContentDataChange }: ContentEditorProps) {
   const t = useTranslations('GuideEditor')
   const { message } = App.useApp()
+  const { token } = theme.useToken()
   const [editingContent, setEditingContent] = useState<Content | null>(null)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -521,9 +544,9 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
         return (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>
                 {newContentType === 'markdown' ? 'Markdown 内容' : '文本内容'}
-              </label>
+              </Text>
               <Input.TextArea
                 rows={14}
                 placeholder={
@@ -542,7 +565,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
         return (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">图片URL</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>图片URL</Text>
               <Input
                 value={contentData.url || ''}
                 onChange={e => setContentData({ ...contentData, url: e.target.value })}
@@ -550,7 +573,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">图片说明</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>图片说明</Text>
               <Input
                 value={contentData.caption || ''}
                 onChange={e => setContentData({ ...contentData, caption: e.target.value })}
@@ -558,7 +581,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Alt文本</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>Alt文本</Text>
               <Input
                 value={contentData.alt || ''}
                 onChange={e => setContentData({ ...contentData, alt: e.target.value })}
@@ -571,7 +594,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
         return (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">视频平台</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>视频平台</Text>
               <Select
                 value={contentData.platform || 'youtube'}
                 onChange={v => setContentData({ ...contentData, platform: v })}
@@ -584,7 +607,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">视频URL/ID</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>视频URL/ID</Text>
               <Input
                 value={contentData.url || ''}
                 onChange={e => setContentData({ ...contentData, url: e.target.value })}
@@ -592,7 +615,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">视频说明</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>视频说明</Text>
               <Input
                 value={contentData.caption || ''}
                 onChange={e => setContentData({ ...contentData, caption: e.target.value })}
@@ -605,7 +628,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
         return (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">编程语言</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>编程语言</Text>
               <Select
                 value={contentData.language || 'javascript'}
                 onChange={v => setContentData({ ...contentData, language: v })}
@@ -624,7 +647,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">代码内容</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>代码内容</Text>
               <Input.TextArea
                 value={contentData.code || ''}
                 onChange={e => setContentData({ ...contentData, code: e.target.value })}
@@ -638,7 +661,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
       case 'latex':
         return (
           <div>
-            <label className="block text-sm font-medium mb-2">LaTeX公式</label>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>LaTeX公式</Text>
             <Input.TextArea
               value={contentData.formula || ''}
               onChange={e => setContentData({ ...contentData, formula: e.target.value })}
@@ -652,7 +675,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
         return (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">链接URL</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>链接URL</Text>
               <Input
                 value={contentData.url || ''}
                 onChange={e => setContentData({ ...contentData, url: e.target.value })}
@@ -660,7 +683,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">标题</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>标题</Text>
               <Input
                 value={contentData.title || ''}
                 onChange={e => setContentData({ ...contentData, title: e.target.value })}
@@ -668,7 +691,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">描述</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>描述</Text>
               <Input.TextArea
                 value={contentData.description || ''}
                 onChange={e => setContentData({ ...contentData, description: e.target.value })}
@@ -677,7 +700,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">封面图片URL</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>封面图片URL</Text>
               <Input
                 value={contentData.image || ''}
                 onChange={e => setContentData({ ...contentData, image: e.target.value })}
@@ -689,19 +712,17 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
       case 'task':
         return (
           <div>
-            <label className="block text-sm font-medium mb-2">任务列表</label>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>任务列表</Text>
             <div className="space-y-2">
               {(contentData.tasks || []).map((task: any, index: number) => (
                 <div key={task.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={task.completed}
                     onChange={e => {
                       const newTasks = [...contentData.tasks]
                       newTasks[index].completed = e.target.checked
                       setContentData({ ...contentData, tasks: newTasks })
                     }}
-                    className="w-4 h-4"
                   />
                   <Input
                     value={task.text}
@@ -729,7 +750,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
                 type="dashed"
                 block
                 onClick={() => {
-                  const newTask = { id: Date.now().toString(), text: '', completed: false }
+                  const newTask = { id: createRecordId(), text: '', completed: false }
                   setContentData({ ...contentData, tasks: [...(contentData.tasks || []), newTask] })
                 }}
               >
@@ -742,7 +763,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
         return (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">引用内容</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>引用内容</Text>
               <Input.TextArea
                 value={contentData.text || ''}
                 onChange={e => setContentData({ ...contentData, text: e.target.value })}
@@ -751,7 +772,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">作者/来源</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>作者/来源</Text>
               <Input
                 value={contentData.author || ''}
                 onChange={e => setContentData({ ...contentData, author: e.target.value })}
@@ -764,7 +785,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
         return (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">警告类型</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>警告类型</Text>
               <Select
                 value={contentData.type || 'warning'}
                 onChange={v => setContentData({ ...contentData, type: v })}
@@ -778,7 +799,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">标题</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>标题</Text>
               <Input
                 value={contentData.title || ''}
                 onChange={e => setContentData({ ...contentData, title: e.target.value })}
@@ -786,7 +807,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">内容</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>内容</Text>
               <Input.TextArea
                 value={contentData.text || ''}
                 onChange={e => setContentData({ ...contentData, text: e.target.value })}
@@ -799,7 +820,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
       case 'divider':
         return (
           <div>
-            <label className="block text-sm font-medium mb-2">分割线样式</label>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>分割线样式</Text>
             <Select
               value={contentData.style || 'solid'}
               onChange={v => setContentData({ ...contentData, style: v })}
@@ -816,7 +837,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
         return (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">高亮颜色</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>高亮颜色</Text>
               <Select
                 value={contentData.color || 'blue'}
                 onChange={v => setContentData({ ...contentData, color: v })}
@@ -831,7 +852,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">高亮内容</label>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>高亮内容</Text>
               <Input.TextArea
                 value={contentData.text || ''}
                 onChange={e => setContentData({ ...contentData, text: e.target.value })}
@@ -844,13 +865,13 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
       case 'table':
         return (
           <div>
-            <label className="block text-sm font-medium mb-2">表格内容</label>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>表格内容</Text>
             <div className="overflow-auto">
-              <table className="w-full border-collapse border border-gray-300">
+              <table className="w-full border-collapse" style={{ border: `1px solid ${token.colorBorder}` }}>
                 <thead>
                   <tr>
                     {(contentData.headers || []).map((header: string, index: number) => (
-                      <th key={index} className="border border-gray-300 p-2">
+                      <th key={index} style={{ border: `1px solid ${token.colorBorder}`, padding: 8 }}>
                         <Input
                           value={header}
                           onChange={e => {
@@ -862,7 +883,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
                         />
                       </th>
                     ))}
-                    <th className="border border-gray-300 p-2 w-10">
+                    <th className="w-10" style={{ border: `1px solid ${token.colorBorder}`, padding: 8 }}>
                       <Button
                         size="small"
                         onClick={() => {
@@ -882,7 +903,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
                   {(contentData.rows || []).map((row: string[], rowIndex: number) => (
                     <tr key={rowIndex}>
                       {row.map((cell, cellIndex) => (
-                        <td key={cellIndex} className="border border-gray-300 p-2">
+                        <td key={cellIndex} style={{ border: `1px solid ${token.colorBorder}`, padding: 8 }}>
                           <Input
                             value={cell}
                             onChange={e => {
@@ -894,7 +915,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
                           />
                         </td>
                       ))}
-                      <td className="border border-gray-300 p-2">
+                      <td style={{ border: `1px solid ${token.colorBorder}`, padding: 8 }}>
                         <Button
                           size="small"
                           danger
@@ -1028,11 +1049,11 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
 
   if (!module) {
     return (
-      <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+      <div className="h-full flex items-center justify-center rounded-lg" style={{ background: token.colorBgLayout }}>
         <div className="text-center p-8">
           <Empty 
             description={
-              <span className="text-gray-600">{t('selectModuleFirst') || '请先选择一个模块'}</span>
+              <span style={{ color: token.colorTextSecondary }}>{t('selectModuleFirst') || '请先选择一个模块'}</span>
             } 
           />
         </div>
@@ -1042,7 +1063,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
 
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+      <div className="h-full flex items-center justify-center rounded-lg" style={{ background: token.colorBgLayout }}>
         <Spin size="large" tip="加载中...">
           <div className="text-center p-8" />
         </Spin>
@@ -1052,11 +1073,11 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
 
   if (error) {
     return (
-      <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+      <div className="h-full flex items-center justify-center rounded-lg" style={{ background: token.colorBgLayout }}>
         <div className="text-center p-8">
           <Empty 
             description={
-              <span className="text-gray-600">{t('loadFailed') || '加载失败'}</span>
+              <span style={{ color: token.colorTextSecondary }}>{t('loadFailed') || '加载失败'}</span>
             } 
           />
           <Button 
@@ -1074,8 +1095,8 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
   if (isSpecialModule) {
     return (
       <div className="h-full flex flex-col">
-        <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800 m-0">
+        <div className="flex items-center justify-between mb-6 pb-3" style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+          <h3 className="m-0" style={{ fontSize: token.fontSizeLG, fontWeight: 600, color: token.colorText }}>
             {module.name}
           </h3>
         </div>
@@ -1088,15 +1109,14 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-800 m-0">
+      <div className="flex items-center justify-between mb-6 pb-3" style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+        <h3 className="m-0" style={{ fontSize: token.fontSizeLG, fontWeight: 600, color: token.colorText }}>
           {module.name} - {t('contentEditor') || '内容编辑'}
         </h3>
         <Dropdown menu={{ items: contentTypeMenuItems }} trigger={['click']}>
-          <Button 
-            type="primary" 
+          <Button
+            type="primary"
             icon={<PlusOutlined />}
-            className="rounded-lg bg-blue-600 hover:bg-blue-700"
           >
             {t('addContent') || '添加内容'}
           </Button>
@@ -1105,10 +1125,10 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
 
       <div className="flex-1 overflow-auto">
         {!contents || contents.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <div className="text-center rounded-lg" style={{ padding: `${token.paddingXL}px 0`, background: token.colorBgLayout }}>
             <Empty 
               description={
-                <span className="text-gray-600">{t('noContent') || '暂无内容，点击上方按钮添加'}</span>
+                <span style={{ color: token.colorTextSecondary }}>{t('noContent') || '暂无内容，点击上方按钮添加'}</span>
               } 
             />
           </div>
@@ -1140,7 +1160,6 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
         okText={t('confirm') || '确认'}
         cancelText={t('cancel') || '取消'}
         width={700}
-        className="rounded-xl"
       >
         <div className="py-4">{renderContentEditor()}</div>
       </Modal>
@@ -1158,7 +1177,6 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
         okText={t('confirm') || '确认'}
         cancelText={t('cancel') || '取消'}
         width={700}
-        className="rounded-xl"
       >
         <div className="py-4">{renderContentEditor()}</div>
       </Modal>

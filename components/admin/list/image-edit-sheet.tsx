@@ -5,8 +5,9 @@ import type { ImageType } from '~/types'
 import type { ImageServerHandleProps } from '~/types/props'
 import { useSwrInfiniteServerHook } from '~/hooks/use-swr-infinite-server-hook'
 import React, { useState, useRef, useMemo } from 'react'
-import { App as AntApp, Button, Switch, Drawer } from 'antd'
+import { App as AntApp, Button, Switch, Drawer, Input, InputNumber, DatePicker } from 'antd'
 import { ReloadOutlined } from '@ant-design/icons'
+import dayjs from 'dayjs'
 import { TagInput } from 'emblor'
 import { exifReader } from '~/lib/utils/file'
 import { useTranslations } from 'next-intl'
@@ -18,20 +19,22 @@ const GroupTitle = ({ title }: { title: string }) => (
 )
 
 const InputField = ({ label, id, value, onChange, type = 'text', placeholder = '' }: any) => (
-  <label
-    htmlFor={id}
-    className="block overflow-hidden rounded-lg border border-border px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 mb-4 bg-card transition-all duration-200"
-  >
-    <span className="text-xs font-medium text-muted-foreground">{label}</span>
-    <input
-      type={type}
-      id={id}
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 text-sm text-foreground font-normal placeholder:text-muted-foreground"
-    />
-  </label>
+  <div className="w-full space-y-1 mb-4">
+    <label htmlFor={id} className="text-xs font-medium text-muted-foreground">
+      {label}
+    </label>
+    {type === 'number' ? (
+      <InputNumber
+        id={id}
+        placeholder={placeholder}
+        value={value}
+        onChange={(v) => onChange({ target: { value: v ?? '' } })}
+        className="w-full"
+      />
+    ) : (
+      <Input id={id} type={type} placeholder={placeholder} value={value} onChange={onChange} allowClear />
+    )}
+  </div>
 )
 
 export default function ImageEditSheet(props : Readonly<ImageServerHandleProps & { pageNum: number } & { album: string }>) {
@@ -194,16 +197,24 @@ export default function ImageEditSheet(props : Readonly<ImageServerHandleProps &
               <InputField label={t('shutter')} id="exif_exposure_time" value={image?.exif?.exposure_time ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, exposure_time: e.target.value}})} />
               <InputField label={t('iso')} id="exif_iso" value={image?.exif?.iso_speed_rating ?? ''} onChange={(e:any) => setImageEditData({...image, exif: {...image.exif, iso_speed_rating: e.target.value}})} />
             </div>
-            <div className="mb-4">
-              <label className="block overflow-hidden rounded-lg border border-border px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 bg-card transition-all duration-200">
-                <span className="text-xs font-medium text-muted-foreground">{t('captureDate')}</span>
-                <input 
-                  type="date" 
-                  value={image?.exif?.data_time ? image.exif.data_time.split(' ')[0].replace(/:/g, '-') : ''} 
-                  onChange={(e) => { const dateValue = e.target.value ? `${e.target.value.replace(/-/g, ':')} 00:00:00` : ''; setImageEditData({...image, exif: {...image.exif, data_time: dateValue}}) }} 
-                  className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 text-sm text-foreground font-normal" 
-                />
-              </label>
+            <div className="mb-4 w-full space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">{t('captureDate')}</label>
+              <DatePicker
+                style={{ width: '100%' }}
+                placeholder={t('captureDate')}
+                value={
+                  image?.exif?.data_time
+                    ? dayjs(image.exif.data_time.split(' ')[0].replace(/:/g, '-'), 'YYYY-MM-DD')
+                    : undefined
+                }
+                onChange={(date) => {
+                  const dateValue = date
+                    ? `${date.format('YYYY-MM-DD').replace(/-/g, ':')} 00:00:00`
+                    : ''
+                  setImageEditData({ ...image, exif: { ...image.exif, data_time: dateValue } })
+                }}
+                allowClear
+              />
             </div>
           </div>
         </div>

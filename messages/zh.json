@@ -829,6 +829,8 @@
     "editRecord": "编辑记录",
     "noRecords": "暂无记录，点击上方按钮添加",
     "addFirst": "添加第一条",
+    "deleteConfirmTitle": "确认删除这条记录？",
+    "deleteConfirmContent": "删除后不可恢复，确定要删除吗？",
     "deleteSuccess": "删除成功",
     "updateSuccess": "保存成功",
     "updateFailed": "保存失败",

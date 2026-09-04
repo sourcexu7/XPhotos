@@ -9,7 +9,18 @@ import {
   Empty,
   Timeline,
   Rate,
+  Checkbox,
+  Progress,
+  Image as AntImage,
+  theme,
 } from 'antd'
+import {
+  EnvironmentOutlined,
+  CameraOutlined,
+  LikeOutlined,
+  DislikeOutlined,
+} from '@ant-design/icons'
+import { formatMoney } from './module-base'
 
 const { Text, Paragraph } = Typography
 
@@ -156,32 +167,47 @@ interface ModulePreviewProps {
   data: any
 }
 
+/** 空状态（与编辑列表保持一致的 AntD 范式） */
+function PreviewEmpty({ description }: { description: string }) {
+  return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={description} />
+}
+
 export default function ModulePreview({ type, data }: ModulePreviewProps) {
+  const { token } = theme.useToken()
+
+  /** 统一卡片容器样式（代替 tailwind p-3 border rounded-lg） */
+  const itemBoxStyle: React.CSSProperties = {
+    padding: token.paddingSM,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    borderRadius: token.borderRadiusLG,
+    background: token.colorBgContainer,
+  }
+
   const renderItinerary = (items: ItineraryItem[] | null) => {
     const safeItems = items || []
     return (
-      <div className="space-y-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginSM }}>
         {safeItems.length === 0 ? (
-          <div className="text-center py-4">
-            暂无行程项
-          </div>
+          <PreviewEmpty description="暂无行程项" />
         ) : (
-          <ul className="space-y-3">
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: token.marginSM, margin: 0, padding: 0, listStyle: 'none' }}>
             {safeItems.map((item) => (
-              <li key={item.id} className="p-3 border rounded-lg">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
+              <li key={item.id} style={itemBoxStyle}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginXS }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Text strong>{item.title || item.location || '未设置地点'}</Text>
                     <Text type="secondary">{item.date}</Text>
                   </div>
                   {item.location && (
-                    <Text type="secondary">📍 {item.location}</Text>
+                    <Text type="secondary" style={{ display: 'flex', alignItems: 'center', gap: token.marginXXS }}>
+                      <EnvironmentOutlined /> {item.location}
+                    </Text>
                   )}
-                  <Paragraph>{item.description || '无描述'}</Paragraph>
+                  <Paragraph style={{ marginBottom: 0 }}>{item.description || '无描述'}</Paragraph>
                   {item.highlights && item.highlights.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: token.marginXXS }}>
                       {item.highlights.map((h, i) => (
-                        <Tag key={i} color="blue">{h}</Tag>
+                        <Tag key={i} color="blue" style={{ margin: 0 }}>{h}</Tag>
                       ))}
                     </div>
                   )}
@@ -211,32 +237,30 @@ export default function ModulePreview({ type, data }: ModulePreviewProps) {
     ]
 
     return (
-      <div className="space-y-4">
-        <div className="text-xl font-bold">总费用: ¥{total}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginMD }}>
+        <Text strong style={{ fontSize: token.fontSizeLG }}>总费用: ¥{formatMoney(total)}</Text>
         {safeItems.length === 0 ? (
-          <div className="text-center py-4">
-            暂无费用项
-          </div>
+          <PreviewEmpty description="暂无费用项" />
         ) : (
-          <ul className="space-y-3">
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: token.marginSM, margin: 0, padding: 0, listStyle: 'none' }}>
             {safeItems.map((item) => (
-              <li key={item.id} className="p-3 border rounded-lg">
-                <div className="flex justify-between items-center w-full">
+              <li key={item.id} style={itemBoxStyle}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                   <div>
                     <Text strong>{item.name || '未命名'}</Text>
-                    <Tag color="blue" className="ml-2">
+                    <Tag color="blue" style={{ marginLeft: token.marginXS }}>
                       {categories.find(c => c.value === item.category)?.label || item.category}
                     </Tag>
                   </div>
-                  <Text strong type="danger">¥{item.subtotal || 0}</Text>
+                  <Text strong type="danger">¥{formatMoney(item.subtotal)}</Text>
                 </div>
                 {item.detail && (
-                  <Text type="secondary" className="mt-1 block">
+                  <Text type="secondary" style={{ display: 'block', marginTop: token.marginXXS }}>
                     {item.detail}
                   </Text>
                 )}
                 {item.notes && (
-                  <Text type="secondary" className="mt-1 block">
+                  <Text type="secondary" style={{ display: 'block', marginTop: token.marginXXS }}>
                     {item.notes}
                   </Text>
                 )}
@@ -251,11 +275,9 @@ export default function ModulePreview({ type, data }: ModulePreviewProps) {
   const renderChecklist = (categories: ChecklistCategory[] | null) => {
     const safeCategories = categories || []
     return (
-      <div className="space-y-4">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginMD }}>
         {safeCategories.length === 0 ? (
-          <div className="text-center py-4">
-            暂无检查项
-          </div>
+          <PreviewEmpty description="暂无检查项" />
         ) : (
           safeCategories.map((category) => {
             const total = category.items?.length || 0
@@ -264,20 +286,20 @@ export default function ModulePreview({ type, data }: ModulePreviewProps) {
 
             return (
               <Card key={category.id} size="small" title={category.name}>
-                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-3">
-                  <div className="h-full bg-green-500 transition-all" style={{ width: `${progress}%` }} />
-                </div>
-                <ul className="space-y-2">
+                <Progress
+                  percent={progress}
+                  size="small"
+                  showInfo={false}
+                  strokeColor={progress === 100 ? token.colorSuccess : token.colorWarning}
+                  style={{ marginBottom: token.marginSM }}
+                />
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: token.marginXS, margin: 0, padding: 0, listStyle: 'none' }}>
                   {(category.items || []).map((item) => (
-                    <li key={item.id} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={item.checked}
-                        readOnly
-                      />
-                      <div className={item.checked ? 'line-through text-gray-400' : ''}>
+                    <li key={item.id} style={{ display: 'flex', alignItems: 'center', gap: token.marginXS }}>
+                      <Checkbox checked={item.checked} disabled />
+                      <div style={{ color: item.checked ? token.colorTextTertiary : undefined, textDecoration: item.checked ? 'line-through' : undefined }}>
                         {item.name}
-                        {item.required && <Tag color="orange" className="ml-2">必带</Tag>}
+                        {item.required && <Tag color="orange" style={{ marginLeft: token.marginXS }}>必带</Tag>}
                       </div>
                     </li>
                   ))}
@@ -293,46 +315,44 @@ export default function ModulePreview({ type, data }: ModulePreviewProps) {
   const renderTransport = (items: TransportItem[] | null) => {
     const safeItems = items || []
     return (
-      <div className="space-y-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginSM }}>
         {safeItems.length === 0 ? (
-          <div className="text-center py-4">
-            暂无交通项
-          </div>
+          <PreviewEmpty description="暂无交通项" />
         ) : (
-          <ul className="space-y-3">
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: token.marginSM, margin: 0, padding: 0, listStyle: 'none' }}>
             {safeItems.map((item) => (
-              <li key={item.id} className="p-3 border rounded-lg">
+              <li key={item.id}>
                 <Card size="small">
                   {item.type === 'flight' && (
-                    <div className="space-y-1">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginXXS }}>
                       <Text strong>{item.route || '未设置航线'}</Text>
                       <Text type="secondary">{item.flightNo} · {item.date} {item.time}</Text>
                       {item.baggage && (
                         <Text>行李: {item.baggage}</Text>
                       )}
                       {item.price && (
-                        <Text type="danger">¥{item.price}</Text>
+                        <Text type="danger">¥{formatMoney(item.price)}</Text>
                       )}
                     </div>
                   )}
                   {item.type === 'train' && (
-                    <div className="space-y-1">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginXXS }}>
                       <Text strong>{item.route || '未设置路线'}</Text>
                       <Text type="secondary">{item.trainNo} · {item.date} {item.time}</Text>
                       {item.seat && (
                         <Text>座位: {item.seat}</Text>
                       )}
                       {item.price && (
-                        <Text type="danger">¥{item.price}</Text>
+                        <Text type="danger">¥{formatMoney(item.price)}</Text>
                       )}
                     </div>
                   )}
                   {item.type === 'car' && (
-                    <div className="space-y-1">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginXXS }}>
                       <Text strong>{item.company} - {item.model}</Text>
                       <Text type="secondary">{item.days}天 · {item.pickup} → {item.dropoff}</Text>
                       {item.price && (
-                        <Text type="danger">¥{item.price}</Text>
+                        <Text type="danger">¥{formatMoney(item.price)}</Text>
                       )}
                     </div>
                   )}
@@ -354,17 +374,15 @@ export default function ModulePreview({ type, data }: ModulePreviewProps) {
     ]
 
     return (
-      <div className="space-y-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginSM }}>
         {safeSpots.length === 0 ? (
-          <div className="text-center py-4">
-            暂无摄影机位
-          </div>
+          <PreviewEmpty description="暂无摄影机位" />
         ) : (
-          <ul className="space-y-3">
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: token.marginSM, margin: 0, padding: 0, listStyle: 'none' }}>
             {safeSpots.map((spot) => (
-              <li key={spot.id} className="p-3 border rounded-lg">
+              <li key={spot.id}>
                 <Card size="small">
-                  <div className="flex justify-between items-center mb-2">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: token.marginXS }}>
                     <Text strong>{spot.name}</Text>
                     <Tag color={dronePolicies.find(p => p.value === spot.dronePolicy)?.color}>
                       {dronePolicies.find(p => p.value === spot.dronePolicy)?.label}
@@ -372,7 +390,7 @@ export default function ModulePreview({ type, data }: ModulePreviewProps) {
                   </div>
                   <Text type="secondary">{spot.focalLength} · {spot.bestTime}</Text>
                   {spot.notes && (
-                    <Paragraph className="mt-2">{spot.notes}</Paragraph>
+                    <Paragraph style={{ marginTop: token.marginXS, marginBottom: 0 }}>{spot.notes}</Paragraph>
                   )}
                 </Card>
               </li>
@@ -395,23 +413,21 @@ export default function ModulePreview({ type, data }: ModulePreviewProps) {
     ]
 
     return (
-      <div className="space-y-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginSM }}>
         {safeTips.length === 0 ? (
-          <div className="text-center py-4">
-            暂无提示
-          </div>
+          <PreviewEmpty description="暂无提示" />
         ) : (
-          <ul className="space-y-3">
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: token.marginSM, margin: 0, padding: 0, listStyle: 'none' }}>
             {safeTips.map((tip) => (
-              <li key={tip.id} className="p-3 border rounded-lg">
+              <li key={tip.id}>
                 <Card size="small" variant="outlined">
-                  <div className="flex gap-2 items-start">
+                  <div style={{ display: 'flex', gap: token.marginXS, alignItems: 'flex-start' }}>
                     <Tag color={tipTypes.find(t => t.value === tip.type)?.color}>
                       {tipTypes.find(t => t.value === tip.type)?.label}
                     </Tag>
                     <div>
                       <Text strong>{tip.title}</Text>
-                      <Paragraph>{tip.content}</Paragraph>
+                      <Paragraph style={{ marginBottom: 0 }}>{tip.content}</Paragraph>
                     </div>
                   </div>
                 </Card>
@@ -428,27 +444,27 @@ export default function ModulePreview({ type, data }: ModulePreviewProps) {
     const seatTypeLabels: Record<string, string> = { business: '商务座', first: '一等座', second: '二等座', soft_sleeper: '软卧', hard_sleeper: '硬卧', hard_seat: '硬座', standing: '无座' }
     const trainTypeLabels: Record<string, string> = { high_speed: '高铁', emu: '动车', direct: '直达', express: '特快', fast: '快速', ordinary: '普通' }
     return (
-      <div className="space-y-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginSM }}>
         {safeItems.length === 0 ? (
-          <div className="text-center py-4">暂无铁路信息</div>
+          <PreviewEmpty description="暂无铁路信息" />
         ) : (
           <Timeline items={safeItems.map((item) => ({
             key: item.id,
             content: (
               <Card size="small">
-                <div className="flex gap-2 items-center mb-1">
+                <div style={{ display: 'flex', gap: token.marginXS, alignItems: 'center', marginBottom: token.marginXXS }}>
                   <Text strong>{item.trainNo || '未设置车次'}</Text>
-                  {item.trainType && <Tag color="blue">{trainTypeLabels[item.trainType] || item.trainType}</Tag>}
-                  {item.seatType && <Tag>{seatTypeLabels[item.seatType] || item.seatType}</Tag>}
+                  {item.trainType && <Tag color="blue" style={{ margin: 0 }}>{trainTypeLabels[item.trainType] || item.trainType}</Tag>}
+                  {item.seatType && <Tag style={{ margin: 0 }}>{seatTypeLabels[item.seatType] || item.seatType}</Tag>}
                 </div>
                 {item.route && <Text type="secondary">{item.route}</Text>}
-                <div className="flex gap-4 flex-wrap text-sm text-gray-500">
+                <div style={{ display: 'flex', gap: token.marginMD, flexWrap: 'wrap', fontSize: token.fontSizeSM, color: token.colorTextSecondary, marginTop: token.marginXXS }}>
                   {item.departureStation && <span>{item.departureStation} → {item.arrivalStation || ''}</span>}
                   {item.departureDate && <span>{item.departureDate} {item.departureTime || ''} - {item.arrivalTime || ''}</span>}
                   {item.duration && <span>历时 {item.duration}</span>}
-                  {item.price !== undefined && <span className="text-red-500">¥{item.price}</span>}
+                  {item.price !== undefined && <span style={{ color: token.colorError }}>¥{formatMoney(item.price)}</span>}
                 </div>
-                {item.notes && <Paragraph className="mt-1">{item.notes}</Paragraph>}
+                {item.notes && <Paragraph style={{ marginTop: token.marginXXS, marginBottom: 0 }}>{item.notes}</Paragraph>}
               </Card>
             ),
           }))} />
@@ -467,28 +483,32 @@ export default function ModulePreview({ type, data }: ModulePreviewProps) {
       other: { label: '其他', color: 'default' },
     }
     return (
-      <div className="space-y-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginSM }}>
         {safeItems.length === 0 ? (
-          <div className="text-center py-4">暂无时间线节点</div>
+          <PreviewEmpty description="暂无时间线节点" />
         ) : (
           <Timeline mode="start" items={safeItems.map((item) => {
             const config = typeLabels[item.type || 'other'] || typeLabels.other
             return {
               key: item.id,
               title: (
-                <div className="flex gap-1 items-center">
-                  {item.date && <Text type="secondary" className="text-sm">{item.date}</Text>}
-                  {item.time && <Text type="secondary" className="text-sm">{item.time}</Text>}
-                  <Tag color={config.color}>{config.label}</Tag>
+                <div style={{ display: 'flex', gap: token.marginXXS, alignItems: 'center' }}>
+                  {item.date && <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>{item.date}</Text>}
+                  {item.time && <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>{item.time}</Text>}
+                  <Tag color={config.color} style={{ margin: 0 }}>{config.label}</Tag>
                 </div>
               ),
               content: (
                 <Card size="small">
                   <Text strong>{item.title || '未命名节点'}</Text>
-                  {item.location && <div className="text-sm text-gray-500">📍 {item.location}</div>}
-                  {item.description && <div className="text-sm">{item.description}</div>}
-                  {item.duration && <div className="text-sm text-gray-400">时长：{item.duration}</div>}
-                  {item.notes && <Paragraph className="mt-1 text-sm">{item.notes}</Paragraph>}
+                  {item.location && (
+                    <div style={{ fontSize: token.fontSizeSM, color: token.colorTextSecondary, display: 'flex', alignItems: 'center', gap: token.marginXXS }}>
+                      <EnvironmentOutlined /> {item.location}
+                    </div>
+                  )}
+                  {item.description && <div style={{ fontSize: token.fontSizeSM }}>{item.description}</div>}
+                  {item.duration && <div style={{ fontSize: token.fontSizeSM, color: token.colorTextTertiary }}>时长：{item.duration}</div>}
+                  {item.notes && <Paragraph style={{ marginTop: token.marginXXS, marginBottom: 0, fontSize: token.fontSizeSM }}>{item.notes}</Paragraph>}
                 </Card>
               ),
             }
@@ -507,18 +527,18 @@ export default function ModulePreview({ type, data }: ModulePreviewProps) {
       success: { label: '确认', color: 'green' },
     }
     return (
-      <div className="space-y-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginSM }}>
         {safeItems.length === 0 ? (
-          <div className="text-center py-4">暂无注意事项</div>
+          <PreviewEmpty description="暂无注意事项" />
         ) : (
           safeItems.map((item) => {
             const config = priorityLabels[item.priority || 'medium'] || priorityLabels.medium
             return (
               <Card key={item.id} size="small">
-                <div className="flex gap-2 items-center mb-1">
+                <div style={{ display: 'flex', gap: token.marginXS, alignItems: 'center', marginBottom: token.marginXXS }}>
                   <Text strong>{item.title || '未命名要点'}</Text>
-                  <Tag color={config.color}>{config.label}</Tag>
-                  {item.category && <Tag>{item.category}</Tag>}
+                  <Tag color={config.color} style={{ margin: 0 }}>{config.label}</Tag>
+                  {item.category && <Tag style={{ margin: 0 }}>{item.category}</Tag>}
                 </div>
                 {item.content && <Text type="secondary">{item.content}</Text>}
               </Card>
@@ -533,25 +553,33 @@ export default function ModulePreview({ type, data }: ModulePreviewProps) {
     const safeItems = items || []
     const visitTypeLabels: Record<string, string> = { solo: '独自出行', couple: '情侣出行', family: '家庭出行', group: '团队出行', business: '商务出行' }
     return (
-      <div className="space-y-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginSM }}>
         {safeItems.length === 0 ? (
-          <div className="text-center py-4">暂无点评</div>
+          <PreviewEmpty description="暂无点评" />
         ) : (
           safeItems.map((item) => (
             <Card key={item.id} size="small">
-              <div className="flex gap-2 items-center mb-2">
-                <Text strong className="text-lg">{item.attractionName || '未命名景点'}</Text>
+              <div style={{ display: 'flex', gap: token.marginXS, alignItems: 'center', marginBottom: token.marginXS }}>
+                <Text strong style={{ fontSize: token.fontSizeLG }}>{item.attractionName || '未命名景点'}</Text>
                 <Rate disabled value={item.rating || 0} style={{ fontSize: 14 }} />
               </div>
               {item.content && <Paragraph>{item.content}</Paragraph>}
-              <div className="flex gap-4 text-sm">
-                {item.pros && <span className="text-green-600">👍 {item.pros}</span>}
-                {item.cons && <span className="text-red-500">👎 {item.cons}</span>}
+              <div style={{ display: 'flex', gap: token.marginMD, fontSize: token.fontSizeSM }}>
+                {item.pros && (
+                  <span style={{ color: token.colorSuccess, display: 'flex', alignItems: 'center', gap: token.marginXXS }}>
+                    <LikeOutlined /> {item.pros}
+                  </span>
+                )}
+                {item.cons && (
+                  <span style={{ color: token.colorError, display: 'flex', alignItems: 'center', gap: token.marginXXS }}>
+                    <DislikeOutlined /> {item.cons}
+                  </span>
+                )}
               </div>
-              <div className="flex gap-4 mt-1 text-sm text-gray-400">
+              <div style={{ display: 'flex', gap: token.marginMD, marginTop: token.marginXXS, fontSize: token.fontSizeSM, color: token.colorTextTertiary, alignItems: 'center' }}>
                 {item.author && <span>{item.author}</span>}
                 {item.date && <span>{item.date}</span>}
-                {item.visitType && <Tag>{visitTypeLabels[item.visitType] || item.visitType}</Tag>}
+                {item.visitType && <Tag style={{ margin: 0 }}>{visitTypeLabels[item.visitType] || item.visitType}</Tag>}
               </div>
             </Card>
           ))
@@ -565,32 +593,44 @@ export default function ModulePreview({ type, data }: ModulePreviewProps) {
     const bestTimeLabels: Record<string, string> = { sunrise: '日出', sunset: '日落', blue_hour: '蓝调时刻', golden_hour: '黄金时刻', midday: '正午', night: '夜间', anytime: '随时' }
     const seasonLabels: Record<string, string> = { spring: '春季', summer: '夏季', autumn: '秋季', winter: '冬季', all_season: '四季皆宜' }
     return (
-      <div className="space-y-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginSM }}>
         {safeItems.length === 0 ? (
-          <div className="text-center py-4">暂无摄影机位</div>
+          <PreviewEmpty description="暂无摄影机位" />
         ) : (
           safeItems.map((item) => (
             <Card key={item.id} size="small">
               {item.sampleImage && (
-                <div className="mb-2">
-                  <img src={item.sampleImage} alt={item.spotName || '样图'} style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, objectFit: 'cover' }} />
+                <div style={{ marginBottom: token.marginXS }}>
+                  <AntImage
+                    src={item.sampleImage}
+                    alt={item.spotName || '样图'}
+                    style={{ maxWidth: '100%', maxHeight: 200, borderRadius: token.borderRadius, objectFit: 'cover' }}
+                  />
                 </div>
               )}
-              <div className="flex gap-2 items-center mb-1 flex-wrap">
-                <Text strong className="text-lg">{item.spotName || '未命名机位'}</Text>
-                {item.bestTime && <Tag color="orange">{bestTimeLabels[item.bestTime] || item.bestTime}</Tag>}
-                {item.season && <Tag color="green">{seasonLabels[item.season] || item.season}</Tag>}
+              <div style={{ display: 'flex', gap: token.marginXS, alignItems: 'center', marginBottom: token.marginXXS, flexWrap: 'wrap' }}>
+                <Text strong style={{ fontSize: token.fontSizeLG }}>{item.spotName || '未命名机位'}</Text>
+                {item.bestTime && <Tag color="orange" style={{ margin: 0 }}>{bestTimeLabels[item.bestTime] || item.bestTime}</Tag>}
+                {item.season && <Tag color="green" style={{ margin: 0 }}>{seasonLabels[item.season] || item.season}</Tag>}
               </div>
-              {item.location && <div className="text-sm text-gray-500">📍 {item.location}</div>}
-              <div className="flex gap-4 flex-wrap text-sm text-gray-500">
-                {item.focalLength && <span>📷 {item.focalLength}</span>}
+              {item.location && (
+                <div style={{ fontSize: token.fontSizeSM, color: token.colorTextSecondary, display: 'flex', alignItems: 'center', gap: token.marginXXS }}>
+                  <EnvironmentOutlined /> {item.location}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: token.marginMD, flexWrap: 'wrap', fontSize: token.fontSizeSM, color: token.colorTextSecondary }}>
+                {item.focalLength && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: token.marginXXS }}>
+                    <CameraOutlined /> {item.focalLength}
+                  </span>
+                )}
                 {item.aperture && <span>光圈 {item.aperture}</span>}
                 {item.shutterSpeed && <span>快门 {item.shutterSpeed}</span>}
                 {item.iso && <span>ISO {item.iso}</span>}
               </div>
-              {item.equipment && <div className="text-sm text-gray-400">器材：{item.equipment}</div>}
-              {item.tips && <Paragraph className="mt-1">{item.tips}</Paragraph>}
-              {item.notes && <div className="text-sm text-gray-400 mt-1">{item.notes}</div>}
+              {item.equipment && <div style={{ fontSize: token.fontSizeSM, color: token.colorTextTertiary, marginTop: token.marginXXS }}>器材：{item.equipment}</div>}
+              {item.tips && <Paragraph style={{ marginTop: token.marginXXS, marginBottom: 0 }}>{item.tips}</Paragraph>}
+              {item.notes && <div style={{ fontSize: token.fontSizeSM, color: token.colorTextTertiary, marginTop: token.marginXXS }}>{item.notes}</div>}
             </Card>
           ))
         )}
@@ -626,7 +666,7 @@ export default function ModulePreview({ type, data }: ModulePreviewProps) {
       if (data && Array.isArray(data) && data.length > 0) {
         // 如果有数据，尝试渲染为简单列表
         return (
-          <div className="space-y-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: token.marginXS }}>
             {data.map((item: any, index: number) => (
               <Card key={index} size="small">
                 {typeof item === 'string' ? (
@@ -644,7 +684,7 @@ export default function ModulePreview({ type, data }: ModulePreviewProps) {
         )
       }
       return (
-        <div className="text-center py-8 text-gray-500">
+        <div style={{ padding: `${token.paddingXL}px 0` }}>
           <Empty description="该模块类型暂不支持预览" />
         </div>
       )

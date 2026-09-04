@@ -11,7 +11,7 @@ import {
   theme,
 } from 'antd'
 import { CameraOutlined } from '@ant-design/icons'
-import ModuleBase from './module-base'
+import ModuleBase, { MODAL_WIDTH, createRecordId } from './module-base'
 
 const { TextArea } = Input
 const { Text } = Typography
@@ -52,10 +52,10 @@ export default function PhotoModule({ value, onChange }: PhotoModuleProps) {
       icon={<CameraOutlined />}
       records={(value || []) as any}
       onChange={(records) => onChange(records as PhotoSpot[])}
-      modalWidth={600}
+      modalWidth={MODAL_WIDTH.M}
       getDefaultRecord={() =>
         ({
-          id: Date.now().toString(),
+          id: createRecordId(),
           name: '',
           focalLength: '',
           bestTime: '',
@@ -122,7 +122,7 @@ export default function PhotoModule({ value, onChange }: PhotoModuleProps) {
           </Form.Item>
 
           <Form.Item label="备注" name="notes">
-            <TextArea rows={3} placeholder="请输入备注" />
+            <TextArea rows={3} placeholder="请输入备注" showCount maxLength={200} />
           </Form.Item>
         </>
       )}

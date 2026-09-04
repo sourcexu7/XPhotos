@@ -11,6 +11,8 @@ import {
   Modal,
   message,
   Popconfirm,
+  Checkbox,
+  theme,
 } from 'antd'
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
 
@@ -42,6 +44,7 @@ interface TocManagerProps {
 }
 
 export default function TocManager({ guideId, modules, onModuleSelect }: TocManagerProps) {
+  const { token } = theme.useToken()
   const [tocItems, setTocItems] = useState<TocItem[]>([])
   const [modalVisible, setModalVisible] = useState(false)
   const [form] = Form.useForm()
@@ -232,7 +235,11 @@ export default function TocManager({ guideId, modules, onModuleSelect }: TocMana
               ]}
             >
               <div
-                className={`pl-${(item.level - 1) * 4} cursor-pointer hover:text-blue-500`}
+                className="cursor-pointer"
+                style={{
+                  paddingLeft: (item.level - 1) * token.paddingXS,
+                  color: item.target_id ? token.colorPrimary : token.colorText,
+                }}
                 onClick={() => item.target_id && onModuleSelect(item.target_id)}
               >
                 {item.title}
@@ -288,7 +295,7 @@ export default function TocManager({ guideId, modules, onModuleSelect }: TocMana
             name="isHidden"
             valuePropName="checked"
           >
-            <input type="checkbox" />
+            <Checkbox>在目录中隐藏此项</Checkbox>
           </Form.Item>
 
           <div className="flex justify-end gap-2">

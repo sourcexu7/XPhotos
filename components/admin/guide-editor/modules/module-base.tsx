@@ -13,7 +13,10 @@ import {
   App,
   Dropdown,
   Spin,
+  DatePicker,
+  TimePicker,
 } from 'antd'
+import dayjs from 'dayjs'
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -45,6 +48,75 @@ export interface ModuleRecord {
   [key: string]: any
 }
 
+/** 弹窗宽度规范：S=520（≤3 字段）、M=640（4-8 字段）、L=760（9+ 字段/带图上传） */
+export const MODAL_WIDTH = { S: 520, M: 640, L: 760 } as const
+
+/** 统一记录 ID 生成 */
+export function createRecordId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+/** 金额显示统一格式化：保留两位小数 */
+export function formatMoney(value: number | string | undefined | null): string {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return '0.00'
+  return num.toFixed(2)
+}
+
+/** 表单栅格：统一多列表单编排 */
+export function FormGrid({
+  cols = 2,
+  children,
+}: {
+  cols?: 2 | 3
+  children: React.ReactNode
+}) {
+  const { token } = theme.useToken()
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+        gap: token.paddingMD,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+/** 日期选择：存储 YYYY-MM-DD 字符串，兼容旧文本值（无法解析时显示为空但保留原值） */
+export function FormDatePicker(props: any) {
+  const { value, onChange, ...rest } = props
+  const parsed = value && dayjs(value).isValid() ? dayjs(value) : undefined
+  return (
+    <DatePicker
+      style={{ width: '100%' }}
+      {...rest}
+      value={parsed}
+      onChange={(d) => onChange(d ? d.format('YYYY-MM-DD') : '')}
+    />
+  )
+}
+
+/** 时间选择：存储 HH:mm 字符串，兼容旧文本值 */
+export function FormTimePicker(props: any) {
+  const { value, onChange, ...rest } = props
+  const parsed = value && dayjs(value, 'HH:mm').isValid() ? dayjs(value, 'HH:mm') : undefined
+  return (
+    <TimePicker
+      style={{ width: '100%' }}
+      format="HH:mm"
+      {...rest}
+      value={parsed}
+      onChange={(_t, tStr) => onChange(tStr || '')}
+    />
+  )
+}
+
 interface SortableItemProps {
   record: ModuleRecord
   onEdit: (record: ModuleRecord) => void
@@ -55,6 +127,7 @@ interface SortableItemProps {
 function SortableItem({ record, onEdit, onDelete, renderItem }: SortableItemProps) {
   const t = useTranslations('GuideEditor')
   const { token } = theme.useToken()
+  const { modal } = App.useApp()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: record.id,
   })
@@ -78,7 +151,16 @@ function SortableItem({ record, onEdit, onDelete, renderItem }: SortableItemProp
       icon: <DeleteOutlined />,
       label: t('delete'),
       danger: true,
-      onClick: () => onDelete(record.id),
+      onClick: () => {
+        modal.confirm({
+          title: t('deleteConfirmTitle'),
+          content: t('deleteConfirmContent'),
+          okText: t('confirm'),
+          okButtonProps: { danger: true },
+          cancelText: t('cancel'),
+          onOk: () => onDelete(record.id),
+        })
+      },
     },
   ]
 
@@ -144,7 +226,7 @@ export default function ModuleBase({
   renderEditForm,
   getDefaultRecord,
   addButtonText,
-  modalWidth = 600,
+  modalWidth = MODAL_WIDTH.M,
   loading,
 }: ModuleBaseProps) {
   const t = useTranslations('GuideEditor')

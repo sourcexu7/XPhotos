@@ -8,7 +8,7 @@ import React, { useState } from 'react'
 import { message } from 'antd'
 import { useSwrHydrated } from '~/hooks/use-swr-hydrated'
 import { ReloadOutlined } from '@ant-design/icons'
-import { Button, Select, Switch } from 'antd'
+import { Button, Select, Switch, Input, InputNumber } from 'antd'
 import { useTranslations } from 'next-intl'
 
 export default function AlbumAddSheet(props : Readonly<HandleProps>) {
@@ -67,76 +67,66 @@ export default function AlbumAddSheet(props : Readonly<HandleProps>) {
       }}
     >
       <div className="space-y-4 text-sm">
-        <label
-          htmlFor="name"
-          className="block overflow-hidden rounded-md border border-gray-100 px-3 py-2 shadow-sm focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400"
-        >
-          <span className="text-xs font-medium text-gray-700">{t('Album.name')}</span>
-          <input
-            type="text"
+        <div className="w-full space-y-1">
+          <label htmlFor="name" className="text-xs font-medium text-gray-700">
+            {t('Album.name')}
+          </label>
+          <Input
             id="name"
             value={data?.name || ''}
             placeholder={t('Album.inputName')}
             onChange={(e) => setData({...data, name: e.target.value})}
-            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+            allowClear
           />
-        </label>
-        <label
-          htmlFor="album_value"
-          className="block overflow-hidden rounded-md border border-gray-100 px-3 py-2 shadow-sm focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400"
-        >
-          <span className="text-xs font-medium text-gray-700">{t('Album.router')}</span>
-          <input
-            type="text"
+        </div>
+        <div className="w-full space-y-1">
+          <label htmlFor="album_value" className="text-xs font-medium text-gray-700">
+            {t('Album.router')}
+          </label>
+          <Input
             id="album_value"
             value={data?.album_value || ''}
             placeholder={t('Album.inputRouter')}
             onChange={(e) => setData({...data, album_value: e.target.value})}
-            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+            allowClear
           />
-        </label>
-        <label
-          htmlFor="detail"
-          className="block overflow-hidden rounded-md border border-gray-100 px-3 py-2 shadow-sm focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400"
-        >
-          <span className="text-xs font-medium text-gray-700">{t('Album.detail')}</span>
-          <input
-            type="text"
+        </div>
+        <div className="w-full space-y-1">
+          <label htmlFor="detail" className="text-xs font-medium text-gray-700">
+            {t('Album.detail')}
+          </label>
+          <Input
             id="detail"
             value={data?.detail || ''}
             placeholder={t('Album.inputDetail')}
             onChange={(e) => setData({...data, detail: e.target.value})}
-            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+            allowClear
           />
-        </label>
-        <label
-          htmlFor="sort"
-          className="block overflow-hidden rounded-md border border-gray-100 px-3 py-2 shadow-sm focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400"
-        >
-          <span className="text-xs font-medium text-gray-700">{t('Album.sort')}</span>
-          <input
-            type="number"
+        </div>
+        <div className="w-full space-y-1">
+          <label htmlFor="sort" className="text-xs font-medium text-gray-700">
+            {t('Album.sort')}
+          </label>
+          <InputNumber
             id="sort"
             value={data?.sort ?? 0}
             placeholder="0"
-            onChange={(e) => setData({...data, sort: Number(e.target.value)})}
-            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+            onChange={(value) => setData({...data, sort: Number(value ?? 0)})}
+            className="w-full"
           />
-        </label>
-        <label
-          htmlFor="license"
-          className="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600"
-        >
-          <span className="text-xs font-medium text-gray-700">{t('Album.license')}</span>
-          <input
-            type="text"
+        </div>
+        <div className="w-full space-y-1">
+          <label htmlFor="license" className="text-xs font-medium text-gray-700">
+            {t('Album.license')}
+          </label>
+          <Input
             id="license"
             value={data?.license || ''}
             placeholder={t('Album.licensePlaceholder')}
             onChange={(e) => setData({...data, license: e.target.value})}
-            className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+            allowClear
           />
-        </label>
+        </div>
         <div className="w-full space-y-1">
           <label htmlFor="indexStyleSelect" className="text-sm font-medium text-foreground block">
             {t('Preferences.indexThemeSelect')}

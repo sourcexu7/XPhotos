@@ -17,7 +17,14 @@ import {
   RocketOutlined,
   AimOutlined,
 } from '@ant-design/icons'
-import ModuleBase, { ModuleRecord } from './module-base'
+import ModuleBase, {
+  ModuleRecord,
+  FormGrid,
+  FormDatePicker,
+  FormTimePicker,
+  MODAL_WIDTH,
+  createRecordId,
+} from './module-base'
 
 const { TextArea } = Input
 const { Text } = Typography
@@ -113,12 +120,12 @@ export default function TimelineModule({ value, onChange }: TimelineModuleProps)
 
   const renderEditForm = () => (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: token.paddingMD }}>
+      <FormGrid>
         <Form.Item label="日期" name="date">
-          <Input placeholder="例如：2024-01-15" />
+          <FormDatePicker placeholder="选择日期" />
         </Form.Item>
         <Form.Item label="时间" name="time">
-          <Input placeholder="例如：08:00" />
+          <FormTimePicker placeholder="选择时间" />
         </Form.Item>
         <Form.Item label="交通类型" name="type">
           <Select placeholder="选择交通类型" options={transportTypeOptions} />
@@ -126,18 +133,22 @@ export default function TimelineModule({ value, onChange }: TimelineModuleProps)
         <Form.Item label="时长" name="duration">
           <Input placeholder="例如：2小时" />
         </Form.Item>
-        <Form.Item label="标题" name="title">
+        <Form.Item
+          label="标题"
+          name="title"
+          rules={[{ required: true, message: '请输入标题' }]}
+        >
           <Input placeholder="例如：北京-上海" />
         </Form.Item>
         <Form.Item label="地点" name="location">
           <Input placeholder="例如：北京首都机场" />
         </Form.Item>
-      </div>
+      </FormGrid>
       <Form.Item label="描述" name="description">
-        <TextArea rows={3} placeholder="请输入描述" />
+        <TextArea rows={3} placeholder="请输入描述" showCount maxLength={500} />
       </Form.Item>
       <Form.Item label="备注" name="notes">
-        <TextArea rows={2} placeholder="请输入备注" />
+        <TextArea rows={2} placeholder="请输入备注" showCount maxLength={200} />
       </Form.Item>
     </>
   )
@@ -148,9 +159,11 @@ export default function TimelineModule({ value, onChange }: TimelineModuleProps)
       icon={<ClockCircleOutlined />}
       records={(value || []) as ModuleRecord[]}
       onChange={(records) => onChange(records as TimelineItem[])}
-      modalWidth={640}
+      modalWidth={MODAL_WIDTH.M}
       addButtonText="添加行程节点"
-      getDefaultRecord={() => ({ id: Date.now().toString() } as TimelineItem)}
+      getDefaultRecord={() =>
+        ({ id: createRecordId(), type: 'other' } as TimelineItem)
+      }
       renderItem={renderItem}
       renderEditForm={renderEditForm}
     />

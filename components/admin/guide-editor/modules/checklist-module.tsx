@@ -11,6 +11,7 @@ import {
   Tag,
   Space,
   Checkbox,
+  Progress,
   App,
   theme,
 } from 'antd'
@@ -22,7 +23,7 @@ import {
   PlusOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons'
-import ModuleBase from './module-base'
+import ModuleBase, { MODAL_WIDTH, createRecordId } from './module-base'
 
 const { Text } = Typography
 
@@ -60,7 +61,7 @@ export default function ChecklistModule({ value, onChange }: ChecklistModuleProp
 
   const handleAddItem = (categoryId: string) => {
     const newItem: ChecklistItem = {
-      id: Date.now().toString(),
+      id: createRecordId(),
       name: '',
       checked: false,
     }
@@ -124,25 +125,13 @@ export default function ChecklistModule({ value, onChange }: ChecklistModuleProp
           </div>
         </div>
 
-        <div
-          style={{
-            width: '100%',
-            height: 4,
-            background: token.colorFillSecondary,
-            borderRadius: token.borderRadiusSM,
-            overflow: 'hidden',
-            marginBottom: token.marginSM,
-          }}
-        >
-          <div
-            style={{
-              width: `${progress}%`,
-              height: '100%',
-              background: progress === 100 ? token.colorSuccess : token.colorWarning,
-              transition: `width ${token.motionDurationMid}`,
-            }}
-          />
-        </div>
+        <Progress
+          percent={progress}
+          size="small"
+          showInfo={false}
+          strokeColor={progress === 100 ? token.colorSuccess : token.colorWarning}
+          style={{ marginBottom: token.marginSM }}
+        />
 
         <div>
           {record.items.map((item) => (
@@ -232,10 +221,10 @@ export default function ChecklistModule({ value, onChange }: ChecklistModuleProp
         icon={<CheckCircleOutlined />}
         records={records as any}
         onChange={onChange as any}
-        modalWidth={480}
+        modalWidth={MODAL_WIDTH.S}
         addButtonText="添加分类"
         getDefaultRecord={() => ({
-          id: Date.now().toString(),
+          id: createRecordId(),
           name: '新分类',
           icon: '',
           items: [],
@@ -258,7 +247,7 @@ export default function ChecklistModule({ value, onChange }: ChecklistModuleProp
         }}
         okText="保存"
         cancelText="取消"
-        width={400}
+        width={MODAL_WIDTH.S}
         destroyOnHidden
       >
         <Form form={itemForm} layout="vertical">

@@ -22,7 +22,7 @@ import {
   ClockCircleOutlined,
   AimOutlined,
 } from '@ant-design/icons'
-import ModuleBase from './module-base'
+import ModuleBase, { FormGrid, MODAL_WIDTH, createRecordId } from './module-base'
 
 const { TextArea } = Input
 const { Text, Paragraph } = Typography
@@ -158,9 +158,9 @@ export default function SeatModule({ value, onChange }: SpotModuleProps) {
       icon={<AimOutlined />}
       records={value || []}
       onChange={onChange}
-      modalWidth={720}
+      modalWidth={MODAL_WIDTH.L}
       getDefaultRecord={() => ({
-        id: Date.now().toString(),
+        id: createRecordId(),
       })}
       renderItem={(item: SpotItem) => (
         <div style={{ display: 'flex', gap: token.paddingMD }}>
@@ -229,8 +229,12 @@ export default function SeatModule({ value, onChange }: SpotModuleProps) {
       )}
       renderEditForm={(form: any) => (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: token.paddingMD }}>
-            <Form.Item label="机位名称" name="spotName">
+          <FormGrid>
+            <Form.Item
+              label="机位名称"
+              name="spotName"
+              rules={[{ required: true, message: '请输入机位名称' }]}
+            >
               <Input placeholder="例如：故宫角楼" />
             </Form.Item>
             <Form.Item label="拍摄地点" name="location">
@@ -260,7 +264,7 @@ export default function SeatModule({ value, onChange }: SpotModuleProps) {
             <Form.Item label="器材" name="equipment">
               <Input placeholder="例如：三脚架、ND滤镜" />
             </Form.Item>
-          </div>
+          </FormGrid>
           <Form.Item label="样图" name="sampleImage">
             <div style={{ display: 'flex', gap: token.paddingSM, alignItems: 'center' }}>
               <Input
@@ -294,10 +298,10 @@ export default function SeatModule({ value, onChange }: SpotModuleProps) {
             }}
           </Form.Item>
           <Form.Item label="拍摄技巧" name="tips">
-            <TextArea rows={3} placeholder="请输入拍摄技巧" />
+            <TextArea rows={3} placeholder="请输入拍摄技巧" showCount maxLength={200} />
           </Form.Item>
           <Form.Item label="注意事项" name="notes">
-            <TextArea rows={2} placeholder="请输入注意事项" />
+            <TextArea rows={2} placeholder="请输入注意事项" showCount maxLength={200} />
           </Form.Item>
         </>
       )}

@@ -12,7 +12,15 @@ import {
   theme,
 } from 'antd'
 import { EnvironmentOutlined, ClockCircleOutlined } from '@ant-design/icons'
-import ModuleBase, { ModuleRecord } from './module-base'
+import ModuleBase, {
+  ModuleRecord,
+  FormGrid,
+  FormDatePicker,
+  FormTimePicker,
+  MODAL_WIDTH,
+  createRecordId,
+  formatMoney,
+} from './module-base'
 
 const { TextArea } = Input
 const { Text } = Typography
@@ -110,7 +118,7 @@ export default function RailwayModule({ value, onChange }: RailwayModuleProps) {
           )}
           {item.platform && <span>{item.platform}站台</span>}
           {item.price !== undefined && item.price !== null && (
-            <span style={{ color: token.colorError }}>¥{item.price}</span>
+            <span style={{ color: token.colorError }}>¥{formatMoney(item.price)}</span>
           )}
         </Space>
         {item.notes && (
@@ -130,8 +138,12 @@ export default function RailwayModule({ value, onChange }: RailwayModuleProps) {
 
   const renderEditForm = () => (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: token.paddingMD }}>
-        <Form.Item label="车次号" name="trainNo">
+      <FormGrid>
+        <Form.Item
+          label="车次号"
+          name="trainNo"
+          rules={[{ required: true, message: '请输入车次号' }]}
+        >
           <Input placeholder="例如：G1234" />
         </Form.Item>
         <Form.Item label="列车类型" name="trainType">
@@ -144,13 +156,13 @@ export default function RailwayModule({ value, onChange }: RailwayModuleProps) {
           <Input placeholder="例如：上海虹桥" />
         </Form.Item>
         <Form.Item label="出发日期" name="departureDate">
-          <Input placeholder="例如：2024-01-15" />
+          <FormDatePicker placeholder="选择出发日期" />
         </Form.Item>
         <Form.Item label="出发时间" name="departureTime">
-          <Input placeholder="例如：08:00" />
+          <FormTimePicker placeholder="选择出发时间" />
         </Form.Item>
         <Form.Item label="到达时间" name="arrivalTime">
-          <Input placeholder="例如：13:00" />
+          <FormTimePicker placeholder="选择到达时间" />
         </Form.Item>
         <Form.Item label="历时" name="duration">
           <Input placeholder="例如：5小时" />
@@ -172,11 +184,17 @@ export default function RailwayModule({ value, onChange }: RailwayModuleProps) {
           name="price"
           rules={[{ type: 'number', message: '价格必须为数字' }]}
         >
-          <InputNumber placeholder="请输入价格" style={{ width: '100%' }} />
+          <InputNumber
+            placeholder="请输入价格"
+            style={{ width: '100%' }}
+            prefix="¥"
+            precision={2}
+            min={0}
+          />
         </Form.Item>
-      </div>
+      </FormGrid>
       <Form.Item label="备注" name="notes">
-        <TextArea rows={2} placeholder="请输入备注" />
+        <TextArea rows={2} placeholder="请输入备注" showCount maxLength={200} />
       </Form.Item>
     </>
   )
@@ -187,9 +205,11 @@ export default function RailwayModule({ value, onChange }: RailwayModuleProps) {
       icon={<EnvironmentOutlined />}
       records={(value || []) as ModuleRecord[]}
       onChange={(records) => onChange(records as RailwayItem[])}
-      modalWidth={640}
+      modalWidth={MODAL_WIDTH.M}
       addButtonText="添加车次"
-      getDefaultRecord={() => ({ id: Date.now().toString() } as RailwayItem)}
+      getDefaultRecord={() =>
+        ({ id: createRecordId(), trainType: 'high_speed', seatType: 'second' } as RailwayItem)
+      }
       renderItem={renderItem}
       renderEditForm={renderEditForm}
     />

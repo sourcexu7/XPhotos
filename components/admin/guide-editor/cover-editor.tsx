@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Card, Select, Spin, Empty, Button, Modal, App, Tooltip } from 'antd'
+import { Card, Select, Spin, Empty, Button, Modal, App, Tooltip, theme } from 'antd'
 import { LinkOutlined, PictureOutlined, PlusOutlined, ExportOutlined } from '@ant-design/icons'
 import Image from 'next/image'
 
@@ -44,6 +44,7 @@ export default function GuideCoverEditor({
   onAlbumsChange,
 }: GuideCoverEditorProps) {
   const { message } = App.useApp()
+  const { token } = theme.useToken()
   const [allAlbums, setAllAlbums] = useState<Album[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedAlbumIds, setSelectedAlbumIds] = useState<string[]>(albums.map(a => a.album_id))
@@ -248,7 +249,8 @@ export default function GuideCoverEditor({
                 {selectedAlbums.map(album => (
                   <div 
                     key={album.id}
-                    className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                    className="flex items-center justify-between p-2 rounded-lg transition-colors"
+                    style={{ background: token.colorFillQuaternary }}
                   >
                     <div className="flex items-center gap-2">
                       {album.cover && (
@@ -262,7 +264,7 @@ export default function GuideCoverEditor({
                       )}
                       <div>
                         <div className="font-medium text-sm">{album.name}</div>
-                        <div className="text-xs text-gray-400">{album.album_value}</div>
+                        <div style={{ fontSize: token.fontSizeSM, color: token.colorTextTertiary }}>{album.album_value}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -441,8 +443,11 @@ export default function GuideCoverEditor({
               <div
                 key={img.id}
                 className={`relative aspect-square cursor-pointer rounded-lg overflow-hidden border-2 transition-colors ${
-                  updatingAlbumCover ? 'border-gray-200 pointer-events-none opacity-50' : 'border-transparent hover:border-primary'
+                  updatingAlbumCover ? 'pointer-events-none opacity-50' : ''
                 }`}
+                style={{
+                  borderColor: updatingAlbumCover ? token.colorBorderSecondary : 'transparent',
+                }}
                 onClick={() => !updatingAlbumCover && handleAlbumCoverSelect(img.preview_url || img.url)}
               >
                 <Image
@@ -455,7 +460,7 @@ export default function GuideCoverEditor({
               </div>
             ))}
             {(!albumImages[currentAlbumForCover?.id || ''] || albumImages[currentAlbumForCover?.id || ''].length === 0) && (
-              <div className="col-span-4 text-center py-8 text-gray-400">
+              <div className="col-span-4 text-center py-8" style={{ color: token.colorTextTertiary }}>
                 暂无图片
               </div>
             )}
