@@ -20,7 +20,7 @@ app.get('/module/:guideId', jwtAuth, async (c) => {
       orderBy: { sort: 'asc' },
     })
 
-    const specialTemplates = ['itinerary', 'expense', 'checklist', 'transport', 'photo', 'tips']
+    const specialTemplates = ['itinerary', 'expense', 'checklist', 'transport', 'photo', 'tips', 'railway', 'timeline', 'notes', 'review', 'seat']
     const specialModuleIds = modules
       .filter(mod => specialTemplates.includes(mod.template || ''))
       .map(mod => mod.id)

@@ -451,7 +451,7 @@ export default function AlbumSortPanel({
           )}
         </span>
       }
-      size={520}
+      styles={{ wrapper: { width: 520 } }}
       placement="right"
       extra={
         <Space>

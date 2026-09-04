@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { Button, Dropdown, Spin, Empty, Modal, Input, Select, App } from 'antd'
+import { Button, Dropdown, Spin, Empty, Modal, Input, Select, App, Alert, theme } from 'antd'
 import { 
   PlusOutlined,
   HolderOutlined,
@@ -32,6 +32,11 @@ import ChecklistModule from './modules/checklist-module'
 import TransportModule from './modules/transport-module'
 import PhotoModule from './modules/photo-module'
 import TipsModule from './modules/tips-module'
+import RailwayModule from './modules/railway-module'
+import TimelineModule from './modules/timeline-module'
+import NotesModule from './modules/notes-module'
+import ReviewModule from './modules/review-module'
+import SeatModule from './modules/seat-module'
 
 const API_BASE = '/api/v1/guide-modules'
 
@@ -95,6 +100,7 @@ interface SortableContentItemProps {
 
 function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemProps) {
   const t = useTranslations('GuideEditor')
+  const { token } = theme.useToken()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: content.id })
 
   const style = {
@@ -103,22 +109,22 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
     opacity: isDragging ? 0.5 : 1,
   }
 
-  const getContentTypeColor = (type: string) => {
+  const getContentTypeColor = (type: string): React.CSSProperties => {
     const colorMap: Record<string, string> = {
-      text: 'text-gray-500',
-      image: 'text-green-500',
-      table: 'text-indigo-500',
-      video: 'text-purple-500',
-      code: 'text-blue-500',
-      latex: 'text-pink-500',
-      link: 'text-cyan-500',
-      task: 'text-orange-500',
-      quote: 'text-gray-500',
-      warning: 'text-yellow-500',
-      divider: 'text-gray-400',
-      highlight: 'text-blue-500',
+      text: token.colorTextSecondary,
+      image: token.colorSuccess,
+      table: token.colorPrimary,
+      video: token.colorInfo,
+      code: token.colorPrimary,
+      latex: token.colorError,
+      link: token.colorInfo,
+      task: token.colorWarning,
+      quote: token.colorTextSecondary,
+      warning: token.colorWarning,
+      divider: token.colorTextTertiary,
+      highlight: token.colorPrimary,
     }
-    return colorMap[type] || 'text-gray-400'
+    return { color: colorMap[type] || token.colorTextTertiary }
   }
 
   const renderContentPreview = () => {
@@ -185,20 +191,21 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
         )
       case 'warning':
         return (
-          <div className="flex items-center gap-2 bg-yellow-50 p-3 rounded-lg">
-            <WarningOutlined className="text-yellow-500" />
-            <span className="text-sm text-gray-700">
-              {content.content?.title || '警告'}
-            </span>
-          </div>
+          <Alert
+            type="warning"
+            showIcon
+            message={content.content?.title || '警告'}
+          />
         )
       case 'divider':
         return <div className="border-t border-gray-200 my-2" />
       case 'highlight':
         return (
-          <div className="bg-blue-50 p-3 rounded-lg text-sm text-gray-700">
-            {content.content?.text?.slice(0, 50) || '高亮内容'}
-          </div>
+          <Alert
+            type="info"
+            showIcon={false}
+            message={content.content?.text?.slice(0, 50) || '高亮内容'}
+          />
         )
       case 'table':
         return (
@@ -241,12 +248,18 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
     <div ref={setNodeRef} style={style} {...attributes}>
       <div className="mb-3 p-4 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200">
         <div className="flex items-start gap-3">
-          <div {...listeners} className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 mt-1">
+          <div
+            {...listeners}
+            role="button"
+            aria-label={t('dragToSort') || '拖拽调整顺序'}
+            tabIndex={0}
+            className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 mt-1"
+          >
             <HolderOutlined />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <span className={getContentTypeColor(content.type)}>
+              <span style={getContentTypeColor(content.type)}>
                 {contentTypeIcons[content.type]}
               </span>
               <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
@@ -294,7 +307,7 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
     }
   )
 
-  const isSpecialModule = ['itinerary', 'expense', 'checklist', 'transport', 'photo', 'tips'].includes(module?.template || '')
+  const isSpecialModule = ['itinerary', 'expense', 'checklist', 'transport', 'photo', 'tips', 'railway', 'timeline', 'notes', 'review', 'seat'].includes(module?.template || '')
 
   useEffect(() => {
     if (module && isSpecialModule) {
@@ -968,8 +981,43 @@ export default function ContentEditor({ module, onContentDataChange }: ContentEd
         )
       case 'tips':
         return (
-          <TipsModule 
-            value={specialModuleData || []} 
+          <TipsModule
+            value={specialModuleData || []}
+            onChange={handleSpecialModuleDataChange}
+          />
+        )
+      case 'railway':
+        return (
+          <RailwayModule
+            value={specialModuleData || []}
+            onChange={handleSpecialModuleDataChange}
+          />
+        )
+      case 'timeline':
+        return (
+          <TimelineModule
+            value={specialModuleData || []}
+            onChange={handleSpecialModuleDataChange}
+          />
+        )
+      case 'notes':
+        return (
+          <NotesModule
+            value={specialModuleData || []}
+            onChange={handleSpecialModuleDataChange}
+          />
+        )
+      case 'review':
+        return (
+          <ReviewModule
+            value={specialModuleData || []}
+            onChange={handleSpecialModuleDataChange}
+          />
+        )
+      case 'seat':
+        return (
+          <SeatModule
+            value={specialModuleData || []}
             onChange={handleSpecialModuleDataChange}
           />
         )

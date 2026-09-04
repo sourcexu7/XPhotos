@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+
 import { useTranslations } from 'next-intl'
 import { motion, useReducedMotion } from 'motion/react'
 import { ConfigProvider, App as AntdApp, Form, Input, Button, Typography, Space, theme, type FormInstance } from 'antd'
@@ -106,7 +106,6 @@ type LoginFormValues = {
 }
 
 export const UserFrom = () => {
-  const router = useRouter()
   const t = useTranslations()
   const reduce = useReducedMotion()
   const { token } = theme.useToken()
@@ -314,7 +313,6 @@ export const UserFrom = () => {
                   setLoading={setLoading}
                   t={t}
                   reduce={reduce}
-                  router={router}
                 />
               </AntdApp>
             </ConfigProvider>
@@ -344,7 +342,6 @@ function LoginFormBody({
   setLoading,
   t,
   reduce,
-  router,
 }: {
   form: FormInstance<LoginFormValues>
   loading: boolean
@@ -353,7 +350,6 @@ function LoginFormBody({
   setLoading: (loading: boolean) => void
   t: (key: string) => string
   reduce: boolean | null
-  router: ReturnType<typeof useRouter>
 }) {
   const { token } = theme.useToken()
   const { message } = AntdApp.useApp()

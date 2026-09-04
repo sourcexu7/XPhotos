@@ -45,7 +45,6 @@ export default function AlistEditSheet() {
     <Drawer
       title={t('Config.editAlist')}
       placement="left"
-      size={400}
       open={aListEdit}
       onClose={() => {
         setAListEdit(false)
@@ -53,6 +52,7 @@ export default function AlistEditSheet() {
       }}
       mask={false}
       styles={{
+        wrapper: { width: 400 },
         header: { padding: `${token.padding} ${token.paddingLG}`, background: token.colorBgElevated },
         body: { padding: token.paddingLG },
       }}

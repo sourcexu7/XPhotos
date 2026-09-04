@@ -2,20 +2,25 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Button, Input, Modal, Dropdown, Spin, Empty, App } from 'antd'
-import { 
-  PlusOutlined, 
-  MoreOutlined, 
-  EditOutlined, 
+import { Button, Input, Modal, Dropdown, Spin, Empty, App, theme } from 'antd'
+import {
+  PlusOutlined,
+  MoreOutlined,
+  EditOutlined,
   DeleteOutlined,
-  HolderOutlined,
   FileTextOutlined,
   CalendarOutlined,
   DollarOutlined,
   CheckSquareOutlined,
   EnvironmentOutlined,
   CoffeeOutlined,
-  BulbOutlined
+  BulbOutlined,
+  NodeIndexOutlined,
+  FieldTimeOutlined,
+  WarningOutlined,
+  StarOutlined,
+  CameraOutlined,
+  HolderOutlined,
 } from '@ant-design/icons'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -54,6 +59,11 @@ const templateIcons: Record<string, React.ReactNode> = {
   tips: <BulbOutlined />,
   attraction: <EnvironmentOutlined />,
   food: <CoffeeOutlined />,
+  railway: <NodeIndexOutlined />,
+  timeline: <FieldTimeOutlined />,
+  notes: <WarningOutlined />,
+  review: <StarOutlined />,
+  seat: <CameraOutlined />,
 }
 
 const templateNames: Record<string, string> = {
@@ -65,20 +75,30 @@ const templateNames: Record<string, string> = {
   tips: '特别提示',
   attraction: '景点介绍',
   food: '美食推荐',
+  railway: '铁路信息',
+  timeline: '交通时间线',
+  notes: '注意事项',
+  review: '景点点评',
+  seat: '摄影机位推荐',
 }
 
-const getTemplateColor = (template: string | null) => {
+const getTemplateColor = (template: string | null, token: any) => {
   const colorMap: Record<string, string> = {
-    itinerary: 'text-blue-500',
-    expense: 'text-green-500',
-    checklist: 'text-orange-500',
-    transport: 'text-purple-500',
-    photo: 'text-pink-500',
-    tips: 'text-yellow-500',
-    attraction: 'text-teal-500',
-    food: 'text-red-500',
+    itinerary: token.colorPrimary,
+    expense: token.colorSuccess,
+    checklist: token.colorWarning,
+    transport: token.colorInfo,
+    photo: token.colorError,
+    tips: token.colorWarning,
+    attraction: token.colorTextSecondary,
+    food: token.colorError,
+    railway: token.colorInfo,
+    timeline: token.colorPrimary,
+    notes: token.colorWarning,
+    review: token.colorSuccess,
+    seat: token.colorInfo,
   }
-  return colorMap[template || ''] || 'text-gray-500'
+  return { color: colorMap[template || ''] || token.colorTextTertiary }
 }
 
 interface SortableModuleItemProps {
@@ -91,6 +111,8 @@ interface SortableModuleItemProps {
 
 function SortableModuleItem({ module, onEdit, onDelete, onSelect, isSelected }: SortableModuleItemProps) {
   const t = useTranslations('GuideEditor')
+  const { token } = theme.useToken()
+  const [hovered, setHovered] = useState(false)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: module.id })
 
   const style = {
@@ -118,27 +140,50 @@ function SortableModuleItem({ module, onEdit, onDelete, onSelect, isSelected }: 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
       <div
-        className={`cursor-pointer transition-all duration-200 mb-3 p-4 rounded-lg border ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
-        onClick={() => onSelect(module)}
+        className="flex items-stretch mb-3 rounded-lg border overflow-hidden transition-all duration-200"
+        style={{
+          borderColor: isSelected ? token.colorPrimary : token.colorBorderSecondary,
+          background: isSelected ? token.colorPrimaryBg : (hovered ? token.colorFillQuaternary : 'transparent'),
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
-        <div className="flex items-center gap-3">
-          <div {...listeners} className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600">
-            <HolderOutlined />
-          </div>
+        {/* 拖拽手柄 */}
+        <div
+          {...listeners}
+          className="flex items-center justify-center cursor-grab active:cursor-grabbing px-2"
+          style={{
+            background: hovered || isSelected ? token.colorFillSecondary : 'transparent',
+            borderRight: `1px solid ${token.colorBorderSecondary}`,
+          }}
+          role="button"
+          aria-label={t('dragToSort') || '拖拽调整顺序'}
+          tabIndex={0}
+        >
+          <HolderOutlined style={{ color: token.colorTextTertiary }} />
+        </div>
+        {/* 可点击的内容区 */}
+        <div
+          className="flex items-center gap-3 flex-1 min-w-0 p-4 cursor-pointer"
+          onClick={() => onSelect(module)}
+          aria-selected={isSelected}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(module) } }}
+        >
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className={getTemplateColor(module.template)}>
-              {module.template && templateIcons[module.template]}
-              {!module.template && <FileTextOutlined />}
+            <span style={getTemplateColor(module.template, token)} className="shrink-0">
+              {(module.template && templateIcons[module.template]) || <FileTextOutlined />}
             </span>
-            <span className="truncate font-medium text-gray-800">{module.name}</span>
-            {module.template && (
-              <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+            <span className="font-medium text-gray-800 whitespace-nowrap" style={{ fontSize: token.fontSize }}>{module.name}</span>
+            {module.template && module.name !== templateNames[module.template] && (
+              <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap">
                 {templateNames[module.template] || module.template}
               </span>
             )}
           </div>
           <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-            <Button type="text" size="small" icon={<MoreOutlined />} onClick={e => e.stopPropagation()} className="text-gray-400 hover:text-gray-600" />
+            <Button type="text" size="small" icon={<MoreOutlined />} onClick={e => e.stopPropagation()} className="text-gray-400 hover:text-gray-600 shrink-0" />
           </Dropdown>
         </div>
       </div>
@@ -154,6 +199,7 @@ interface ModuleManagerProps {
 
 export default function ModuleManager({ guideId, onModuleSelect, selectedModule }: ModuleManagerProps) {
   const t = useTranslations('GuideEditor')
+  const { token } = theme.useToken()
   const { message } = App.useApp()
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -424,7 +470,7 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
                   className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors ${moduleTemplate === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
                   onClick={() => setModuleTemplate(key)}
                 >
-                  <span className={getTemplateColor(key)}>
+                  <span style={getTemplateColor(key, token)}>
                     {templateIcons[key]}
                   </span>
                   <span className="text-sm text-gray-700">{name}</span>
@@ -477,7 +523,7 @@ export default function ModuleManager({ guideId, onModuleSelect, selectedModule 
                   className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors ${moduleTemplate === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
                   onClick={() => setModuleTemplate(key)}
                 >
-                  <span className={getTemplateColor(key)}>
+                  <span style={getTemplateColor(key, token)}>
                     {templateIcons[key]}
                   </span>
                   <span className="text-sm text-gray-700">{name}</span>

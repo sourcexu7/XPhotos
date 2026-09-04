@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslations } from 'next-intl'
-import { Button, Drawer, Space, App, Typography, Spin, Empty, Tooltip, Badge, theme } from 'antd'
+import { Button, Drawer, Space, App, Typography, Spin, Empty, Tooltip, Dropdown, theme } from 'antd'
 import { 
   UnorderedListOutlined,
   SaveOutlined,
@@ -11,7 +11,9 @@ import {
   FullscreenOutlined,
   FullscreenExitOutlined,
   ReloadOutlined,
-  PictureOutlined
+  PictureOutlined,
+  GlobalOutlined,
+  MoreOutlined,
 } from '@ant-design/icons'
 import ModuleManager from './module-manager'
 import ContentEditor from './content-editor'
@@ -71,12 +73,13 @@ interface Guide {
 
 interface GuideEditorProps {
   guideId: string
+  guideShow?: number
   onSave?: () => void
 }
 
-const SPECIAL_TEMPLATES = ['itinerary', 'expense', 'checklist', 'transport', 'photo', 'tips']
+const SPECIAL_TEMPLATES = ['itinerary', 'expense', 'checklist', 'transport', 'photo', 'tips', 'railway', 'timeline', 'notes', 'review', 'seat']
 
-export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
+export default function GuideEditor({ guideId, guideShow, onSave }: GuideEditorProps) {
   const { token } = theme.useToken()
   const { message } = App.useApp()
   const t = useTranslations('Guides')
@@ -91,6 +94,37 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
   const [guide, setGuide] = useState<Guide | null>(null)
   const [coverImage, setCoverImage] = useState<string>('')
   const [selectedAlbumIds, setSelectedAlbumIds] = useState<string[]>([])
+  const [leftPanelWidth, setLeftPanelWidth] = useState(320)
+  const resizingRef = useRef<{ startX: number; startWidth: number } | null>(null)
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    resizingRef.current = { startX: e.clientX, startWidth: leftPanelWidth }
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }, [leftPanelWidth])
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizingRef.current) return
+      const delta = e.clientX - resizingRef.current.startX
+      const newWidth = Math.max(200, Math.min(600, resizingRef.current.startWidth + delta))
+      setLeftPanelWidth(newWidth)
+    }
+    const handleMouseUp = () => {
+      if (resizingRef.current) {
+        resizingRef.current = null
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+      }
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [])
 
   const { data: modules, isLoading, error } = useSWR<Module[]>(`${API_BASE}/module/${guideId}`, async (url: string) => {
     const res = await fetch(url, { credentials: 'include' })
@@ -119,8 +153,6 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
   const loadAllModuleData = useCallback(async (moduleList: Module[]) => {
     setIsLoadingModuleData(true)
     try {
-      // API 已经返回了 moduleData，直接使用
-      // 如果某些模块没有 moduleData，再单独加载
       const modulesWithDataPromises = moduleList.map(async (mod) => {
         if (SPECIAL_TEMPLATES.includes(mod.template || '')) {
           if (mod.moduleData !== undefined) {
@@ -150,7 +182,6 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
 
   const handleSave = async () => {
     try {
-      // 保存封面和相册关联
       await fetch(`${GUIDES_API}/${guideId}`, {
         method: 'PUT',
         credentials: 'include',
@@ -193,11 +224,19 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
     setIsFullscreen(!isFullscreen)
   }
 
+  const handleFrontendPreview = () => {
+    if (guideShow !== 1) {
+      message.warning(t('guideNotPublicTip') || '攻略未公开，前台无法预览')
+      return
+    }
+    window.open(`/guides/${guideId}`, '_blank')
+  }
+
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center bg-gray-50">
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: token.colorBgLayout }}>
         <Spin size="large" tip={t('loading')}>
-          <div className="text-center p-8" />
+          <div style={{ textAlign: 'center', padding: 32 }} />
         </Spin>
       </div>
     )
@@ -205,18 +244,10 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
 
   if (error) {
     return (
-      <div className="h-full flex items-center justify-center bg-gray-50">
-        <div className="text-center p-8">
-          <Empty 
-            description={
-              <span className="text-gray-600">{t('loadFailed')}</span>
-            } 
-          />
-          <Button 
-            type="primary" 
-            className="mt-4" 
-            onClick={() => mutate(`${API_BASE}/module/${guideId}`)}
-          >
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: token.colorBgLayout }}>
+        <div style={{ textAlign: 'center', padding: 32 }}>
+          <Empty description={<Typography.Text type="secondary">{t('loadFailed')}</Typography.Text>} />
+          <Button type="primary" style={{ marginTop: 16 }} onClick={() => mutate(`${API_BASE}/module/${guideId}`)}>
             {t('refresh')}
           </Button>
         </div>
@@ -224,66 +255,85 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
     )
   }
 
+  // 次操作菜单（低频操作收入 More 下拉）
+  const moreMenuItems = [
+    {
+      key: 'refresh',
+      icon: <ReloadOutlined />,
+      label: t('refreshData'),
+      onClick: () => mutate(`${API_BASE}/module/${guideId}`),
+    },
+    {
+      key: 'cover',
+      icon: <PictureOutlined />,
+      label: t('coverSettings'),
+      onClick: () => setIsCoverDrawerOpen(true),
+    },
+    {
+      key: 'fullscreen',
+      icon: isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />,
+      label: isFullscreen ? t('exitFullscreen') : t('fullscreenEdit'),
+      onClick: toggleFullscreen,
+    },
+  ]
+
   return (
-    <div className={`h-full flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-white' : ''}`}>
-      {/* 工具栏 */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <Badge 
-            status={isPreviewMode ? "processing" : "default"} 
-            style={{ 
-              backgroundColor: isPreviewMode ? token.colorPrimary : token.colorSuccess
-            }} 
-          />
-          <span className="text-sm font-medium text-gray-700">
-            {isPreviewMode ? t('previewMode') : t('editMode')}
+    <div style={{
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      ...(isFullscreen ? { position: 'fixed' as const, inset: 0, zIndex: 50, background: token.colorBgContainer } : {}),
+    }}>
+      {/* 次级工具栏（E1: 灰底区别于页面主栏） */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: `${token.paddingSM}px ${token.paddingLG}px`,
+        background: token.colorBgLayout,
+        borderBottom: `1px solid ${token.colorBorder}`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: token.marginSM }}>
+          <span style={{ color: isPreviewMode ? token.colorPrimary : token.colorSuccess }}>
+            {isPreviewMode ? <EyeOutlined /> : <EditOutlined />}
           </span>
+          <Typography.Text strong style={{ fontSize: token.fontSize }}>
+            {isPreviewMode ? t('previewMode') : t('editMode')}
+          </Typography.Text>
         </div>
         <Space size="middle">
-          <Tooltip title={t('refreshData')}>
-            <Button 
-              icon={<ReloadOutlined />} 
-              onClick={() => mutate(`${API_BASE}/module/${guideId}`)}
-              className="rounded-lg"
-            />
-          </Tooltip>
-          <Tooltip title={t('coverSettings')}>
-            <Button 
-              icon={<PictureOutlined />} 
-              onClick={() => setIsCoverDrawerOpen(true)}
-              className="rounded-lg"
-            >
-              {t('cover')}
-            </Button>
-          </Tooltip>
+          {/* 高频操作 */}
           <Tooltip title={isPreviewMode ? t('switchToEdit') : t('switchToPreview')}>
             <Button 
               icon={isPreviewMode ? <EditOutlined /> : <EyeOutlined />} 
               onClick={togglePreview}
-              className="rounded-lg"
             >
               {isPreviewMode ? t('edit') : t('preview')}
             </Button>
           </Tooltip>
-          <Tooltip title={isFullscreen ? t('exitFullscreen') : t('fullscreenEdit')}>
+          <Tooltip title={guideShow !== 1 ? (t('guideNotPublicTip') || '攻略未公开，前台无法预览') : (t('frontendPreviewTip') || '在新窗口打开前台页面')}>
             <Button 
-              icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />} 
-              onClick={toggleFullscreen}
-              className="rounded-lg"
-            />
+              icon={<GlobalOutlined />} 
+              onClick={handleFrontendPreview}
+              disabled={guideShow !== 1}
+            >
+              {t('frontendPreview') || '前台预览'}
+            </Button>
           </Tooltip>
           <Button 
             icon={<UnorderedListOutlined />} 
             onClick={() => setIsTocDrawerOpen(true)}
-            className="rounded-lg"
           >
             {t('tocManager')}
           </Button>
+          {/* 低频操作收入 More */}
+          <Dropdown menu={{ items: moreMenuItems }} placement="bottomRight">
+            <Button icon={<MoreOutlined />} />
+          </Dropdown>
           <Button 
             type="primary" 
             icon={<SaveOutlined />} 
             onClick={handleSave}
-            className="rounded-lg bg-blue-600 hover:bg-blue-700"
           >
             {t('save')}
           </Button>
@@ -291,14 +341,14 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
       </div>
 
       {/* 主内容区 */}
-      <div className="flex-1 flex overflow-hidden">
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {isPreviewMode ? (
           /* 纯预览模式 */
-          <div className="flex-1 p-6 overflow-auto bg-gray-50">
-            <div className="max-w-4xl mx-auto bg-white rounded-xl p-8 shadow-sm">
+          <div style={{ flex: 1, padding: token.paddingLG, overflow: 'auto', background: token.colorBgLayout }}>
+            <div style={{ maxWidth: 896, margin: '0 auto', background: token.colorBgContainer, borderRadius: token.borderRadiusLG, padding: token.paddingXL, boxShadow: token.boxShadowTertiary }}>
               {isLoadingModuleData ? (
                 <Spin size="large" tip={t('loadingPreviewData')}>
-                  <div className="flex items-center justify-center py-12" />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }} />
                 </Spin>
               ) : (
                 <GuidePreview guideId={guideId} />
@@ -308,20 +358,33 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
         ) : (
           /* 编辑+预览模式 */
           <>
-            {/* 左侧模块列表 */}
-            <div className="w-72 border-r border-gray-200 bg-white overflow-auto">
-              <div className="p-4">
+            {/* 左侧模块列表（可拖拽调整宽度） */}
+            <div style={{ width: leftPanelWidth, borderRight: `1px solid ${token.colorBorder}`, background: token.colorBgContainer, overflow: 'auto', position: 'relative', flexShrink: 0 }}>
+              <div style={{ padding: token.padding }}>
                 <ModuleManager
                   guideId={guideId}
                   selectedModule={selectedModule}
                   onModuleSelect={setSelectedModule}
                 />
               </div>
+              {/* 拖拽调整宽度的把手 */}
+              <div
+                onMouseDown={handleResizeStart}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  right: -3,
+                  width: 6,
+                  height: '100%',
+                  cursor: 'col-resize',
+                  zIndex: 10,
+                }}
+              />
             </div>
 
             {/* 中间编辑区 */}
-            <div className="flex-1 overflow-auto bg-white border-r border-gray-200">
-              <div className="p-6">
+            <div style={{ flex: 1, overflow: 'auto', background: token.colorBgContainer, borderRight: `1px solid ${token.colorBorder}` }}>
+              <div style={{ padding: token.paddingLG }}>
                 <ContentEditor 
                   module={selectedModule} 
                   onContentDataChange={setModuleContentData}
@@ -329,14 +392,14 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
               </div>
             </div>
 
-            {/* 右侧预览区 */}
-            <div className="w-96 overflow-auto bg-gray-50">
-              <div className="p-4 sticky top-0 bg-gray-50 z-10 border-b border-gray-200">
-                <Typography.Text strong className="text-sm text-gray-700">
+            {/* 右侧预览区（E5: 小屏隐藏） */}
+            <div className="hidden lg:flex" style={{ width: 384, overflow: 'auto', background: token.colorBgLayout, flexDirection: 'column' }}>
+              <div style={{ padding: token.padding, position: 'sticky', top: 0, background: token.colorBgLayout, zIndex: 10, borderBottom: `1px solid ${token.colorBorder}` }}>
+                <Typography.Text strong style={{ fontSize: token.fontSizeSM }}>
                   {t('realTimePreview')}
                 </Typography.Text>
               </div>
-              <div className="h-[calc(100%-64px)] p-4">
+              <div style={{ flex: 1, padding: token.padding, overflow: 'auto' }}>
                 <ModulePreview 
                   type={selectedModule?.template || 'text'}
                   data={moduleContentData}
@@ -354,7 +417,6 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
         size="large"
         onClose={() => setIsTocDrawerOpen(false)}
         open={isTocDrawerOpen}
-        className="rounded-l-xl"
       >
         <TableOfContentsManager 
           guideId={guideId} 
@@ -370,7 +432,6 @@ export default function GuideEditor({ guideId, onSave }: GuideEditorProps) {
         size="large"
         onClose={() => setIsCoverDrawerOpen(false)}
         open={isCoverDrawerOpen}
-        className="rounded-l-xl"
       >
         <GuideCoverEditor
           guideId={guideId}

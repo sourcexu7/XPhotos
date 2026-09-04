@@ -128,7 +128,6 @@ app.get('/list', jwtAuth, async (c) => {
         del: 0,
       },
       include: {
-        components: true,
         albums: true,
       },
       orderBy: [
@@ -166,9 +165,6 @@ app.get('/:id', jwtAuth, async (c) => {
     const guide = await db.guides.findUnique({
       where: { id },
       include: {
-        components: {
-          orderBy: { sort: 'asc' },
-        },
         albums: {
           include: {
             album: true,
@@ -248,60 +244,6 @@ app.delete('/:id', jwtAuth, async (c) => {
   } catch (error) {
     console.error(error)
     return c.json({ error: 'Failed to delete guide' }, 500)
-  }
-})
-
-// 添加组件
-app.post('/:id/components', jwtAuth, async (c) => {
-  try {
-    const guideId = c.req.param('id')
-    const body = await c.req.json()
-    const component = await db.guideComponents.create({
-      data: {
-        guide_id: guideId,
-        type: body.type,
-        content: body.content,
-        sort: body.sort ?? 0,
-      },
-    })
-    return c.json({ data: component })
-  } catch (error) {
-    console.error(error)
-    return c.json({ error: 'Failed to add component' }, 500)
-  }
-})
-
-// 更新组件
-app.put('/:guideId/components/:componentId', jwtAuth, async (c) => {
-  try {
-    const componentId = c.req.param('componentId')
-    const body = await c.req.json()
-    const component = await db.guideComponents.update({
-      where: { id: componentId },
-      data: {
-        type: body.type,
-        content: body.content,
-        sort: body.sort,
-      },
-    })
-    return c.json({ data: component })
-  } catch (error) {
-    console.error(error)
-    return c.json({ error: 'Failed to update component' }, 500)
-  }
-})
-
-// 删除组件
-app.delete('/:guideId/components/:componentId', jwtAuth, async (c) => {
-  try {
-    const componentId = c.req.param('componentId')
-    await db.guideComponents.delete({
-      where: { id: componentId },
-    })
-    return c.json({ message: 'Component deleted successfully' })
-  } catch (error) {
-    console.error(error)
-    return c.json({ error: 'Failed to delete component' }, 500)
   }
 })
 

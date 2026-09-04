@@ -93,7 +93,6 @@ app.get('/guides', async (c) => {
     const guides = await cacheWrap('guides:list', () =>
       db.guides.findMany({
         where: { del: 0, show: 1 },
-        include: { components: true },
         orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
       }),
     )
@@ -130,7 +129,6 @@ app.get('/guides/:id', async (c) => {
       const guide = await db.guides.findUnique({
         where: { id, del: 0, show: 1 },
         include: {
-          components: true,
           albums: { include: { album: true } },
           modules: {
             where: { is_hidden: false },
@@ -141,7 +139,7 @@ app.get('/guides/:id', async (c) => {
       })
       if (!guide) return null
 
-      const specialTemplates = ['itinerary', 'expense', 'checklist', 'transport', 'photo', 'tips']
+      const specialTemplates = ['itinerary', 'expense', 'checklist', 'transport', 'photo', 'tips', 'railway', 'timeline', 'notes', 'review', 'seat']
       const modulesWithData = await Promise.all(
         (guide.modules || []).map(async (mod: any) => {
           if (specialTemplates.includes(mod.template)) {

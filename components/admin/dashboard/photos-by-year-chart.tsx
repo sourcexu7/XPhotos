@@ -10,7 +10,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { useTheme } from 'next-themes'
 import { motion, useReducedMotion } from 'motion/react'
 import { CalendarOutlined } from '@ant-design/icons'
 import { theme as AntTheme } from 'antd'
@@ -21,9 +20,7 @@ export type PhotosByYearChartProps = {
 }
 
 export function PhotosByYearChart({ data }: PhotosByYearChartProps) {
-  const { theme } = useTheme()
   const { token } = AntTheme.useToken()
-  const isDark = theme === 'dark'
   const reduce = useReducedMotion()
   const t = useTranslations('Dashboard')
   

@@ -15,7 +15,6 @@ import {
 } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { FixedSizeList as List } from 'react-window'
-import { motion } from 'framer-motion'
 import { useRouter, useParams } from 'next/navigation'
 
 interface AlbumSortImage {

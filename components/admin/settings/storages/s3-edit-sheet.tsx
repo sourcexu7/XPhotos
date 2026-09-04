@@ -88,7 +88,6 @@ export default function S3EditSheet() {
     <Drawer
       title={t('Config.editS3')}
       placement="left"
-      size={400}
       open={s3Edit}
       onClose={() => {
         setS3Edit(false)
@@ -96,6 +95,7 @@ export default function S3EditSheet() {
       }}
       mask={false}
       styles={{
+        wrapper: { width: 400 },
         header: { padding: `${token.padding} ${token.paddingLG}`, background: token.colorBgElevated },
         body: { padding: token.paddingLG },
       }}

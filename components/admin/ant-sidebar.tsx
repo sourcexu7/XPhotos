@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Menu, Dropdown, Typography, Space, Divider, theme, Avatar } from 'antd'
+import { Menu, Dropdown, Typography, Divider, theme, Avatar } from 'antd'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -19,6 +19,8 @@ import {
   BookOutlined,
   PieChartOutlined,
   GlobalOutlined,
+  RobotOutlined,
+  CameraOutlined,
 } from '@ant-design/icons'
 import { authClient } from '~/lib/auth-client'
 import { clearAllAuthData } from '~/lib/utils/auth-utils'
@@ -35,13 +37,14 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
   const pathname = usePathname() || '/admin'
   const { token } = theme.useToken()
   const [isHydrated, setIsHydrated] = useState(false)
+  const [userHovered, setUserHovered] = useState(false)
   const { data: session } = authClient.useSession()
 
   useEffect(() => {
     setIsHydrated(true)
   }, [])
 
-  const mainMenuItems = [
+  const menuItems = [
     {
       key: '/admin',
       icon: <DashboardOutlined />,
@@ -77,11 +80,7 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
       icon: <BookOutlined />,
       label: t('Link.guides'),
     },
-  ]
-
-  const settingsMenuItems = [
     {
-      key: 'settings-group',
       type: 'group' as const,
       label: !collapsed && <Text type="secondary" style={{ fontSize: 12 }}>{t('Link.settings')}</Text>,
       children: [
@@ -105,14 +104,17 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
           icon: <CloudOutlined />,
           label: t('Link.storages'),
         },
+        {
+          key: '/admin/settings/ai-model',
+          icon: <RobotOutlined />,
+          label: t('Link.aiModel'),
+        },
       ],
     },
   ]
 
   const onClick = ({ key }: { key: string }) => {
-    if (key !== 'settings-group') {
-      router.push(key)
-    }
+    router.push(key)
   }
 
   const userMenuItems = [
@@ -128,9 +130,7 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
       label: t('Login.goHome'),
       onClick: () => router.push('/'),
     },
-    {
-      type: 'divider' as const,
-    },
+    { type: 'divider' as const },
     {
       key: 'language',
       icon: <GlobalOutlined />,
@@ -142,9 +142,7 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
         window.location.reload()
       },
     },
-    {
-      type: 'divider' as const,
-    },
+    { type: 'divider' as const },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
@@ -164,13 +162,7 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
   ]
 
   return (
-    <div
-      style={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Logo 区域 */}
       <div
         style={{
@@ -179,9 +171,10 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'flex-start',
           gap: token.marginSM,
-          transition: 'all 0.3s',
+          transition: `all ${token.motionDurationMid}`,
         }}
       >
+        <CameraOutlined style={{ fontSize: 20, color: token.colorPrimary }} />
         {!collapsed && (
           <Text strong style={{ fontSize: 16 }}>
             XPhotos
@@ -191,36 +184,23 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
 
       <Divider style={{ margin: 0 }} />
 
-      {/* 主菜单 */}
+      {/* 统一菜单 */}
       <div style={{ flex: 1, overflow: 'auto' }}>
         {isHydrated && (
-          <>
-            <Menu
-              mode="inline"
-              selectedKeys={[pathname]}
-              onClick={onClick}
-              items={mainMenuItems}
-              style={{ border: 'none' }}
-            />
-            <Menu
-              mode="inline"
-              selectedKeys={[pathname]}
-              onClick={onClick}
-              items={settingsMenuItems}
-              style={{ border: 'none', marginTop: token.marginMD }}
-            />
-          </>
+          <Menu
+            mode="inline"
+            selectedKeys={[pathname]}
+            onClick={onClick}
+            items={menuItems}
+            style={{ border: 'none' }}
+          />
         )}
       </div>
 
       <Divider style={{ margin: 0 }} />
 
       {/* 用户信息 */}
-      <div
-        style={{
-          padding: token.paddingSM,
-        }}
-      >
+      <div style={{ padding: token.paddingSM }}>
         <Dropdown menu={{ items: userMenuItems }} placement="topLeft" trigger={['click']}>
           <div
             style={{
@@ -230,15 +210,15 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
               cursor: 'pointer',
               padding: token.paddingXS,
               borderRadius: token.borderRadius,
-              transition: 'background 0.3s',
+              transition: `background-color ${token.motionDurationMid}`,
               gap: token.paddingSM,
+              background: userHovered ? token.colorBgTextHover : 'transparent',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = token.colorBgTextHover
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-            }}
+            onMouseEnter={() => setUserHovered(true)}
+            onMouseLeave={() => setUserHovered(false)}
+            role="button"
+            tabIndex={0}
+            aria-label={session?.user?.name || t('Admin.fallbackName')}
           >
             <Avatar
               size={collapsed ? 32 : 40}
@@ -246,14 +226,14 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
               style={{ backgroundColor: token.colorPrimary }}
             />
             {!collapsed && (
-              <Space orientation="vertical" size={0}>
-                <Text strong style={{ fontSize: 13 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
+                <Text strong style={{ fontSize: token.fontSize }}>
                   {session?.user?.name || t('Admin.fallbackName')}
                 </Text>
-                <Text type="secondary" style={{ fontSize: 12 }}>
+                <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
                   {session?.user?.email || t('Admin.fallbackEmail')}
                 </Text>
-              </Space>
+              </div>
             )}
           </div>
         </Dropdown>
@@ -261,4 +241,3 @@ export default function AdminAntSidebar({ collapsed }: AdminAntSidebarProps) {
     </div>
   )
 }
-

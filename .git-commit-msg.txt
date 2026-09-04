@@ -1,0 +1,31 @@
+feat: 攻略系统全面扩展与后台UI优化 (v1.2.0)
+
+攻略系统新增 5 个功能模块：
+- 铁路信息模块（railway）：车次、时刻表、座位类型
+- 交通时间线模块（timeline）：时间轴形式展示交通安排
+- 注意事项模块（notes）：要点式旅行注意事项
+- 景点点评模块（review）：景点评价与反馈，含评分
+- 摄影机位推荐模块（seat）：摄影机位、拍摄参数、样图上传
+
+模块编辑UI统一重构：
+- 新建 ModuleBase 共享组件，统一列表+拖拽+弹框编辑模式
+- 11 个模块全部重构为 AntD 风格，移除硬编码颜色和渐变
+- 全部使用 theme.useToken() 主题 token
+
+后台UI优化：
+- ant-layout/ant-sidebar/ant-topbar 统一 AntD token 样式
+- 攻略管理列表页和编辑页 UI 优化
+- 模块管理拖拽手柄与点击编辑分离
+- 修复 Drawer width/Modal destroyOnClose 等 antd 6 弃用警告
+- 修复 Timeline mode/items.label/items.children 弃用属性
+- 修复 Space direction/Card bordered 弃用属性
+
+AI 提示词与 Skill 更新：
+- 系统提示词新增 5 个模块的完整数据格式和枚举值
+- 新增模块选择指南和解析要点
+- guide-upload SKILL.md 同步更新
+
+其他修复：
+- 移除未使用的死代码文件
+- 修复 i18n 缺失翻译 key
+- TypeScript 检查全部通过

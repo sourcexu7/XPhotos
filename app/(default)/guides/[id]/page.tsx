@@ -52,7 +52,6 @@ interface Guide {
   show: number
   sort: number
   createdAt: string
-  components?: any[]
   modules?: Module[]
   albums: GuideAlbumsRelation[]
 }
@@ -303,25 +302,6 @@ export default function GuideDetailPage() {
               <div className="space-y-3 sm:space-y-8">
                 {guide.modules.map((module) => renderModuleWithRef(module, moduleRefs))}
               </div>
-            ) : guide.components && guide.components.length > 0 ? (
-              <div className="space-y-3 sm:space-y-8">
-                {guide.components.sort((a, b) => a.sort - b.sort).map((component: any) =>
-                  component.type === 'image' ? (
-                    <div key={component.id} className="mb-4 sm:mb-10">
-                      {component.content?.images?.map((image: string, index: number) => (
-                        <div key={index} className="mb-3 last:mb-0">
-                          <Image src={image} alt={`图片 ${index + 1}`} width={1200} height={800} className="w-full h-auto rounded-xl" />
-                          {component.content?.caption && (
-                            <p className="mt-1.5 sm:mt-3 text-xs text-slate-600 dark:text-slate-400 text-center">{component.content.caption}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : component.type === 'text' ? (
-                    <div key={component.id} className="mb-4 sm:mb-10 prose prose-slate dark:prose-invert max-w-none prose-sm sm:prose-base" dangerouslySetInnerHTML={{ __html: component.content?.text || '' }} />
-                  ) : null
-                )}
-              </div>
             ) : (
               <div className="text-center py-8 sm:py-20 border-t border-slate-200/50 dark:border-slate-700/50">
                 <p className="text-sm text-slate-600 dark:text-slate-400">暂无内容</p>
@@ -416,6 +396,11 @@ function renderModuleWithRef(module: Module, moduleRefs: React.MutableRefObject<
           {module.template === 'transport' && renderTransport(moduleData)}
           {module.template === 'photo' && renderPhoto(moduleData)}
           {module.template === 'tips' && renderTips(moduleData)}
+          {module.template === 'railway' && renderRailway(moduleData)}
+          {module.template === 'timeline' && renderTimelineModule(moduleData)}
+          {module.template === 'notes' && renderNotes(moduleData)}
+          {module.template === 'review' && renderReview(moduleData)}
+          {module.template === 'seat' && renderSeat(moduleData)}
           {(module.template === 'text' || module.template === 'markdown' || module.template === null || module.template === undefined) && module.contents && module.contents.length > 0 && module.contents
             .slice()
             .sort((a, b) => a.sort - b.sort)
@@ -1318,6 +1303,163 @@ function renderTips(data: any[]) {
     <div className="space-y-3 sm:space-y-4">
       {data.map((tip: any) => (
         <TipItem key={tip.id} tip={tip} />
+      ))}
+    </div>
+  )
+}
+
+// ==================== Railway Module ====================
+const trainTypeLabels: Record<string, string> = { high_speed: '高铁', emu: '动车', direct: '直达', express: '特快', fast: '快速', ordinary: '普通' }
+const seatTypeLabels: Record<string, string> = { business: '商务座', first: '一等座', second: '二等座', soft_sleeper: '软卧', hard_sleeper: '硬卧', hard_seat: '硬座', standing: '无座' }
+
+function renderRailway(data: any[]) {
+  if (!data || data.length === 0) return <EmptyState message="暂无铁路信息" icon="🚄" />
+  return (
+    <div className="space-y-3 sm:space-y-4">
+      {data.map((item: any) => (
+        <div key={item.id} className="p-2.5 sm:p-4 border border-slate-200/50 dark:border-slate-700/50 rounded-lg sm:rounded-xl bg-white/50 dark:bg-slate-800/50">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="font-bold text-slate-900 dark:text-slate-50">{item.trainNo || '未设置车次'}</span>
+            {item.trainType && <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">{trainTypeLabels[item.trainType] || item.trainType}</span>}
+            {item.seatType && <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">{seatTypeLabels[item.seatType] || item.seatType}</span>}
+          </div>
+          {item.route && <p className="text-sm text-slate-600 dark:text-slate-400">{item.route}</p>}
+          <div className="flex flex-wrap gap-3 mt-2 text-sm text-slate-500 dark:text-slate-400">
+            {item.departureStation && <span>{item.departureStation} → {item.arrivalStation || ''}</span>}
+            {item.departureDate && <span>{item.departureDate} {item.departureTime || ''} - {item.arrivalTime || ''}</span>}
+            {item.duration && <span>历时 {item.duration}</span>}
+            {item.carriage && <span>{item.carriage}车 {item.seatNo || ''}</span>}
+            {item.platform && <span>{item.platform}站台</span>}
+            {item.price !== undefined && <span className="text-red-500 dark:text-red-400">¥{item.price}</span>}
+          </div>
+          {item.notes && <p className="mt-2 text-sm text-slate-400">{item.notes}</p>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ==================== Timeline Module ====================
+function renderTimelineModule(data: any[]) {
+  if (!data || data.length === 0) return <EmptyState message="暂无时间线节点" icon="⏱️" />
+  const typeLabels: Record<string, string> = { flight: '航班', train: '火车', car: '汽车', walk: '步行', other: '其他' }
+  const typeColors: Record<string, string> = { flight: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300', train: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300', car: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300', walk: 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300', other: 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300' }
+  return (
+    <div className="relative pl-4 sm:pl-6 space-y-4 sm:space-y-6">
+      <div className="absolute left-1.5 sm:left-2.5 top-2 bottom-2 w-0.5 bg-slate-200 dark:bg-slate-700" />
+      {data.map((item: any) => (
+        <div key={item.id} className="relative">
+          <div className="absolute -left-3 sm:-left-5 top-1 w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-indigo-500 border-2 border-white dark:border-slate-800" />
+          <div className="p-2.5 sm:p-4 border border-slate-200/50 dark:border-slate-700/50 rounded-lg sm:rounded-xl bg-white/50 dark:bg-slate-800/50">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              {item.date && <span className="text-sm text-slate-500 dark:text-slate-400">{item.date}</span>}
+              {item.time && <span className="text-sm text-slate-500 dark:text-slate-400">{item.time}</span>}
+              {item.type && <span className={`text-xs px-2 py-0.5 rounded-full ${typeColors[item.type] || typeColors.other}`}>{typeLabels[item.type] || item.type}</span>}
+            </div>
+            <p className="font-bold text-slate-900 dark:text-slate-50">{item.title || '未命名节点'}</p>
+            {item.location && <p className="text-sm text-slate-500 dark:text-slate-400">📍 {item.location}</p>}
+            {item.description && <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{item.description}</p>}
+            {item.duration && <p className="text-xs text-slate-400 mt-1">时长：{item.duration}</p>}
+            {item.notes && <p className="text-sm text-slate-400 mt-1">{item.notes}</p>}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ==================== Notes Module ====================
+function renderNotes(data: any[]) {
+  if (!data || data.length === 0) return <EmptyState message="暂无注意事项" icon="⚠️" />
+  const priorityConfig: Record<string, { label: string; color: string }> = {
+    high: { label: '重要', color: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300' },
+    medium: { label: '注意', color: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300' },
+    low: { label: '提示', color: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' },
+    success: { label: '确认', color: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' },
+  }
+  return (
+    <div className="space-y-3">
+      {data.map((item: any) => {
+        const config = priorityConfig[item.priority || 'medium'] || priorityConfig.medium
+        return (
+          <div key={item.id} className="p-2.5 sm:p-4 border-l-4 border-amber-400 dark:border-amber-500 rounded-r-lg sm:rounded-r-xl bg-amber-50/50 dark:bg-amber-900/20">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="font-bold text-slate-900 dark:text-slate-50">{item.title || '未命名要点'}</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${config.color}`}>{config.label}</span>
+              {item.category && <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">{item.category}</span>}
+            </div>
+            {item.content && <p className="text-sm text-slate-600 dark:text-slate-300">{item.content}</p>}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ==================== Review Module ====================
+function renderReview(data: any[]) {
+  if (!data || data.length === 0) return <EmptyState message="暂无点评" icon="⭐" />
+  const visitTypeLabels: Record<string, string> = { solo: '独自出行', couple: '情侣出行', family: '家庭出行', group: '团队出行', business: '商务出行' }
+  return (
+    <div className="space-y-3 sm:space-y-4">
+      {data.map((item: any) => (
+        <div key={item.id} className="p-2.5 sm:p-4 border border-slate-200/50 dark:border-slate-700/50 rounded-lg sm:rounded-xl bg-white/50 dark:bg-slate-800/50">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-50">{item.attractionName || '未命名景点'}</span>
+            <div className="flex items-center gap-0.5">
+              {[1,2,3,4,5].map(n => (
+                <span key={n} className={n <= (item.rating || 0) ? 'text-yellow-400' : 'text-slate-300 dark:text-slate-600'}>★</span>
+              ))}
+            </div>
+          </div>
+          {item.content && <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">{item.content}</p>}
+          <div className="flex flex-wrap gap-3 text-sm">
+            {item.pros && <span className="text-green-600 dark:text-green-400">👍 {item.pros}</span>}
+            {item.cons && <span className="text-red-500 dark:text-red-400">👎 {item.cons}</span>}
+          </div>
+          <div className="flex flex-wrap gap-3 mt-2 text-xs text-slate-400">
+            {item.author && <span>{item.author}</span>}
+            {item.date && <span>{item.date}</span>}
+            {item.visitType && <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700">{visitTypeLabels[item.visitType] || item.visitType}</span>}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ==================== Seat Module (Photography Spot) ====================
+function renderSeat(data: any[]) {
+  if (!data || data.length === 0) return <EmptyState message="暂无摄影机位" icon="📷" />
+  const bestTimeLabels: Record<string, string> = { sunrise: '日出', sunset: '日落', blue_hour: '蓝调时刻', golden_hour: '黄金时刻', midday: '正午', night: '夜间', anytime: '随时' }
+  const seasonLabels: Record<string, string> = { spring: '春季', summer: '夏季', autumn: '秋季', winter: '冬季', all_season: '四季皆宜' }
+  const directionLabels: Record<string, string> = { east: '朝东', south: '朝南', west: '朝西', north: '朝北', southeast: '东南', southwest: '西南', northeast: '东北', northwest: '西北' }
+  return (
+    <div className="space-y-3 sm:space-y-4">
+      {data.map((item: any) => (
+        <div key={item.id} className="p-2.5 sm:p-4 border border-slate-200/50 dark:border-slate-700/50 rounded-lg sm:rounded-xl bg-white/50 dark:bg-slate-800/50">
+          {item.sampleImage && (
+            <div className="mb-3 overflow-hidden rounded-lg">
+              <img src={item.sampleImage} alt={item.spotName || '样图'} className="w-full max-h-64 object-cover" />
+            </div>
+          )}
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-50">{item.spotName || '未命名机位'}</span>
+            {item.bestTime && <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">{bestTimeLabels[item.bestTime] || item.bestTime}</span>}
+            {item.season && <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{seasonLabels[item.season] || item.season}</span>}
+            {item.direction && <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">{directionLabels[item.direction] || item.direction}</span>}
+          </div>
+          {item.location && <p className="text-sm text-slate-500 dark:text-slate-400">📍 {item.location}</p>}
+          <div className="flex flex-wrap gap-3 mt-2 text-sm text-slate-500 dark:text-slate-400">
+            {item.focalLength && <span>📷 {item.focalLength}</span>}
+            {item.aperture && <span>光圈 {item.aperture}</span>}
+            {item.shutterSpeed && <span>快门 {item.shutterSpeed}</span>}
+            {item.iso && <span>ISO {item.iso}</span>}
+          </div>
+          {item.equipment && <p className="text-sm text-slate-400 mt-1">器材：{item.equipment}</p>}
+          {item.tips && <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">{item.tips}</p>}
+          {item.notes && <p className="text-sm text-slate-400 mt-1">{item.notes}</p>}
+        </div>
       ))}
     </div>
   )

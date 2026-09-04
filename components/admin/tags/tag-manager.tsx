@@ -586,7 +586,7 @@ export default function TagManager() {
         confirmLoading={cleaningOrphan}
         okText={t('confirm')}
         cancelText={t('cancel')}
-        destroyOnClose
+        destroyOnHidden
       >
         <Space orientation="vertical" style={{ width: '100%' }} size="middle">
           <Typography.Text>{t('cleanupOrphanDescription')}</Typography.Text>

@@ -28,7 +28,7 @@ export default function ImageView() {
     <Drawer
       title={imageViewData.title || '图片预览'}
       placement="left"
-      size={600}
+      styles={{ wrapper: { width: 600 } }}
       open={imageView}
       onClose={() => {
         setImageView(false)

@@ -111,7 +111,6 @@ export default function COSEditSheet() {
     <Drawer
       title={t('Config.editCOS')}
       placement="left"
-      size={400}
       open={cosEdit}
       onClose={() => {
         setCosEdit(false)
@@ -119,6 +118,7 @@ export default function COSEditSheet() {
       }}
       mask={false}
       styles={{
+        wrapper: { width: 400 },
         header: { padding: `${token.padding} ${token.paddingLG}`, background: token.colorBgElevated },
         body: { padding: token.paddingLG },
       }}

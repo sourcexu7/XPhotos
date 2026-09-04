@@ -363,7 +363,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
               </span>
             }
             placement="right"
-            size={340}
+            styles={{ wrapper: { width: 340 } }}
             open={filterDrawerOpen}
             onClose={() => setFilterDrawerOpen(false)}
           >

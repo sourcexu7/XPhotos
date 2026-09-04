@@ -8,7 +8,7 @@ export default async function Admin() {
   const stats = await fetchDashboardStats()
 
   return (
-    <div className="p-6">
+    <div className="space-y-4">
       <AdminPageHeader title={t('title')} description={t('description')} />
       <DashboardView stats={stats} />
     </div>

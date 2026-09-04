@@ -57,11 +57,11 @@ export default function AlbumAddSheet(props : Readonly<HandleProps>) {
     <Drawer
       title={t('Album.addAlbum')}
       placement="left"
-      size={400}
       open={albumAdd}
       onClose={() => setAlbumAdd(false)}
       mask={false}
       styles={{
+        wrapper: { width: 400 },
         header: { padding: '16px 24px', background: '#f9fafb' },
         body: { padding: '24px' },
       }}
