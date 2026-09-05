@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { useTranslations } from 'next-intl'
+import { Col, Row, Space, theme } from 'antd'
 import { StatCardsGrid, type StatCardProps } from './stat-card'
 import { VisitTrendChart } from './visit-trend-chart'
 import { PhotosByYearChart } from './photos-by-year-chart'
@@ -14,7 +15,8 @@ export type DashboardViewProps = {
 
 export function DashboardView({ stats }: DashboardViewProps) {
   const t = useTranslations('Dashboard')
-  
+  const { token } = theme.useToken()
+
   const statCards: StatCardProps[] = [
     {
       id: 'images',
@@ -75,28 +77,36 @@ export function DashboardView({ stats }: DashboardViewProps) {
   }))
 
   return (
-    <div className="space-y-8">
+    <Space orientation="vertical" size={token.marginLG} style={{ width: '100%' }}>
       <StatCardsGrid stats={statCards} />
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <VisitTrendChart data={stats.visits.last7Days} />
-        <PhotosByYearChart data={stats.photosByYear} />
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <HorizontalBarChart
-          data={cameraData}
-          title={t('topCameras')}
-          color="#F59E0B"
-          variant="camera"
-        />
-        <HorizontalBarChart
-          data={lensData}
-          title={t('topLenses')}
-          color="#F43F5E"
-          variant="lens"
-        />
-      </div>
-    </div>
+      <Row gutter={[token.marginLG, token.marginLG]}>
+        <Col xs={24} lg={12}>
+          <VisitTrendChart data={stats.visits.last7Days} />
+        </Col>
+        <Col xs={24} lg={12}>
+          <PhotosByYearChart data={stats.photosByYear} />
+        </Col>
+      </Row>
+
+      <Row gutter={[token.marginLG, token.marginLG]}>
+        <Col xs={24} lg={12}>
+          <HorizontalBarChart
+            data={cameraData}
+            title={t('topCameras')}
+            color={token.colorWarning}
+            variant="camera"
+          />
+        </Col>
+        <Col xs={24} lg={12}>
+          <HorizontalBarChart
+            data={lensData}
+            title={t('topLenses')}
+            color={token.colorError}
+            variant="lens"
+          />
+        </Col>
+      </Row>
+    </Space>
   )
 }

@@ -7,7 +7,7 @@ import Link from 'next/link'
 
 import { useTranslations } from 'next-intl'
 import { motion, useReducedMotion } from 'motion/react'
-import { ConfigProvider, App as AntdApp, Form, Input, Button, Typography, Space, theme, type FormInstance } from 'antd'
+import { ConfigProvider, App as AntdApp, Form, Input, Button, Typography, Space, BorderBeam, theme, type FormInstance } from 'antd'
 import {
   LockOutlined,
   UserOutlined,
@@ -201,16 +201,19 @@ export const UserFrom = () => {
           zIndex: 20,
         }}
       >
-        <div
-          style={{
-            backgroundColor: token.colorBgContainer,
-            border: `1px solid ${token.colorBorderSecondary}`,
-            borderRadius: token.borderRadiusLG * 2,
-            boxShadow: token.boxShadowSecondary,
-            padding: token.marginLG * 1.5,
-            backdropFilter: 'blur(16px)',
-          }}
-        >
+        {/* 慢速品牌色流光：登录面板氛围装饰，prefers-reduced-motion 下自动隐藏 */}
+        <BorderBeam duration={12} size={140} color={token.colorPrimary}>
+          <div
+            style={{
+              position: 'relative',
+              backgroundColor: token.colorBgContainer,
+              border: `1px solid ${token.colorBorderSecondary}`,
+              borderRadius: token.borderRadiusLG * 2,
+              boxShadow: token.boxShadowSecondary,
+              padding: token.marginLG * 1.5,
+              backdropFilter: 'blur(16px)',
+            }}
+          >
           <Space
             orientation="vertical"
             size={token.marginLG}
@@ -317,7 +320,8 @@ export const UserFrom = () => {
               </AntdApp>
             </ConfigProvider>
           </motion.div>
-        </div>
+          </div>
+        </BorderBeam>
 
         <div
           style={{

@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Drawer, Input, Button, Space, App, Card, Tag, Alert, Typography, Collapse, InputNumber, Progress, Checkbox, theme } from 'antd'
+import React, { useEffect, useRef, useState } from 'react'
+import { Drawer, Input, Button, Space, App, Card, Tag, Alert, Typography, Collapse, InputNumber, Progress, Checkbox, BorderBeam, theme } from 'antd'
 import { RobotOutlined, ImportOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
@@ -42,6 +42,13 @@ const TEMPLATE_COLORS: Record<string, string> = {
 }
 
 const SPECIAL_TEMPLATES = ['itinerary', 'expense', 'checklist', 'transport', 'photo', 'tips', 'railway', 'timeline', 'notes', 'review', 'seat']
+
+/** Aurora 渐变流光（antd BorderBeam 官方 AI 场景推荐配色），AI 解析进行中显示 */
+const AI_BEAM_COLOR = [
+  { color: '#7c3aed', percent: 0 },
+  { color: '#06b6d4', percent: 57 },
+  { color: '#67e8f9', percent: 100 },
+]
 
 interface ParsedModule {
   name: string
@@ -146,15 +153,71 @@ export default function AIImportDrawer({ open, onClose }: AIImportDrawerProps) {
   const router = useRouter()
   const [rawContent, setRawContent] = useState('')
   const [parsing, setParsing] = useState(false)
+  const [parseProgress, setParseProgress] = useState(0)
   const [parsed, setParsed] = useState<ParsedResult | null>(null)
   const [importing, setImporting] = useState(false)
   const [importProgress, setImportProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
+  // 解析请求的 AbortController：关闭抽屉/组件卸载时中止
+  const parseAbortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => {
+      parseAbortRef.current?.abort()
+    }
+  }, [])
+
+  const handleDrawerClose = () => {
+    parseAbortRef.current?.abort()
+    onClose()
+  }
+
   // 可编辑的 guide_info
   const [editInfo, setEditInfo] = useState<ParsedGuideInfo | null>(null)
   // 模块勾选状态
   const [selectedModules, setSelectedModules] = useState<Set<number>>(new Set())
+
+  /** 处理解析成功的结果：校验模块并展示 */
+  const handleParsedResult = (data: ParsedResult) => {
+    // 校验每个模块
+    const validatedModules = data.modules.map(mod => {
+      const { valid, warnings } = validateModule(mod)
+      return { ...mod, _valid: valid, _warnings: warnings }
+    })
+    const validated: ParsedResult = { ...data, modules: validatedModules }
+    setParsed(validated)
+    setEditInfo(data.guide_info)
+    // 默认全选有效模块
+    setSelectedModules(new Set(validatedModules.map((_, i) => i)))
+
+    // 如果有警告，提示用户
+    const totalWarnings = validatedModules.flatMap(m => m._warnings || [])
+    if (totalWarnings.length > 0) {
+      message.warning(t('aiImport.parseSuccessWithWarnings'))
+    } else {
+      message.success(t('aiImport.parseSuccess'))
+    }
+  }
+
+  /** 从错误响应文本中安全提取错误信息（网关 524 等返回 HTML 页而非 JSON） */
+  const extractErrorMessage = async (res: Response): Promise<string> => {
+    const text = await res.text().catch(() => '')
+    // 优先尝试 JSON 格式的错误信息
+    try {
+      const json = JSON.parse(text)
+      if (json?.error) return json.error
+    } catch {
+      // 非 JSON（如 CDN HTML 错误页）
+    }
+    if (res.status === 524) {
+      return '网关回源超时：请求耗时过长被 CDN 中断，请缩短文档内容后重试'
+    }
+    if (text.trim()) {
+      return `请求失败 (${res.status}): ${text.slice(0, 200)}`
+    }
+    return `${t('aiImport.parseFailed')} (${res.status})`
+  }
 
   const handleParse = async () => {
     if (!rawContent.trim()) {
@@ -164,40 +227,105 @@ export default function AIImportDrawer({ open, onClose }: AIImportDrawerProps) {
     setParsing(true)
     setError(null)
     setParsed(null)
+    setParseProgress(0)
+
+    const controller = new AbortController()
+    parseAbortRef.current = controller
+
     try {
       const res = await fetch('/api/v1/ai-guide/parse-guide', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ content: rawContent }),
+        signal: controller.signal,
       })
-      const json = await res.json()
-      if (!res.ok) {
-        setError(json.error || t('aiImport.parseFailed'))
+
+      if (!res.ok || !res.body) {
+        setError(await extractErrorMessage(res))
         return
       }
-      const data: ParsedResult = json.data
-      // 校验每个模块
-      const validatedModules = data.modules.map(mod => {
-        const { valid, warnings } = validateModule(mod)
-        return { ...mod, _valid: valid, _warnings: warnings }
-      })
-      const validated: ParsedResult = { ...data, modules: validatedModules }
-      setParsed(validated)
-      setEditInfo(data.guide_info)
-      // 默认全选有效模块
-      setSelectedModules(new Set(validatedModules.map((_, i) => i)))
 
-      // 如果有警告，提示用户
-      const totalWarnings = validatedModules.flatMap(m => m._warnings || [])
-      if (totalWarnings.length > 0) {
-        message.warning(t('aiImport.parseSuccessWithWarnings'))
-      } else {
-        message.success(t('aiImport.parseSuccess'))
+      // 非 SSE 响应的兜底：按普通 JSON 处理
+      const contentType = res.headers.get('content-type') || ''
+      if (!contentType.includes('text/event-stream')) {
+        const json = await res.json().catch(() => null)
+        if (!json?.data) {
+          setError(json?.error || t('aiImport.parseFailed'))
+          return
+        }
+        handleParsedResult(json.data)
+        return
+      }
+
+      // 读取 SSE 流：progress 更新进度，result 返回最终数据，error 返回失败原因
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let streamError: string | null = null
+      let hasResult = false
+
+      const processEvent = (rawEvent: string) => {
+        const dataLines = rawEvent
+          .split('\n')
+          .filter(line => line.startsWith('data:'))
+          .map(line => line.slice(5).trim())
+        if (dataLines.length === 0) return // 忽略注释行
+        const payload = dataLines.join('\n')
+        if (!payload) return
+        let evt: any
+        try {
+          evt = JSON.parse(payload)
+        } catch {
+          return
+        }
+        switch (evt.type) {
+          case 'progress': {
+            // 估算进度：按已接收字符数（JSON 输出通常 1 万~2.4 万字符）
+            setParseProgress(Math.min(95, Math.round((evt.chars || 0) / 240)))
+            break
+          }
+          case 'result':
+            hasResult = true
+            setParseProgress(100)
+            handleParsedResult(evt.data)
+            break
+          case 'error':
+            streamError = evt.error || t('aiImport.parseFailed')
+            break
+          default:
+            // ping 等心跳事件忽略
+            break
+        }
+      }
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        let sepIdx: number
+        while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
+          const rawEvent = buffer.slice(0, sepIdx)
+          buffer = buffer.slice(sepIdx + 2)
+          processEvent(rawEvent)
+        }
+      }
+
+      if (streamError) {
+        setError(streamError)
+      } else if (!hasResult) {
+        setError(t('aiImport.parseFailed'))
       }
     } catch (err: any) {
+      if (err.name === 'AbortError') {
+        // 用户主动关闭抽屉导致的取消，不提示错误
+        return
+      }
       setError(err.message || t('aiImport.parseFailed'))
     } finally {
+      if (parseAbortRef.current === controller) {
+        parseAbortRef.current = null
+      }
       setParsing(false)
     }
   }
@@ -388,6 +516,15 @@ export default function AIImportDrawer({ open, onClose }: AIImportDrawerProps) {
     setImportProgress(0)
   }
 
+  const textAreaNode = (
+    <TextArea
+      rows={16}
+      value={rawContent}
+      onChange={e => setRawContent(e.target.value)}
+      placeholder={t('aiImport.contentPlaceholder')}
+    />
+  )
+
   return (
     <Drawer
       title={
@@ -397,7 +534,7 @@ export default function AIImportDrawer({ open, onClose }: AIImportDrawerProps) {
         </Space>
       }
       open={open}
-      onClose={onClose}
+      onClose={handleDrawerClose}
       styles={{ wrapper: { width: 720 } }}
       footer={parsed ? (
         <div className="flex justify-end gap-2">
@@ -427,13 +564,13 @@ export default function AIImportDrawer({ open, onClose }: AIImportDrawerProps) {
           />
           <div>
             <Text strong>{t('aiImport.contentLabel')}</Text>
-            <TextArea
-              rows={16}
-              value={rawContent}
-              onChange={e => setRawContent(e.target.value)}
-              placeholder={t('aiImport.contentPlaceholder')}
-              className="mt-2"
-            />
+            {parsing ? (
+              <BorderBeam color={AI_BEAM_COLOR} duration={3} size={72} lineWidth={2}>
+                <div className="relative mt-2">{textAreaNode}</div>
+              </BorderBeam>
+            ) : (
+              <div className="mt-2">{textAreaNode}</div>
+            )}
           </div>
           {error && (
             <Alert
@@ -443,6 +580,13 @@ export default function AIImportDrawer({ open, onClose }: AIImportDrawerProps) {
               description={error}
               closable
               onClose={() => setError(null)}
+            />
+          )}
+          {parsing && (
+            <Progress
+              percent={parseProgress}
+              size="small"
+              status={parseProgress >= 95 ? 'active' : 'normal'}
             />
           )}
           <Button

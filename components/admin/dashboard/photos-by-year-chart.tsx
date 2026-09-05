@@ -12,18 +12,19 @@ import {
 } from 'recharts'
 import { motion, useReducedMotion } from 'motion/react'
 import { CalendarOutlined } from '@ant-design/icons'
-import { theme as AntTheme } from 'antd'
+import { Typography, theme } from 'antd'
 import { useTranslations } from 'next-intl'
+import { withAlpha } from '~/lib/utils'
 
 export type PhotosByYearChartProps = {
   data: Array<{ year: number; count: number }>
 }
 
 export function PhotosByYearChart({ data }: PhotosByYearChartProps) {
-  const { token } = AntTheme.useToken()
+  const { token } = theme.useToken()
   const reduce = useReducedMotion()
   const t = useTranslations('Dashboard')
-  
+
   const sortedData = [...data].sort((a, b) => a.year - b.year)
 
   return (
@@ -31,79 +32,94 @@ export function PhotosByYearChart({ data }: PhotosByYearChartProps) {
       initial={reduce ? {} : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-      className="bg-gradient-to-br from-white/70 via-white/50 to-white/40 dark:from-slate-900/70 dark:via-slate-900/50 dark:to-slate-900/40 backdrop-blur-xl p-6 rounded-2xl border border-border/40 shadow-lg hover:shadow-xl hover:shadow-emerald-500/5 transition-all duration-300"
+      className="border backdrop-blur-xl transition-shadow duration-300 hover:shadow-xl"
       style={{
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
+        borderRadius: token.borderRadiusLG,
+        padding: token.marginLG,
+        background: `linear-gradient(135deg, ${withAlpha(token.colorBgContainer, 0.7)} 0%, ${withAlpha(token.colorBgContainer, 0.5)} 100%)`,
+        borderColor: withAlpha(token.colorBorder, 0.4),
       }}
     >
-      <div className="flex items-center gap-3 mb-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 shadow-md">
-          <CalendarOutlined className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
+      <div className="flex items-center gap-3" style={{ marginBottom: token.margin }}>
+        <div
+          className="flex items-center justify-center flex-shrink-0"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: token.borderRadius,
+            background: `linear-gradient(to bottom right, ${withAlpha(token.colorSuccess, 0.18)}, ${withAlpha(token.colorSuccess, 0.05)})`,
+            border: `1px solid ${withAlpha(token.colorSuccess, 0.2)}`,
+          }}
+        >
+          <CalendarOutlined style={{ fontSize: token.fontSizeXL, color: token.colorSuccess }} />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-foreground tracking-tight">
+          <Typography.Title level={5} style={{ margin: 0 }}>
             {t('photosByYear')}
-          </h3>
-          <p className="text-sm text-muted-foreground">
+          </Typography.Title>
+          <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
             {t('byYear')}
-          </p>
+          </Typography.Text>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={sortedData}>
-          <defs>
-            <linearGradient id="colorPhotos" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={token.colorSuccess} stopOpacity={0.7} />
-              <stop offset="95%" stopColor={token.colorSuccess} stopOpacity={0.3} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            stroke={token.colorBorder}
-            vertical={false}
-          />
-          <XAxis 
-            dataKey="year" 
-            stroke={token.colorTextSecondary}
-            style={{ fontSize: '12px' }}
-            tickLine={false}
-            axisLine={false}
-          />
-          <YAxis 
-            stroke={token.colorTextSecondary}
-            style={{ fontSize: '12px' }}
-            tickLine={false}
-            axisLine={false}
-          />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: token.colorBgElevated,
-              border: `1px solid ${token.colorBorder}`,
-              borderRadius: '12px',
-              color: token.colorText,
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              boxShadow: token.boxShadowSecondary || '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-            }}
-            itemStyle={{
-              color: token.colorSuccess,
-              fontWeight: 600,
-            }}
-            labelStyle={{
-              color: token.colorText,
-              fontWeight: 600,
-              marginBottom: '4px',
-            }}
-          />
-          <Bar 
-            dataKey="count" 
-            fill="url(#colorPhotos)" 
-            radius={[8, 8, 0, 0]}
-            barSize={32}
-          />
-        </BarChart>
-      </ResponsiveContainer>
+      {data.length === 0 ? (
+        <Typography.Text type="secondary">{t('noData')}</Typography.Text>
+      ) : (
+        <div role="img" aria-label={t('photosByYear')}>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={sortedData}>
+              <defs>
+                <linearGradient id="colorPhotos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={token.colorSuccess} stopOpacity={0.7} />
+                  <stop offset="95%" stopColor={token.colorSuccess} stopOpacity={0.3} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={token.colorBorder}
+                vertical={false}
+              />
+              <XAxis
+                dataKey="year"
+                stroke={token.colorTextSecondary}
+                style={{ fontSize: token.fontSizeSM }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                stroke={token.colorTextSecondary}
+                style={{ fontSize: token.fontSizeSM }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: token.colorBgElevated,
+                  border: `1px solid ${token.colorBorder}`,
+                  borderRadius: token.borderRadiusLG,
+                  color: token.colorText,
+                  boxShadow: token.boxShadowSecondary,
+                }}
+                itemStyle={{
+                  color: token.colorSuccess,
+                  fontWeight: 600,
+                }}
+                labelStyle={{
+                  color: token.colorText,
+                  fontWeight: 600,
+                  marginBottom: token.marginXXS,
+                }}
+              />
+              <Bar
+                dataKey="count"
+                fill="url(#colorPhotos)"
+                radius={[token.borderRadiusLG, token.borderRadiusLG, 0, 0]}
+                barSize={32}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </motion.div>
   )
 }

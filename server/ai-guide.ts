@@ -1,5 +1,6 @@
 import 'server-only'
 import { Hono } from 'hono'
+import { streamSSE } from 'hono/streaming'
 import { jwtAuth } from './middleware/auth'
 import { HTTPException } from 'hono/http-exception'
 import { fetchConfigValue, invalidateConfigsCache } from '~/lib/db/query/configs'
@@ -515,153 +516,241 @@ app.post('/test-connection', jwtAuth, async (c) => {
 })
 
 /**
- * AI 解析攻略文档
+ * 规范化 AI 解析结果（修正模块数组结构、数字类型等）
  */
-app.post('/parse-guide', jwtAuth, async (c) => {
-  try {
-    const { content } = await c.req.json()
-
-    if (!content || content.trim().length < 10) {
-      return c.json({ error: '攻略内容过短，至少需要 10 个字符' }, 400)
+function normalizeParsedGuide(parsed: any): any {
+  const specialTemplates = ['itinerary', 'expense', 'checklist', 'transport', 'photo', 'tips', 'railway', 'timeline', 'notes', 'review', 'seat']
+  parsed.modules = (parsed.modules as any[]).map((mod: any, index: number) => {
+    // 确保 template 字段存在
+    if (!mod.template) {
+      mod.template = 'text'
     }
-
-    // 读取 AI 配置
-    const apiKey = await fetchConfigValue('ai_model_api_key')
-    const baseUrl = await fetchConfigValue('ai_model_base_url', 'https://api.deepseek.com/v1')
-    const modelName = await fetchConfigValue('ai_model_name', 'deepseek-chat')
-    const tempStr = await fetchConfigValue('ai_model_temperature', '0.3')
-    const temperature = parseFloat(tempStr) || 0.3
-    // 从数据库读取自定义 prompt，如果没有则用默认
-    const systemPrompt = await fetchConfigValue('ai_model_system_prompt', DEFAULT_SYSTEM_PROMPT)
-
-    if (!apiKey) {
-      return c.json({ error: 'AI 模型未配置，请先在设置中配置 API Key' }, 400)
-    }
-
-    // 调用 DeepSeek API
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: modelName,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content },
-        ],
-        temperature,
-        response_format: { type: 'json_object' },
-        max_tokens: 8000,
-      }),
-      signal: AbortSignal.timeout(120000),
-    })
-
-    if (!response.ok) {
-      const errText = await response.text()
-      console.error('DeepSeek API error:', response.status, errText)
-      return c.json({ error: `AI 解析失败 (${response.status}): ${errText.slice(0, 300)}` }, 500)
-    }
-
-    const data = await response.json()
-    const reply = data.choices?.[0]?.message?.content
-
-    if (!reply) {
-      return c.json({ error: 'AI 返回内容为空' }, 500)
-    }
-
-    // 解析 JSON
-    let parsed: any
-    try {
-      parsed = JSON.parse(reply)
-    } catch {
-      const jsonMatch = reply.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[0])
-      } else {
-        return c.json({ error: 'AI 返回内容无法解析为 JSON' }, 500)
+    // 专用模块：确保 moduleData 是数组
+    if (specialTemplates.includes(mod.template)) {
+      if (mod.moduleData == null) {
+        mod.moduleData = []
+      } else if (!Array.isArray(mod.moduleData)) {
+        mod.moduleData = [mod.moduleData]
       }
-    }
-
-    // 基本校验
-    if (!parsed.guide_info || !parsed.modules) {
-      return c.json({ error: 'AI 返回结构不完整，缺少 guide_info 或 modules' }, 500)
-    }
-
-    // 确保模块数据格式正确
-    const specialTemplates = ['itinerary', 'expense', 'checklist', 'transport', 'photo', 'tips', 'railway', 'timeline', 'notes', 'review', 'seat']
-    parsed.modules = (parsed.modules as any[]).map((mod: any, index: number) => {
-      // 确保 template 字段存在
-      if (!mod.template) {
-        mod.template = 'text'
-      }
-      // 专用模块：确保 moduleData 是数组
-      if (specialTemplates.includes(mod.template)) {
-        if (mod.moduleData == null) {
-          mod.moduleData = []
-        } else if (!Array.isArray(mod.moduleData)) {
-          mod.moduleData = [mod.moduleData]
-        }
-        // 修正数字类型字段（AI 有时返回字符串类型的数字）
-        mod.moduleData = mod.moduleData.map((item: any, i: number) => {
-          if (typeof item !== 'object' || item === null) return item
-          const fixed = { ...item }
-          if (!fixed.id) fixed.id = String(i + 1)
-          const numericFields = ['unitPrice', 'subtotal', 'price', 'days']
-          for (const field of numericFields) {
-            if (fixed[field] != null && typeof fixed[field] !== 'number') {
-              const num = Number(fixed[field])
-              if (!isNaN(num)) {
-                fixed[field] = num
-              } else {
-                delete fixed[field]
-              }
+      // 修正数字类型字段（AI 有时返回字符串类型的数字）
+      mod.moduleData = mod.moduleData.map((item: any, i: number) => {
+        if (typeof item !== 'object' || item === null) return item
+        const fixed = { ...item }
+        if (!fixed.id) fixed.id = String(i + 1)
+        const numericFields = ['unitPrice', 'subtotal', 'price', 'days']
+        for (const field of numericFields) {
+          if (fixed[field] != null && typeof fixed[field] !== 'number') {
+            const num = Number(fixed[field])
+            if (!isNaN(num)) {
+              fixed[field] = num
+            } else {
+              delete fixed[field]
             }
           }
-          if (fixed.checked != null && typeof fixed.checked !== 'boolean') {
-            fixed.checked = fixed.checked === 'true' || fixed.checked === true
-          }
-          return fixed
-        })
-        // 专用模块不需要 contents
-        mod.contents = null
-      } else {
-        // 通用模块：moduleData 为 null，确保 contents 是数组
-        mod.moduleData = null
-        if (!mod.contents) {
-          mod.contents = []
-        } else if (!Array.isArray(mod.contents)) {
-          mod.contents = [mod.contents]
         }
-        // 确保 contents 每项有 type 和 content
-        mod.contents = mod.contents.map((item: any) => {
-          if (typeof item !== 'object' || item === null) {
-            return { type: 'text', content: { text: String(item) } }
-          }
-          const fixed = { ...item }
-          if (!fixed.type) fixed.type = 'text'
-          if (!fixed.content) {
-            fixed.content = { text: fixed.text || fixed.content || '' }
-          }
-          return fixed
-        })
+        if (fixed.checked != null && typeof fixed.checked !== 'boolean') {
+          fixed.checked = fixed.checked === 'true' || fixed.checked === true
+        }
+        return fixed
+      })
+      // 专用模块不需要 contents
+      mod.contents = null
+    } else {
+      // 通用模块：moduleData 为 null，确保 contents 是数组
+      mod.moduleData = null
+      if (!mod.contents) {
+        mod.contents = []
+      } else if (!Array.isArray(mod.contents)) {
+        mod.contents = [mod.contents]
       }
-      // 确保有 name
-      if (!mod.name) {
-        mod.name = `模块 ${index + 1}`
+      // 确保 contents 每项有 type 和 content
+      mod.contents = mod.contents.map((item: any) => {
+        if (typeof item !== 'object' || item === null) {
+          return { type: 'text', content: { text: String(item) } }
+        }
+        const fixed = { ...item }
+        if (!fixed.type) fixed.type = 'text'
+        if (!fixed.content) {
+          fixed.content = { text: fixed.text || fixed.content || '' }
+        }
+        return fixed
+      })
+    }
+    // 确保有 name
+    if (!mod.name) {
+      mod.name = `模块 ${index + 1}`
+    }
+    return mod
+  })
+  return parsed
+}
+
+/**
+ * AI 解析攻略文档（SSE 流式）
+ *
+ * 以流式方式调用 DeepSeek 并透传进度事件给前端：
+ * - 避免长请求被 CDN 回源超时（524）中断：连接上持续有字节流动
+ * - 事件类型：progress（解析进度）、result（最终结构化 JSON）、error（失败原因）、ping（心跳）
+ */
+app.post('/parse-guide', jwtAuth, async (c) => {
+  const { content } = await c.req.json()
+
+  if (!content || content.trim().length < 10) {
+    return c.json({ error: '攻略内容过短，至少需要 10 个字符' }, 400)
+  }
+
+  // 读取 AI 配置
+  const apiKey = await fetchConfigValue('ai_model_api_key')
+  const baseUrl = await fetchConfigValue('ai_model_base_url', 'https://api.deepseek.com/v1')
+  const modelName = await fetchConfigValue('ai_model_name', 'deepseek-chat')
+  const tempStr = await fetchConfigValue('ai_model_temperature', '0.3')
+  const temperature = parseFloat(tempStr) || 0.3
+  // 从数据库读取自定义 prompt，如果没有则用默认
+  const systemPrompt = await fetchConfigValue('ai_model_system_prompt', DEFAULT_SYSTEM_PROMPT)
+
+  if (!apiKey) {
+    return c.json({ error: 'AI 模型未配置，请先在设置中配置 API Key' }, 400)
+  }
+
+  // 上游请求控制器：客户端断开或上游空闲超时时中止，避免浪费 token
+  const upstream = new AbortController()
+
+  // 防止中间层缓冲 SSE 流
+  c.header('X-Accel-Buffering', 'no')
+
+  return streamSSE(c, async (stream) => {
+    const send = (payload: Record<string, unknown>) =>
+      stream.writeSSE({ data: JSON.stringify(payload) })
+
+    let finished = false
+    let lastDataAt = Date.now()
+
+    // 心跳：首 token 前长时间无输出时保持连接，避免 CDN 空闲超时；
+    // 同时兜底处理上游 120 秒无任何数据的情况
+    const heartbeat = setInterval(() => {
+      if (finished) return
+      if (Date.now() - lastDataAt > 120000) {
+        upstream.abort()
+        return
       }
-      return mod
+      stream.writeSSE({ data: JSON.stringify({ type: 'ping' }) }).catch(() => {})
+    }, 10000)
+
+    // 客户端断开时中止上游请求
+    stream.onAbort(() => {
+      upstream.abort()
     })
 
-    return c.json({ data: parsed })
-  } catch (error: any) {
-    console.error('AI parse guide error:', error)
-    if (error.name === 'TimeoutError' || error.name === 'AbortError') {
-      return c.json({ error: 'AI 解析超时，请缩短文档内容后重试' }, 500)
+    try {
+      // 流式调用 DeepSeek API
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content },
+          ],
+          temperature,
+          response_format: { type: 'json_object' },
+          max_tokens: 8000,
+          stream: true,
+        }),
+        signal: upstream.signal,
+      })
+
+      if (!response.ok || !response.body) {
+        const errText = await response.text().catch(() => '')
+        console.error('DeepSeek API error:', response.status, errText)
+        finished = true
+        await send({ type: 'error', error: `AI 解析失败 (${response.status}): ${errText.slice(0, 300)}` })
+        return
+      }
+
+      // 读取上游 SSE 流：累积完整内容，同时向前端推送进度
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let sseBuffer = ''
+      let fullContent = ''
+      let lastProgressAt = 0
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        lastDataAt = Date.now()
+        sseBuffer += decoder.decode(value, { stream: true })
+
+        let newlineIdx: number
+        while ((newlineIdx = sseBuffer.indexOf('\n')) !== -1) {
+          const line = sseBuffer.slice(0, newlineIdx).trim()
+          sseBuffer = sseBuffer.slice(newlineIdx + 1)
+          if (!line.startsWith('data:')) continue
+          const payload = line.slice(5).trim()
+          if (!payload || payload === '[DONE]') continue
+          try {
+            const chunk = JSON.parse(payload)
+            const delta: string | undefined = chunk.choices?.[0]?.delta?.content
+            if (typeof delta === 'string' && delta) {
+              fullContent += delta
+              const now = Date.now()
+              // 进度事件节流：每 300ms 推送一次
+              if (now - lastProgressAt > 300) {
+                lastProgressAt = now
+                await send({ type: 'progress', chars: fullContent.length })
+              }
+            }
+          } catch {
+            // 忽略无法解析的分块
+          }
+        }
+      }
+
+      if (!fullContent) {
+        finished = true
+        await send({ type: 'error', error: 'AI 返回内容为空' })
+        return
+      }
+
+      // 解析 JSON（兼容 markdown 包裹的情况）
+      let parsed: any
+      try {
+        parsed = JSON.parse(fullContent)
+      } catch {
+        const jsonMatch = fullContent.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0])
+        } else {
+          finished = true
+          await send({ type: 'error', error: 'AI 返回内容无法解析为 JSON' })
+          return
+        }
+      }
+
+      if (!parsed.guide_info || !parsed.modules) {
+        finished = true
+        await send({ type: 'error', error: 'AI 返回结构不完整，缺少 guide_info 或 modules' })
+        return
+      }
+
+      finished = true
+      await send({ type: 'progress', chars: fullContent.length })
+      await send({ type: 'result', data: normalizeParsedGuide(parsed) })
+    } catch (error: any) {
+      console.error('AI parse guide stream error:', error)
+      finished = true
+      let msg = `AI 解析失败: ${error.message}`
+      if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+        msg = 'AI 解析超时或连接中断，请缩短文档内容后重试'
+      }
+      await send({ type: 'error', error: msg }).catch(() => {})
+    } finally {
+      clearInterval(heartbeat)
     }
-    throw new HTTPException(500, { message: `AI 解析失败: ${error.message}`, cause: error })
-  }
+  })
 })
 
 export default app

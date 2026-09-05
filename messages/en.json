@@ -225,7 +225,9 @@
     "cameraTop5": "Top 5 Cameras",
     "lensTop5": "Top 5 Lenses",
     "popularDevices": "Popular Devices",
-    "lensConfig": "Lens Config"
+    "lensConfig": "Lens Config",
+    "viewDetail": "View {label} details",
+    "noData": "No data"
   },
   "AdminAnalytics": {
     "title": "Analytics Overview",

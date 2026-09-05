@@ -2,15 +2,15 @@
 
 import React from 'react'
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { useTheme } from 'next-themes'
+import { Card, Empty, Typography, theme } from 'antd'
 import { useTranslations } from 'next-intl'
 
 export type PhotosByYearChartProps = {
@@ -18,65 +18,77 @@ export type PhotosByYearChartProps = {
 }
 
 export function PhotosByYearChart({ data }: PhotosByYearChartProps) {
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
+  const { token } = theme.useToken()
   const t = useTranslations()
-  
+
   const sortedData = [...data].sort((a, b) => a.year - b.year)
 
   return (
-    <div className="bg-card p-6 rounded-xl border border-border">
-      <h3 className="text-base font-semibold text-foreground mb-6">
+    <Card styles={{ body: { padding: token.marginLG } }}>
+      <Typography.Title level={5} style={{ marginTop: 0, marginBottom: token.margin }}>
         {t('Dashboard.photosByYear')}
-      </h3>
+      </Typography.Title>
       {data.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <p className="text-sm">{t('ImageComponent.noData')}</p>
-        </div>
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={t('ImageComponent.noData')}
+        />
       ) : (
-        <ResponsiveContainer width="100%" height={280}>
-          <AreaChart data={sortedData}>
-            <defs>
-              <linearGradient id="colorPhotos" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.05} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              stroke={isDark ? '#334155' : '#E2E8F0'} 
-            />
-            <XAxis 
-              dataKey="year" 
-              stroke={isDark ? '#94A3B8' : '#64748B'}
-              style={{ fontSize: '12px' }}
-            />
-            <YAxis 
-              stroke={isDark ? '#94A3B8' : '#64748B'}
-              style={{ fontSize: '12px' }}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
-                border: `2px solid ${isDark ? '#334155' : '#E2E8F0'}`,
-                borderRadius: '8px',
-                color: isDark ? '#F1F5F9' : '#0F172A',
-              }}
-              labelStyle={{
-                color: isDark ? '#F1F5F9' : '#0F172A',
-                fontWeight: 600,
-              }}
-            />
-            <Area 
-              type="monotone"
-              dataKey="count" 
-              stroke="#3B82F6"
-              strokeWidth={3}
-              fill="url(#colorPhotos)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        <div role="img" aria-label={t('Dashboard.photosByYear')}>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={sortedData}>
+              <defs>
+                <linearGradient id="colorPhotos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={token.colorPrimary} stopOpacity={0.7} />
+                  <stop offset="95%" stopColor={token.colorPrimary} stopOpacity={0.3} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={token.colorBorder}
+                vertical={false}
+              />
+              <XAxis
+                dataKey="year"
+                stroke={token.colorTextSecondary}
+                style={{ fontSize: token.fontSizeSM }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                stroke={token.colorTextSecondary}
+                style={{ fontSize: token.fontSizeSM }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: token.colorBgElevated,
+                  border: `1px solid ${token.colorBorder}`,
+                  borderRadius: token.borderRadiusLG,
+                  color: token.colorText,
+                  boxShadow: token.boxShadowSecondary,
+                }}
+                itemStyle={{
+                  color: token.colorPrimary,
+                  fontWeight: 600,
+                }}
+                labelStyle={{
+                  color: token.colorText,
+                  fontWeight: 600,
+                  marginBottom: token.marginXXS,
+                }}
+              />
+              <Bar
+                dataKey="count"
+                fill="url(#colorPhotos)"
+                radius={[token.borderRadiusLG, token.borderRadiusLG, 0, 0]}
+                barSize={32}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       )}
-    </div>
+    </Card>
   )
 }

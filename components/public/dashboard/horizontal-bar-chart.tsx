@@ -1,6 +1,9 @@
 'use client'
 
 import React from 'react'
+import { Card, Empty, Typography, theme } from 'antd'
+import { useTranslations } from 'next-intl'
+import { withAlpha } from '~/lib/utils'
 
 export type HorizontalBarChartProps = {
   data: Array<{ name: string; count: number }>
@@ -8,46 +11,51 @@ export type HorizontalBarChartProps = {
   color: string
 }
 
-export function HorizontalBarChart({ 
-  data, 
-  title, 
-  color 
+export function HorizontalBarChart({
+  data,
+  title,
+  color,
 }: HorizontalBarChartProps) {
-  const maxCount = Math.max(...data.map(d => d.count), 1)
-  
-  const lightColor = color.replace('#', '')
-  const r = parseInt(lightColor.substring(0, 2), 16)
-  const g = parseInt(lightColor.substring(2, 4), 16)
-  const b = parseInt(lightColor.substring(4, 6), 16)
-  const bgColor = `rgba(${r}, ${g}, ${b}, 0.1)`
+  const { token } = theme.useToken()
+  const t = useTranslations()
+
+  const maxCount = Math.max(...data.map((d) => d.count), 1)
 
   return (
-    <div className="bg-card p-6 rounded-xl border border-border">
-      <h3 className="text-base font-semibold text-foreground mb-6">
+    <Card styles={{ body: { padding: token.marginLG } }}>
+      <Typography.Title level={5} style={{ marginTop: 0, marginBottom: token.margin }}>
         {title}
-      </h3>
+      </Typography.Title>
       {data.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <p className="text-sm">暂无数据</p>
-        </div>
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={t('ImageComponent.noData')}
+        />
       ) : (
-        <div className="space-y-5">
+        <div className="flex flex-col" style={{ gap: token.margin }}>
           {data.map((item, index) => {
             const percentage = (item.count / maxCount) * 100
 
             return (
-              <div key={index} className="space-y-2.5">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground font-medium truncate flex-1 mr-4">
+              <div key={index}>
+                <div
+                  className="flex items-center justify-between"
+                  style={{ marginBottom: token.marginXS }}
+                >
+                  <Typography.Text
+                    type="secondary"
+                    className="truncate flex-1 mr-4"
+                    style={{ fontWeight: 500 }}
+                  >
                     {item.name}
-                  </span>
-                  <span className="text-foreground font-semibold tabular-nums">
+                  </Typography.Text>
+                  <Typography.Text strong className="tabular-nums">
                     {item.count.toLocaleString()}
-                  </span>
+                  </Typography.Text>
                 </div>
-                <div 
+                <div
                   className="w-full h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: bgColor }}
+                  style={{ backgroundColor: withAlpha(color, 0.12) }}
                 >
                   <div
                     className="h-full rounded-full transition-all duration-500"
@@ -62,6 +70,6 @@ export function HorizontalBarChart({
           })}
         </div>
       )}
-    </div>
+    </Card>
   )
 }

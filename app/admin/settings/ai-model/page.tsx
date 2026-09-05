@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Form, Input, Button, Select, Slider, Card, Space, App, Alert, Typography } from 'antd'
+import { Form, Input, Button, Select, Slider, Card, Space, App, Alert, Typography, BorderBeam } from 'antd'
 import { RobotOutlined, ApiOutlined, SaveOutlined, FileTextOutlined, UndoOutlined } from '@ant-design/icons'
 import AdminPageHeader from '~/components/admin/layout/page-header'
 import { useTranslations } from 'next-intl'
@@ -105,7 +105,16 @@ export default function AIModelSettings() {
         ]}
       />
 
+      {/* Aurora 流光：hover 时显示，标识 AI 能力入口 */}
+      <BorderBeam
+        color={[
+          { color: '#7c3aed', percent: 0 },
+          { color: '#06b6d4', percent: 57 },
+          { color: '#67e8f9', percent: 100 },
+        ]}
+      >
       <Card
+        className="[&_.ant-border-beam]:opacity-0 [&_.ant-border-beam]:transition-opacity hover:[&_.ant-border-beam]:opacity-100 [&_.ant-border-beam::before]:[animation-play-state:paused] hover:[&_.ant-border-beam::before]:[animation-play-state:running]"
         title={
           <Space>
             <RobotOutlined />
@@ -240,6 +249,7 @@ export default function AIModelSettings() {
           </div>
         </Form>
       </Card>
+      </BorderBeam>
 
       <Card title={t('AIModel.usageTitle')} size="small">
         <ol className="list-decimal pl-6 space-y-1 text-sm text-gray-600 dark:text-gray-400">

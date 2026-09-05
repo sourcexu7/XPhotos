@@ -779,7 +779,9 @@
     "cameraTop5": "最常用相机 TOP 5",
     "lensTop5": "最常用镜头 TOP 5",
     "popularDevices": "热门设备",
-    "lensConfig": "镜头配置"
+    "lensConfig": "镜头配置",
+    "viewDetail": "查看{label}详情",
+    "noData": "暂无数据"
   },
   "GuideEditor": {
     "addModule": "添加模块",

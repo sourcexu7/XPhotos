@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
-import { Modal, message, Button, Space, theme } from 'antd'
+import { App, Button, Space, theme } from 'antd'
 import { ReloadOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { DashboardView, type PublicDashboardStats } from '~/components/public/dashboard/dashboard-view'
@@ -15,6 +15,7 @@ export default function DataOverviewPage() {
   const [clearing, setClearing] = useState(false)
   const { mutate } = useSWRConfig()
   const { token } = theme.useToken()
+  const { message, modal } = App.useApp()
   const t = useTranslations('DataOverview')
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export default function DataOverviewPage() {
   )
 
   const handleClearCache = () => {
-    Modal.confirm({
+    modal.confirm({
       title: t('clearConfirmTitle'),
       content: t('clearConfirmContent'),
       okText: t('clearConfirmOk'),
@@ -78,12 +79,11 @@ export default function DataOverviewPage() {
       <div
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
           marginBottom: token.margin,
         }}
       >
-        <div />
         <Space>
           <Button
             danger

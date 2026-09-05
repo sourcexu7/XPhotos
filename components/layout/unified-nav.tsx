@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { ConfigProvider, Segmented } from 'antd'
+import { MoonOutlined, SunOutlined } from '@ant-design/icons'
 import Command from '~/components/layout/command'
 import { authClient } from '~/lib/auth-client'
 import { useTheme } from 'next-themes'
@@ -12,8 +14,6 @@ import { cn } from '~/lib/utils'
 import { setUserLocale } from '~/lib/utils/locale'
 import type { AlbumType } from '~/types'
 import {
-  SunIcon,
-  MoonIcon,
   HamburgerMenuIcon,
   Cross1Icon,
   GlobeIcon
@@ -26,6 +26,44 @@ interface UnifiedNavProps {
   siteTitle?: string
   hideThemeToggle?: boolean
   showLanguageToggle?: boolean
+}
+
+/** 日/夜切换分段控制器 — 配色跟随导航栏 CSS 变量，明暗主题自动适配 */
+function ThemeSegmented({
+  value,
+  onChange,
+}: {
+  value: 'light' | 'dark'
+  onChange: (value: 'light' | 'dark') => void
+}) {
+  return (
+    <ConfigProvider
+      theme={{
+        components: {
+          Segmented: {
+            trackBg: 'var(--muted)',
+            itemColor: 'var(--muted-foreground)',
+            itemHoverBg: 'transparent',
+            itemHoverColor: 'var(--foreground)',
+            itemSelectedBg: 'var(--card)',
+            itemSelectedColor: 'var(--foreground)',
+            trackPadding: 2,
+          },
+        },
+      }}
+    >
+      <Segmented<'light' | 'dark'>
+        shape="round"
+        value={value}
+        onChange={onChange}
+        aria-label="Theme"
+        options={[
+          { value: 'light', icon: <SunOutlined /> },
+          { value: 'dark', icon: <MoonOutlined /> },
+        ]}
+      />
+    </ConfigProvider>
+  )
 }
 
 export default function UnifiedNav({
@@ -47,14 +85,17 @@ export default function UnifiedNav({
   const t = useTranslations()
   const { data: session } = authClient.useSession()
   const { resolvedTheme } = useTheme()
-  const { toggle } = useUserThemeToggle()
+  const { setUserTheme } = useUserThemeToggle()
   const navRef = useRef<HTMLElement>(null)
   // 首页也允许切换主题（默认仍会是 dark，但用户可以主动切 light）
   const shouldHideThemeToggle = hideThemeToggle
 
-  const handleToggle = useCallback(() => {
-    toggle()
-  }, [toggle])
+  const handleThemeChange = useCallback(
+    (next: 'light' | 'dark') => {
+      setUserTheme(next)
+    },
+    [setUserTheme],
+  )
 
   useEffect(() => {
     setMounted(true)
@@ -152,21 +193,14 @@ export default function UnifiedNav({
               {session ? t('Link.dashboard') : t('Login.signIn')}
             </Link>
 
-            {/* Dark Mode Toggle — minimal icon */}
+            {/* Dark Mode Toggle — segmented control */}
             {mounted && !shouldHideThemeToggle && (
-              <button
-                onClick={handleToggle}
-                className="ml-2 inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted/60 transition-all duration-300"
-                style={{ touchAction: 'manipulation' }}
-                aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                type="button"
-              >
-                {resolvedTheme === 'dark' ? (
-                  <SunIcon className="w-4 h-4 text-foreground" />
-                ) : (
-                  <MoonIcon className="w-4 h-4 text-foreground" />
-                )}
-              </button>
+              <div className="ml-2">
+                <ThemeSegmented
+                  value={resolvedTheme === 'dark' ? 'dark' : 'light'}
+                  onChange={handleThemeChange}
+                />
+              </div>
             )}
 
             {/* Language Toggle */}
@@ -190,21 +224,12 @@ export default function UnifiedNav({
           </div>
 
           {/* Mobile Menu Toggle */}
-          <div className="lg:hidden flex items-center gap-1">
+          <div className="lg:hidden flex items-center gap-2">
             {mounted && !shouldHideThemeToggle && (
-              <button
-                onClick={handleToggle}
-                className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-muted/60 transition-all duration-300"
-                style={{ touchAction: 'manipulation' }}
-                aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                type="button"
-              >
-                {resolvedTheme === 'dark' ? (
-                  <SunIcon className="w-4 h-4 text-foreground" />
-                ) : (
-                  <MoonIcon className="w-4 h-4 text-foreground" />
-                )}
-              </button>
+              <ThemeSegmented
+                value={resolvedTheme === 'dark' ? 'dark' : 'light'}
+                onChange={handleThemeChange}
+              />
             )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
