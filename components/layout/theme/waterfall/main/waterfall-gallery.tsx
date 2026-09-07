@@ -134,7 +134,7 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
               type="button"
               onClick={loadNext}
               disabled={isLoading}
-              className="rounded-full border border-border bg-card px-5 py-2 text-sm text-foreground hover:bg-muted disabled:opacity-50"
+              className="rounded-full border border-border bg-card px-5 py-2 text-sm text-foreground hover:bg-muted active:bg-accent disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             >
               {isLoading ? '加载中…' : '加载更多'}
             </button>

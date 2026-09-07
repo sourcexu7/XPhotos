@@ -198,7 +198,7 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
                 <button
                   onClick={handleNext}
                   aria-label="Next"
-                  className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/60 hover:text-white hover:border-white/40 hover:bg-white/15 transition-all duration-200 btn-press"
+                  className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/60 hover:text-white hover:border-white/40 hover:bg-white/15 transition-all duration-200 btn-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5l7 7-7 7" />

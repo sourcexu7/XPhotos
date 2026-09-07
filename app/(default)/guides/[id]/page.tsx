@@ -343,7 +343,7 @@ export default function GuideDetailPage() {
                     <button
                       key={module.id}
                       onClick={() => handleModuleClick(module.id)}
-                      className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all active:scale-[0.98] ${
+                      className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
                         isActive
                           ? `${colors.bg} ${colors.text} font-medium shadow-sm`
                           : 'text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700'

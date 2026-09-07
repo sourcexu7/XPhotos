@@ -85,7 +85,7 @@ export default function ProgressiveImage({ showLightbox: showLightboxProp, previ
           <div className="fixed inset-x-0 top-0 z-[9999] flex justify-between p-3 pointer-events-none">
             <button
               onClick={handleClose}
-              className="pointer-events-auto w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-black/55 hover:bg-black/80 active:bg-black/90 text-white backdrop-blur-sm touch-manipulation transition-colors"
+              className="pointer-events-auto w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-black/55 hover:bg-black/80 active:bg-black/90 text-white backdrop-blur-sm touch-manipulation transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               aria-label={t('Button.goBack') || '返回'}
               type="button"
             >

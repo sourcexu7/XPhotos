@@ -156,7 +156,7 @@ function SimpleGalleryImpl(props: Readonly<ImageHandleProps>) {
             <button
               type="button"
               onClick={() => mutate()}
-              className="inline-flex items-center gap-2 text-xs text-red-400 hover:text-red-300"
+              className="inline-flex items-center gap-2 text-xs text-red-400 hover:text-red-300 active:text-red-500 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             >
               <ReloadIcon className="h-3 w-3" />
               重试

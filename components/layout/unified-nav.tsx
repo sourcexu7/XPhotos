@@ -234,7 +234,7 @@ export default function UnifiedNav({
             )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-muted/60 transition-all duration-300"
+              className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-muted/60 active:bg-muted transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             >
               {mobileMenuOpen ? (

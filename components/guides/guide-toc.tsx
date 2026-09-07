@@ -220,7 +220,7 @@ export default function GuideGuideTOC({ modules, activeModuleId, onModuleClick }
                     >
                       <button
                         onClick={() => onModuleClick(module.id)}
-                        className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 group relative overflow-hidden ${
+                        className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 group relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
                           isActive
                             ? `${colors.bg} ${colors.text} font-medium shadow-sm`
                             : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'

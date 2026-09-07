@@ -334,7 +334,7 @@ export default function GuidesAdminPage() {
               }}
               trigger={['click']}
             >
-              <Button icon={<MoreOutlined />} />
+              <Button icon={<MoreOutlined />} aria-label={t('actions')} />
             </Dropdown>
             <Popconfirm
               title={t('confirmDelete')}

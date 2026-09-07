@@ -248,7 +248,7 @@ export function FramerCarousel({
               <button
                 disabled={index === 0}
                 onClick={goToPrev}
-                className={`absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 z-10 backdrop-blur-sm
+                className={`absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 z-10 backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60
                   ${
                     index === 0
                       ? 'opacity-30 cursor-not-allowed bg-white/20'

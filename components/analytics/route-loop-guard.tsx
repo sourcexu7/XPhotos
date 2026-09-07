@@ -28,7 +28,7 @@ export function RouteLoopGuard() {
         <div className="flex justify-center gap-3">
           <button
             type="button"
-            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 active:bg-primary/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             onClick={() => {
               if (typeof window !== 'undefined') {
                 window.location.href = '/'

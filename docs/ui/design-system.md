@@ -180,7 +180,7 @@
 | 清除筛选按钮 | `rounded-xl` | 大面积触控元素 |
 | 卡片（相册卡） | `rounded-2xl` | 16px 大圆角 |
 | 图片卡片（瀑布流/单列） | `rounded-lg` / `rounded` | 移动端单列为 `rounded` |
-| 图片标签（antd Tag） | `4px` | TagLink（antd `borderRadiusSM`，勿改手写圆角） |
+| 图片标签（TagLink） | `4px` | 白瓷中性实底方案，圆角与 antd Tag 规格一致 |
 | 筛选 chip / 胶囊按钮 | `rounded-full` | 筛选面板、Hero CTA、加载更多 |
 | 图标按钮（导航/侧栏） | `rounded-full` | 圆形 hover 容器 |
 | 弹窗/下拉/输入框 | `rounded-lg` / `rounded-md` | Antd/Radix 默认修正后 |

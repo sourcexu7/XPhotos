@@ -65,7 +65,7 @@ export function AlbumGrid({ albums }: AlbumGridProps) {
           >
             <button
               onClick={() => safePush(router, '/covers')}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-foreground text-background rounded-full font-medium hover:bg-foreground/90 transition-all duration-300 group btn-press"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-foreground text-background rounded-full font-medium hover:bg-foreground/90 transition-all duration-300 group btn-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             >
               查看全部相册
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
