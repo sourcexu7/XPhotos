@@ -37,7 +37,7 @@ const SelectTrigger = React.forwardRef<
       if (typeof onTouchStart === 'function') onTouchStart(e)
     }}
     className={cn(
-      'flex h-9 w-full items-center justify-between gap-2 rounded bg-white border border-[#e5e5e5] px-3 py-2 text-start text-sm text-[#333333] leading-[24px] cursor-pointer hover:border-[#409eff] focus-visible:border-[#409eff] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:min-w-0',
+      'flex h-9 w-full items-center justify-between gap-2 rounded bg-background border border-input px-3 py-2 text-start text-sm text-foreground leading-[24px] cursor-pointer hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 [&>span]:min-w-0',
       className,
     )}
     {...props}
@@ -87,7 +87,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        'relative z-50 max-h-[min(24rem,var(--radix-select-content-available-height))] min-w-[8rem] overflow-hidden rounded border border-[#e5e5e5] bg-white shadow-none [&_[role=group]]:py-1',
+        'relative z-50 max-h-[min(24rem,var(--radix-select-content-available-height))] min-w-[8rem] overflow-hidden rounded border border-border bg-popover shadow-none [&_[role=group]]:py-1',
         position === 'popper' && 'w-full min-w-[var(--radix-select-trigger-width)]',
         className,
       )}
@@ -119,7 +119,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex w-full cursor-pointer items-center rounded py-2 px-3 text-sm text-[#333333] leading-[24px] select-none whitespace-nowrap overflow-hidden data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-[#f8f8f8] data-[state=checked]:bg-[#ecf5ff]',
+      'relative flex w-full cursor-pointer items-center rounded py-2 px-3 text-sm text-foreground leading-[24px] select-none whitespace-nowrap overflow-hidden data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-accent data-[state=checked]:bg-ring/10 data-[state=checked]:text-foreground',
       className,
     )}
     {...props}

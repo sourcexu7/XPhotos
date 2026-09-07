@@ -114,6 +114,8 @@
     "copyImageFailed": "Failed to copy image link!",
     "copyShareSuccess": "Share link copied successfully!",
     "copyShareFailed": "Failed to copy share link!",
+    "imageUrlMissing": "Image link does not exist!",
+    "imageIdMissing": "Image ID does not exist!",
     "uploadFileFirst": "Please upload a file first!",
     "selectAlbumFirst": "Please select an album first!",
     "imageHeightRequired": "Image height cannot be empty and must be greater than 0!",

@@ -124,7 +124,9 @@ function TagsSelect({
       />
       <div className="flex rounded-lg border border-border overflow-hidden text-xs" role="group" aria-label="标签筛选逻辑">
         <button
-          className={`px-2 h-8 ${operator === 'and' ? 'bg-primary text-white' : 'bg-card hover:bg-muted text-foreground'}`}
+          className={`px-2 h-8 ${operator === 'and'
+            ? 'bg-[#1677ff] text-white hover:bg-[#4096ff] active:bg-[#0958d9] dark:bg-[#1668dc]'
+            : 'bg-card hover:bg-muted text-foreground'}`}
           onClick={() => onOperatorChange('and')}
           aria-pressed={operator === 'and'}
           type="button"
@@ -132,7 +134,9 @@ function TagsSelect({
           {t('List.tagsOperatorAnd')}
         </button>
         <button
-          className={`px-2 h-8 ${operator === 'or' ? 'bg-primary text-white' : 'bg-card hover:bg-muted text-foreground'}`}
+          className={`px-2 h-8 ${operator === 'or'
+            ? 'bg-[#1677ff] text-white hover:bg-[#4096ff] active:bg-[#0958d9] dark:bg-[#1668dc]'
+            : 'bg-card hover:bg-muted text-foreground'}`}
           onClick={() => onOperatorChange('or')}
           aria-pressed={operator === 'or'}
           type="button"

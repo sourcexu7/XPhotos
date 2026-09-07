@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { Drawer, Input, Button, Space, App, Card, Tag, Alert, Typography, Collapse, InputNumber, Progress, Checkbox, BorderBeam, theme } from 'antd'
+import { Drawer, Input, Button, Space, App, Card, Tag, Alert, Typography, Collapse, InputNumber, Progress, Checkbox, theme } from 'antd'
+import { BorderBeam } from '~/components/ui/border-beam'
 import { RobotOutlined, ImportOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'

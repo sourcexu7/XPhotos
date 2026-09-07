@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Form, Input, Button, Select, Slider, Card, Space, App, Alert, Typography, BorderBeam } from 'antd'
+import { Form, Input, Button, Select, Slider, Card, Space, App, Alert, Typography } from 'antd'
+import { BorderBeam } from '~/components/ui/border-beam'
 import { RobotOutlined, ApiOutlined, SaveOutlined, FileTextOutlined, UndoOutlined } from '@ant-design/icons'
 import AdminPageHeader from '~/components/admin/layout/page-header'
 import { useTranslations } from 'next-intl'
@@ -107,6 +108,7 @@ export default function AIModelSettings() {
 
       {/* Aurora 流光：hover 时显示，标识 AI 能力入口 */}
       <BorderBeam
+        className="[&_.ant-border-beam]:opacity-0 [&_.ant-border-beam]:transition-opacity hover:[&_.ant-border-beam]:opacity-100"
         color={[
           { color: '#7c3aed', percent: 0 },
           { color: '#06b6d4', percent: 57 },
@@ -114,7 +116,6 @@ export default function AIModelSettings() {
         ]}
       >
       <Card
-        className="[&_.ant-border-beam]:opacity-0 [&_.ant-border-beam]:transition-opacity hover:[&_.ant-border-beam]:opacity-100 [&_.ant-border-beam::before]:[animation-play-state:paused] hover:[&_.ant-border-beam::before]:[animation-play-state:running]"
         title={
           <Space>
             <RobotOutlined />

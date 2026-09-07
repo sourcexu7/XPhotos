@@ -6,18 +6,9 @@ import LivePhoto from '~/components/album/live-photo'
 import { toast } from 'sonner'
 import { LinkIcon } from '~/components/icons/link'
 import { DownloadIcon } from '~/components/icons/download'
-import dayjs from 'dayjs'
 import { useRouter } from 'next-nprogress-bar'
-import { ClockIcon } from '~/components/icons/clock'
-import { CameraIcon } from '~/components/icons/camera'
-import { ApertureIcon } from '~/components/icons/aperture'
-import { CrosshairIcon } from '~/components/icons/crosshair'
-import { GaugeIcon } from '~/components/icons/gauge'
 import { CopyIcon } from '~/components/icons/copy'
 import { RefreshCWIcon } from '~/components/icons/refresh-cw'
-import { CompassIcon } from '~/components/icons/compass'
-import { TimerIcon } from '~/components/icons/timer'
-import { TelescopeIcon } from '~/components/icons/telescope'
 import { ArrowLeftIcon } from '~/components/icons/arrow-left'
 import { ChevronLeftIcon } from '~/components/icons/chevron-left'
 import { ChevronRightIcon } from '~/components/icons/chevron-right'
@@ -28,6 +19,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import ProgressiveImage from '~/components/album/progressive-image.tsx'
 import { buildShareUrl, copyToClipboard } from '~/lib/clipboard'
+import { buildExifRows, EXIF_FIELD_ICONS } from '~/lib/exif'
+import { TagLink } from '~/components/ui/tag-link'
+import { downloadImageFile, saveBlobToDevice } from '~/lib/image-download'
 
 export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
   const router = useRouter()
@@ -55,10 +49,10 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
   const copyShareLinkEnabled =
     configData?.find((item) => item.config_key === 'custom_index_copy_share_link_enable')?.config_value?.toString() === 'true' || copyLinkEnabled
 
-  // Fetch image list for prev/next navigation
+  // Fetch image list for prev/next navigation (pageSize=200 to cover as many images as possible)
   useEffect(() => {
     const album = props.data?.album_value || '/'
-    fetch(`/api/v1/public/gallery/images?page=1&album=${encodeURIComponent(album)}`)
+    fetch(`/api/v1/public/gallery/images?page=1&pageSize=200&album=${encodeURIComponent(album)}`)
       .then(res => res.json())
       .then((data: { items: ImageType[] }) => {
         const items = data.items || []
@@ -104,7 +98,7 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
 
   const handleCopyUrl = async () => {
     const url = props.data?.url
-    if (!url) { toast.error('图片链接不存在！', { duration: 500 }); return }
+    if (!url) { toast.error(t('Tips.imageUrlMissing'), { duration: 500 }); return }
     const res = await copyToClipboard(url)
     if (res.success) {
       let msg = t('Tips.copyImageSuccess')
@@ -117,7 +111,7 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
 
   const handleCopyShare = async () => {
     const shareUrl = buildShareUrl(props.id)
-    if (!shareUrl) { toast.error('图片ID不存在！', { duration: 500 }); return }
+    if (!shareUrl) { toast.error(t('Tips.imageIdMissing'), { duration: 500 }); return }
     const res = await copyToClipboard(shareUrl)
     if (res.success) {
       toast.success(t('Tips.copyShareSuccess'), { duration: 500 })
@@ -133,43 +127,8 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
       if (props.data?.album_license) msg += t('Tips.downloadLicense', { license: props.data.album_license })
       toast.warning(msg, { duration: 1500 })
 
-      const imageUrl = props.data?.url || ''
-      let storageType = 's3'
-      if (imageUrl.includes('r2')) {
-        storageType = 'r2'
-      } else if (imageUrl.includes('cos')) {
-        storageType = 'cos'
-      } else if (imageUrl.includes('alist')) {
-        storageType = 'alist'
-      }
-      let response = await fetch(`/api/public/download/${props.id}?storage=${storageType}`)
-      const contentType = response.headers.get('content-type')
-
-      let blob: Blob
-      let filename = 'download.jpg'
-
-      if (contentType?.includes('application/json')) {
-        const data = await response.json()
-        filename = decodeURIComponent(data.filename || filename)
-        response = await fetch(data.url)
-        blob = await response.blob()
-      } else {
-        const cd = response.headers.get('content-disposition')
-        if (cd) {
-          const m = cd.match(/filename="([^"]+)"/)
-          if (m) filename = decodeURIComponent(m[1])
-        }
-        blob = await response.blob()
-      }
-
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.setTimeout(() => window.URL.revokeObjectURL(url), 0)
+      const { blob, filename } = await downloadImageFile(props.id, props.data?.url || '')
+      saveBlobToDevice(blob, filename)
     } catch {
       toast.error(t('Tips.downloadFailed'), { duration: 500 })
     } finally {
@@ -235,31 +194,8 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
     )
   }
 
-  const exif = props.data.exif
-  const cam = exif?.make ? `${exif.make} ${exif.model ?? ''}`.trim() : (exif?.model ?? '')
-  const shotDate = exif?.data_time
-    ? (dayjs(exif.data_time, 'YYYY:MM:DD HH:mm:ss').isValid()
-        ? dayjs(exif.data_time, 'YYYY:MM:DD HH:mm:ss').format('YYYY-MM-DD')
-        : exif.data_time)
-    : null
-
-  const hasLocation = props.data.lat && props.data.lon
-
-  const exifRows = [
-    { icon: CameraIcon,    label: t('Exif.camera'),    value: cam || null },
-    { icon: TelescopeIcon, label: t('Exif.lens'),      value: exif?.lens_model ?? null },
-    { icon: ClockIcon,     label: t('Exif.date'),      value: shotDate },
-    { icon: ApertureIcon,  label: t('Exif.aperture'),  value: exif?.f_number ?? null },
-    { icon: TimerIcon,     label: t('Exif.shutter'),   value: exif?.exposure_time ?? null },
-    { icon: CrosshairIcon, label: t('Exif.focalLength'), value: exif?.focal_length ?? null },
-    { icon: GaugeIcon,     label: t('Exif.iso'),       value: exif?.iso_speed_rating ?? null },
-    {
-      icon: ExpandIcon,
-      label: t('Exif.resolution'),
-      value: props.data.width && props.data.height ? `${props.data.width} × ${props.data.height}` : null,
-    },
-    ...(hasLocation ? [{ icon: CompassIcon, label: t('Exif.location'), value: `${props.data.lat}, ${props.data.lon}` }] : []),
-  ].filter((r) => r.value)
+  // 统一使用共享 EXIF 格式化（含单位、镜头/分辨率/位置字段，与单列主题保持一致）
+  const exifRows = buildExifRows(props.data.exif, props.data)
 
   // ========== 共享：图片元素 ==========
   const renderImage = () => {
@@ -295,28 +231,24 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
             <div className="flex-1 h-px bg-border" />
           </div>
           <div className="space-y-2">
-            {exifRows.map(({ icon: Icon, label, value }) => (
-              <div key={label} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/30">
-                <Icon size={14} className="flex-shrink-0 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground w-16 flex-shrink-0">{label}</span>
-                <span className="text-xs font-medium text-foreground truncate">{String(value)}</span>
-              </div>
-            ))}
+            {exifRows.map(({ field, value }) => {
+              const Icon = EXIF_FIELD_ICONS[field]
+              return (
+                <div key={field} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/30">
+                  <Icon size={14} className="flex-shrink-0 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground w-16 flex-shrink-0">{t(`Exif.${field}`)}</span>
+                  <span className="text-xs font-medium text-foreground truncate">{value}</span>
+                </div>
+              )
+            })}
           </div>
         </section>
       )}
       {props.data!.labels && props.data!.labels.length > 0 && (
         <section>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-x-3 gap-y-2">
             {props.data!.labels.map((tag: string) => (
-              <button key={tag} onClick={() => router.push(`/tag/${tag}`)}
-                className="inline-flex items-center gap-0.5 px-2.5 py-1 rounded-lg text-xs font-medium
-                  bg-muted/60 text-muted-foreground border border-transparent
-                  hover:bg-accent hover:text-accent-foreground hover:border-accent
-                  active:scale-95
-                  transition-all duration-150 touch-manipulation">
-                <span className="text-muted-foreground/50 font-normal">#</span>{tag}
-              </button>
+              <TagLink key={tag} tag={tag} />
             ))}
           </div>
         </section>
@@ -324,15 +256,15 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
       <section>
         <div className="pt-2 border-t border-border/60">
           <div className="grid grid-cols-2 gap-2 pt-4 pb-2">
-            {copyDirectLinkEnabled && <ActionButton icon={<CopyIcon size={14} />} label={t('Preview.copyLink')} onClick={handleCopyUrl} disabled={!props.data!.url} />}
-            {copyShareLinkEnabled && <ActionButton icon={<LinkIcon size={14} />} label={t('Preview.shareLink')} onClick={handleCopyShare} disabled={!props.id} />}
+            {copyDirectLinkEnabled && <ActionButton icon={<CopyIcon size={14} className="p-0 pointer-events-none" />} label={t('Preview.copyLink')} onClick={handleCopyUrl} disabled={!props.data!.url} />}
+            {copyShareLinkEnabled && <ActionButton icon={<LinkIcon size={14} className="p-0 pointer-events-none" />} label={t('Preview.shareLink')} onClick={handleCopyShare} disabled={!props.id} />}
             {downloadEnabled && (
               <ActionButton
-                icon={downloading ? <RefreshCWIcon size={14} className="animate-spin" /> : <DownloadIcon size={14} />}
+                icon={downloading ? <RefreshCWIcon size={14} className="p-0 pointer-events-none animate-spin" /> : <DownloadIcon size={14} className="p-0 pointer-events-none" />}
                 label={t('Preview.download')} onClick={handleDownload} disabled={downloading}
               />
             )}
-            <ActionButton icon={<ExpandIcon size={14} />} label={t('Preview.fullscreen')} onClick={() => setLightboxPhoto(true)} />
+            <ActionButton icon={<ExpandIcon size={14} className="p-0 pointer-events-none" />} label={t('Preview.fullscreen')} onClick={() => setLightboxPhoto(true)} />
           </div>
         </div>
       </section>
@@ -355,7 +287,8 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
               aria-label={t('Button.prev')}
               className="absolute top-1/2 -translate-y-1/2 z-20 left-4
                 w-11 h-11 rounded-xl bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm
-                flex items-center justify-center transition-colors touch-manipulation"
+                flex items-center justify-center transition-colors touch-manipulation
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
               <ChevronLeftIcon size={20} />
             </button>
@@ -366,7 +299,8 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
               aria-label={t('Button.next')}
               className="absolute top-1/2 -translate-y-1/2 z-20 right-4
                 w-11 h-11 rounded-xl bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm
-                flex items-center justify-center transition-colors touch-manipulation"
+                flex items-center justify-center transition-colors touch-manipulation
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
               <ChevronRightIcon size={20} />
             </button>
@@ -380,9 +314,9 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
               {props.data!.title || t('Preview.untitled')}
             </h1>
             <button onClick={handleClose}
-              className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors touch-manipulation text-muted-foreground hover:text-foreground"
+              className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors touch-manipulation text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
               aria-label={t('Button.goBack')}>
-              <ArrowLeftIcon size={18} />
+              <ArrowLeftIcon size={18} className="p-0 pointer-events-none" />
             </button>
           </div>
           <div className="px-6 py-5 space-y-5">
@@ -399,9 +333,9 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
             {props.data!.title || t('Preview.untitled')}
           </h1>
           <button onClick={handleClose}
-            className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors touch-manipulation text-muted-foreground"
+            className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors touch-manipulation text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             aria-label={t('Button.goBack')}>
-            <ArrowLeftIcon size={18} />
+            <ArrowLeftIcon size={18} className="p-0 pointer-events-none" />
           </button>
         </div>
 
@@ -415,8 +349,9 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
               onClick={handlePrev}
               aria-label={t('Button.prev')}
               className="absolute top-1/2 left-3 -translate-y-1/2 z-10
-                w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm
-                flex items-center justify-center transition-colors touch-manipulation"
+                w-10 h-10 rounded-xl bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm
+                flex items-center justify-center transition-colors touch-manipulation
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
               <ChevronLeftIcon size={18} />
             </button>
@@ -426,8 +361,9 @@ export default function PreviewImage(props: Readonly<PreviewImageHandleProps>) {
               onClick={handleNext}
               aria-label={t('Button.next')}
               className="absolute top-1/2 right-3 -translate-y-1/2 z-10
-                w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm
-                flex items-center justify-center transition-colors touch-manipulation"
+                w-10 h-10 rounded-xl bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm
+                flex items-center justify-center transition-colors touch-manipulation
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
               <ChevronRightIcon size={18} />
             </button>
@@ -461,11 +397,12 @@ function ActionButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="flex items-center gap-2 px-3 py-2.5 rounded-lg
+      className="flex items-center gap-2 px-3 py-2.5 rounded-lg whitespace-nowrap
         bg-muted/60 hover:bg-accent text-muted-foreground hover:text-accent-foreground
         border border-transparent hover:border-accent text-xs font-medium
         active:scale-[0.98]
         transition-all duration-150
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60
         disabled:text-muted-foreground/60 disabled:bg-muted/30 disabled:border-transparent disabled:cursor-not-allowed
         touch-manipulation select-none"
     >

@@ -6,6 +6,14 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
 import { safePush } from '~/lib/router/safe-navigation'
 import { ArrowRight } from 'lucide-react'
+import { BorderBeam } from '~/components/ui/border-beam'
+
+/** Aurora AI 流光（与 AI 导入抽屉 / AI 模型设置页同款配色） */
+const HERO_CTA_BEAM_COLOR = [
+  { color: '#7c3aed', percent: 0 },
+  { color: '#06b6d4', percent: 57 },
+  { color: '#67e8f9', percent: 100 },
+]
 
 interface HeroSectionProps {
   images?: ImageType[]
@@ -140,22 +148,33 @@ export default function HeroSection({ images = [] }: HeroSectionProps) {
             ) : null}
           </motion.div>
 
-          {/* Center: CTA button */}
+          {/* Center: CTA button — Aurora AI 流光沿胶囊边框循环 */}
           <div className="flex justify-center">
-            <motion.button
-              type="button"
-              onClick={handleStartClick}
+            <motion.div
               initial={reduceMotion ? false : { opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: reduceMotion ? 0 : 0.9, duration: reduceMotion ? 0 : 0.8 }}
               whileHover={reduceMotion ? {} : { scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
-              className="group flex items-center gap-1.5 sm:gap-2 px-5 sm:px-7 py-2.5 sm:py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-full !text-white text-xs sm:text-sm font-medium tracking-wide hover:bg-white/20 transition-all duration-300 whitespace-nowrap"
-              style={{ color: '#ffffff' }}
             >
-              探索作品集
-              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white group-hover:translate-x-0.5 transition-transform duration-200" />
-            </motion.button>
+              <BorderBeam
+                variant="orbit"
+                borderRadius="9999px"
+                color={HERO_CTA_BEAM_COLOR}
+                duration={4}
+                lineWidth={2}
+              >
+                <button
+                  type="button"
+                  onClick={handleStartClick}
+                  className="group flex items-center gap-1.5 sm:gap-2 px-5 sm:px-7 py-2.5 sm:py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-full !text-white text-xs sm:text-sm font-medium tracking-wide hover:bg-white/20 transition-all duration-300 whitespace-nowrap"
+                  style={{ color: '#ffffff' }}
+                >
+                  探索作品集
+                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white group-hover:translate-x-0.5 transition-transform duration-200" />
+                </button>
+              </BorderBeam>
+            </motion.div>
           </div>
 
           {/* Right: prev / next arrows */}

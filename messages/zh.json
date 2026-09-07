@@ -114,6 +114,8 @@
     "copyImageFailed": "复制图片链接失败！",
     "copyShareSuccess": "复制分享直链成功！",
     "copyShareFailed": "复制分享直链失败！",
+    "imageUrlMissing": "图片链接不存在！",
+    "imageIdMissing": "图片ID不存在！",
     "uploadFileFirst": "请先上传文件！",
     "selectAlbumFirst": "请先选择相册！",
     "imageHeightRequired": "图片高度不能为空且必须大于 0！",

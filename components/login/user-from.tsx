@@ -7,7 +7,8 @@ import Link from 'next/link'
 
 import { useTranslations } from 'next-intl'
 import { motion, useReducedMotion } from 'motion/react'
-import { ConfigProvider, App as AntdApp, Form, Input, Button, Typography, Space, BorderBeam, theme, type FormInstance } from 'antd'
+import { ConfigProvider, App as AntdApp, Form, Input, Button, Typography, Space, theme, type FormInstance } from 'antd'
+import { BorderBeam } from '~/components/ui/border-beam'
 import {
   LockOutlined,
   UserOutlined,

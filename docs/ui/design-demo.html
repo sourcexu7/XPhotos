@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XPhotos 配色方案 Demo · 5 套高级简约风格</title>
+<style>
+/* ============ 设计令牌：方案 A — Porcelain 白瓷（默认） ============ */
+:root {
+  --bg: #FFFFFF; --card: #FFFFFF; --fg: #0A0A0A;
+  --muted: #F5F5F5; --muted-fg: #737373;
+  --border: #E5E5E5;
+  --primary: #0A0A0A; --primary-fg: #FFFFFF; --primary-hover: #262626;
+  --accent: #2563EB; --accent-weak: #EFF6FF;
+  --danger: #DC2626;
+  --ring: rgba(37, 99, 235, .35);
+  --shadow-hover: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px -12px rgba(0,0,0,.12);
+}
+body.dark {
+  --bg: #0A0A0A; --card: #141414; --fg: #FAFAFA;
+  --muted: #1C1C1C; --muted-fg: #A3A3A3;
+  --border: #262626;
+  --primary: #FAFAFA; --primary-fg: #0A0A0A; --primary-hover: #E5E5E5;
+  --accent: #60A5FA; --accent-weak: rgba(96,165,250,.12);
+  --danger: #F87171;
+  --ring: rgba(96,165,250,.40);
+  --shadow-hover: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+/* ============ 方案 B — Graphite 石墨 ============ */
+body[data-scheme="b"] {
+  --bg: #FAFAFA; --card: #FFFFFF; --fg: #18181B;
+  --muted: #F4F4F5; --muted-fg: #52525B;
+  --border: #E4E4E7;
+  --primary: #18181B; --primary-fg: #FFFFFF; --primary-hover: #2D2D32;
+  --accent: #5E6AD2; --accent-weak: #EEF0FB;
+  --danger: #DC2626; --ring: rgba(94,106,210,.35);
+}
+body[data-scheme="b"].dark {
+  --bg: #101012; --card: #17171A; --fg: #EDEDEF;
+  --muted: #1E1E22; --muted-fg: #9D9DA8;
+  --border: #26262B;
+  --primary: #EDEDEF; --primary-fg: #101012; --primary-hover: #D4D4DA;
+  --accent: #7B87E8; --accent-weak: rgba(123,135,232,.14);
+  --danger: #F87171; --ring: rgba(123,135,232,.40);
+}
+/* ============ 方案 C — Azure 晴空 ============ */
+body[data-scheme="c"] {
+  --bg: #FFFFFF; --card: #FFFFFF; --fg: #0F172A;
+  --muted: #F1F5F9; --muted-fg: #64748B;
+  --border: #E2E8F0;
+  --primary: #4F46E5; --primary-fg: #FFFFFF; --primary-hover: #4338CA;
+  --accent: #0EA5E9; --accent-weak: #F0F9FF;
+  --danger: #DC2626; --ring: rgba(79,70,229,.30);
+}
+body[data-scheme="c"].dark {
+  --bg: #0B1120; --card: #131C31; --fg: #E2E8F0;
+  --muted: #1B2740; --muted-fg: #94A3B8;
+  --border: #23304D;
+  --primary: #6366F1; --primary-fg: #FFFFFF; --primary-hover: #7C7FF2;
+  --accent: #38BDF8; --accent-weak: rgba(56,189,248,.12);
+  --danger: #F87171; --ring: rgba(124,127,242,.40);
+}
+/* ============ 方案 D — Mist 雾灰 ============ */
+body[data-scheme="d"] {
+  --bg: #F7F7F8; --card: #FFFFFF; --fg: #111113;
+  --muted: #EEEEF0; --muted-fg: #6E6E73;
+  --border: #E3E3E6;
+  --primary: #111113; --primary-fg: #FFFFFF; --primary-hover: #2A2A2E;
+  --accent: #A8825C; --accent-weak: #F6F1EA;
+  --danger: #DC2626; --ring: rgba(168,130,92,.35);
+}
+body[data-scheme="d"].dark {
+  --bg: #131315; --card: #1B1B1E; --fg: #F4F4F5;
+  --muted: #222226; --muted-fg: #9B9BA3;
+  --border: #2A2A2E;
+  --primary: #F4F4F5; --primary-fg: #131315; --primary-hover: #DDDDE2;
+  --accent: #C9A87E; --accent-weak: rgba(201,168,126,.12);
+  --danger: #F87171; --ring: rgba(201,168,126,.40);
+}
+/* ============ 方案 E — Onyx 玄黑（纯单色） ============ */
+body[data-scheme="e"] {
+  --bg: #FFFFFF; --card: #FFFFFF; --fg: #111113;
+  --muted: #F6F6F7; --muted-fg: #6B6B70;
+  --border: #E8E8EA;
+  --primary: #111113; --primary-fg: #FFFFFF; --primary-hover: #2E2E33;
+  --accent: #71717A; --accent-weak: rgba(113,113,122,.10);
+  --danger: #DC2626; --ring: rgba(17,17,19,.30);
+}
+body[data-scheme="e"].dark {
+  --bg: #09090B; --card: #101012; --fg: #F4F4F5;
+  --muted: #18181B; --muted-fg: #A1A1AA;
+  --border: #1F1F23;
+  --primary: #F4F4F5; --primary-fg: #09090B; --primary-hover: #E4E4E7;
+  --accent: #A1A1AA; --accent-weak: rgba(161,161,170,.12);
+  --danger: #F87171; --ring: rgba(244,244,245,.35);
+}
+
+/* ============ 基础 ============ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Geist', -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg); color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+body, body * { transition: background-color .25s ease, border-color .25s ease, color .25s ease, box-shadow .25s ease; }
+::selection { background: var(--accent-weak); }
+button { font: inherit; cursor: pointer; }
+:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); border-radius: 8px; }
+
+/* ============ 方案切换工具条（固定色，不随主题变化） ============ */
+.toolbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 16px;
+  background: #17171A; color: #EDEDEF;
+  border-bottom: 1px solid #2A2A2E;
+}
+.toolbar .tb-label { font-size: 12px; color: #8F8F98; letter-spacing: .04em; margin-right: 2px; }
+.tb-scheme {
+  padding: 6px 14px; border-radius: 999px; border: 1px solid #333338;
+  background: transparent; color: #B9B9C0; font-size: 13px; font-weight: 500;
+  transition: all .2s ease;
+}
+.tb-scheme:hover { color: #FFFFFF; border-color: #55555C; }
+.tb-scheme.active { background: #EDEDEF; color: #17171A; border-color: #EDEDEF; font-weight: 600; }
+.tb-scheme .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.tb-scheme .dot.a { background: linear-gradient(90deg, #0A0A0A 50%, #2563EB 50%); }
+.tb-scheme .dot.b { background: linear-gradient(90deg, #18181B 50%, #5E6AD2 50%); }
+.tb-scheme .dot.c { background: linear-gradient(90deg, #4F46E5 50%, #0EA5E9 50%); }
+.tb-scheme .dot.d { background: linear-gradient(90deg, #111113 50%, #A8825C 50%); }
+.tb-scheme .dot.e { background: linear-gradient(90deg, #111113 50%, #71717A 50%); }
+.tb-mode {
+  margin-left: 12px; padding: 6px 14px; border-radius: 999px;
+  border: 1px solid #333338; background: transparent; color: #B9B9C0; font-size: 13px;
+}
+.tb-mode:hover { color: #FFFFFF; border-color: #55555C; }
+
+/* ============ 导航栏 ============ */
+.nav {
+  position: sticky; top: 49px; z-index: 50;
+  display: flex; align-items: center; gap: 24px;
+  height: 56px; padding: 0 clamp(16px, 4vw, 40px);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.logo { font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 500; letter-spacing: -0.02em; color: var(--fg); text-decoration: none; }
+.nav-menu { display: flex; gap: 4px; margin-left: 12px; }
+.nav-link {
+  position: relative; padding: 7px 14px; border-radius: 8px;
+  font-size: 14px; color: var(--muted-fg); text-decoration: none; background: none; border: none;
+}
+.nav-link:hover { color: var(--fg); background: var(--muted); }
+.nav-link.active { color: var(--fg); font-weight: 500; }
+.nav-link.active::after {
+  content: ''; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 2px;
+  background: var(--accent); border-radius: 2px;
+}
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: 999px; border: none;
+  background: transparent; color: var(--muted-fg);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 15px;
+}
+.icon-btn:hover { background: var(--muted); color: var(--fg); }
+
+/* ============ 布局容器与区块 ============ */
+.container { max-width: 1080px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 32px); }
+section.demo { padding: 48px 0; border-bottom: 1px solid var(--border); }
+section.demo:last-of-type { border-bottom: none; }
+.sec-head { margin-bottom: 28px; }
+.sec-head h2 { font-size: clamp(24px, 3.4vw, 32px); font-weight: 300; letter-spacing: -0.02em; line-height: 1.15; }
+.sec-head p { margin-top: 8px; font-size: 14px; color: var(--muted-fg); max-width: 560px; line-height: 1.7; }
+.sec-tag {
+  display: inline-block; margin-bottom: 12px; padding: 3px 10px;
+  font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted-fg); border: 1px solid var(--border); border-radius: 999px;
+}
+
+/* ============ 按钮组 ============ */
+.btn-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 40px; padding: 0 18px; white-space: nowrap;
+  font-size: 14px; font-weight: 500; border-radius: 12px; border: 1px solid transparent;
+  transition: all .2s ease;
+}
+.btn:active { transform: scale(.98); }
+.btn-primary { background: var(--primary); color: var(--primary-fg); }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-outline { background: var(--bg); color: var(--fg); border-color: var(--border); }
+.btn-outline:hover { background: var(--muted); }
+.btn-ghost { background: transparent; color: var(--muted-fg); }
+.btn-ghost:hover { background: var(--muted); color: var(--fg); }
+.btn-accent { background: var(--accent); color: #FFFFFF; }
+.btn-accent:hover { filter: brightness(1.08); }
+.btn-danger { background: var(--danger); color: #FFFFFF; }
+.btn-danger:hover { filter: brightness(1.08); }
+.btn-sm { height: 32px; padding: 0 12px; font-size: 13px; border-radius: 10px; }
+.btn-lg { height: 44px; padding: 0 24px; }
+.btn:disabled { opacity: .45; pointer-events: none; }
+.btn-pill { border-radius: 999px; }
+.btn .ico { font-style: normal; font-size: 15px; line-height: 1; }
+
+/* ============ 表单 ============ */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; max-width: 720px; }
+.field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+.field .hint { font-size: 12px; color: var(--muted-fg); margin-top: 6px; }
+.field .err { font-size: 12px; color: var(--danger); margin-top: 6px; }
+.input, .select {
+  width: 100%; height: 40px; padding: 0 12px;
+  background: var(--bg); color: var(--fg);
+  border: 1px solid var(--border); border-radius: 12px;
+  font-size: 14px; transition: all .2s ease;
+}
+.select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted-fg) 50%), linear-gradient(135deg, var(--muted-fg) 50%, transparent 50%); background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+.input:hover, .select:hover { border-color: var(--muted-fg); }
+.input:focus, .select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+.input.invalid { border-color: var(--danger); }
+.input.invalid:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 25%, transparent); }
+
+/* ============ 相册卡片 ============ */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.album-card {
+  border-radius: 16px; overflow: hidden; cursor: pointer;
+  border: 1px solid var(--border); background: var(--card);
+  transition: transform .35s cubic-bezier(.22,1,.36,1), box-shadow .35s ease, border-color .25s ease;
+}
+.album-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+.album-card:active { transform: scale(.98); }
+.album-media { position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: var(--muted); }
+.album-media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .5s cubic-bezier(.22,1,.36,1); }
+.album-card:hover .album-media img { transform: scale(1.03); }
+.album-overlay {
+  position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 14px; color: #FFFFFF;
+  background: linear-gradient(to top, rgba(0,0,0,.45), rgba(0,0,0,.05) 55%, transparent);
+  opacity: 1; transition: opacity .3s ease;
+}
+.album-overlay .count { font-size: 12px; opacity: .85; letter-spacing: .02em; }
+.album-overlay .name { font-size: 17px; font-weight: 500; letter-spacing: -0.01em; margin-top: 2px; }
+.live-badge {
+  position: absolute; top: 10px; left: 10px;
+  padding: 2px 7px; border-radius: 6px;
+  background: rgba(0,0,0,.5); color: #FFF; font-size: 9px; font-weight: 600; letter-spacing: .12em;
+}
+
+/* ============ 标签 ============ */
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tag-btn {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 5px 10px; border-radius: 10px;
+  font-size: 12px; font-weight: 500; font-family: inherit;
+  background: var(--muted); color: var(--muted-fg); border: 1px solid transparent;
+  transition: all .2s ease;
+}
+.tag-btn .hash { color: color-mix(in srgb, var(--muted-fg) 55%, transparent); font-weight: 400; }
+.tag-btn:hover { background: var(--accent-weak); color: var(--accent); border-color: var(--accent); }
+.tag-btn:active { transform: scale(.95); }
+.chip {
+  padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 500; font-family: inherit;
+  background: var(--bg); color: var(--muted-fg); border: 1px solid var(--border);
+  transition: all .2s ease;
+}
+.chip:hover { border-color: var(--muted-fg); color: var(--fg); }
+.chip.selected { background: var(--accent-weak); color: var(--accent); border-color: var(--accent); }
+.chip .x { margin-left: 5px; opacity: .55; }
+.chip .x:hover { opacity: 1; }
+
+/* ============ EXIF（新版：无底行 + 细分隔线） ============ */
+.exif { max-width: 420px; }
+.exif-head { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.exif-head .t { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-fg); }
+.exif-head .line { flex: 1; height: 1px; background: var(--border); }
+.exif-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 0; border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  font-size: 12.5px;
+}
+.exif-row:last-child { border-bottom: none; }
+.exif-row .k { color: var(--muted-fg); }
+.exif-row .v { color: var(--fg); font-weight: 450; text-align: right; }
+
+/* ============ 分页 ============ */
+.page-row { display: flex; gap: 8px; align-items: center; }
+.page-btn {
+  min-width: 36px; height: 36px; padding: 0 10px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--muted-fg);
+  font-size: 13px; transition: all .2s ease;
+}
+.page-btn:hover { background: var(--muted); color: var(--fg); }
+.page-btn.current { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); font-weight: 600; }
+.load-more {
+  height: 40px; padding: 0 24px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--card); color: var(--fg); font-size: 13.5px;
+}
+.load-more:hover { background: var(--muted); }
+.load-more:disabled { opacity: .45; }
+
+/* ============ 页脚 ============ */
+footer.demo-footer { border-top: 1px solid var(--border); background: var(--muted); }
+.footer-inner { max-width: 1080px; margin: 0 auto; padding: 40px clamp(16px, 4vw, 32px); display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; align-items: flex-start; }
+.footer-brand { font-family: 'Playfair Display', Georgia, serif; font-size: 18px; font-weight: 500; letter-spacing: -0.02em; }
+.footer-desc { font-size: 12.5px; color: var(--muted-fg); line-height: 1.8; max-width: 380px; margin-top: 8px; }
+.footer-links { display: flex; gap: 20px; font-size: 13px; }
+.footer-links a { color: var(--muted-fg); text-decoration: none; }
+.footer-links a:hover { color: var(--accent); }
+.copyright { font-size: 12px; color: var(--muted-fg); }
+
+@media (max-width: 640px) {
+  .nav-menu { display: none; }
+  .btn-row { gap: 8px; }
+}
+</style>
+</head>
+<body data-scheme="a">
+
+<!-- 方案切换工具条 -->
+<div class="toolbar" role="toolbar" aria-label="配色方案切换">
+  <span class="tb-label">配色方案</span>
+  <button class="tb-scheme active" data-scheme="a" aria-pressed="true"><span class="dot a"></span>A · Porcelain 白瓷</button>
+  <button class="tb-scheme" data-scheme="b" aria-pressed="false"><span class="dot b"></span>B · Graphite 石墨</button>
+  <button class="tb-scheme" data-scheme="c" aria-pressed="false"><span class="dot c"></span>C · Azure 晴空</button>
+  <button class="tb-scheme" data-scheme="d" aria-pressed="false"><span class="dot d"></span>D · Mist 雾灰</button>
+  <button class="tb-scheme" data-scheme="e" aria-pressed="false"><span class="dot e"></span>E · Onyx 玄黑</button>
+  <button class="tb-mode" id="modeBtn" aria-label="切换明暗模式">◐ 暗色模式</button>
+</div>
+
+<!-- 导航栏 -->
+<header class="nav">
+  <a class="logo" href="#">XPhotos</a>
+  <nav class="nav-menu" aria-label="主导航">
+    <button class="nav-link">首页</button>
+    <button class="nav-link active">作品集</button>
+    <button class="nav-link">攻略</button>
+    <button class="nav-link">关于</button>
+  </nav>
+  <div class="nav-right">
+    <button class="icon-btn" aria-label="切换主题">◐</button>
+    <button class="icon-btn" aria-label="切换语言">文A</button>
+    <button class="btn btn-primary btn-sm">登录</button>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- 区块标题 -->
+  <section class="demo">
+    <div class="sec-head">
+      <span class="sec-tag">排版层级</span>
+      <h2>作品集<span style="font-weight:300">精选</span></h2>
+      <p>标题使用 300 字重 + 收紧字距（-0.02em），层级仅靠字号与字重表达，不做色彩强调——图片是唯一的色彩来源。</p>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary">主要操作</button>
+      <button class="btn btn-outline">次要操作</button>
+      <button class="btn btn-ghost">轻量操作</button>
+      <button class="btn btn-danger">危险操作</button>
+      <button class="btn btn-primary" disabled>禁用状态</button>
+      <button class="btn btn-outline btn-sm">小型按钮</button>
+      <button class="btn btn-primary btn-lg">大号按钮</button>
+    </div>
+  </section>
+
+  <!-- 表单 -->
+  <section class="demo">
+    <div class="sec-head">
+      <span class="sec-tag">表单控件</span>
+      <h2>输入与选择</h2>
+      <p>焦点态 = 主色描边 + 柔和 ring；错误态独立于焦点态；悬停时边框加深一级。</p>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="f1">图片标题</label>
+        <input class="input" id="f1" placeholder="例如：山间晨雾">
+        <p class="hint">支持中文、英文与数字</p>
+      </div>
+      <div class="field">
+        <label for="f2">所属相册</label>
+        <select class="select" id="f2">
+          <option>城市漫步</option>
+          <option>山与海</option>
+          <option>光影实验</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f3">图片链接</label>
+        <input class="input invalid" id="f3" value="not-a-url">
+        <p class="err">请输入合法的图片地址（错误态）</p>
+      </div>
+      <div class="field">
+        <label for="f4">搜索标签</label>
+        <input class="input" id="f4" placeholder="输入关键词筛选">
+      </div>
+    </div>
+  </section>
+
+  <!-- 相册卡片 -->
+  <section class="demo">
+    <div class="sec-head">
+      <span class="sec-tag">内容卡片</span>
+      <h2>相册封面</h2>
+      <p>边框优先、阴影极轻：hover 时上浮 4px + 细腻投影；图片缩放克制在 1.03，遮罩减淡至 45%。</p>
+    </div>
+    <div class="card-grid">
+      <div class="album-card" tabindex="0" role="button" aria-label="相册：山与海">
+        <div class="album-media">
+          <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Minimalist%20fine%20art%20landscape%20photography%2C%20misty%20mountain%20layers%20at%20dawn%2C%20soft%20neutral%20tones%2C%20ultra%20detailed&image_size=landscape_16_9" alt="山与海相册封面" loading="lazy">
+          <div class="album-overlay">
+            <span class="count">24 张图片</span>
+            <span class="name">山与海</span>
+          </div>
+        </div>
+      </div>
+      <div class="album-card" tabindex="0" role="button" aria-label="相册：城市漫步">
+        <div class="album-media">
+          <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Fine%20art%20street%20photography%2C%20quiet%20rainy%20city%20street%20at%20dusk%2C%20cinematic%20muted%20colors%2C%20shallow%20depth%20of%20field&image_size=portrait_4_3" alt="城市漫步相册封面" loading="lazy">
+          <span class="live-badge">LIVE</span>
+          <div class="album-overlay">
+            <span class="count">36 张图片</span>
+            <span class="name">城市漫步</span>
+          </div>
+        </div>
+      </div>
+      <div class="album-card" tabindex="0" role="button" aria-label="相册：光影实验">
+        <div class="album-media">
+          <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Minimal%20seascape%20photography%2C%20long%20exposure%20smooth%20water%2C%20overcast%20sky%2C%20muted%20gray%20tones&image_size=landscape_4_3" alt="光影实验相册封面" loading="lazy">
+          <div class="album-overlay">
+            <span class="count">18 张图片</span>
+            <span class="name">光影实验</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 标签 -->
+  <section class="demo">
+    <div class="sec-head">
+      <span class="sec-tag">标签体系</span>
+      <h2>图片标签与筛选 Chip</h2>
+      <p>图片标签 = 10px 圆角小按钮（hover 转主色）；筛选 chip = 胶囊多选（选中态用 accent-weak 底 + accent 描边，配 × 即时移除）。</p>
+    </div>
+    <div class="tag-row" style="margin-bottom:16px">
+      <button class="tag-btn"><span class="hash">#</span>风光</button>
+      <button class="tag-btn"><span class="hash">#</span>人文</button>
+      <button class="tag-btn"><span class="hash">#</span>长曝光</button>
+      <button class="tag-btn"><span class="hash">#</span>黑白</button>
+    </div>
+    <div class="tag-row">
+      <button class="chip selected">Sony A7M4<span class="x" aria-label="移除筛选">×</span></button>
+      <button class="chip selected">24-70mm<span class="x" aria-label="移除筛选">×</span></button>
+      <button class="chip">Canon R5</button>
+      <button class="chip"> sigma 35mm</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--danger)">清除全部</button>
+    </div>
+  </section>
+
+  <!-- EXIF -->
+  <section class="demo">
+    <div class="sec-head">
+      <span class="sec-tag">信息展示</span>
+      <h2>EXIF 信息区（新版样式）</h2>
+      <p>去除背景色块，改为无底行 + 极细分隔线——画册排版感，信息密度更高、更安静。</p>
+    </div>
+    <div class="exif">
+      <div class="exif-head"><span class="t">EXIF</span><span class="line"></span></div>
+      <div class="exif-row"><span class="k">相机</span><span class="v">Sony A7M4</span></div>
+      <div class="exif-row"><span class="k">镜头</span><span class="v">FE 24-70mm F2.8 GM II</span></div>
+      <div class="exif-row"><span class="k">光圈</span><span class="v">f/2.8</span></div>
+      <div class="exif-row"><span class="k">快门</span><span class="v">1/250s</span></div>
+      <div class="exif-row"><span class="k">ISO</span><span class="v">100</span></div>
+      <div class="exif-row"><span class="k">焦距</span><span class="v">35mm</span></div>
+      <div class="exif-row"><span class="k">分辨率</span><span class="v">6000 × 4000</span></div>
+      <div class="exif-row"><span class="k">位置</span><span class="v">云南 · 大理</span></div>
+    </div>
+  </section>
+
+  <!-- 分页 -->
+  <section class="demo">
+    <div class="sec-head">
+      <span class="sec-tag">分页与加载</span>
+      <h2>分页控件</h2>
+      <p>页码 10px 圆角方块，当前页用 primary 反白；「加载更多」保持胶囊形态作为分区标识。</p>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:24px; align-items:center">
+      <div class="page-row">
+        <button class="page-btn" aria-label="上一页">‹</button>
+        <button class="page-btn current">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">3</button>
+        <span style="color:var(--muted-fg); font-size:13px">…</span>
+        <button class="page-btn">9</button>
+        <button class="page-btn" aria-label="下一页">›</button>
+      </div>
+      <button class="load-more">加载更多</button>
+      <button class="load-more" disabled>加载中…</button>
+    </div>
+  </section>
+
+</main>
+
+<!-- 页脚 -->
+<footer class="demo-footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">XPhotos</div>
+      <p class="footer-desc">用镜头记录光影与情绪，每一张照片都是一个未完成的故事。</p>
+    </div>
+    <nav class="footer-links" aria-label="页脚导航">
+      <a href="#">作品集</a><a href="#">攻略</a><a href="#">关于我</a><a href="#">RSS</a>
+    </nav>
+    <div class="copyright">© 2026 XPhotos · Generated with care</div>
+  </div>
+</footer>
+
+<script>
+// 方案切换
+const schemeBtns = document.querySelectorAll('.tb-scheme');
+schemeBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.body.dataset.scheme = btn.dataset.scheme;
+    schemeBtns.forEach(b => {
+      const active = b === btn;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-pressed', String(active));
+    });
+  });
+});
+// 明暗切换
+const modeBtn = document.getElementById('modeBtn');
+modeBtn.addEventListener('click', () => {
+  const dark = document.body.classList.toggle('dark');
+  modeBtn.textContent = dark ? '☀ 浅色模式' : '◐ 暗色模式';
+  modeBtn.setAttribute('aria-label', dark ? '切换到浅色模式' : '切换到暗色模式');
+});
+// 键盘快捷键 1-5 切换方案
+document.addEventListener('keydown', e => {
+  const idx = ['1','2','3','4','5'].indexOf(e.key);
+  if (idx >= 0 && !/input|select|textarea/i.test(document.activeElement.tagName)) {
+    schemeBtns[idx].click();
+  }
+});
+</script>
+</body>
+</html>

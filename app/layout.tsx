@@ -98,8 +98,8 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://xphotos7-1306526302.cos.ap-nanjing.myqcloud.com" crossOrigin="" />
         {/*
           主题默认策略 inline 脚本：
-            - 首页 "/" 默认 dark；其它所有页面默认 light
-            - 用户显式切换主题后（写入 explicitThemePref），所有页面都优先遵循用户选择
+            - 首页 "/" 永远强制 dark（写死，不受用户偏好影响）
+            - 其它所有页面默认 light；用户显式切换主题后（写入 explicitThemePref）遵循用户选择
             - 此脚本在 next-themes / React 之前运行，避免主题闪烁 (FOUC)
 
           协议关键字：
@@ -108,7 +108,7 @@ export default async function RootLayout({
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var e=window.location.pathname||"/",t=null,o=null;try{t=localStorage.getItem("explicitThemePref");o=localStorage.getItem("theme")}catch(e){}var r="dark",i="light",a=t?null:(e==="/"||e===""?r:i),n=a||o||i;try{localStorage.setItem("theme",n)}catch(e){}var l=document.documentElement;l.classList.remove(r,i);l.classList.add(n);var d=r===n?"#000000":"#ffffff";var c=document.querySelector('meta[name="theme-color"]');c&&c.setAttribute("content",d)}catch(e){}})();`,
+            __html: `(function(){try{var e=window.location.pathname||"/",t=null,o=null;try{t=localStorage.getItem("explicitThemePref");o=localStorage.getItem("theme")}catch(e){}var r="dark",i="light",h=e==="/"||e==="",n=h?r:(t?(o||i):i);try{localStorage.setItem("theme",n)}catch(e){}var l=document.documentElement;l.classList.remove(r,i);l.classList.add(n);var d=r===n?"#000000":"#ffffff";var c=document.querySelector('meta[name="theme-color"]');c&&c.setAttribute("content",d)}catch(e){}})();`,
           }}
         />
       </head>

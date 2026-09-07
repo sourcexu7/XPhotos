@@ -87,8 +87,9 @@ export default function UnifiedNav({
   const { resolvedTheme } = useTheme()
   const { setUserTheme } = useUserThemeToggle()
   const navRef = useRef<HTMLElement>(null)
-  // 首页也允许切换主题（默认仍会是 dark，但用户可以主动切 light）
-  const shouldHideThemeToggle = hideThemeToggle
+  // 首页写死黑夜主题，隐藏明暗切换入口；其他页面正常展示
+  const isHome = (pathname?.replace(/\/+$/, '') || '/') === '/'
+  const shouldHideThemeToggle = hideThemeToggle || isHome
 
   const handleThemeChange = useCallback(
     (next: 'light' | 'dark') => {

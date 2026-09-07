@@ -8,14 +8,14 @@ function Input({ className, type, ...props }: React.ComponentProps<'input'>) {
       type={type}
       data-slot="input"
       className={cn(
-        // Minimal white input per design
-        'h-10 w-full min-w-0 rounded-[4px] px-3 text-sm text-[#333333] bg-white border border-[#e6e6e6] cursor-text',
+        // 白瓷极简输入框：语义令牌，暗色模式自动适配
+        'h-10 w-full min-w-0 rounded-[4px] px-3 text-sm text-foreground bg-background border border-input cursor-text',
         // hover
-        'hover:border-[#dcdcdc] hover:cursor-text',
-        // focus: light blue border and subtle inner 1px glow, no outer shadow
-        "focus-visible:border-[#4299e1] focus-visible:shadow-[inset_0_0_0_1px_rgba(66,153,225,0.12)] focus-visible:outline-none",
+        'hover:border-foreground/20 hover:cursor-text',
+        // focus：蓝色焦点环（--ring），与全站焦点语言一致
+        'focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:outline-none',
         // disabled
-        'disabled:bg-[#fafafa] disabled:cursor-not-allowed disabled:text-[#999999] disabled:border-[#e6e6e6]',
+        'disabled:bg-muted/50 disabled:cursor-not-allowed disabled:text-muted-foreground',
         // accessibility / invalid
         'aria-invalid:ring-destructive/20 aria-invalid:border-destructive',
         className

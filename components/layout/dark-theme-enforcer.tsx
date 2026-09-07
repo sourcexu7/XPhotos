@@ -6,16 +6,16 @@ import { useTheme } from 'next-themes'
 
 /**
  * 主题默认策略：
- *  - 除首页（pathname === '/'）以外，所有页面默认 light（白天）主题
- *  - 首页（/）默认 dark（黑夜）主题，以突出的视觉呈现
+ *  - 首页（pathname === '/'）永远强制 dark（黑夜）主题，写死不受用户偏好影响
+ *  - 除首页/后台以外，所有页面默认 light（白天）主题
  *  - 用户显式切换主题后，将偏好写入 `localStorage.explicitThemePref`；
- *    一旦存在用户偏好，所有页面都优先遵循用户偏好，不再按路径走默认
+ *    一旦存在用户偏好，非首页页面都优先遵循用户偏好，不再按路径走默认
  *  - 配套：app/layout.tsx 中注入了一段 pre-hydration inline 脚本，
  *    在 React/next-themes 挂载之前就根据规则写好 html class，从而避免 FOUC
  *
  * 本组件职责：
  *  1. 客户端路由切换（usePathname 变化）时，若用户没有显式偏好，
- *     按新路径重新设置默认主题
+ *     按新路径重新设置默认主题（首页始终强制 dark）
  *  2. 将 next-themes 的实际主题同步到 `localStorage.theme`，
  *     防止 next-themes 与 HTML 实际 class 之间产生漂移
  *  3. 同步 `<meta name="theme-color">`（移动端地址栏颜色）
@@ -61,10 +61,12 @@ export default function DarkThemeEnforcer({ children }: { children: React.ReactN
     const explicit = getExplicitPref()
     // 对 /admin 等后台路径，永远强制 light（后台追求可读性 & 表单可读性）
     const inAdmin = pathname.startsWith('/admin')
+    const cleaned = pathname.replace(/\/+$/, '') || '/'
+    const isHome = cleaned === '/'
     const pathDefault = inAdmin ? 'light' : getPathDefault(pathname)
 
-    // 用户有明确偏好 → 用户偏好优先（除非在 admin 下，我们还是 light，保证后台可阅读）
-    const target = (explicit && !inAdmin) ? explicit : pathDefault
+    // 首页永远强制 dark；用户有明确偏好 → 用户偏好优先（admin 下仍强制 light）
+    const target = isHome && !inAdmin ? 'dark' : (explicit && !inAdmin) ? explicit : pathDefault
 
     const current = (resolvedTheme || theme) as 'dark' | 'light' | undefined
     if (current && current !== target) {
