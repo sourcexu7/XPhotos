@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import type { ImageType } from '~/types'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'

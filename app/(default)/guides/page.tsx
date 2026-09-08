@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
+import { motion } from 'motion/react'
+import { Empty } from 'antd'
 import { MapPin, Calendar } from 'lucide-react'
 
 interface Guide {
@@ -204,9 +205,15 @@ function GuideSkeletons() {
 
 function EmptyState() {
   return (
-    <div className="py-20 text-center max-w-lg mx-auto">
-      <h3 className="text-xl font-light text-foreground">暂无路书</h3>
-      <p className="mt-2 text-sm text-muted-foreground">当前没有可展示的旅行路书。</p>
-    </div>
+    <Empty
+      image={Empty.PRESENTED_IMAGE_SIMPLE}
+      description={
+        <span className="text-sm">
+          <span className="block text-lg font-light text-foreground">暂无路书</span>
+          <span className="mt-1 block text-muted-foreground">当前没有可展示的旅行路书。</span>
+        </span>
+      }
+      className="py-20"
+    />
   )
 }

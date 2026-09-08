@@ -1,6 +1,6 @@
 'use client'
 
-import { LoadingAnimation } from '~/components/ui/loading-animation'
+import { Spin } from 'antd'
 import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 
@@ -95,7 +95,7 @@ export function LoadingAnimationProviders({ children }: { children: React.ReactN
 
   return (
     <>
-      {mounted && <LoadingAnimation visible={isLoading} />}
+      {mounted && isLoading && <Spin fullscreen />}
       {children}
     </>
   )

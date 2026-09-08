@@ -167,12 +167,11 @@
   - `components/layout/theme/simple/main/simple-gallery.tsx`（单列）
   - `components/layout/theme/waterfall/main/waterfall-gallery.tsx`（瀑布流）
   - `components/ui/virtual-waterfall-gallery.tsx`（虚拟瀑布流，大数据量时使用）
-  - `components/ui/virtual-image-gallery.tsx`（虚拟画廊）
 - 图片组件：
   - `components/gallery/simple/gallery-image.tsx` / `simple-gallery-card.tsx`
   - `components/gallery/waterfall/waterfall-image.tsx`
   - `components/album/progressive-image.tsx`（渐进加载，带 blurhash）
-  - `components/ui/image-with-loading.tsx` / `img-with-loading.tsx`（带骨架屏）
+  - `components/album/blur-image.tsx`（模糊占位 + 渐入；`image-with-loading` / `img-with-loading` 已于 2026-09-08 删除，勿再引用）
 - 懒加载策略：
   - 使用 Next.js `next/image` 的 `loading="lazy"` + 本地 `IntersectionObserver`
   - 瀑布流通过列高度平衡放置（`columns-{n}` 或绝对定位）
@@ -210,7 +209,7 @@
 - **响应式断点**：
   - `sm`（640px）：单列；`md`（768px）：2 列；`lg`（1024px）：3 列；`xl`：4 列
   - 顶部导航在 `md` 以下折叠为汉堡 + `Command` 菜单（`components/layout/command.tsx`）
-- **动效降级**：尊重 `prefers-reduced-motion`；大幅动画（如 Framer Carousel）在启用"减少动效"时切换为静态展示
+- **动效降级**：尊重 `prefers-reduced-motion`；大幅动画（如 framer-carousel，基于 `motion/react`）在启用"减少动效"时切换为静态展示
 
 ---
 
@@ -225,4 +224,4 @@
 7. `components/gallery/**/*`（simple / waterfall 两种画廊图像组件）
 8. `components/layout/theme/**`（default / simple / waterfall / template 主题画廊与导航）
 9. `components/layout/*`（共享相册页、主题选择器、统一导航、Command 菜单、Footer、Dark Theme Enforcer 等）
-10. `components/ui/*`（虚拟瀑布流、虚拟画廊、图片加载动画、对话框、Sheet、Drawer、Framer Carousel、Toast、Dark-mode Toggle 等共享 UI）
+10. `components/ui/*`（虚拟瀑布流、对话框、Carousel、tag-link、border-beam、button 等共享 UI；antd 化重构后仅保留 antd 无对应物的组件）

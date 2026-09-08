@@ -1,6 +1,6 @@
 'use client'
 import React, { useEffect, useRef, useState, useCallback } from 'react'
-import { motion, useMotionValue, animate, useReducedMotion, PanInfo } from 'framer-motion'
+import { motion, useMotionValue, animate, useReducedMotion, PanInfo } from 'motion/react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export interface CarouselItem {

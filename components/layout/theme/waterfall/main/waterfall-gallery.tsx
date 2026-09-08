@@ -3,8 +3,7 @@
 import React, { useEffect, useRef, useMemo } from 'react'
 import type { ImageHandleProps } from '~/types/props.ts'
 import { VirtualWaterfallGallery } from '~/components/ui/virtual-waterfall-gallery'
-import { EmptyState, ErrorState } from '~/components/ui/empty-state'
-import { ImageIcon } from 'lucide-react'
+import { Button, Empty, Result } from 'antd'
 import { useIsMobile } from '~/hooks/use-mobile'
 import { useGalleryPages } from '~/hooks/use-gallery-pages'
 import { useFilterStore } from '~/lib/store/filter-store'
@@ -116,14 +115,29 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
         />
 
         {error && !isLoading && (
-          <ErrorState title="加载失败" message={error.message} onRetry={loadNext} />
+          <Result
+            status="error"
+            title="加载失败"
+            subTitle={error.message}
+            extra={
+              <Button type="primary" onClick={loadNext}>
+                重试
+              </Button>
+            }
+            className="py-8"
+          />
         )}
 
         {!error && !isLoading && allImages.length === 0 && (
-          <EmptyState
-            icon={ImageIcon}
-            title="暂无匹配的图片"
-            description="尝试调整筛选条件"
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={
+              <span className="text-sm">
+                暂无匹配的图片
+                <span className="mt-1 block text-xs text-muted-foreground">尝试调整筛选条件</span>
+              </span>
+            }
+            className="py-8"
           />
         )}
 

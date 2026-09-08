@@ -61,8 +61,13 @@ interface FilterOptions {
 }
 
 function buildClientFilters(options: FilterOptions) {
-  const camerasArray = Array.isArray(options.cameras) && options.cameras.length > 0 ? options.cameras : []
-  const lensesArray = Array.isArray(options.lenses) && options.lenses.length > 0 ? options.lenses : []
+  // 剔除空值/空白条目，避免相机、镜头空值参与 SQL 匹配（如 `= ''`）
+  const camerasArray = Array.isArray(options.cameras)
+    ? options.cameras.map(c => (typeof c === 'string' ? c.trim() : '')).filter(Boolean)
+    : []
+  const lensesArray = Array.isArray(options.lenses)
+    ? options.lenses.map(l => (typeof l === 'string' ? l.trim() : '')).filter(Boolean)
+    : []
   const tagsArray = Array.isArray(options.tags) && options.tags.length > 0 ? options.tags : []
 
   // 优化：使用原生 for 循环构建 SQL，避免多次数组遍历
@@ -809,26 +814,28 @@ export const fetchFeaturedImages = cache(async (): Promise<ImageType[]> => {
  */
 export const fetchCameraAndLensList = cache(async (): Promise<{ cameras: string[], lenses: string[] }> => {
   return cacheWrap('images:camera_lens_list', async () => {
-    const stats = await db.$queryRaw<Array<{ camera: string; lens: string }>>`
+    const stats = await db.$queryRaw<Array<{ camera: string | null; lens: string | null }>>`
       SELECT DISTINCT
-        COALESCE(exif->>'model', 'Unknown') as camera,
-        COALESCE(exif->>'lens_model', 'Unknown') as lens
+        exif->>'model' as camera,
+        exif->>'lens_model' as lens
       FROM "public"."images"
       WHERE del = 0
-      ORDER BY camera, lens
     `
 
     const cameraSet = new Set<string>()
     const lensSet = new Set<string>()
 
+    // 仅收录有效非空型号，剔除 NULL/空串/"Unknown" 占位，避免空值出现在前台筛选面板
     for (let i = 0; i < stats.length; i++) {
-      cameraSet.add(stats[i].camera)
-      lensSet.add(stats[i].lens)
+      const camera = stats[i].camera?.trim()
+      const lens = stats[i].lens?.trim()
+      if (camera && camera !== 'Unknown') cameraSet.add(camera)
+      if (lens && lens !== 'Unknown') lensSet.add(lens)
     }
 
     return {
-      cameras: Array.from(cameraSet),
-      lenses: Array.from(lensSet),
+      cameras: Array.from(cameraSet).sort((a, b) => a.localeCompare(b)),
+      lenses: Array.from(lensSet).sort((a, b) => a.localeCompare(b)),
     }
   })
 })

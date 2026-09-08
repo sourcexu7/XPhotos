@@ -22,7 +22,7 @@
 | # | 现状问题 | 优化方案 | 涉及模块 |
 | --- | --- | --- | --- |
 | 4 | 「加载更多」点击后无进行中状态，可能重复点击 | 内联 spinner + 文案切换「加载中…」，按钮禁用态保持；可选增强：IntersectionObserver 触底自动加载，手动按钮作降级保留 | `waterfall-gallery.tsx` |
-| 5 | 桌面导航当前项指示器瞬间跳变 | framer-motion `layoutId` 让下划线在菜单项间滑动过渡（0.25s） | `unified-nav.tsx` |
+| 5 | 桌面导航当前项指示器瞬间跳变 | `motion/react` `layoutId` 让下划线在菜单项间滑动过渡（0.25s） | `unified-nav.tsx` |
 | 6 | 登录失败 toast + shake 割裂 | 错误改为**表单内联提示**（`aria-live="polite"`），shake 幅度 3px→2px 保留；toast 仅用于网络级异常 | `user-from.tsx` |
 | 7 | 图片卡片 hover 信息出现无节奏 | hover 300ms 延迟后才展示 EXIF 摘要浮层（避免扫过即闪），移动端直接常显摘要行 | 瀑布流/单列卡片组件 |
 | 8 | 预览页返回按钮语义模糊 | Tooltip 显示目标位置（如「返回 城市漫步」）；Esc 键与返回按钮行为统一 | `preview-image.tsx` |
@@ -216,7 +216,7 @@
 ## 四、迁移落地指南
 
 1. **令牌替换**：5 套方案的令牌与 `style/globals.css` 现有命名一一对应（`--background/--card/--primary/--muted/…`），选定后整块替换 `:root` 与 `.dark` 即可全局生效；
-2. **存量硬编码同步清理**：`components/ui/input.tsx`（`#e6e6e6`/`#4299e1`）、`select.tsx`（`#e5e5e5`/`#409eff`/`#ecf5ff`）需一并迁移到令牌，否则新配色下表单会"漏色"；
+2. **存量硬编码同步清理**：~~`components/ui/input.tsx`、`select.tsx` 硬编码色清理~~ —— 两个文件已于 2026-09-08 P0 清理删除，表单统一使用 antd 组件，此项自动消解；
 3. **Antd 组件对齐**：导航 Segmented 已绑定 CSS 变量无需处理；登录页 Antd `token.colorBgContainer/colorPrimary` 需在 `AntdConfigProvider` 中按新方案同步；
 4. **渐变文字/氛围光删除清单**：`hero-section.tsx` 渐变副标语与 float/glow/nebula 装饰层、`globals.css` 对应 keyframes 及移动端降载规则；
 5. **灰度验证**：切换后重点检查——图片卡片 hover 遮罩、EXIF 分隔线、筛选选中 chip、暗色模式边框可见性。

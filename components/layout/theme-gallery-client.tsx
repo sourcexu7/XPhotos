@@ -24,8 +24,6 @@ import {
   SortDescendingOutlined,
   BarsOutlined,
   SlidersOutlined,
-  SettingOutlined,
-  CloseOutlined,
   SearchOutlined,
 } from '@ant-design/icons'
 import { useFilterStore } from '~/lib/store/filter-store'
@@ -257,7 +255,6 @@ export default function ThemeGalleryClient({
   const { data: total } = useSwrPageTotalHook(props)
   const isMobile = useIsMobile()
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [fabOpen, setFabOpen] = useState(false)
 
   const isSingleAlbum = props.album && props.album !== '/' && props.album !== 'all'
 
@@ -359,17 +356,13 @@ export default function ThemeGalleryClient({
         />
       )}
 
-      {/* ── /albums 页：FAB 展开菜单（antd FloatButton.Group 官方触发菜单模式） ── */}
+      {/* ── /albums 页：常驻直触发按钮组 ── */}
+      {/* 不用 trigger 菜单模式：菜单展开动画期（约 300ms 平移+淡入）内点击会命中
+          尚未到位/透明的元素而被吞掉，且"先开菜单再点动作"本身是两段式交互，
+          移动端表现为需要二次点击。改为常驻按钮组，每个按钮单击直接触发。 */}
       {enableFilters && (
         <FloatButton.Group
-          trigger="click"
           shape="circle"
-          open={fabOpen}
-          onOpenChange={setFabOpen}
-          icon={<SettingOutlined />}
-          closeIcon={<CloseOutlined />}
-          aria-label={fabOpen ? '关闭菜单' : '打开菜单'}
-          badge={hasActivity ? { dot: true } : undefined}
           style={{ insetInlineEnd: 20, insetBlockEnd: 24 }}
         >
           <FloatButton
@@ -377,10 +370,7 @@ export default function ThemeGalleryClient({
             icon={currentStyle === 'waterfall' ? <UnorderedListOutlined /> : <AppstoreOutlined />}
             tooltip={currentStyle === 'waterfall' ? '单列' : '瀑布流'}
             aria-label={currentStyle === 'waterfall' ? '切换为单列' : '切换为瀑布流'}
-            onClick={() => {
-              toggleTheme()
-              setFabOpen(false)
-            }}
+            onClick={toggleTheme}
           />
           {props.album === '/' && (
             <FloatButton
@@ -407,10 +397,7 @@ export default function ThemeGalleryClient({
             tooltip="筛选"
             aria-label="筛选"
             badge={activeCount > 0 ? { count: activeCount, overflowCount: 9 } : undefined}
-            onClick={() => {
-              setSheetOpen(true)
-              setFabOpen(false)
-            }}
+            onClick={() => setSheetOpen(true)}
           />
         </FloatButton.Group>
       )}

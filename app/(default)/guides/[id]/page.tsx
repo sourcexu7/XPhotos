@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { motion, useScroll, useTransform } from 'motion/react'
+import { Empty } from 'antd'
 import { ArrowLeft, MapPin, Calendar, ImageIcon } from 'lucide-react'
 import GuideGuideTOC, { moduleColors, moduleIcons } from '@/components/guides/guide-toc'
 import MarkdownRenderer from '@/components/guides/markdown-renderer'
@@ -1468,9 +1469,10 @@ function renderSeat(data: any[]) {
 // ==================== Empty State Component ====================
 function EmptyState({ message, icon }: { message: string; icon: string }) {
   return (
-    <div className="text-center py-8 sm:py-12">
-      <span className="text-3xl sm:text-4xl mb-3 block">{icon}</span>
-      <p className="text-sm text-slate-500 dark:text-slate-400">{message}</p>
-    </div>
+    <Empty
+      image={<span className="text-3xl sm:text-4xl leading-none">{icon}</span>}
+      description={<span className="text-sm text-slate-500 dark:text-slate-400">{message}</span>}
+      className="py-8 sm:py-12"
+    />
   )
 }

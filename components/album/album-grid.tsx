@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { safePush } from '~/lib/router/safe-navigation'
 import type { AlbumType } from '~/types'

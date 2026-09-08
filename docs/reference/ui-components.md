@@ -8,7 +8,7 @@
 
 | 目录 | 定位 | 典型组件 |
 |------|------|----------|
-| `components/ui/` | shadcn/ui 风格的基础 UI 组件（按钮、卡片、对话框、表格、图片画廊等），也包含加载动效等视觉小工具 | `button / card / dialog / table / image-gallery / loading-animation / image-loading-animation / image-with-loading / accordion / breadcrumb / sonner …` |
+| `components/ui/` | 前台通用 UI 组件（antd 化后仅保留 antd 无对应物的组件） | `button / border-beam / card-21 / command / dialog / framer-carousel / tag-link / virtual-waterfall-gallery` |
 | `components/layout/` | 布局相关组件：统一导航、主题切换器、主题画廊渲染器、相册导航等 | `unified-nav`、`theme-selector`、`theme-gallery-client`、`album-nav`、`footer`、`command`、`covers-back-button` |
 | `components/layout/theme/<name>/` | 特定主题的渲染器（default / simple / template / waterfall） | `main/*-gallery.tsx`、`nav/*-nav.tsx` |
 | `components/album/` | 相册/预览页通用组件（可在多个主题中复用） | `album-grid`、`blur-image`、`live-photo`、`motion-image`、`preview-image`、`preview-image-exif`、`progressive-image`、`tag-gallery` |
@@ -19,57 +19,32 @@
 
 ## 二、加载动效（Loading Animation）
 
-### 2.1 组件清单
+> **2026-09-08 变更**：手写 `LoadingAnimation`（含 7KB CSS）、`ImageLoadingAnimation`、`ImageWithLoading`、`ImgWithLoading` 及 `useLoadingAnimation` hook 已全部删除（antd 化重构 P0/P1），加载动效统一收敛到 antd `Spin`。
 
-| 组件 | 文件位置 | 用途 |
-|------|----------|------|
-| `LoadingAnimation` | `components/ui/loading-animation.tsx` | 全屏加载动效（带遮罩） |
-| `LoadingAnimationProviders` | `app/providers/loading-animation-providers.tsx` | 在 `app/layout.tsx` 中注入的 Provider，页面加载时自动显示/隐藏 |
-| `ImageLoadingAnimation` | `components/ui/image-loading-animation.tsx` | 图片加载中的内联动效（不占全屏），可选 `small / medium / large` |
-| `ImageWithLoading` | `components/ui/image-with-loading.tsx` | Next.js `<Image>` 的包装版，图片加载期间自动显示 `ImageLoadingAnimation` |
-| `ImgWithLoading` | `components/ui/img-with-loading.tsx` | 原生 `<img>` 的包装版，用法同上 |
+### 2.1 现行方案
 
-### 2.2 LoadingAnimation Props
+| 场景 | 方案 | 说明 |
+|------|------|------|
+| 页面级/路由切换加载 | antd `Spin fullscreen` | 由 `app/providers/loading-animation-providers.tsx` 在 `app/layout.tsx` 全局注入，监听 `pathname` 自动显示/隐藏；浏览器前进/返回（popstate）时自动跳过中间动效 |
+| 图片/卡片加载占位 | `bg-muted animate-pulse` | 瀑布流等画廊卡片的占位样式（见 `components/ui/virtual-waterfall-gallery.tsx`） |
+| 局部加载 | antd `Spin` / 按钮自带 `loading` prop | 业务组件内直接使用 |
 
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `visible` | `boolean` | `undefined` | 是否显示（受控模式）；未传时由页面加载状态自动控制 |
-| `backgroundColor` | `string` | `'rgba(0,0,0,0.5)'` | 遮罩背景色 |
-| `circleColor` | `string` | `'#fff'` | 圆圈颜色 |
-| `shadowColor` | `string` | `'rgba(0,0,0,0.9)'` | 阴影颜色 |
-| `autoHide` | `boolean` | `true` | 页面加载完成后是否自动隐藏 |
-| `autoHideDelay` | `number` | `300` | 自动隐藏延迟（毫秒） |
-
-### 2.3 典型用法
+### 2.2 典型用法
 
 ```tsx
-// 1. 全局自动加载（已在 app/layout.tsx 注入，无需手动再做）
+// 1. 全局页面加载（已在 app/layout.tsx 注入，无需手动再做）
 <LoadingAnimationProviders>{children}</LoadingAnimationProviders>
 
-// 2. 手动控制某块区域
-'use client'
-import { LoadingAnimation, useLoadingAnimation } from '~/components/ui/loading-animation'
-
-export default function Page() {
-  const { isLoading, show, hide } = useLoadingAnimation()
-  const load = async () => {
-    show()
-    try { await fetch('/api/data') } finally { hide() }
-  }
-  return <button onClick={load}>加载</button>
-}
-
-// 3. 图片加载动效（推荐）
-import { ImageWithLoading } from '~/components/ui/image-with-loading'
-
-<ImageWithLoading src="/image.jpg" alt="作品" width={800} height={600} loadingSize="medium" />
+// 2. 局部加载：直接用 antd Spin 或按钮 loading
+import { Spin, Button } from 'antd'
+<Spin />
+<Button loading={submitting}>保存</Button>
 ```
 
-### 2.4 响应式与降级
+### 2.3 响应式与降级
 
-- 内置响应式：`> 768px / 481–768 / ≤480 / ≤360` 四档自动缩放
-- 支持 `prefers-reduced-motion`（用户关闭动画时降级）
-- 使用 `transform: translateZ(0)` 开启硬件加速，避免 Safari 卡顿
+- `Spin` 样式由 antd 令牌控制，暗色模式随 `ConfigProvider` 算法自动适配
+- 全局 CSS 层面保留 `prefers-reduced-motion` 降级
 
 ---
 
@@ -151,7 +126,7 @@ import { ImageWithLoading } from '~/components/ui/image-with-loading'
 | `AlbumGrid` | `album-grid.tsx` | 网格相册，多主题可复用 |
 | `BlurImage` | `blur-image.tsx` | 模糊占位 + 渐入显示的图片 |
 | `LivePhoto` | `live-photo.tsx` | LivePhoto 视频播放封装 |
-| `MotionImage` | `motion-image.tsx` | Framer Motion 动画包装的图片 |
+| `MotionImage` | `motion-image.tsx` | `motion/react` 动画包装的图片 |
 | `PreviewImage` | `preview-image.tsx` | 点击查看大图 |
 | `PreviewImageExif` | `preview-image-exif.tsx` | 大图内显示 EXIF 元信息 |
 | `ProgressiveImage` | `progressive-image.tsx` | 渐进式加载（缩略图→原图） |
@@ -167,8 +142,8 @@ import { ImageWithLoading } from '~/components/ui/image-with-loading'
 2. **组件的 props 规范**：对外暴露的组件在本页的小节中列出关键字段（参见上文 2.2）；复杂 props 的完整 API 在源文件 JSDoc 中补充。
 3. **加载动效的使用原则**：
    - 页面级加载用 `LoadingAnimationProviders`（已全局注入，不必再包）
-   - 单张图片用 `ImageWithLoading` / `ImgWithLoading`
-   - 局部异步操作（按钮触发请求）用 `useLoadingAnimation()` 手动控制
+   - 单张图片/卡片占位用 `bg-muted animate-pulse`（或 antd `Skeleton`）
+   - 局部异步操作直接用 antd `Spin` 或按钮 `loading` prop（`useLoadingAnimation()` 已随手写组件删除）
 4. **主题开发约定**：
    - 每个主题独立子目录，至少包含 `main/*-gallery.tsx`（画廊主体）与可选的 `nav/*-nav.tsx`
    - 主题间通过 `components/layout/theme-gallery-client.tsx` 动态切换

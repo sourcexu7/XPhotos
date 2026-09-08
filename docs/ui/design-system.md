@@ -263,25 +263,13 @@ active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50
 
 **硬性要求**：纯图标按钮必须携带 `aria-label`（使用 i18n key，如 `t('Button.goBack')`）。
 
-### 5.3 Input（`components/ui/input.tsx`）
+### 5.3 表单控件（Input / Select，antd）
 
-| 状态 | 精确样式 |
-| --- | --- |
-| 正常 | `h-10 rounded-[4px] border border-input text-foreground bg-background` |
-| 悬停 | `hover:border-foreground/20` |
-| 焦点 | `focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:outline-none` |
-| 禁用 | `disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed` |
-| 校验失败 | `aria-invalid:border-destructive aria-invalid:ring-destructive/20` |
+> 手写 `components/ui/input.tsx` / `select.tsx` 已于 2026-09-08 P0 清理删除，全站统一使用 antd `Input` / `Select`，样式由 `ConfigProvider` 设计令牌控制（焦点环 `colorPrimary`、暗色随算法自动适配）。
 
-> 注记：Input/Select 已于 2026-09-07 完成白瓷令牌迁移（旧硬编码蓝 `#4299e1`/`#409eff`/`#ecf5ff` 清零），全部使用语义令牌，暗色模式自动适配。
+### 5.4 表单控件（Select，antd）
 
-### 5.4 Select（`components/ui/select.tsx`）
-
-| 部件 | 精确样式 |
-| --- | --- |
-| Trigger | `flex h-9 w-full items-center justify-between gap-2 rounded bg-background border border-input px-3 py-2 hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50` |
-| Content | `relative z-50 rounded border border-border bg-popover`（阴影+动画） |
-| Item | `relative flex w-full cursor-pointer items-center rounded py-2 px-3 text-foreground hover:bg-accent data-[state=checked]:bg-ring/10 data-[state=checked]:text-foreground` |
+> 同上——手写 Radix 版 Select 已删除，使用 antd `Select`。本节编号保留以免破坏交叉引用。
 
 ### 5.5 Dialog（`components/ui/dialog.tsx`）
 
@@ -293,19 +281,13 @@ active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50
 | 标题 | `text-lg leading-none font-semibold` |
 | 描述 | `text-muted-foreground text-sm` |
 
-### 5.6 Tooltip（`components/ui/tooltip.tsx`）
+### 5.6 Tooltip（antd）
 
-```
-bg-primary text-primary-foreground z-50 w-fit rounded-md px-3 py-1.5 text-xs text-balance
-```
-带四方向滑入动画与箭头（`fill-primary`）。深色底白字，与主色一致。
+> 手写 `components/ui/tooltip.tsx` 已于 2026-09-08 P0 清理删除，统一使用 antd `Tooltip`（暗色底白字风格由主题令牌自动适配）。
 
-### 5.7 Skeleton（`components/ui/skeleton.tsx`）
+### 5.7 Skeleton（antd）
 
-```
-bg-accent animate-pulse rounded-md
-```
-用于图片加载占位（瀑布流加载占位使用 `bg-muted animate-pulse`）。
+> 手写 `components/ui/skeleton.tsx` 已删除，统一使用 antd `Skeleton`；图片加载占位沿用 `bg-muted animate-pulse`（瀑布流卡片）。
 
 ### 5.8 标签（Tag，antd 组件化）
 
@@ -344,7 +326,7 @@ rounded-full border px-3 py-1.5 text-xs font-medium
 | 卡片容器 | `relative aspect-[4/3] overflow-hidden rounded-2xl mb-4` |
 | 封面图 | `w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110` |
 | 底部渐变遮罩 | `absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300` |
-| 卡片悬停 | framer-motion `whileHover={{ y: -8 }}`（上浮 8px） |
+| 卡片悬停 | `motion/react` `whileHover={{ y: -8 }}`（上浮 8px） |
 | 区块标题 | `text-3xl sm:text-4xl md:text-5xl font-light`（前景色 + `text-primary` 强调词） |
 | 区块描述 | `text-muted-foreground max-w-2xl mx-auto text-lg` |
 
@@ -393,11 +375,24 @@ rounded-full border px-3 py-1.5 text-xs font-medium
 - 表单：Antd `Form / Input / Input.Password`；
 - 提交按钮：`height: 44px`、`fontWeight: 500`、Antd primary。
 
+### 5.16 空态与加载态（antd 化，2026-09-08）
+
+全站空态 / 错误态 / 加载态统一使用 antd，禁止再手写自绘组件（`empty-state.tsx`、`loading-animation.tsx` 已删除）：
+
+| 场景 | 组件 | 用法约定 |
+| --- | --- | --- |
+| 列表/画廊空数据 | antd `Empty` | `image={Empty.PRESENTED_IMAGE_SIMPLE}` + `description` 文案；外层留白 `py-8`（局部）或 `py-20`（整页） |
+| 请求失败 | antd `Result` | `status="error"` + `subTitle` 展示错误信息 + `extra` 放「重试」按钮 |
+| 页面级加载 | antd `Spin fullscreen` | 由 `app/providers/loading-animation-providers.tsx` 全局注入，路由切换自动显示/隐藏，业务代码无需手动调用 |
+| 骨架占位 | `bg-muted animate-pulse` | 图片/卡片加载占位（瀑布流卡片），或 antd `Skeleton` |
+
+> 注意：antd `Empty`/`Result` 的文案为组件 props 传入；前台本地常量场景（如瀑布流错误态）允许直接写中文，可 i18n 的页面必须走 i18n key。
+
 ---
 
 ## 六、动效规范
 
-### 6.1 入场动效（framer-motion）
+### 6.1 入场动效（motion/react）
 
 | 参数 | 标准值 | 说明 |
 | --- | --- | --- |
@@ -552,7 +547,7 @@ html (字体/主题 class)
 | 焦点可见 | 所有可交互元素必须 `focus-visible:ring-2 focus-visible:ring-ring(/60)` + 适当 `ring-offset` | Button 组件基础类；全局 `outline-ring/50` |
 | 语义化 | 可点击元素用 `<button type="button">` 而非 `<span>`/`<div>`；antd 组件场景补齐键盘可达性 | 图片标签为 antd CheckableTag（span），已补 `tabIndex`/`role="link"`/Enter·Space |
 | 状态语义 | 切换按钮使用 `aria-pressed` 或 `data-active` | minimal variant 支持选中态样式 |
-| 动效降级 | 尊重 `prefers-reduced-motion`；framer-motion 使用 `useReducedMotion` | 全局 CSS + 组件双重保障 |
+| 动效降级 | 尊重 `prefers-reduced-motion`；`motion/react` 使用 `useReducedMotion` | 全局 CSS + 组件双重保障 |
 | 触控目标 | 最小 44×44px（`size-9`=36px 需配合外层点击区或提升到 `size-11`） | 图片导航箭头为 `w-11 h-11` |
 | 色彩对比 | 辅助文字统一 `text-muted-foreground`（已验证对比度达标）；图片上文字必须加遮罩 | 覆盖层规范 |
 

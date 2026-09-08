@@ -246,13 +246,13 @@
 
 - 路径：
   - 后台侧：anTD `Drawer`、`Modal`（`components/admin/modal/antd-modal.tsx`）
-  - 部分"移动端抽屉"场景使用 `components/ui/sheet.tsx`（shadcn/ui）
-  - 前台与部分子页共享 `components/ui/dialog.tsx`
+  - 前台与部分子页共享 `components/ui/dialog.tsx`（cmdk 命令面板链路）
+  - ~~`components/ui/sheet.tsx`~~ 已于 2026-09-08 P0 清理删除，移动端抽屉统一用 antd `Drawer`
 - 约定：编辑操作优先使用 Sheet 抽屉（不打断主列表浏览）；删除 / 危险操作优先使用 `Modal` + `Popconfirm`
 
 ### 3.4 Empty 空状态
 
-- anTD `Empty` 或 `components/ui/empty-state.tsx`
+- anTD `Empty`（~~`components/ui/empty-state.tsx`~~ 已于 2026-09-08 删除，全站空态统一 antd `Empty`，错误态用 `Result`）
 - 出现在：无数据的统计页、无图片的相册、筛选结果为空的列表
 
 ### 3.5 Breadcrumb 面包屑
