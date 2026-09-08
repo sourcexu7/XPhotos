@@ -121,23 +121,41 @@ function ChipMultiSelect({
       )}
 
       {/* CheckableTag 多选标签，自然换行 */}
-      <Flex gap={token.marginXS} wrap="wrap">
-        {filtered.map((opt) => (
-          <Tag.CheckableTag
-            key={opt}
-            checked={selectedSet.has(opt)}
-            onChange={() => toggle(opt)}
-            style={{ fontSize: token.fontSizeSM, padding: '3px 10px', borderRadius: token.borderRadiusSM }}
-          >
-            {opt}
-          </Tag.CheckableTag>
-        ))}
+      {/* antd v6 CheckableTag 未选中态无边框无底色，选项会呈现为粘连裸文字；
+          双态都给边界：未选中 = 描边 + 浅填充底，选中 = 主色描边（主色填充由 antd 自带） */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 12px' }}>
+        {filtered.map((opt) => {
+          const checked = selectedSet.has(opt)
+          return (
+            <Tag.CheckableTag
+              key={opt}
+              checked={checked}
+              onChange={() => toggle(opt)}
+              // antd v6 已内置 role="checkbox"/aria-checked/tabIndex/Space 切换，这里仅补 Enter
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  toggle(opt)
+                }
+              }}
+              style={{
+                fontSize: token.fontSizeSM,
+                padding: '4px 12px',
+                borderRadius: token.borderRadiusSM,
+                border: `1px solid ${checked ? token.colorPrimary : token.colorBorderSecondary}`,
+                background: checked ? undefined : token.colorFillQuaternary,
+              }}
+            >
+              {opt}
+            </Tag.CheckableTag>
+          )
+        })}
         {filtered.length === 0 && (
           <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
             无匹配结果
           </Typography.Text>
         )}
-      </Flex>
+      </div>
     </div>
   )
 }
@@ -310,6 +328,15 @@ export default function ThemeGalleryClient({
   const hasActivity = activeCount > 0 || sortByShootTime !== undefined
   const sortLabel = sortByShootTime === 'desc' ? '最新' : sortByShootTime === 'asc' ? '最早' : '默认'
 
+  // 触屏设备：antd FloatButton 的 tooltip（hover 触发）会拦截首次点按——
+  // iOS/Android 首触仿真 mouseenter 只弹提示气泡不触发 click（表现为"首点只显示文本框"）。
+  // 触屏不渲染 tooltip，仅桌面保留；aria-label 保留保证可访问性。
+  const isTouchDevice = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0
+  }, [])
+  const hoverTip = (text: string) => (isTouchDevice ? undefined : text)
+
   const galleryProps = {
     ...props,
     filters,
@@ -349,7 +376,7 @@ export default function ThemeGalleryClient({
         <FloatButton
           shape="circle"
           icon={currentStyle === 'waterfall' ? <UnorderedListOutlined /> : <AppstoreOutlined />}
-          tooltip={currentStyle === 'waterfall' ? '切换为单列' : '切换为瀑布流'}
+          tooltip={hoverTip(currentStyle === 'waterfall' ? '切换为单列' : '切换为瀑布流')}
           aria-label={currentStyle === 'waterfall' ? '切换为单列' : '切换为瀑布流'}
           onClick={toggleTheme}
           style={{ insetInlineEnd: 20, insetBlockEnd: 24 }}
@@ -368,7 +395,7 @@ export default function ThemeGalleryClient({
           <FloatButton
             shape="circle"
             icon={currentStyle === 'waterfall' ? <UnorderedListOutlined /> : <AppstoreOutlined />}
-            tooltip={currentStyle === 'waterfall' ? '单列' : '瀑布流'}
+            tooltip={hoverTip(currentStyle === 'waterfall' ? '单列' : '瀑布流')}
             aria-label={currentStyle === 'waterfall' ? '切换为单列' : '切换为瀑布流'}
             onClick={toggleTheme}
           />
@@ -384,7 +411,7 @@ export default function ThemeGalleryClient({
                   <BarsOutlined />
                 )
               }
-              tooltip={`拍摄时间排序：${sortLabel}`}
+              tooltip={hoverTip(`拍摄时间排序：${sortLabel}`)}
               aria-label={`拍摄时间排序：${sortLabel}，点击切换`}
               // 激活态：antd 官方语义 —— 主色圆钮表示当前生效项
               type={sortByShootTime !== undefined ? 'primary' : 'default'}
@@ -394,7 +421,7 @@ export default function ThemeGalleryClient({
           <FloatButton
             shape="circle"
             icon={<SlidersOutlined />}
-            tooltip="筛选"
+            tooltip={hoverTip('筛选')}
             aria-label="筛选"
             badge={activeCount > 0 ? { count: activeCount, overflowCount: 9 } : undefined}
             onClick={() => setSheetOpen(true)}
