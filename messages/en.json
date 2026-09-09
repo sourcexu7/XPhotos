@@ -48,6 +48,8 @@
     "captchaPlaceholder": "Enter captcha code",
     "captchaError": "Invalid captcha",
     "captchaExpired": "Captcha has expired",
+    "captchaUsed": "Captcha already used, please refresh and retry",
+    "captchaVerifyFailed": "Captcha verification failed, please refresh and retry",
     "loginLocked": "Too many failed attempts, please try again later",
     "loggingIn": "Logging in...",
     "registering": "Registering...",

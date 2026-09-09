@@ -14,6 +14,7 @@
  */
 
 import 'server-only'
+import { randomUUID } from 'node:crypto'
 import { createClient } from 'redis'
 
 // 验证码配置
@@ -296,13 +297,16 @@ async function incrementGenerateCount(ip: string): Promise<void> {
 
 /**
  * 检查 IP 是否被锁定（登录失败次数过多）
+ * 判定依据：失败计数器累计值 ≥ MAX_LOGIN_ATTEMPTS（recordLoginFailure 达到阈值时会刷新 TTL 至锁定时长）
+ * 注意：不能仅凭 key 存在/TTL>0 判定锁定——计数器在未达阈值时同样存在
  */
 export async function isLoginLocked(ip: string): Promise<{ locked: boolean; remainingTime?: number }> {
   const key = LOGIN_ATTEMPTS_KEY_PREFIX + ip
   try {
-    const ttl = await storeTtl(key)
-    if (ttl > 0) {
-      return { locked: true, remainingTime: ttl }
+    const count = await storeGet(key)
+    if (count && parseInt(count, 10) >= CAPTCHA_CONFIG.MAX_LOGIN_ATTEMPTS) {
+      const ttl = await storeTtl(key)
+      return { locked: true, remainingTime: ttl > 0 ? ttl : CAPTCHA_CONFIG.LOCK_TIME }
     }
     return { locked: false }
   } catch {
@@ -352,8 +356,8 @@ export async function generateCaptcha(ip: string): Promise<{ id: string; svg: st
     return null
   }
 
-  // 生成验证码
-  const id = Math.random().toString(36).substring(2, 15)
+  // 生成验证码（randomUUID 避免碰撞与可预测）
+  const id = randomUUID().replace(/-/g, '')
   const text = generateCaptchaText(CAPTCHA_CONFIG.LENGTH)
   const svg = generateCaptchaSvg(text)
 
@@ -370,11 +374,22 @@ export async function generateCaptcha(ip: string): Promise<{ id: string; svg: st
 }
 
 /**
- * 验证验证码
+ * 验证码校验失败原因（结构化错误码，供路由层返回、前端映射 i18n）
+ * - empty          验证码 ID 或用户输入为空
+ * - used           验证码已被使用（一次性）
+ * - expired        验证码不存在或已过期
+ * - mismatch       验证码输入错误
+ * - storage_error  存储层异常
  */
-export async function verifyCaptcha(id: string, code: string): Promise<{ valid: boolean; reason?: string }> {
+export type CaptchaVerifyReason = 'empty' | 'used' | 'expired' | 'mismatch' | 'storage_error'
+
+/**
+ * 验证验证码（一次性：校验成功后立即写入已用标记并删除原码，不可复用；
+ * 输入错误时保留原码供同一次展示内重试，直到过期）
+ */
+export async function verifyCaptcha(id: string, code: string): Promise<{ valid: boolean; reason?: CaptchaVerifyReason }> {
   if (!id || !code) {
-    return { valid: false, reason: '验证码不能为空' }
+    return { valid: false, reason: 'empty' }
   }
 
   const key = CAPTCHA_KEY_PREFIX + id
@@ -383,35 +398,24 @@ export async function verifyCaptcha(id: string, code: string): Promise<{ valid: 
   try {
     const used = await storeExists(usedKey)
     if (used) {
-      return { valid: false, reason: '验证码已使用' }
+      return { valid: false, reason: 'used' }
     }
 
     const storedCode = await storeGet(key)
     if (!storedCode) {
-      return { valid: false, reason: '验证码已过期' }
+      return { valid: false, reason: 'expired' }
     }
 
     if (storedCode.toUpperCase() === code.toUpperCase()) {
+      // 先写已用标记再删除原码：即使中途失败，也不会出现「已通过校验但仍可复用」的窗口
       await storeSetEx(usedKey, CAPTCHA_CONFIG.EXPIRE_TIME, '1')
       await storeDel(key)
       return { valid: true }
     }
 
-    return { valid: false, reason: '验证码错误' }
+    return { valid: false, reason: 'mismatch' }
   } catch (err) {
     console.warn('[Captcha] verify failed:', err instanceof Error ? err.message : err)
-    return { valid: false, reason: '验证失败' }
-  }
-}
-
-/**
- * 获取验证码配置信息（用于前端显示）
- */
-export function getCaptchaConfig() {
-  return {
-    length: CAPTCHA_CONFIG.LENGTH,
-    expireTime: CAPTCHA_CONFIG.EXPIRE_TIME,
-    maxAttempts: CAPTCHA_CONFIG.MAX_LOGIN_ATTEMPTS,
-    lockTime: CAPTCHA_CONFIG.LOCK_TIME,
+    return { valid: false, reason: 'storage_error' }
   }
 }

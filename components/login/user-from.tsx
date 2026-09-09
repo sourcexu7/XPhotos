@@ -7,7 +7,7 @@ import Link from 'next/link'
 
 import { useTranslations } from 'next-intl'
 import { motion, useReducedMotion } from 'motion/react'
-import { ConfigProvider, App as AntdApp, Form, Input, Button, Typography, Space, theme, type FormInstance } from 'antd'
+import { ConfigProvider, App as AntdApp, Form, Input, Button, Typography, Space, Spin, theme, type FormInstance } from 'antd'
 import { BorderBeam } from '~/components/ui/border-beam'
 import {
   LockOutlined,
@@ -19,6 +19,8 @@ import {
   ClusterOutlined,
   SunOutlined,
   MoonOutlined,
+  SafetyCertificateOutlined,
+  SyncOutlined,
 } from '@ant-design/icons'
 import { useTheme } from 'next-themes'
 import { useUserThemeToggle } from '~/lib/theme/use-user-theme-toggle'
@@ -104,7 +106,11 @@ const BackgroundElements = () => {
 type LoginFormValues = {
   username: string
   password: string
+  captchaCode: string
 }
+
+// 服务端登录接口返回的验证码数据
+type CaptchaData = { id: string; svg: string }
 
 export const UserFrom = () => {
   const t = useTranslations()
@@ -359,6 +365,42 @@ function LoginFormBody({
   const { token } = theme.useToken()
   const { message } = AntdApp.useApp()
 
+  // ============ 验证码：加载 / 刷新（no-store，确保不复用、不受缓存影响） ============
+  const [captcha, setCaptcha] = useState<CaptchaData | null>(null)
+  const [captchaLoading, setCaptchaLoading] = useState(true)
+
+  const loadCaptcha = React.useCallback(async () => {
+    setCaptchaLoading(true)
+    try {
+      const res = await fetch('/api/v1/captcha', { cache: 'no-store' })
+      if (!res.ok) {
+        setCaptcha(null)
+        return
+      }
+      const data = (await res.json()) as { id?: string; svg?: string }
+      if (!data?.id || !data?.svg) {
+        setCaptcha(null)
+        return
+      }
+      setCaptcha({ id: data.id, svg: data.svg })
+    } catch {
+      setCaptcha(null)
+    } finally {
+      setCaptchaLoading(false)
+    }
+  }, [])
+
+  // 刷新验证码：清空已输入的验证码（旧码可能已被消费/即将过期）
+  const refreshCaptcha = React.useCallback(() => {
+    if (captchaLoading) return
+    form.setFieldValue('captchaCode', '')
+    loadCaptcha()
+  }, [captchaLoading, form, loadCaptcha])
+
+  React.useEffect(() => {
+    loadCaptcha()
+  }, [loadCaptcha])
+
   const handleSubmit = async (values: LoginFormValues) => {
     setError('')
     setLoading(true)
@@ -371,6 +413,8 @@ function LoginFormBody({
           username: values.username,
           password: values.password,
           email: values.username,
+          captchaId: captcha?.id ?? '',
+          captchaCode: values.captchaCode ?? '',
         }),
       })
 
@@ -380,7 +424,10 @@ function LoginFormBody({
           data = await res.json()
         } catch {
         }
+        // 无论何种失败都换新验证码：验证码可能已被消费（一次性）或即将过期
         setError(resolveLoginApiErrorMessage(data.message, t))
+        await loadCaptcha()
+        form.setFieldValue('captchaCode', '')
         setLoading(false)
         return
       }
@@ -391,6 +438,8 @@ function LoginFormBody({
     } catch (err) {
       console.error(err)
       setError(t('Login.unknownError'))
+      await loadCaptcha()
+      form.setFieldValue('captchaCode', '')
       setLoading(false)
     }
   }
@@ -428,6 +477,77 @@ function LoginFormBody({
         />
       </Form.Item>
 
+      <Form.Item
+        label={t('Login.captcha')}
+        required
+        style={{ marginBottom: token.marginLG }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            gap: token.marginSM,
+            alignItems: 'center',
+          }}
+        >
+          <Form.Item
+            name="captchaCode"
+            noStyle
+            rules={[{ required: true, message: t('Login.captchaRequired') }]}
+          >
+            <Input
+              size="large"
+              prefix={<SafetyCertificateOutlined />}
+              placeholder={t('Login.captchaPlaceholder')}
+              maxLength={5}
+              autoComplete="off"
+              style={{ flex: 1, minWidth: 0 }}
+            />
+          </Form.Item>
+
+          {/* 点击图片即可刷新：验证码一次性使用，失败/过期后点击换新码 */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={refreshCaptcha}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                refreshCaptcha()
+              }
+            }}
+            title={t('Login.captchaRefreshTitle')}
+            aria-label={t('Login.captchaRefreshTitle')}
+            style={{
+              width: 120,
+              height: 40,
+              flexShrink: 0,
+              cursor: 'pointer',
+              borderRadius: token.borderRadius,
+              border: `1px solid ${token.colorBorder}`,
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: token.colorFillQuaternary,
+            }}
+          >
+            {captchaLoading ? (
+              <Spin size="small" />
+            ) : captcha ? (
+              <span
+                style={{ display: 'block', width: '100%', height: '100%' }}
+                dangerouslySetInnerHTML={{ __html: captcha.svg }}
+              />
+            ) : (
+              <SyncOutlined
+                style={{ color: token.colorTextSecondary, fontSize: 18 }}
+                aria-hidden
+              />
+            )}
+          </div>
+        </div>
+      </Form.Item>
+
       {error && (
         <Form.Item style={{ marginBottom: 0 }}>
           <Text type="danger" style={{ fontSize: token.fontSizeSM }}>
@@ -463,6 +583,17 @@ function resolveLoginApiErrorMessage(
 ): string {
   const m = (raw ?? '').trim()
   if (!m) return t('Login.credentialsError')
+
+  // 服务端结构化错误码优先（验证码 / 登录锁定）
+  const codeMap: Record<string, string> = {
+    CAPTCHA_REQUIRED: t('Login.captchaRequired'),
+    CAPTCHA_MISMATCH: t('Login.captchaError'),
+    CAPTCHA_EXPIRED: t('Login.captchaExpired'),
+    CAPTCHA_USED: t('Login.captchaUsed'),
+    CAPTCHA_VERIFY_FAILED: t('Login.captchaVerifyFailed'),
+    LOGIN_LOCKED: t('Login.loginLocked'),
+  }
+  if (codeMap[m]) return codeMap[m]
 
   const lower = m.toLowerCase()
 
