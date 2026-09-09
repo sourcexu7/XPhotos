@@ -253,7 +253,7 @@ function FilterPanel({
       )}
 
       {hasAny && (
-        <Button block danger onClick={onReset}>
+        <Button block type="primary" onClick={onReset}>
           清除全部筛选
         </Button>
       )}
@@ -439,7 +439,7 @@ export default function ThemeGalleryClient({
           title="筛选 & 排序"
           extra={
             hasActivity && (
-              <Button type="text" danger size="small" onClick={resetFilters}>
+              <Button type="text" size="small" onClick={resetFilters}>
                 清除全部
               </Button>
             )

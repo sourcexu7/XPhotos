@@ -7,6 +7,58 @@ import { useTheme } from 'next-themes'
 
 const { defaultAlgorithm, darkAlgorithm } = theme
 
+/**
+ * Button 黑白配色（对齐 style/globals.css 白瓷令牌）：
+ * 浅色 --primary #0A0A0A / --primary-foreground #FFFFFF；
+ * 暗色 --primary #FAFAFA / --primary-foreground #0A0A0A。
+ * antd v6 FloatButton 内部渲染 Button，本配置同时覆盖普通按钮与
+ * 筛选/排序/主题切换悬浮按钮。仅改颜色，不动尺寸/形状/布局/交互。
+ * 注意：组件级覆盖 colorPrimary 后，hover/active/浅底等派生色仍取
+ * 全局种子色（蓝），必须逐一显式覆盖，否则对应状态会回退为蓝色。
+ */
+function buttonColorTheme(isDark: boolean) {
+  const c = isDark
+    ? {
+        primary: '#FAFAFA', // 实底主色（暗）
+        primaryHover: '#FFFFFF', // 悬停提亮
+        primaryActive: '#D9D9D9', // 按下减淡
+        onPrimary: '#0A0A0A', // 实底文字/图标
+        primaryBg: '#1F1F1F', // filled/text 变体主色浅底（暗）
+        primaryBgHover: '#262626',
+        primaryBorder: '#424242',
+      }
+    : {
+        primary: '#0A0A0A', // 实底主色（浅）
+        primaryHover: '#333333', // 悬停提亮
+        primaryActive: '#000000', // 按下加深
+        onPrimary: '#FFFFFF', // 实底文字/图标
+        primaryBg: '#F5F5F5', // filled/text 变体主色浅底（浅）
+        primaryBgHover: '#EBEBEB',
+        primaryBorder: '#D9D9D9',
+      }
+  return {
+    // primary 实底（type="primary"、FloatButton type="primary" 激活态）
+    colorPrimary: c.primary,
+    colorPrimaryHover: c.primaryHover,
+    colorPrimaryActive: c.primaryActive,
+    primaryColor: c.onPrimary,
+    primaryShadow: isDark ? 'none' : '0 2px 0 rgba(10, 10, 10, 0.08)',
+    // primary 浅底变体（variant="filled"/"text"、ghost）
+    colorPrimaryBg: c.primaryBg,
+    colorPrimaryBgHover: c.primaryBgHover,
+    colorPrimaryBorder: c.primaryBorder,
+    // default 描边按钮 hover/active（antd 默认取全局派生色，偏蓝）
+    defaultHoverColor: c.primary,
+    defaultHoverBorderColor: c.primary,
+    defaultActiveColor: c.primaryActive,
+    defaultActiveBorderColor: c.primaryActive,
+    // link 按钮
+    colorLink: c.primary,
+    colorLinkHover: c.primaryHover,
+    colorLinkActive: c.primaryActive,
+  }
+}
+
 const THEME_CONFIG = {
   token: {
     colorPrimary: '#1677ff',
@@ -74,9 +126,7 @@ export function AntdConfigProvider({ children }: { children: React.ReactNode }) 
         boxShadow:
           '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
       },
-      Button: {
-        primaryShadow: '0 2px 0 rgba(22, 119, 255, 0.1)',
-      },
+      Button: buttonColorTheme(isDark),
     },
   }
 
