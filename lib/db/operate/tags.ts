@@ -6,15 +6,6 @@ import { db } from '~/lib/db'
 import type { PrismaClient, Tags } from '@prisma/client'
 
 /**
- * 获取全部标签
- */
-export async function fetchAllTags() {
-  return await db.tags.findMany({
-    orderBy: { createdAt: 'asc' }
-  })
-}
-
-/**
  * 创建标签
  */
 export async function createTag(payload: { name: string; category?: string; parentName?: string; detail?: string }) {
@@ -279,99 +270,6 @@ export async function upsertTagsByName(tx: Omit<PrismaClient, '$connect' | '$dis
   // 确保返回顺序与输入顺序一致
   const resultMap = new Map(results.map(tag => [tag.name, tag]))
   return names.map(name => resultMap.get(name)!).filter(Boolean)
-}
-
-export async function findTagsByCategory(category: string) {
-  return await db.tags.findMany({ where: { category }, orderBy: { name: 'asc' } })
-}
-
-/**
- * 标签重命名后同步更新所有关联数据
- * 包括：
- * 1. images.labels JSON 字段中的标签名称
- * 2. 子标签的 category 字段
- * @param tagId 标签ID
- * @param oldName 旧名称
- * @param newName 新名称
- * @returns 同步结果
- */
-export async function updateTagNameSync(
-  tagId: string,
-  oldName: string,
-  newName: string
-): Promise<{ success: boolean; updatedImages: number; updatedTags: number; error?: string }> {
-  try {
-    const tag = await db.tags.findUnique({ where: { id: tagId } })
-    if (!tag) {
-      return { success: false, updatedImages: 0, updatedTags: 0, error: '标签不存在' }
-    }
-
-    if (oldName === newName) {
-      return { success: true, updatedImages: 0, updatedTags: 0 }
-    }
-
-    const results = await db.$transaction(async (tx) => {
-      let updatedImages = 0
-      let updatedTags = 0
-
-      const imageRelations = await tx.imagesTagsRelation.findMany({
-        where: { tagId },
-        select: { imageId: true }
-      })
-
-      if (imageRelations.length > 0) {
-        const imageIds = imageRelations.map(r => r.imageId)
-        
-        const images = await tx.images.findMany({
-          where: { id: { in: imageIds } },
-          select: { id: true, labels: true }
-        })
-
-        for (const image of images) {
-          if (image.labels && Array.isArray(image.labels)) {
-            const newLabels = image.labels.map(l => 
-              typeof l === 'string' && l.trim().toLowerCase() === oldName.trim().toLowerCase() 
-                ? newName 
-                : l
-            )
-            if (JSON.stringify(image.labels) !== JSON.stringify(newLabels)) {
-              await tx.images.update({
-                where: { id: image.id },
-                data: { labels: newLabels }
-              })
-              updatedImages++
-            }
-          }
-        }
-      }
-
-      const childTags = await tx.tags.findMany({
-        where: { parentId: tagId }
-      })
-
-      for (const childTag of childTags) {
-        if (childTag.category !== newName) {
-          await tx.tags.update({
-            where: { id: childTag.id },
-            data: { category: newName }
-          })
-          updatedTags++
-        }
-      }
-
-      return { updatedImages, updatedTags }
-    })
-
-    return { success: true, updatedImages: results.updatedImages, updatedTags: results.updatedTags }
-  } catch (error) {
-    console.error('标签重命名同步失败:', error)
-    return { 
-      success: false, 
-      updatedImages: 0, 
-      updatedTags: 0, 
-      error: error instanceof Error ? error.message : '同步失败' 
-    }
-  }
 }
 
 /**

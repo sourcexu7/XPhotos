@@ -1,4 +1,0 @@
-click
-dataset
-sqlalchemy
-psycopg2

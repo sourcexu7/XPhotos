@@ -1,7 +1,6 @@
 import { fetchCameraAndLensList } from '~/lib/db/query/images'
 import type { ImageHandleProps } from '~/types/props'
 import { fetchConfigsByKeys } from '~/lib/db/query/configs'
-import 'react-photo-album/masonry.css'
 import type { Config } from '~/types'
 import { fetchTagsList } from '~/lib/db/query/tags'
 import { ThemeGalleryClient } from '~/components/layout/theme-gallery-client-dynamic'

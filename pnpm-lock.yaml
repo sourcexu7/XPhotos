@@ -108,18 +108,12 @@ importers:
       next-themes:
         specifier: 0.4.6
         version: 0.4.6(react-dom@19.1.2(react@19.1.2))(react@19.1.2)
-      piexifjs:
-        specifier: ^1.0.6
-        version: 1.0.6
       react:
         specifier: 19.1.2
         version: 19.1.2
       react-dom:
         specifier: 19.1.2
         version: 19.1.2(react@19.1.2)
-      react-photo-album:
-        specifier: 3.1.0
-        version: 3.1.0(@types/react@19.1.13)(react@19.1.2)
       react-window:
         specifier: ^1.8.11
         version: 1.8.11(react-dom@19.1.2(react@19.1.2))(react@19.1.2)
@@ -172,15 +166,9 @@ importers:
       '@next/eslint-plugin-next':
         specifier: 15.5.7
         version: 15.5.7
-      '@stagewise/toolbar':
-        specifier: ^0.6.3
-        version: 0.6.3
       '@tailwindcss/postcss':
         specifier: 4.1.12
         version: 4.1.12
-      '@types/bcryptjs':
-        specifier: ^3.0.0
-        version: 3.0.0
       '@types/node':
         specifier: 20.17.19
         version: 20.17.19
@@ -2709,10 +2697,6 @@ packages:
     resolution: {integrity: sha512-mYqtQXPmrwvUljaHyGxYUIIRI3qjBTEb/f5QFi3A6VlxhpmZd5mWXn9W+qUkf2pVE1Hv3SqxefiZOPGdxmO64A==}
     engines: {node: '>=18.0.0'}
 
-  '@stagewise/toolbar@0.6.3':
-    resolution: {integrity: sha512-Xdp4PROAE2W1niBezeLOIj98bYq1ngXG5Wisr2lPe56ENMYvEMj2bagTBcFPhpac+B/Vxwb+s3NgxX1e95f2XA==}
-    deprecated: 'This package is deprecated and has been replaced by the stagewise CLI. Get started with the CLI here: https://stagewise.io/docs'
-
   '@standard-schema/spec@1.0.0':
     resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
 
@@ -2815,10 +2799,6 @@ packages:
 
   '@tybys/wasm-util@0.9.0':
     resolution: {integrity: sha512-6+7nlbMVX/PVDCwaIQ8nTOPveOcFLSt8GcXdx8hD0bt39uWxYT88uXzqTd4fTvqta7oeUJqudepapKNt2DYJFw==}
-
-  '@types/bcryptjs@3.0.0':
-    resolution: {integrity: sha512-WRZOuCuaz8UcZZE4R5HXTco2goQSI2XxjGY3hbM/xDvwmqFWd4ivooImsMx65OKM6CtNKbnZ5YL+YwAwK7c1dg==}
-    deprecated: This is a stub types definition. bcryptjs provides its own type definitions, so you do not need this installed.
 
   '@types/d3-array@3.2.1':
     resolution: {integrity: sha512-Y2Jn2idRrLzUfAKV2LyRImR+y4oa2AntrgID95SHJxuMUrkNXmanDSed71sRNZysveJVt1hLLemQZIady0FpEg==}
@@ -4687,9 +4667,6 @@ packages:
     resolution: {integrity: sha512-M7BAV6Rlcy5u+m6oPhAPFgJTzAioX/6B0DxyvDlo9l8+T3nLKbrczg2WLUyzd45L8RqfUMyGPzekbMvX2Ldkwg==}
     engines: {node: '>=12'}
 
-  piexifjs@1.0.6:
-    resolution: {integrity: sha512-0wVyH0cKohzBQ5Gi2V1BuxYpxWfxF3cSqfFXfPIpl5tl9XLS5z4ogqhUCD20AbHi0h9aJkqXNJnkVev6gwh2ag==}
-
   pify@2.3.0:
     resolution: {integrity: sha512-udgsAY+fTnvv7kI7aaxbqwWNb0AHiB0qBO89PZKPkoTmGOgdbrHDKD+0B2X4uTfJ/FT1R09r9gTsjUjNJotuog==}
     engines: {node: '>=0.10.0'}
@@ -4787,16 +4764,6 @@ packages:
 
   react-is@19.2.8:
     resolution: {integrity: sha512-s5un28nYxKJw5gvUHyW5PCC28CvBqLu9r3cWgzHT4Vo/5fqqkFcdRYsGcKf50WMPpjjFZS5d76fn3YCo2njKwQ==}
-
-  react-photo-album@3.1.0:
-    resolution: {integrity: sha512-9PiWzwvckfefJRHY5E6kcNKoWNjyyFKhQ6Pl5nS1Z29QeP9h8zDOAoVQKWcv/AhZjRoduw1dybu9RNMj0+uPzQ==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@types/react': 19.1.13
-      react: ^18 || ^19
-    peerDependenciesMeta:
-      '@types/react':
-        optional: true
 
   react-redux@9.2.0:
     resolution: {integrity: sha512-ROY9fvHhwOD9ySfrF0wmvu//bKCQ6AeZZq1nJNtbDC+kk5DuSuNX/n6YWYF/SYy7bSba4D4FSz8DJeKY/S/r+g==}
@@ -8570,8 +8537,6 @@ snapshots:
       '@smithy/types': 4.14.0
       tslib: 2.8.1
 
-  '@stagewise/toolbar@0.6.3': {}
-
   '@standard-schema/spec@1.0.0': {}
 
   '@standard-schema/utils@0.3.0': {}
@@ -8663,10 +8628,6 @@ snapshots:
     dependencies:
       tslib: 2.8.1
     optional: true
-
-  '@types/bcryptjs@3.0.0':
-    dependencies:
-      bcryptjs: 3.0.3
 
   '@types/d3-array@3.2.1': {}
 
@@ -10742,8 +10703,6 @@ snapshots:
 
   picomatch@4.0.2: {}
 
-  piexifjs@1.0.6: {}
-
   pify@2.3.0: {}
 
   pify@4.0.1: {}
@@ -10828,12 +10787,6 @@ snapshots:
   react-is@18.3.1: {}
 
   react-is@19.2.8: {}
-
-  react-photo-album@3.1.0(@types/react@19.1.13)(react@19.1.2):
-    dependencies:
-      react: 19.1.2
-    optionalDependencies:
-      '@types/react': 19.1.13
 
   react-redux@9.2.0(@types/react@19.1.13)(react@19.1.2)(redux@5.0.1):
     dependencies:

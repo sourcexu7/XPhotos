@@ -66,15 +66,6 @@ export interface AlbumType {
   show_total?: number
 }
 
-export interface TagType {
-  id: string
-  name: string
-  category?: string | null
-  parentId?: string | null
-  created_at?: Date | string | null
-  updated_at?: Date | string | null
-}
-
 export interface ExifType {
   make?: string | null
   model?: string | null

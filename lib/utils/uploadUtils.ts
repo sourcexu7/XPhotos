@@ -2,15 +2,6 @@ import { message } from 'antd'
 import { uploadFile } from './file'
 import { compressImage, getCompressOptionsFromConfigs } from './compress'
 
-export interface UploadResult {
-  url: string
-  previewUrl: string
-  imageId: string
-  fileName: string
-  originalKey?: string
-  previewKey?: string
-}
-
 export interface UploadPreviewImageOptions {
   storage: string
   alistMountPath: string

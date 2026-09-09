@@ -25,7 +25,7 @@ const eslintConfig = [
         'warn',
         {
           // 忽略路径别名（~/、@/）和已知误报包
-          ignore: ['^react-window$', '^piexifjs$', '^~', '^@/'],
+          ignore: ['^react-window$', '^~', '^@/'],
           caseSensitive: false,
         },
       ],
