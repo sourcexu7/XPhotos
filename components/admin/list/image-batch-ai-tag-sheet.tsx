@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { App, Button, Checkbox, Drawer, Select, Space, Spin, Tag, theme } from 'antd'
+import { App, Alert, Button, Checkbox, Drawer, Select, Space, Spin, Tag, theme } from 'antd'
 import { RobotOutlined } from '@ant-design/icons'
 import { useButtonStore } from '~/app/providers/button-store-providers'
 import { useTranslations } from 'next-intl'
@@ -28,6 +28,7 @@ interface BatchItem {
   selected: Record<string, boolean>
   strategy: Strategy
   applyError?: boolean
+  saving?: boolean
 }
 
 const CONCURRENCY = 2
@@ -55,6 +56,7 @@ export default function ImageBatchAiTagSheet({ images, onApplied }: {
   const [items, setItems] = useState<BatchItem[]>([])
   const [phase, setPhase] = useState<'analyzing' | 'reviewing'>('analyzing')
   const [applying, setApplying] = useState(false)
+  const [retrying, setRetrying] = useState(false)
 
   const itemsRef = useRef<BatchItem[]>([])
   const cancelRef = useRef(false)
@@ -159,6 +161,19 @@ export default function ImageBatchAiTagSheet({ images, onApplied }: {
       })
       return
     }
+    // 审核阶段：存在保存失败项时，提醒用户关闭将丢失未保存的更改
+    const failCount = items.filter(it => it.applyError).length
+    if (failCount > 0) {
+      modal.confirm({
+        title: t('batchAiTagConfirmCloseWithFailTitle'),
+        content: t('batchAiTagConfirmCloseWithFailContent', { count: failCount }),
+        okText: t('batchAiTagCloseAnyway'),
+        okButtonProps: { danger: true },
+        cancelText: t('batchAiTagStayAndRetry'),
+        onOk: () => setImageBatchAiTag(false),
+      })
+      return
+    }
     setImageBatchAiTag(false)
   }
 
@@ -245,11 +260,39 @@ export default function ImageBatchAiTagSheet({ images, onApplied }: {
     return { labels, tagCategoryMap: categoryMap }
   }
 
+  /** 单张保存（applyAll 与失败重试共用）；overwrite 且一张未选视为跳过 */
+  const saveOne = async (it: BatchItem): Promise<'ok' | 'skip' | 'fail'> => {
+    const { labels, tagCategoryMap } = computeSavePayload(it)
+    if (it.strategy === 'overwrite' && labels.length === 0) return 'skip'
+    setItem(it.image.id, { saving: true })
+    try {
+      const res = await fetch('/api/v1/images/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...it.image, labels, tagCategoryMap }),
+      })
+      if (res.ok) {
+        setItem(it.image.id, { applyError: false, saving: false })
+        return 'ok'
+      }
+      setItem(it.image.id, { applyError: true, saving: false })
+      return 'fail'
+    } catch {
+      setItem(it.image.id, { applyError: true, saving: false })
+      return 'fail'
+    }
+  }
+
   const applyAll = async () => {
     const targets = itemsRef.current.filter(it => it.status === 'done' && it.suggestion)
     if (targets.length === 0) { message.warning(t('batchAiTagNoSuggestion')); return }
     setApplying(true)
     try {
+      // 清除上一轮的失败标记（用户可能已调整勾选/策略）
+      for (const it of targets) {
+        if (it.applyError) setItem(it.image.id, { applyError: false })
+      }
+
       // 1. 现有标签名集合（createTag 非 upsert，重名会抛错，先去重）
       const existingNames = new Set<string>()
       try {
@@ -278,36 +321,82 @@ export default function ImageBatchAiTagSheet({ images, onApplied }: {
         }
       }
 
-      // 3. 逐张保存（覆盖模式且一张未选 → 视为跳过，避免误清空）
+      // 3. 逐张保存（saveOne 内部处理跳过逻辑）
       let ok = 0
       let fail = 0
       for (const it of targets) {
-        const { labels, tagCategoryMap } = computeSavePayload(it)
-        if (it.strategy === 'overwrite' && labels.length === 0) continue
-        try {
-          const res = await fetch('/api/v1/images/update', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...it.image, labels, tagCategoryMap }),
-          })
-          if (res.ok) ok++
-          else { fail++; setItem(it.image.id, { applyError: true }) }
-        } catch {
-          fail++
-          setItem(it.image.id, { applyError: true })
-        }
+        const r = await saveOne(it)
+        if (r === 'ok') ok++
+        else if (r === 'fail') fail++
       }
 
-      await onApplied()
-      if (fail > 0) message.warning(t('batchAiTagAppliedWithFail', { ok, fail }))
-      else message.success(t('batchAiTagApplied', { ok }))
+      if (fail > 0) {
+        // 保留现场：不清空选择，顶部横幅会汇总失败项并支持重试/复制 ID
+        message.warning(t('batchAiTagAppliedWithFail', { ok, fail }))
+      } else {
+        message.success(t('batchAiTagApplied', { ok }))
+        await onApplied()
+      }
     } finally {
       setApplying(false)
     }
   }
 
+  /** 单张重试保存（仅 applyError 项）；成功且无剩余失败时收尾刷新 */
+  const retrySaveOne = async (id: string) => {
+    const it = itemsRef.current.find(x => x.image.id === id)
+    if (!it || it.saving || retrying) return
+    const r = await saveOne(it)
+    if (r === 'ok') {
+      message.success(t('batchAiTagApplied', { ok: 1 }))
+      const remain = itemsRef.current.filter(x => x.applyError).length
+      if (remain === 0) await onApplied()
+    }
+  }
+
+  /** 一键重试全部保存失败项 */
+  const retryAllFailed = async () => {
+    const targets = itemsRef.current.filter(it => it.applyError && it.status === 'done' && it.suggestion)
+    if (targets.length === 0 || retrying || applying) return
+    setRetrying(true)
+    try {
+      let ok = 0
+      let fail = 0
+      for (const it of targets) {
+        const r = await saveOne(it)
+        if (r === 'ok') ok++
+        else if (r === 'fail') fail++
+      }
+      if (fail > 0) {
+        message.warning(t('batchAiTagRetryFinished', { ok, fail }))
+      } else {
+        message.success(t('batchAiTagRetryFinished', { ok, fail }))
+        await onApplied()
+      }
+    } finally {
+      setRetrying(false)
+    }
+  }
+
+  /** 复制失败图片 ID，便于到编辑抽屉逐张手动处理 */
+  const copyFailedIds = async () => {
+    const ids = itemsRef.current.filter(it => it.applyError).map(it => it.image.id)
+    if (ids.length === 0) return
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(ids.join('\n'))
+        message.success(t('batchAiTagCopyFailedIdsDone', { count: ids.length }))
+      } else {
+        throw new Error('clipboard unavailable')
+      }
+    } catch {
+      message.error(t('batchAiTagCopyFailedIdsFailed'))
+    }
+  }
+
   const doneCount = items.filter(it => it.status === 'done' || it.status === 'empty').length
   const finished = items.length > 0 && doneCount === items.length
+  const failedItems = items.filter(it => it.applyError)
 
   const renderStatus = (it: BatchItem) => {
     switch (it.status) {
@@ -351,7 +440,7 @@ export default function ImageBatchAiTagSheet({ images, onApplied }: {
             </Space>
             <Space>
               <Button onClick={requestClose}>{t('batchAiTagClose')}</Button>
-              <Button type="primary" loading={applying} onClick={applyAll}>{t('batchAiTagApply')}</Button>
+              <Button type="primary" loading={applying} disabled={retrying} onClick={applyAll}>{t('batchAiTagApply')}</Button>
             </Space>
           </div>
         )
@@ -377,6 +466,23 @@ export default function ImageBatchAiTagSheet({ images, onApplied }: {
       ) : (
         <div className="space-y-4">
           <div className="text-xs text-muted-foreground">{t('batchAiTagReviewHint')}</div>
+          {failedItems.length > 0 && (
+            <Alert
+              type="warning"
+              showIcon
+              title={t('batchAiTagFailedSummary', { count: failedItems.length })}
+              action={
+                <Space size={4} wrap>
+                  <Button size="small" loading={retrying} onClick={retryAllFailed}>
+                    {t('batchAiTagRetryAllFailed')}
+                  </Button>
+                  <Button size="small" onClick={copyFailedIds}>
+                    {t('batchAiTagCopyFailedIds')}
+                  </Button>
+                </Space>
+              }
+            />
+          )}
           {items.filter(it => it.status === 'done' && it.suggestion).map(it => (
             <div key={it.image.id} className="p-3 border border-border rounded-lg">
               <div className="flex items-start gap-3">
@@ -451,7 +557,20 @@ export default function ImageBatchAiTagSheet({ images, onApplied }: {
                     </div>
                   </div>
                 )}
-                {it.applyError && <div className="text-xs text-destructive">{t('batchAiTagSaveFailed')}</div>}
+                {it.applyError && (
+                  <div className="flex items-center gap-2 text-xs text-destructive">
+                    <span>{t('batchAiTagSaveFailed')}</span>
+                    <Button
+                      size="small"
+                      type="link"
+                      loading={!!it.saving}
+                      disabled={retrying || applying}
+                      onClick={() => retrySaveOne(it.image.id)}
+                    >
+                      {t('batchAiTagRetrySave')}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
