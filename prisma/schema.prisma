@@ -232,12 +232,12 @@ model AiUsageLog {
   id               String   @id @default(cuid()) @db.VarChar(50)
   scene            String   @db.VarChar(50)   // guide_parse / guide_test / tag_recommend / tag_test
   model            String   @db.VarChar(100)
-  promptTokens     Int      @default(0)       // 输入 tokens
-  completionTokens Int      @default(0)       // 输出 tokens（含推理）
-  totalTokens      Int      @default(0)
-  reasoningTokens  Int      @default(0)       // 其中推理 tokens
-  cacheHitTokens   Int      @default(0)       // 输入中缓存命中 tokens
-  durationMs       Int      @default(0)       // 调用耗时
+  promptTokens     Int      @default(0) @map("prompt_tokens")       // 输入 tokens
+  completionTokens Int      @default(0) @map("completion_tokens")     // 输出 tokens（含推理）
+  totalTokens      Int      @default(0) @map("total_tokens")
+  reasoningTokens  Int      @default(0) @map("reasoning_tokens")      // 其中推理 tokens
+  cacheHitTokens   Int      @default(0) @map("cache_hit_tokens")      // 输入中缓存命中 tokens
+  durationMs       Int      @default(0) @map("duration_ms")           // 调用耗时
   success          Boolean  @default(true)
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp
 

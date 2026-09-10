@@ -35,7 +35,8 @@ export async function fetchTagsTree(): Promise<Array<{ id?: string; category: st
 
       for (const t of tags) {
         if (!t.parentId) {
-          parentsMap[t.id] = { id: t.id, category: t.category ?? t.name, children: [] }
+          // 用 || 兜底空字符串 category（历史数据可能写入 ''）
+          parentsMap[t.id] = { id: t.id, category: t.category || t.name, children: [] }
         }
       }
       for (const t of tags) {

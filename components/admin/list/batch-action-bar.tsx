@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Checkbox, Button, Tooltip, Space, theme } from 'antd'
-import { DeleteOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons'
+import { DeleteOutlined, DownloadOutlined, ReloadOutlined, RobotOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 
 interface BatchActionBarProps {
@@ -12,6 +12,8 @@ interface BatchActionBarProps {
   onRefresh: () => void
   onBatchDelete: () => void
   onBatchDownload: () => void
+  aiTagEnabled?: boolean
+  onBatchAiTag?: () => void
 }
 
 export default function BatchActionBar({
@@ -21,6 +23,8 @@ export default function BatchActionBar({
   onRefresh,
   onBatchDelete,
   onBatchDownload,
+  aiTagEnabled = false,
+  onBatchAiTag,
 }: BatchActionBarProps) {
   const { token } = theme.useToken()
   const t = useTranslations()
@@ -67,6 +71,13 @@ export default function BatchActionBar({
             {t('Button.batchDownload')}
           </Button>
         </Tooltip>
+        {aiTagEnabled && onBatchAiTag && (
+          <Tooltip title={t('List.batchAiTagTooltip')}>
+            <Button icon={<RobotOutlined />} onClick={onBatchAiTag}>
+              {t('List.batchAiTagBtn')}
+            </Button>
+          </Tooltip>
+        )}
         <Tooltip title={t('List.deleteSelectedPhotosTooltip')}>
           <Button danger icon={<DeleteOutlined />} onClick={onBatchDelete}>
             {t('Button.batchDelete')}

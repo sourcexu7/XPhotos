@@ -174,7 +174,7 @@ async function ensureLabelsExistInTags(
   }
 
   await tx.tags.createMany({
-    data: tagsToCreate.map(name => ({ name, category: '' })),
+    data: tagsToCreate.map(name => ({ name, category: name })),
     skipDuplicates: true
   })
 
@@ -535,6 +535,50 @@ export async function checkAndFixImageTagCompleteness(
       createdTags: [],
       totalCreatedTags: 0
     }
+  }
+}
+
+/**
+ * 检测并修复空白 category 的标签（历史脏数据自动修复）
+ * - 顶层标签（category 为 '' 或 null）：category = 自身 name（与 createTag 约定一致）
+ * - 子标签（仅 category = ''）：category = 父标签名（父标签缺失时回退自身 name）
+ * 说明：子标签 category 为 null 属于历史合法状态，不在修复范围
+ * @returns 修复数量与标签名列表
+ */
+export async function repairBlankCategoryTags(): Promise<{ repaired: number; tags: string[] }> {
+  try {
+    const blankParents = await db.tags.findMany({
+      where: { parentId: null, OR: [{ category: '' }, { category: null }] },
+      select: { id: true, name: true, parentId: true }
+    })
+    const blankChildren = await db.tags.findMany({
+      where: { parentId: { not: null }, category: '' },
+      select: { id: true, name: true, parentId: true }
+    })
+
+    const parentIds = [...new Set(blankChildren.map(t => t.parentId).filter((id): id is string => !!id))]
+    const parents = parentIds.length > 0
+      ? await db.tags.findMany({ where: { id: { in: parentIds } }, select: { id: true, name: true } })
+      : []
+    const parentNameMap = new Map(parents.map(p => [p.id, p.name]))
+
+    let repaired = 0
+    const repairedNames: string[] = []
+    for (const t of [...blankParents, ...blankChildren]) {
+      // 空名标签无法自动修复 category，跳过（可由"清理孤立标签"处理）
+      if (!t.name || t.name.trim() === '') continue
+      const category = t.parentId
+        ? (parentNameMap.get(t.parentId as string) || t.name)
+        : t.name
+      await db.tags.update({ where: { id: t.id }, data: { category } })
+      repaired++
+      repairedNames.push(t.name)
+    }
+
+    return { repaired, tags: repairedNames }
+  } catch (error) {
+    console.error('修复空白分类标签失败:', error)
+    return { repaired: 0, tags: [] }
   }
 }
 

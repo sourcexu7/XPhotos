@@ -10,7 +10,7 @@ import { updateAListConfig, updateCustomInfo, updateS3Config, updateCOSConfig } 
 import { fetchTagsList, fetchTagsTree, fetchTagsByCategory } from '~/lib/db/query/tags'
 import { createTag, updateTag, deleteTag, deleteTagAndChildren, batchDeleteTags, cleanupOrphanTags, getOrphanTags, getTagUsageCounts, mergeTags } from '~/lib/db/operate/tags'
 import { moveTag, validateTagMove } from '~/lib/services/tag-move-service'
-import { checkAndFixImageTagCompleteness } from '~/lib/services/image-tag-sync-service'
+import { checkAndFixImageTagCompleteness, repairBlankCategoryTags } from '~/lib/services/image-tag-sync-service'
 import { getClient } from '~/lib/s3'
 import { getCOSClient } from '~/lib/cos'
 import { HeadBucketCommand, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
@@ -72,6 +72,12 @@ app.get('/tags/get', async (c) => {
 app.post('/tags/add', async (c) => {
   try {
     const payload = await c.req.json()
+    // 入参校验：拒绝空名/纯空格标签名（服务端最后防线，前端已有校验）
+    if (typeof payload?.name !== 'string' || payload.name.trim() === '') {
+      return c.json({ code: 400, message: '标签名不能为空' })
+    }
+    payload.name = payload.name.trim()
+    if (typeof payload?.parentName === 'string') payload.parentName = payload.parentName.trim()
     // payload may include parentName for creating child tags under a parent (uses existing `category` field for compatibility)
     const res = await createTag(payload)
     await invalidateTagsCache()
@@ -85,6 +91,11 @@ app.put('/tags/update/:id', async (c) => {
   try {
     const id = c.req.param('id')
     const payload = await c.req.json()
+    // 入参校验：name 允许不传（仅改分类等），但传了就不能是空/纯空格
+    if (payload?.name !== undefined && (typeof payload.name !== 'string' || payload.name.trim() === '')) {
+      return c.json({ code: 400, message: '标签名不能为空' })
+    }
+    if (typeof payload?.name === 'string') payload.name = payload.name.trim()
     const res = await updateTag(id, payload)
     await invalidateTagsCache()
     return c.json({ code: 200, data: res })
@@ -126,8 +137,20 @@ app.post('/tags/move', async (c) => {
 app.post('/tags/check-completeness', async (c) => {
   try {
     const { batchSize } = await c.req.json()
-    const result = await checkAndFixImageTagCompleteness(batchSize ?? 100)
-    return c.json({ code: 200, data: result })
+    // 同时执行：历史图片标签补全 + 空白 category 标签自动修复
+    const [result, blankRepair] = await Promise.all([
+      checkAndFixImageTagCompleteness(batchSize ?? 100),
+      repairBlankCategoryTags(),
+    ])
+    await invalidateTagsCache()
+    return c.json({
+      code: 200,
+      data: {
+        ...result,
+        repairedCategories: blankRepair.repaired,
+        repairedCategoryTags: blankRepair.tags,
+      }
+    })
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed', cause: e })
   }

@@ -13,6 +13,7 @@ import { fetcher } from '~/lib/utils/fetcher'
 import useSWR from 'swr'
 import ImageBatchDeleteSheet from '~/components/admin/list/image-batch-delete-sheet'
 import ImageBatchDownloadSheet from '~/components/admin/list/image-batch-download-sheet'
+import ImageBatchAiTagSheet from '~/components/admin/list/image-batch-ai-tag-sheet'
 import { Button, Drawer, Pagination } from 'antd'
 import { useTranslations } from 'next-intl'
 
@@ -42,6 +43,8 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
   const [layout, setLayout] = useState<'card' | 'list'>('card')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
+  // AI 标签能力探测（不可用时批量 AI 按钮不渲染，纯手动兜底）
+  const [aiTagAvailable, setAiTagAvailable] = useState(false)
 
   const { data: pageData, mutate } = useSWR(
     [
@@ -92,7 +95,7 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
   const [updateShowId, setUpdateShowId] = useState('')
   const [updateFeaturedId, setUpdateFeaturedId] = useState('')
   
-  const { setImageEdit, setImageEditData, setImageView, setImageViewData, setImageBatchDelete, setImageBatchDownload } = useButtonStore(
+  const { setImageEdit, setImageEditData, setImageView, setImageViewData, setImageBatchDelete, setImageBatchDownload, setImageBatchAiTag } = useButtonStore(
     (state) => state,
   )
   
@@ -127,6 +130,13 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       setSelectedIds([])
     }
   }
+
+  // 当前勾选的图片完整数据（供批量 AI 标签使用）
+  const selectedImages = useMemo(() => {
+    if (!Array.isArray(data) || selectedIds.length === 0) return [] as ImageType[]
+    const idSet = new Set(selectedIds)
+    return (data as ImageType[]).filter(i => idSet.has(i.id))
+  }, [data, selectedIds])
 
   function toggleSelectOne(id: string, checked: boolean) {
     if (checked) setSelectedIds(prev => Array.from(new Set([...prev, id])))
@@ -217,6 +227,14 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
         console.error('Failed to fetch tags:', error)
       }
     }
+
+    // AI 标签能力探测（disabled/未配置时按钮隐藏，纯手动兜底）
+    fetch('/api/v1/ai-tag/status')
+      .then(r => r.json())
+      .then((res: { data?: { enabled?: boolean; configured?: boolean } }) => {
+        setAiTagAvailable(!!(res?.data?.enabled && res?.data?.configured))
+      })
+      .catch(() => setAiTagAvailable(false))
 
     loadCameraAndLensList()
     loadExifPresets()
@@ -403,6 +421,8 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
         onRefresh={async () => await mutate()}
         onBatchDelete={() => setImageBatchDelete(true)}
         onBatchDownload={() => setImageBatchDownload(true)}
+        aiTagEnabled={aiTagAvailable}
+        onBatchAiTag={() => setImageBatchAiTag(true)}
       />
 
       {/* 3. 照片布局：卡片 / 列表切换 */}
@@ -483,6 +503,13 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       <ImageView />
       <ImageBatchDeleteSheet {...{...props, dataProps, pageNum, album: activeFilters.album, selectedIds}} />
       <ImageBatchDownloadSheet selectedIds={selectedIds} />
+      <ImageBatchAiTagSheet
+        images={selectedImages}
+        onApplied={async () => {
+          await mutate()
+          setSelectedIds([])
+        }}
+      />
     </div>
   )
 }

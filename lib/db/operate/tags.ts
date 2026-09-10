@@ -77,7 +77,7 @@ export async function updateTag(id: string, payload: { name?: string; category?:
         updateData.category = payload.name || oldName
       }
     } else if (payload.parentName) {
-      const parent = await tx.tags.upsert({ where: { name: payload.parentName }, update: {}, create: { name: payload.parentName, category: '' } })
+      const parent = await tx.tags.upsert({ where: { name: payload.parentName }, update: {}, create: { name: payload.parentName, category: payload.parentName } })
       updateData.parentId = parent.id
       updateData.category = payload.parentName
     } else if (payload.category !== undefined) {
@@ -192,7 +192,7 @@ export async function upsertTagsByName(tx: Omit<PrismaClient, '$connect' | '$dis
       if (parentsToCreate.length > 0) {
         // 批量创建父标签
         await tx.tags.createMany({
-          data: parentsToCreate.map(pn => ({ name: pn, category: '' })),
+          data: parentsToCreate.map(pn => ({ name: pn, category: pn })),
           skipDuplicates: true
         })
         // 重新查询获取创建的父标签 ID

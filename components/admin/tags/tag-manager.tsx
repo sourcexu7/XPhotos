@@ -351,6 +351,9 @@ export default function TagManager() {
         if (data.totalCreatedTags && data.totalCreatedTags > 0) {
           msg += ' ' + t('createdTags', { count: data.totalCreatedTags })
         }
+        if (data.repairedCategories && data.repairedCategories > 0) {
+          msg += ' ' + t('categoryRepaired', { count: data.repairedCategories, tags: (data.repairedCategoryTags ?? []).join('、') })
+        }
         message.success(msg)
         if (data.errors && data.errors.length > 0) {
           console.warn('部分图片处理失败:', data.errors)
