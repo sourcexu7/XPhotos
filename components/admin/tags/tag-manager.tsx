@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState, useMemo } from 'react'
 import { fetcher } from '~/lib/utils/fetcher'
-import { Input, Button, Tag, Popconfirm, App, Spin, Row, Col, Card, Space, Typography, theme, Empty, Badge, Tooltip, Modal, Select } from 'antd'
-import { PlusOutlined, EditOutlined, SwapOutlined, DeleteOutlined, SyncOutlined } from '@ant-design/icons'
+import { Input, Button, Tag, Popconfirm, App, Spin, Row, Col, Card, Space, Typography, theme, Empty, Badge, Tooltip, Modal, Select, Checkbox } from 'antd'
+import { PlusOutlined, EditOutlined, SwapOutlined, DeleteOutlined, SyncOutlined, MergeOutlined, SearchOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 
-type TagItem = { id: string; name: string }
+type TagItem = { id: string; name: string; imageCount?: number }
 type TagTreeNode = { id?: string | null; category: string | null; children: TagItem[] }
 
 export default function TagManager() {
@@ -14,12 +14,24 @@ export default function TagManager() {
   const { token } = theme.useToken()
   const t = useTranslations('TagManager')
   const [tree, setTree] = useState<TagTreeNode[]>([])
+  const [usageMap, setUsageMap] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(false)
   const [addingPrimary, setAddingPrimary] = useState(false)
   const [addingSecondary, setAddingSecondary] = useState(false)
   // 交互状态
   const [hoverPrimaryIdx, setHoverPrimaryIdx] = useState<number | null>(null)
   const [hoverSecondaryIdx, setHoverSecondaryIdx] = useState<number | null>(null)
+
+  // 搜索 / 排序 / 未使用过滤
+  const [searchText, setSearchText] = useState('')
+  const [sortBy, setSortBy] = useState<'name' | 'usage'>('name')
+  const [showUnusedOnly, setShowUnusedOnly] = useState(false)
+
+  // 合并标签状态
+  const [selectedSecondaryIds, setSelectedSecondaryIds] = useState<string[]>([])
+  const [mergeModalOpen, setMergeModalOpen] = useState(false)
+  const [mergeTargetId, setMergeTargetId] = useState<string | null>(null)
+  const [merging, setMerging] = useState(false)
 
   const [primaryName, setPrimaryName] = useState('')
   const [secondaryName, setSecondaryName] = useState('')
@@ -40,8 +52,21 @@ export default function TagManager() {
   const loadTree = React.useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetcher('/api/v1/settings/tags/get?tree=true')
-      if (res?.data) setTree(res.data)
+      const [treeRes, usageRes] = await Promise.all([
+        fetcher('/api/v1/settings/tags/get?tree=true'),
+        fetcher('/api/v1/settings/tags/usage').catch(() => null),
+      ])
+      if (treeRes?.data) {
+        const usage: Record<string, number> = {}
+        for (const u of (usageRes?.data ?? []) as { id: string; imageCount: number }[]) {
+          usage[u.id] = u.imageCount
+        }
+        setUsageMap(usage)
+        setTree(treeRes.data.map((node: TagTreeNode) => ({
+          ...node,
+          children: (node.children ?? []).map(child => ({ ...child, imageCount: usage[child.id] ?? 0 })),
+        })))
+      }
     } catch (_err) {
       message.error(t('loadFailed'))
     } finally {
@@ -55,8 +80,41 @@ export default function TagManager() {
   const selectedPrimaryNode = tree.find(n => n.id === selectedPrimary)
   const selectedPrimaryName = selectedPrimaryNode?.category ?? ''
 
-  // 当前未提供搜索，直接使用完整树列表
-  const filteredTree = useMemo(() => tree, [tree])
+  // 派生：主标签自身使用量（含子标签合计）
+  const primaryUsage = React.useCallback((node: TagTreeNode) => {
+    const own = node.id ? (usageMap[node.id] ?? 0) : 0
+    const childSum = (node.children ?? []).reduce((sum, c) => sum + (c.imageCount ?? 0), 0)
+    return own + childSum
+  }, [usageMap])
+
+  // 搜索 + 未使用过滤 + 排序
+  const filteredTree = useMemo(() => {
+    const kw = searchText.trim().toLowerCase()
+    let result = tree
+
+    if (showUnusedOnly) {
+      result = result
+        .map(node => ({ ...node, children: node.children.filter(c => (c.imageCount ?? 0) === 0) }))
+        .filter(node => primaryUsage(node) === 0)
+    }
+
+    if (kw) {
+      result = result
+        .map(node => {
+          const primaryMatched = (node.category ?? '').toLowerCase().includes(kw)
+          const matchedChildren = primaryMatched ? node.children : node.children.filter(c => c.name.toLowerCase().includes(kw))
+          return { ...node, children: matchedChildren }
+        })
+        .filter(node => (node.category ?? '').toLowerCase().includes(kw) || node.children.length > 0)
+    }
+
+    if (sortBy === 'usage') {
+      result = [...result].sort((a, b) => primaryUsage(b) - primaryUsage(a))
+        .map(node => ({ ...node, children: [...node.children].sort((a, b) => (b.imageCount ?? 0) - (a.imageCount ?? 0)) }))
+    }
+
+    return result
+  }, [tree, searchText, showUnusedOnly, sortBy, primaryUsage])
 
   const addPrimary = async () => {
     if (!primaryName?.trim()) return message.warning(t('inputPrimaryTagName'))
@@ -220,6 +278,58 @@ export default function TagManager() {
     setTargetParentId(null)
   }
 
+  // ===== 合并标签 =====
+  const toggleSelectSecondary = (id: string, checked: boolean) => {
+    setSelectedSecondaryIds(prev => (checked ? [...prev, id] : prev.filter(x => x !== id)))
+  }
+
+  // 合并目标候选：排除已选源标签；label 显示标签名 + 使用量
+  const mergeTargetOptions = useMemo(() => {
+    const options: { label: string; value: string }[] = []
+    for (const node of tree) {
+      if (node.id && !selectedSecondaryIds.includes(node.id)) {
+        const own = usageMap[node.id] ?? 0
+        options.push({ label: `${node.category} (${own})`, value: node.id })
+      }
+      for (const child of node.children) {
+        if (!selectedSecondaryIds.includes(child.id)) {
+          options.push({ label: `${child.name} (${child.imageCount ?? 0})`, value: child.id })
+        }
+      }
+    }
+    return options
+  }, [tree, usageMap, selectedSecondaryIds])
+
+  const selectedSecondaryNames = useMemo(
+    () => tree.flatMap(n => n.children).filter(c => selectedSecondaryIds.includes(c.id)).map(c => c.name),
+    [tree, selectedSecondaryIds],
+  )
+
+  const confirmMerge = async () => {
+    if (!mergeTargetId || selectedSecondaryIds.length === 0) return
+    setMerging(true)
+    try {
+      const res = await fetch('/api/v1/settings/tags/merge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceIds: selectedSecondaryIds, targetId: mergeTargetId }),
+      }).then(r => r.json())
+      if (res?.code === 200) {
+        message.success(t('mergeSuccess', { images: res?.data?.mergedImages ?? 0, count: res?.data?.deletedTags ?? 0 }))
+        setMergeModalOpen(false)
+        setMergeTargetId(null)
+        setSelectedSecondaryIds([])
+        await loadTree()
+      } else {
+        message.error(t(res?.message || 'mergeFailed'))
+      }
+    } catch (_e) {
+      message.error(t('mergeFailed'))
+    } finally {
+      setMerging(false)
+    }
+  }
+
   // 历史图片标签补全检查
   const [checkingCompleteness, setCheckingCompleteness] = useState(false)
   const checkTagCompleteness = async () => {
@@ -325,6 +435,28 @@ export default function TagManager() {
             </Button>
           </Space>
         </div>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Input
+            allowClear
+            prefix={<SearchOutlined />}
+            placeholder={t('searchTagsPlaceholder')}
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            style={{ width: 240 }}
+          />
+          <Select
+            value={sortBy}
+            onChange={setSortBy}
+            style={{ width: 170 }}
+            options={[
+              { value: 'name', label: t('sortByName') },
+              { value: 'usage', label: t('sortByUsage') },
+            ]}
+          />
+          <Checkbox checked={showUnusedOnly} onChange={e => setShowUnusedOnly(e.target.checked)}>
+            {t('showUnusedOnly')}
+          </Checkbox>
+        </div>
         <Row gutter={token.margin}>
           <Col xs={24} md={8} lg={7} xl={6}>
             <Card
@@ -389,6 +521,9 @@ export default function TagManager() {
                                 <Tooltip title={t('childTagCount')}>
                                   <Badge count={node.children.length} size="small" style={{ backgroundColor: token.colorPrimary }} />
                                 </Tooltip>
+                                <Tooltip title={t('usageCount')}>
+                                  <Badge count={primaryUsage(node)} size="small" showZero color={token.colorTextTertiary} />
+                                </Tooltip>
                               </Space>
                               <Space size={6}>
                                 <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); startEditPrimary(node) }}>{t('edit')}</Button>
@@ -438,7 +573,23 @@ export default function TagManager() {
             </Card>
           </Col>
           <Col xs={24} md={16} lg={17} xl={18}>
-            <Card size="small" styles={{ body: { padding: token.paddingSM } }} title={<Typography.Text strong>{t('secondaryTags')}{selectedPrimary ? ` — ${selectedPrimaryName}` : ''}</Typography.Text>}>
+            <Card
+              size="small"
+              styles={{ body: { padding: token.paddingSM } }}
+              title={<Typography.Text strong>{t('secondaryTags')}{selectedPrimary ? ` — ${selectedPrimaryName}` : ''}</Typography.Text>}
+              extra={
+                selectedSecondaryIds.length > 0 ? (
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<MergeOutlined />}
+                    onClick={() => { setMergeTargetId(null); setMergeModalOpen(true) }}
+                  >
+                    {t('mergeButton')} ({selectedSecondaryIds.length})
+                  </Button>
+                ) : undefined
+              }
+            >
               {!selectedPrimary ? (
                 <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('selectPrimaryTag')} style={{ margin: token.marginXL }} />
               ) : (
@@ -449,7 +600,8 @@ export default function TagManager() {
                   </Space.Compact>
                   <Spin spinning={loading}>
                     {(() => {
-                      const children = selectedPrimary ? (tree.find(n => n.id === selectedPrimary)?.children || []) : []
+                      const selectedInFiltered = filteredTree.find(n => n.id === selectedPrimary)
+                      const children = (selectedInFiltered ?? tree.find(n => n.id === selectedPrimary))?.children || []
                       if (children.length === 0) {
                         return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('noSecondaryTags')} style={{ margin: token.marginLG }} />
                       }
@@ -479,7 +631,17 @@ export default function TagManager() {
                                   </Space>
                                 </div>
                               ) : (
-                                <Tag color="blue" style={{ marginInlineEnd: 'auto' }}>{tagItem.name}</Tag>
+                                <Space size={6} style={{ marginInlineEnd: 'auto' }}>
+                                  <Checkbox
+                                    checked={selectedSecondaryIds.includes(tagItem.id)}
+                                    onChange={e => toggleSelectSecondary(tagItem.id, e.target.checked)}
+                                    aria-label={`${t('selectToMerge')}: ${tagItem.name}`}
+                                  />
+                                  <Tag color="blue" style={{ margin: 0 }}>{tagItem.name}</Tag>
+                                  <Tooltip title={t('usageCount')}>
+                                    <Badge count={tagItem.imageCount ?? 0} size="small" showZero color={token.colorTextTertiary} />
+                                  </Tooltip>
+                                </Space>
                               )}
                               {editingSecondaryId !== tagItem.id && (
                                 <Space size={6}>
@@ -610,6 +772,48 @@ export default function TagManager() {
               </Typography.Text>
             </div>
           )}
+        </Space>
+      </Modal>
+
+      {/* 合并标签对话框 */}
+      <Modal
+        title={t('mergeModalTitle')}
+        open={mergeModalOpen}
+        onOk={confirmMerge}
+        onCancel={() => { setMergeModalOpen(false); setMergeTargetId(null) }}
+        confirmLoading={merging}
+        okText={t('confirm')}
+        cancelText={t('cancel')}
+        okButtonProps={{ disabled: !mergeTargetId }}
+        destroyOnHidden
+      >
+        <Space orientation="vertical" style={{ width: '100%' }} size="middle">
+          <div>
+            <Typography.Text strong>{t('mergeSourcesLabel')}</Typography.Text>
+            <div style={{ marginTop: 6 }}>
+              {selectedSecondaryNames.map(name => (
+                <Tag key={name} color="blue" style={{ margin: 2 }}>{name}</Tag>
+              ))}
+            </div>
+          </div>
+          <Typography.Text type="warning" style={{ fontSize: 12 }}>
+            {t('mergeConfirmWarning')}
+          </Typography.Text>
+          <div>
+            <Typography.Text strong>{t('mergeTargetLabel')}</Typography.Text>
+            <Select
+              style={{ width: '100%', marginTop: 6 }}
+              placeholder={t('mergeTargetPlaceholder')}
+              value={mergeTargetId}
+              onChange={setMergeTargetId}
+              showSearch
+              optionFilterProp="label"
+              options={mergeTargetOptions}
+            />
+          </div>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {t('mergeHint')}
+          </Typography.Text>
         </Space>
       </Modal>
     </div>

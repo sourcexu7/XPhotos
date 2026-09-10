@@ -206,7 +206,7 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
           <Alert
             type="warning"
             showIcon
-            message={content.content?.title || '警告'}
+            title={content.content?.title || '警告'}
           />
         )
       case 'divider':
@@ -216,7 +216,7 @@ function SortableContentItem({ content, onEdit, onDelete }: SortableContentItemP
           <Alert
             type="info"
             showIcon={false}
-            message={content.content?.text?.slice(0, 50) || '高亮内容'}
+            title={content.content?.text?.slice(0, 50) || '高亮内容'}
           />
         )
       case 'table':

@@ -6,12 +6,14 @@ interface FilterState {
   tagsFilter: string[]
   tagsOperator: 'and' | 'or'
   sortByShootTime: 'desc' | 'asc' | undefined
+  search: string
 
   setCameraFilter: (filters: string[]) => void
   setLensFilter: (filters: string[]) => void
   setTagsFilter: (filters: string[]) => void
   setTagsOperator: (operator: 'and' | 'or') => void
   setSortByShootTime: (sort: 'desc' | 'asc' | undefined) => void
+  setSearch: (search: string) => void
   resetFilters: () => void
 }
 
@@ -21,17 +23,20 @@ export const useFilterStore = create<FilterState>((set) => ({
   tagsFilter: [],
   tagsOperator: 'and',
   sortByShootTime: 'desc',
+  search: '',
 
   setCameraFilter: (filters) => set({ cameraFilter: filters }),
   setLensFilter: (filters) => set({ lensFilter: filters }),
   setTagsFilter: (filters) => set({ tagsFilter: filters }),
   setTagsOperator: (operator) => set({ tagsOperator: operator }),
   setSortByShootTime: (sort) => set({ sortByShootTime: sort }),
+  setSearch: (search) => set({ search }),
   resetFilters: () => set({
     cameraFilter: [],
     lensFilter: [],
     tagsFilter: [],
     tagsOperator: 'and',
     sortByShootTime: 'desc',
+    search: '',
   }),
 }))

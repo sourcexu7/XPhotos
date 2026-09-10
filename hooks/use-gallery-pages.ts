@@ -35,6 +35,7 @@ type Params = {
   tagsOperator?: 'and' | 'or'
   sortByShootTime?: 'asc' | 'desc'
   pageSize?: number
+  search?: string
 }
 
 /** 布局参数：由前端测量后传入，后端用于预计算每张图的绝对定位 */
@@ -56,6 +57,7 @@ function buildUrl(params: Params, page: number, layoutParams?: LayoutParams, col
     if (params.tagsOperator) q.set('tagsOperator', params.tagsOperator)
   }
   if (params.sortByShootTime) q.set('sortByShootTime', params.sortByShootTime)
+  if (params.search?.trim()) q.set('search', params.search.trim())
   // 布局参数
   if (layoutParams) {
     q.set('containerWidth', String(layoutParams.containerWidth))

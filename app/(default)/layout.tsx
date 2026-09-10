@@ -4,6 +4,7 @@ import UnifiedNav from '~/components/layout/unified-nav'
 import ScrollRestoration from '~/components/layout/scroll-restoration'
 import { Footer } from '~/components/layout/footer'
 import DarkThemeEnforcer from '~/components/layout/dark-theme-enforcer'
+import { FrontendAntdProvider } from '~/app/providers/antd-config-provider'
 
 const DEFAULT_STYLE = '0'
 const DEFAULT_TITLE = 'XPhotos'
@@ -23,19 +24,22 @@ export default async function DefaultLayout({
   const showLanguageToggle = configs.find((c) => c.config_key === 'custom_index_language_toggle')?.config_value === 'true'
 
   return (
-    <DarkThemeEnforcer>
-      <UnifiedNav
-        albums={albums}
-        currentAlbum="/"
-        currentTheme={currentStyle}
-        siteTitle={siteTitle}
-        showLanguageToggle={showLanguageToggle}
-      />
-      <ScrollRestoration />
-      <div className="pt-14">
-        {children}
-      </div>
-      <Footer />
-    </DarkThemeEnforcer>
+    // 前台按钮黑白主题：导航/页脚/页面内容内所有 antd Button 统一黑白配色
+    <FrontendAntdProvider>
+      <DarkThemeEnforcer>
+        <UnifiedNav
+          albums={albums}
+          currentAlbum="/"
+          currentTheme={currentStyle}
+          siteTitle={siteTitle}
+          showLanguageToggle={showLanguageToggle}
+        />
+        <ScrollRestoration />
+        <div className="pt-14">
+          {children}
+        </div>
+        <Footer />
+      </DarkThemeEnforcer>
+    </FrontendAntdProvider>
   )
 }

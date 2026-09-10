@@ -6,11 +6,12 @@ export const useSwrPageTotalHook = ({ args, totalHandle, album, filters }: Image
   const lenses = filters?.lenses || []
   const tags = filters?.tags || []
   const tagsOperator = filters?.tagsOperator || 'and'
-  
+  const search = filters?.search || ''
+
   const { data, error, isLoading, isValidating, mutate } = useSWR(
-    [args, album, cameras, lenses, tags, tagsOperator],
+    [args, album, cameras, lenses, tags, tagsOperator, search],
     () => {
-      return totalHandle?.(album, cameras.length > 0 ? cameras : undefined, lenses.length > 0 ? lenses : undefined, tags.length > 0 ? tags : undefined, tagsOperator) || Promise.resolve(0)
+      return totalHandle?.(album, cameras.length > 0 ? cameras : undefined, lenses.length > 0 ? lenses : undefined, tags.length > 0 ? tags : undefined, tagsOperator, search || undefined) || Promise.resolve(0)
     },
     {
       revalidateOnFocus: false,

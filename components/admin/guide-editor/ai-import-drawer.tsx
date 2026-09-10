@@ -560,13 +560,13 @@ export default function AIImportDrawer({ open, onClose }: AIImportDrawerProps) {
           <Alert
             type="info"
             showIcon
-            message={t('aiImport.tipTitle')}
+            title={t('aiImport.tipTitle')}
             description={t('aiImport.tipDescription')}
           />
           <div>
             <Text strong>{t('aiImport.contentLabel')}</Text>
             {parsing ? (
-              <BorderBeam color={AI_BEAM_COLOR} duration={3} size={72} lineWidth={2}>
+              <BorderBeam color={AI_BEAM_COLOR} duration={3} size={72} lineWidth={2} borderRadius={6}>
                 <div className="relative mt-2">{textAreaNode}</div>
               </BorderBeam>
             ) : (
@@ -577,7 +577,7 @@ export default function AIImportDrawer({ open, onClose }: AIImportDrawerProps) {
             <Alert
               type="error"
               showIcon
-              message={t('aiImport.parseFailed')}
+              title={t('aiImport.parseFailed')}
               description={error}
               closable
               onClose={() => setError(null)}
@@ -703,7 +703,7 @@ export default function AIImportDrawer({ open, onClose }: AIImportDrawerProps) {
                       <Alert
                         type="warning"
                         showIcon
-                        message="数据校验警告"
+                        title="数据校验警告"
                         description={
                           <ul className="list-disc pl-4 text-xs">
                             {mod._warnings.map((w, i) => <li key={i}>{w}</li>)}

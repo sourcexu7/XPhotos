@@ -209,7 +209,7 @@ export const UserFrom = () => {
         }}
       >
         {/* 慢速品牌色流光：登录面板氛围装饰，prefers-reduced-motion 下自动隐藏 */}
-        <BorderBeam duration={12} size={140} color={token.colorPrimary}>
+        <BorderBeam duration={12} size={140} color={token.colorPrimary} borderRadius={16}>
           <div
             style={{
               position: 'relative',

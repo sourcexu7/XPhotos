@@ -227,6 +227,25 @@ model VisitLog {
   @@map("visit_log")
 }
 
+// AI 调用用量日志：记录每次 AI 调用的 token 消耗明细（标签推荐/攻略解析/连接测试）
+model AiUsageLog {
+  id               String   @id @default(cuid()) @db.VarChar(50)
+  scene            String   @db.VarChar(50)   // guide_parse / guide_test / tag_recommend / tag_test
+  model            String   @db.VarChar(100)
+  promptTokens     Int      @default(0)       // 输入 tokens
+  completionTokens Int      @default(0)       // 输出 tokens（含推理）
+  totalTokens      Int      @default(0)
+  reasoningTokens  Int      @default(0)       // 其中推理 tokens
+  cacheHitTokens   Int      @default(0)       // 输入中缓存命中 tokens
+  durationMs       Int      @default(0)       // 调用耗时
+  success          Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp
+
+  @@index([createdAt])
+  @@index([scene])
+  @@map("ai_usage_log")
+}
+
 // 攻略表
 model Guides {
   id           String              @id @default(cuid()) @db.VarChar(50)

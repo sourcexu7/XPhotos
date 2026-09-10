@@ -6,6 +6,7 @@ import type { Config } from '~/types'
 import CoversBackButton from '~/components/layout/covers-back-button'
 import AlbumNav from '~/components/layout/album-nav'
 import SharedAlbumsPage from '~/components/layout/shared-albums-page'
+import SharedTagPage from '~/components/layout/shared-tag-page'
 import { ThemeGalleryClient } from '~/components/layout/theme-gallery-client-dynamic'
 import { getImagesByAlbum, getImageCountByAlbum, getGalleryConfig } from '~/lib/actions/gallery'
 
@@ -34,6 +35,11 @@ export default async function Page({
   // 命中保留段 /albums：直接渲染对应的静态页面
   if (segments.length > 0 && SEGMENT_HANDLERS[segments[0]]) {
     return SEGMENT_HANDLERS[segments[0]]()
+  }
+  // 命中保留段 /tag/:tag：渲染标签浏览页（缺标签名时回 covers）
+  if (segments[0] === 'tag') {
+    if (!segments[1]) redirect('/covers')
+    return <SharedTagPage tag={segments[1]} />
   }
   // 命中其他保留段：redirect 到 /covers（让真正的静态路由处理）
   const OTHER_RESERVED = new Set(['covers', 'about', 'guides', 'preview', 'admin', 'login', 'rss.xml', 'api'])

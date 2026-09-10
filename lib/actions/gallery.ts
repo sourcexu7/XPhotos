@@ -15,6 +15,7 @@ export async function getImagesByAlbum(
   tags?: string[],
   tagsOperator: 'and' | 'or' = 'and',
   sortByShootTime?: 'desc' | 'asc',
+  search?: string,
 ) {
   return await fetchClientImagesListByAlbum(
     pageNum,
@@ -24,6 +25,8 @@ export async function getImagesByAlbum(
     tags,
     tagsOperator,
     sortByShootTime,
+    16,
+    search,
   )
 }
 
@@ -33,8 +36,9 @@ export async function getImageCountByAlbum(
   lenses?: string[],
   tags?: string[],
   tagsOperator: 'and' | 'or' = 'and',
+  search?: string,
 ) {
-  return await fetchClientImagesPageTotalByAlbum(album, cameras, lenses, tags, tagsOperator)
+  return await fetchClientImagesPageTotalByAlbum(album, cameras, lenses, tags, tagsOperator, 16, search)
 }
 
 export async function getGalleryConfig() {

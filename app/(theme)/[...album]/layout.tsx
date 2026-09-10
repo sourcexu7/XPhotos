@@ -2,6 +2,7 @@ import { fetchAlbumByRouter, fetchAlbumsShow } from '~/lib/db/query/albums'
 import { fetchConfigsByKeys } from '~/lib/db/query/configs'
 import type { AlbumType, Config } from '~/types'
 import UnifiedNav from '~/components/layout/unified-nav'
+import { FrontendAntdProvider } from '~/app/providers/antd-config-provider'
 
 // 不属于相册动态路由的"保留路径"。
 // theme 路由组使用了 catch-all `[...album]`，所以 /albums、/covers 等静态 URL
@@ -92,9 +93,10 @@ export default async function ThemeAlbumLayout({
   )?.config_value || 'XPhotos'
 
   return (
-    <>
+    // 前台按钮黑白主题：相册主题页内所有 antd Button 统一黑白配色
+    <FrontendAntdProvider>
       <UnifiedNav albums={dataList} currentAlbum={currentAlbum} currentTheme={currentTheme} siteTitle={siteTitle} />
       <div className="pt-14">{children}</div>
-    </>
+    </FrontendAntdProvider>
   )
 }

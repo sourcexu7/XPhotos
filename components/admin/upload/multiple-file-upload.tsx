@@ -10,7 +10,7 @@ import { App as AntApp, Upload as AntUpload, Button as AntButton, Input as AntIn
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import zhCN from 'antd/es/date-picker/locale/zh_CN'
-import { CloseOutlined, DownOutlined, UpOutlined } from '@ant-design/icons'
+import { CloseOutlined, DownOutlined, UpOutlined, RobotOutlined, TagsOutlined, LoadingOutlined } from '@ant-design/icons'
 import { useTranslations } from 'next-intl'
 import { encodeBrowserThumbHash } from '~/lib/utils/blurhash-client'
 
@@ -25,6 +25,16 @@ import { heicTo, isHeic } from 'heic-to'
 import { UploadOutlined } from '@ant-design/icons'
 
 const { Dragger } = AntUpload
+
+// 上传文件校验：格式白名单（扩展名或 image/* MIME，排除 SVG）+ 单文件大小上限
+const ALLOWED_UPLOAD_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'heic', 'heif', 'tif', 'tiff', 'dng', 'cr2', 'arw', 'nef']
+const BLOCKED_IMAGE_MIMES = ['image/svg+xml']
+const MAX_UPLOAD_FILE_SIZE = 50 * 1024 * 1024
+
+function getFileExt(name: string): string {
+  const idx = name.lastIndexOf('.')
+  return idx >= 0 ? name.slice(idx + 1).toLowerCase() : ''
+}
 
 interface UploadFile extends File {
   __key?: string
@@ -45,6 +55,12 @@ interface UploadFile extends File {
   uploadStage?: string
   isUploading?: boolean
   isUploaded?: boolean
+  aiSuggestion?: {
+    matches: { primary: string; secondaries: string[] }[]
+    newTags: { name: string; parentName: string }[]
+  } | null
+  aiStatus?: 'idle' | 'loading' | 'done' | 'error'
+  aiTagCategoryMap?: Record<string, string>
   [key: string]: any
 }
 
@@ -67,6 +83,12 @@ export default function MultipleFileUpload() {
   // 相册和配置数据
   const { data: albums } = useSWR('/api/v1/albums/get', fetcher)
   const { data: configs } = useSWR<{ config_key: string, config_value: string }[]>('/api/v1/settings/get-custom-info', fetcher)
+
+  // AI 标签能力状态：关闭/未配置/请求失败时不渲染任何 AI 入口，自动回退纯手动标签模式
+  const { data: aiTagStatus } = useSWR<{ code: number; data: { enabled: boolean; configured: boolean } }>('/api/v1/ai-tag/status', fetcher)
+  const aiTagAvailable = !!(aiTagStatus?.data?.enabled && aiTagStatus?.data?.configured)
+  const aiTagAvailableRef = useRef(aiTagAvailable)
+  aiTagAvailableRef.current = aiTagAvailable
 
   const [album, setAlbum] = useState('')
   const [files, setFiles] = useState<UploadFile[]>([])
@@ -110,8 +132,73 @@ export default function MultipleFileUpload() {
     ))
   }, [])
 
+  // ===== AI 标签推荐（自动+手动双通道；并发受限；任何失败静默降级为手动模式）=====
+  const AI_RECOMMEND_CONCURRENCY = 2
+  const aiQueueRef = useRef<{ running: number; queue: (() => void)[] }>({ running: 0, queue: [] })
+
+  const runAiTask = useCallback((task: () => Promise<void>) => {
+    return new Promise<void>((resolve) => {
+      const q = aiQueueRef.current
+      const run = async () => {
+        q.running++
+        try {
+          await task()
+        } finally {
+          q.running--
+          resolve()
+          const next = q.queue.shift()
+          if (next) next()
+        }
+      }
+      if (q.running < AI_RECOMMEND_CONCURRENCY) run()
+      else q.queue.push(run)
+    })
+  }, [])
+
+  const requestAiRecommendation = useCallback(async (fileKey: string, imageUrl: string) => {
+    updateFileField(fileKey, 'aiStatus', 'loading')
+    try {
+      const res = await fetch('/api/v1/ai-tag/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl }),
+      })
+      const json = await res.json().catch(() => null)
+      if (res.ok && json?.code === 200 && json.data) {
+        updateFileField(fileKey, 'aiSuggestion', json.data)
+        updateFileField(fileKey, 'aiStatus', 'done')
+      } else {
+        // AI 失效/关闭/未配置：静默降级为纯手动标签模式
+        updateFileField(fileKey, 'aiStatus', 'error')
+      }
+    } catch {
+      updateFileField(fileKey, 'aiStatus', 'error')
+    }
+  }, [updateFileField])
+
   // 处理文件变化
   const handleFilesChange = useCallback(async (newFiles: UploadFile[]) => {
+    // 格式与大小校验：不合格式/超限文件直接拒绝
+    const typeRejected: string[] = []
+    const sizeRejected: string[] = []
+    const validFiles: UploadFile[] = []
+    for (const f of newFiles) {
+      if (BLOCKED_IMAGE_MIMES.includes(f.type) || (!f.type?.startsWith('image/') && !ALLOWED_UPLOAD_EXTS.includes(getFileExt(f.name)))) {
+        typeRejected.push(f.name)
+      } else if (f.size > MAX_UPLOAD_FILE_SIZE) {
+        sizeRejected.push(f.name)
+      } else {
+        validFiles.push(f)
+      }
+    }
+    if (typeRejected.length > 0) {
+      message.error(t('Upload.invalidFileType', { names: typeRejected.slice(0, 3).join(', ') }))
+    }
+    if (sizeRejected.length > 0) {
+      message.error(t('Upload.fileTooLarge', { names: sizeRejected.slice(0, 3).join(', '), maxSize: 50 }))
+    }
+    newFiles = validFiles
+
     if (newFiles.length > maxUploadFiles) {
       message.warning(t('Upload.maxFilesExceeded', { max: maxUploadFiles }))
       newFiles = newFiles.slice(0, maxUploadFiles)
@@ -162,6 +249,15 @@ export default function MultipleFileUpload() {
       updateFileField(key, 'lon', lon)
       updateFileField(key, 'width', width)
       updateFileField(key, 'height', height)
+
+      // 维度校验：无法读取有效尺寸的文件提前终止，避免上传无效对象
+      if (!(width > 0) || !(height > 0)) {
+        updateFileField(key, 'isUploading', false)
+        updateFileProgress(key, 0, '处理失败')
+        message.error(t('Upload.imageDimensionInvalid', { name: file.name }))
+        return
+      }
+
       updateFileProgress(key, 10, '生成模糊哈希')
 
       // Generate blurhash
@@ -231,6 +327,12 @@ export default function MultipleFileUpload() {
       updateFileField(key, 'previewUrl', previewRes.url)
       if (previewRes.key) updateFileField(key, 'previewKey', previewRes.key)
 
+      // AI 标签推荐（自动通道）：基于压缩后的 WebP 预览图异步分析，不阻塞上传流程
+      if (aiTagAvailableRef.current && previewRes.url) {
+        const previewUrl = previewRes.url
+        runAiTask(() => requestAiRecommendation(key, previewUrl))
+      }
+
       updateFileProgress(key, 100, '完成')
       updateFileField(key, 'isUploaded', true)
     } catch (e) {
@@ -240,7 +342,7 @@ export default function MultipleFileUpload() {
     } finally {
       updateFileField(key, 'isUploading', false)
     }
-  }, [album, storageConfig.storage, storageConfig.alistMountPath, previewCompressQuality, previewImageMaxWidthLimitSwitchOn, previewImageMaxWidthLimit, configs, updateFileField, updateFileProgress, t])
+  }, [album, storageConfig.storage, storageConfig.alistMountPath, previewCompressQuality, previewImageMaxWidthLimitSwitchOn, previewImageMaxWidthLimit, configs, updateFileField, updateFileProgress, runAiTask, requestAiRecommendation, t])
 
   // 保持 ref 与最新 processFile 同步
   processFileRef.current = processFile
@@ -359,6 +461,89 @@ export default function MultipleFileUpload() {
     }
   }, [t])
 
+  // ===== AI 推荐标签的人工审核与应用（所有写入均由用户点击触发）=====
+
+  // 应用 AI 推荐的一组标签（primary 或单个二级），二级标签记录一级归属
+  const applyAiMatch = useCallback((fileKey: string, primary: string, secondaries: string[]) => {
+    setFiles(prev => prev.map(f => {
+      if (f.__key !== fileKey) return f
+      const labels = Array.isArray(f.labels) ? [...f.labels] : []
+      const catMap = { ...(f.aiTagCategoryMap || {}) }
+      if (primary && !labels.some(l => l.toLowerCase() === primary.toLowerCase())) labels.push(primary)
+      secondaries.forEach(s => {
+        if (!labels.some(l => l.toLowerCase() === s.toLowerCase())) labels.push(s)
+        catMap[s] = primary
+      })
+      return { ...f, labels, aiTagCategoryMap: catMap }
+    }))
+  }, [])
+
+  // 创建 AI 建议的新标签（遵循现有标签体系：挂在指定一级标签下；创建失败不阻断）
+  const createAiNewTag = useCallback(async (nt: { name: string; parentName: string }) => {
+    try {
+      await fetch('/api/v1/settings/tags/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: nt.name, parentName: nt.parentName }),
+      })
+    } catch {
+      // 忽略创建失败：标签仍作为普通标签写入图片
+    }
+    setPresetTags(prev => (prev.includes(nt.name) ? prev : [...prev, nt.name]))
+  }, [])
+
+  // 创建并应用单个 AI 新标签到指定图片
+  const applyAiNewTag = useCallback(async (fileKey: string, nt: { name: string; parentName: string }) => {
+    await createAiNewTag(nt)
+    setFiles(prev => prev.map(f => {
+      if (f.__key !== fileKey) return f
+      const labels = Array.isArray(f.labels) ? [...f.labels] : []
+      if (!labels.some(l => l.toLowerCase() === nt.name.toLowerCase())) labels.push(nt.name)
+      const catMap = { ...(f.aiTagCategoryMap || {}), [nt.name]: nt.parentName }
+      return { ...f, labels, aiTagCategoryMap: catMap }
+    }))
+  }, [createAiNewTag])
+
+  // 一键采纳全部推荐（含新标签创建），采纳后清空推荐卡片
+  const adoptAiAll = useCallback(async (file: UploadFile) => {
+    const sug = file.aiSuggestion
+    if (!sug || !file.__key) return
+    await Promise.all(sug.newTags.map(nt => createAiNewTag(nt)))
+    setFiles(prev => prev.map(f => {
+      if (f.__key !== file.__key) return f
+      const labels = Array.isArray(f.labels) ? [...f.labels] : []
+      const catMap = { ...(f.aiTagCategoryMap || {}) }
+      const push = (name: string, parent?: string) => {
+        if (!labels.some(l => l.toLowerCase() === name.toLowerCase())) labels.push(name)
+        if (parent) catMap[name] = parent
+      }
+      sug.matches.forEach(m => {
+        push(m.primary)
+        m.secondaries.forEach(s => push(s, m.primary))
+      })
+      sug.newTags.forEach(nt => push(nt.name, nt.parentName))
+      return { ...f, labels, aiTagCategoryMap: catMap, aiSuggestion: null, aiStatus: 'idle' as const }
+    }))
+  }, [createAiNewTag])
+
+  // 忽略推荐，回到纯手动模式
+  const dismissAiSuggestion = useCallback((fileKey: string) => {
+    setFiles(prev => prev.map(f => f.__key === fileKey ? { ...f, aiSuggestion: null, aiStatus: 'idle' as const } : f))
+  }, [])
+
+  // 手动通道：AI 一键推荐全部已上传文件（并发受限）
+  const [aiRecommendingAll, setAiRecommendingAll] = useState(false)
+  const handleAiRecommendAll = useCallback(async () => {
+    const targets = files.filter(f => f.isUploaded && f.previewUrl && f.__key && f.aiStatus !== 'loading')
+    if (targets.length === 0) {
+      message.info(t('Upload.aiRecommendNoTarget'))
+      return
+    }
+    setAiRecommendingAll(true)
+    await Promise.all(targets.map(f => runAiTask(() => requestAiRecommendation(f.__key!, f.previewUrl!))))
+    setAiRecommendingAll(false)
+  }, [files, runAiTask, requestAiRecommendation, t, message])
+
   // 提交单个文件
   const submitSingleFile = useCallback(async (file: UploadFile): Promise<boolean> => {
     if (!file.width || !file.height || file.width <= 0 || file.height <= 0) {
@@ -389,7 +574,7 @@ export default function MultipleFileUpload() {
       if (!labels.includes(s)) labels.push(s)
     })
 
-    const tagCategoryMap: Record<string, string> = {}
+    const tagCategoryMap: Record<string, string> = { ...(file.aiTagCategoryMap || {}) }
     if (tagManagementRef.current.primarySelect && tagManagementRef.current.secondarySelect && tagManagementRef.current.secondarySelect.length > 0) {
       tagManagementRef.current.secondarySelect.forEach(s => { tagCategoryMap[s] = tagManagementRef.current.primarySelect! })
     }
@@ -573,6 +758,17 @@ export default function MultipleFileUpload() {
           )}
 
           <div className="w-full sm:w-auto sm:ml-auto flex items-end gap-2">
+            {aiTagAvailable && files.some(f => f.isUploaded && f.previewUrl) && (
+              <AntButton
+                className="h-10 px-4"
+                size="middle"
+                icon={<RobotOutlined />}
+                loading={aiRecommendingAll}
+                onClick={handleAiRecommendAll}
+              >
+                {t('Upload.aiRecommendAll')}
+              </AntButton>
+            )}
             {files.length > 0 && (
               <AntButton
                 className="h-10 px-4"
@@ -1061,6 +1257,86 @@ export default function MultipleFileUpload() {
                         {/* 标签 */}
                         <div>
                           <h5 className="text-sm font-medium text-text-secondary mb-2">{t('Upload.tagsHeading')}</h5>
+
+                          {/* AI 推荐标签（人工审核后采纳，不会自动写入） */}
+                          {file.aiStatus === 'loading' && (
+                            <div className="mb-3 px-3 py-2 rounded-md border border-dashed border-border text-xs text-text-secondary flex items-center gap-2">
+                              <LoadingOutlined spin />
+                              {t('Upload.aiRecommendLoading')}
+                            </div>
+                          )}
+                          {file.aiStatus === 'done' && file.aiSuggestion && (file.aiSuggestion.matches.length > 0 || file.aiSuggestion.newTags.length > 0) && (
+                            <div className="mb-3 p-3 rounded-md border border-border bg-background-alt">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                                  <RobotOutlined />
+                                  {t('Upload.aiRecommendCardTitle')}
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <AntButton size="small" type="link" className="px-1" onClick={() => adoptAiAll(file)}>
+                                    {t('Upload.aiAdoptAll')}
+                                  </AntButton>
+                                  <AntButton
+                                    size="small"
+                                    type="text"
+                                    icon={<CloseOutlined />}
+                                    aria-label={t('Upload.aiDismiss')}
+                                    onClick={() => file.__key && dismissAiSuggestion(file.__key)}
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-1.5">
+                                {file.aiSuggestion.matches.map(m => (
+                                  <div key={m.primary} className="flex flex-wrap items-center gap-1.5">
+                                    <AntTag
+                                      style={{
+                                        cursor: 'pointer',
+                                        borderRadius: '16px',
+                                        padding: '2px 10px',
+                                        fontSize: '12px',
+                                        backgroundColor: file.labels?.includes(m.primary) ? token.colorPrimary : undefined,
+                                        color: file.labels?.includes(m.primary) ? token.colorBgBase : undefined,
+                                      }}
+                                      onClick={() => file.__key && applyAiMatch(file.__key, m.primary, [])}
+                                    >
+                                      {m.primary}
+                                    </AntTag>
+                                    {m.secondaries.map(s => {
+                                      const applied = file.labels?.includes(s)
+                                      return (
+                                        <AntTag
+                                          key={s}
+                                          style={{
+                                            cursor: 'pointer',
+                                            borderRadius: '16px',
+                                            padding: '2px 10px',
+                                            fontSize: '12px',
+                                            backgroundColor: applied ? token.colorPrimary : undefined,
+                                            color: applied ? token.colorBgBase : undefined,
+                                          }}
+                                          onClick={() => file.__key && applyAiMatch(file.__key, m.primary, [s])}
+                                        >
+                                          {s}
+                                        </AntTag>
+                                      )
+                                    })}
+                                  </div>
+                                ))}
+                                {file.aiSuggestion.newTags.map(nt => (
+                                  <div key={nt.name} className="flex flex-wrap items-center gap-1.5">
+                                    <AntTag
+                                      style={{ cursor: 'pointer', borderRadius: '16px', padding: '2px 10px', fontSize: '12px', borderStyle: 'dashed' }}
+                                      onClick={() => file.__key && applyAiNewTag(file.__key, nt)}
+                                    >
+                                      <TagsOutlined className="mr-1" />
+                                      {t('Upload.aiNewTagBadge')} · {nt.name}（{nt.parentName}）
+                                    </AntTag>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           <div className="flex flex-wrap gap-2 mb-3">
                             {presetTags.filter(Boolean).map((tag, i) => {
                               const isSelected = file.labels?.includes(tag)

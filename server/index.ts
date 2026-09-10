@@ -12,6 +12,7 @@ import analytics from './analytics'
 import guides from './guides'
 import guideModules from './guide-modules'
 import aiGuide from './ai-guide'
+import aiTag from './ai-tag'
 import { jwtAuth } from './middleware/auth'
 import { HTTPException } from 'hono/http-exception'
 
@@ -72,6 +73,7 @@ route.use('/analytics/*', jwtAuth)
 route.use('/guides/*', jwtAuth)
 route.use('/guide-modules/*', jwtAuth)
 route.use('/ai-guide/*', jwtAuth)
+route.use('/ai-tag/*', jwtAuth)
 
 route.route('/settings', settings)
 route.route('/file', file)
@@ -82,5 +84,6 @@ route.route('/analytics', analytics)
 route.route('/guides', guides)
 route.route('/guide-modules', guideModules)
 route.route('/ai-guide', aiGuide)
+route.route('/ai-tag', aiTag)
 
 export default route

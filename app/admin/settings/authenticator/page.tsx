@@ -88,7 +88,7 @@ export default function Authenticator() {
           : session?.user?.twoFactorEnabled ?
             <div className="flex flex-col space-y-2">
               <Alert
-                message={t('Tips.congratulations')}
+                title={t('Tips.congratulations')}
                 description={t('Tips.twoFactorEnabled')}
                 icon={<RocketOutlined />}
                 type="success"

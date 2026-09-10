@@ -160,9 +160,25 @@ async function verifyImageObjectsExist(image: any) {
   }
 }
 
+// 入库图片 URL 扩展名白名单（与前端上传校验保持一致）
+const ALLOWED_IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'heic', 'heif', 'tif', 'tiff', 'dng', 'cr2', 'arw', 'nef']
+
+function isAllowedImageUrl(url: string): boolean {
+  try {
+    const { pathname } = new URL(url)
+    const ext = pathname.split('.').pop()?.toLowerCase() ?? ''
+    return ALLOWED_IMAGE_EXTS.includes(ext)
+  } catch {
+    return false
+  }
+}
+
 function validateImageData(data: Partial<ImageType>) {
   if (!data.url) {
     throw new HTTPException(400, { message: 'Image link cannot be empty' })
+  }
+  if (!isAllowedImageUrl(data.url)) {
+    throw new HTTPException(400, { message: 'Unsupported image format' })
   }
   if (!data.height || data.height <= 0) {
     throw new HTTPException(400, { message: 'Image height must be greater than 0' })

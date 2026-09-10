@@ -4,6 +4,7 @@
 
 import { db } from '~/lib/db'
 import type { PrismaClient, Tags } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
 /**
  * 创建标签
@@ -335,6 +336,122 @@ export async function cleanupOrphanTags(): Promise<{ success: boolean; cleanedCo
       skippedParentTags: [],
       error: error instanceof Error ? error.message : '清理失败' 
     }
+  }
+}
+
+/**
+ * 获取每个标签的图片使用数量（仅统计未删除图片）
+ * @returns Map<tagId, imageCount>
+ */
+export async function getTagUsageCounts(): Promise<Map<string, number>> {
+  const counts = await db.imagesTagsRelation.groupBy({
+    by: ['tagId'],
+    where: { image: { del: 0 } },
+    _count: { tagId: true },
+  })
+  return new Map(counts.map(c => [c.tagId, c._count.tagId]))
+}
+
+/**
+ * 合并标签：将多个源标签的所有图片关联转移到目标标签，删除源标签
+ * - 校验：目标存在、源不含目标、源不是目标的祖先（防环）、源没有子标签
+ * - 关联表去重（skipDuplicates），images.labels 依据关联重建，保证两者一致
+ * - labels 中存在但无关联记录的图片也会被纳入合并范围
+ */
+export async function mergeTags(payload: { sourceIds: string[]; targetId: string }): Promise<{
+  success: boolean
+  error?: string
+  mergedImages?: number
+  deletedTags?: number
+}> {
+  const { sourceIds, targetId } = payload
+
+  if (!Array.isArray(sourceIds) || sourceIds.length === 0) {
+    return { success: false, error: 'mergeSourcesEmpty' }
+  }
+  if (sourceIds.includes(targetId)) {
+    return { success: false, error: 'mergeTargetInSources' }
+  }
+
+  try {
+    const result = await db.$transaction(async (tx) => {
+      const target = await tx.tags.findUnique({ where: { id: targetId } })
+      if (!target) return { success: false as const, error: 'mergeTargetNotFound' }
+
+      const sources = await tx.tags.findMany({ where: { id: { in: sourceIds } } })
+      if (sources.length !== sourceIds.length) {
+        return { success: false as const, error: 'mergeSourceNotFound' }
+      }
+
+      // 源标签不能拥有子标签（保持层级可预期）
+      const sourceChildren = await tx.tags.findFirst({ where: { parentId: { in: sourceIds } } })
+      if (sourceChildren) {
+        return { success: false as const, error: 'mergeSourceHasChildren' }
+      }
+
+      // 目标的祖先链中不能包含任何源标签（防止把父标签合并进自己的子标签形成环）
+      let ancestorId = target.parentId
+      while (ancestorId) {
+        if (sourceIds.includes(ancestorId)) {
+          return { success: false as const, error: 'mergeCycleDetected' }
+        }
+        const ancestor = await tx.tags.findUnique({ where: { id: ancestorId }, select: { parentId: true } })
+        ancestorId = ancestor?.parentId ?? null
+      }
+
+      const sourceNames = sources.map(s => s.name)
+
+      // 受影响图片 = 有关联记录的图片 ∪ labels JSON 包含源标签名的图片
+      const relationRows = await tx.imagesTagsRelation.findMany({
+        where: { tagId: { in: sourceIds } },
+        select: { imageId: true },
+      })
+      const imageIdSet = new Set(relationRows.map(r => r.imageId))
+      const labelsRows = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM images
+        WHERE labels::jsonb ?| ARRAY[${Prisma.join(sourceNames)}]::text[]
+      `
+      for (const row of labelsRows) imageIdSet.add(row.id)
+      const imageIds = Array.from(imageIdSet)
+
+      for (const imageId of imageIds) {
+        // 移除源标签关联
+        await tx.imagesTagsRelation.deleteMany({
+          where: { imageId, tagId: { in: sourceIds } },
+        })
+        // 建立目标关联（图片已有目标关联时跳过）
+        await tx.imagesTagsRelation.createMany({
+          data: [{ imageId, tagId: targetId }],
+          skipDuplicates: true,
+        })
+        // 目标为二级标签时补全其父标签关联
+        if (target.parentId) {
+          await tx.imagesTagsRelation.createMany({
+            data: [{ imageId, tagId: target.parentId }],
+            skipDuplicates: true,
+          })
+        }
+        // 依据最终关联重建 labels，保证与关联表一致
+        const finalRelations = await tx.imagesTagsRelation.findMany({
+          where: { imageId },
+          include: { tag: { select: { name: true } } },
+        })
+        await tx.images.update({
+          where: { id: imageId },
+          data: { labels: finalRelations.map(r => r.tag.name) },
+        })
+      }
+
+      // 删除源标签
+      await tx.tags.deleteMany({ where: { id: { in: sourceIds } } })
+
+      return { success: true as const, mergedImages: imageIds.length, deletedTags: sourceIds.length }
+    }, { maxWait: 30000, timeout: 60000 })
+
+    return result
+  } catch (error) {
+    console.error('合并标签失败:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'mergeFailed' }
   }
 }
 

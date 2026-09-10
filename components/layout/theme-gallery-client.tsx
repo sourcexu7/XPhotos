@@ -28,6 +28,7 @@ import {
 } from '@ant-design/icons'
 import { useFilterStore } from '~/lib/store/filter-store'
 import { useIsMobile } from '~/hooks/use-mobile'
+import { useTranslations } from 'next-intl'
 
 interface ThemeGalleryClientProps extends ImageHandleProps {
   systemStyle: string
@@ -35,6 +36,8 @@ interface ThemeGalleryClientProps extends ImageHandleProps {
   enableFilters?: boolean
   filterOptions?: { cameras: string[]; lenses: string[] }
   tagOptions?: string[]
+  /** 预设标签（如 /tag/:tag 页）：挂载时写入筛选，卸载时清空全局筛选状态 */
+  presetTags?: string[]
 }
 
 // ─── 排序 segment（antd Segmented 分段控制器） ────────────────────────────────
@@ -46,10 +49,11 @@ function SortSegment({
   onChange: (v: 'desc' | 'asc' | undefined) => void
 }) {
   const { token } = theme.useToken()
+  const t = useTranslations('GalleryFilter')
   return (
     <div>
       <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM, fontWeight: 500 }}>
-        拍摄时间排序
+        {t('sortLabel')}
       </Typography.Text>
       <Segmented
         block
@@ -57,9 +61,9 @@ function SortSegment({
         value={value ?? 'default'}
         onChange={(v) => onChange(v === 'default' ? undefined : (v as 'desc' | 'asc'))}
         options={[
-          { label: '默认', value: 'default' },
-          { label: '最新', value: 'desc' },
-          { label: '最早', value: 'asc' },
+          { label: t('sortDefault'), value: 'default' },
+          { label: t('sortLatest'), value: 'desc' },
+          { label: t('sortEarliest'), value: 'asc' },
         ]}
       />
     </div>
@@ -79,6 +83,7 @@ function ChipMultiSelect({
   onChange: (v: string[]) => void
 }) {
   const { token } = theme.useToken()
+  const t = useTranslations('GalleryFilter')
   const [search, setSearch] = useState('')
   const selectedSet = useMemo(() => new Set(selected), [selected])
   const filtered = useMemo(
@@ -103,7 +108,7 @@ function ChipMultiSelect({
         </Typography.Text>
         {selected.length > 0 && (
           <Button type="text" size="small" onClick={() => onChange([])}>
-            清除
+            {t('clear')}
           </Button>
         )}
       </Flex>
@@ -113,7 +118,7 @@ function ChipMultiSelect({
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={`搜索${label}…`}
+          placeholder={t('searchOptionsPlaceholder', { label })}
           prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
           allowClear
           style={{ marginBottom: token.marginXS }}
@@ -152,7 +157,7 @@ function ChipMultiSelect({
         })}
         {filtered.length === 0 && (
           <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
-            无匹配结果
+            {t('noMatch')}
           </Typography.Text>
         )}
       </div>
@@ -168,10 +173,11 @@ function TagOperatorSegment({
   value: 'and' | 'or'
   onChange: (v: 'and' | 'or') => void
 }) {
+  const t = useTranslations('GalleryFilter')
   return (
     <Flex gap={8} align="center">
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        标签匹配：
+        {t('tagMatchLabel')}
       </Typography.Text>
       <Radio.Group
         value={value}
@@ -180,11 +186,36 @@ function TagOperatorSegment({
         buttonStyle="solid"
         size="small"
         options={[
-          { label: '全部匹配', value: 'and' },
-          { label: '任一匹配', value: 'or' },
+          { label: t('matchAll'), value: 'and' },
+          { label: t('matchAny'), value: 'or' },
         ]}
       />
     </Flex>
+  )
+}
+
+// ─── 关键字搜索（防抖 400ms 提交） ───────────────────────────────────────────
+function SearchBox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { token } = theme.useToken()
+  const t = useTranslations('GalleryFilter')
+  const [kw, setKw] = useState(value)
+
+  useEffect(() => { setKw(value) }, [value])
+
+  useEffect(() => {
+    if (kw === value) return
+    const timer = setTimeout(() => onChange(kw), 400)
+    return () => clearTimeout(timer)
+  }, [kw, value, onChange])
+
+  return (
+    <Input
+      value={kw}
+      onChange={(e) => setKw(e.target.value)}
+      placeholder={t('searchImagesPlaceholder')}
+      prefix={<SearchOutlined style={{ color: token.colorTextTertiary }} />}
+      allowClear
+    />
   )
 }
 
@@ -198,11 +229,13 @@ function FilterPanel({
   tags,
   tagsOperator,
   sort,
+  search,
   setCameras,
   setLenses,
   setTags,
   setTagsOperator,
   setSort,
+  setSearch,
   onReset,
 }: {
   filterOptions?: { cameras: string[]; lenses: string[] }
@@ -213,36 +246,41 @@ function FilterPanel({
   tags: string[]
   tagsOperator: 'and' | 'or'
   sort: 'desc' | 'asc' | undefined
+  search: string
   setCameras: (v: string[]) => void
   setLenses: (v: string[]) => void
   setTags: (v: string[]) => void
   setTagsOperator: (v: 'and' | 'or') => void
   setSort: (v: 'desc' | 'asc' | undefined) => void
+  setSearch: (v: string) => void
   onReset: () => void
 }) {
-  const hasAny = cameras.length > 0 || lenses.length > 0 || tags.length > 0 || sort !== undefined
+  const hasAny = cameras.length > 0 || lenses.length > 0 || tags.length > 0 || sort !== undefined || search.trim().length > 0
   const { token } = theme.useToken()
+  const t = useTranslations('GalleryFilter')
 
   return (
     <Flex vertical gap={token.marginLG}>
+      <SearchBox value={search} onChange={setSearch} />
+
       {showSort && <SortSegment value={sort} onChange={setSort} />}
 
       <ChipMultiSelect
-        label="相机"
+        label={t('camera')}
         options={filterOptions?.cameras ?? []}
         selected={cameras}
         onChange={setCameras}
       />
 
       <ChipMultiSelect
-        label="镜头"
+        label={t('lens')}
         options={filterOptions?.lenses ?? []}
         selected={lenses}
         onChange={setLenses}
       />
 
       <ChipMultiSelect
-        label="标签"
+        label={t('tag')}
         options={tagOptions ?? []}
         selected={tags}
         onChange={setTags}
@@ -254,7 +292,7 @@ function FilterPanel({
 
       {hasAny && (
         <Button block type="primary" onClick={onReset}>
-          清除全部筛选
+          {t('clearAllFilters')}
         </Button>
       )}
     </Flex>
@@ -268,6 +306,7 @@ export default function ThemeGalleryClient({
   enableFilters = false,
   filterOptions,
   tagOptions,
+  presetTags,
   ...props
 }: ThemeGalleryClientProps) {
   const { data: total } = useSwrPageTotalHook(props)
@@ -295,13 +334,25 @@ export default function ThemeGalleryClient({
     tagsFilter,
     tagsOperator,
     sortByShootTime,
+    search,
     setCameraFilter,
     setLensFilter,
     setTagsFilter,
     setTagsOperator,
     setSortByShootTime,
+    setSearch,
     resetFilters,
   } = useFilterStore()
+
+  // 预设标签（/tag/:tag 页）：挂载时写入全局筛选，卸载时清空，
+  // 避免预设状态泄漏到 /albums 等共用全局筛选状态的页面。
+  // 依赖用 join 后的字符串：用户在面板中自行增删标签不会触发覆写。
+  const presetKey = useMemo(() => presetTags?.join('|') ?? '', [presetTags])
+  useEffect(() => {
+    if (!presetKey) return
+    setTagsFilter(presetKey ? presetKey.split('|') : [])
+    return () => resetFilters()
+  }, [presetKey, setTagsFilter, resetFilters])
 
   const filters: (ImageFilters & { tagsOperator?: 'and' | 'or' }) | undefined = useMemo(() => {
     if (!enableFilters) return undefined
@@ -310,8 +361,9 @@ export default function ThemeGalleryClient({
       lenses: lensFilter.length ? lensFilter : undefined,
       tags: tagsFilter.length ? tagsFilter : undefined,
       tagsOperator: tagsFilter.length > 0 ? tagsOperator : undefined,
+      search: search.trim() ? search.trim() : undefined,
     }
-  }, [enableFilters, cameraFilter, lensFilter, tagsFilter, tagsOperator])
+  }, [enableFilters, cameraFilter, lensFilter, tagsFilter, tagsOperator, search])
 
   const toggleTheme = () => {
     setUserOverridden(true)
@@ -324,9 +376,10 @@ export default function ThemeGalleryClient({
     )
   }
 
-  const activeCount = cameraFilter.length + lensFilter.length + tagsFilter.length
+  const activeCount = cameraFilter.length + lensFilter.length + tagsFilter.length + (search.trim() ? 1 : 0)
   const hasActivity = activeCount > 0 || sortByShootTime !== undefined
-  const sortLabel = sortByShootTime === 'desc' ? '最新' : sortByShootTime === 'asc' ? '最早' : '默认'
+  const t = useTranslations('GalleryFilter')
+  const sortLabel = sortByShootTime === 'desc' ? t('sortLatest') : sortByShootTime === 'asc' ? t('sortEarliest') : t('sortDefault')
 
   // 触屏设备：antd FloatButton 的 tooltip（hover 触发）会拦截首次点按——
   // iOS/Android 首触仿真 mouseenter 只弹提示气泡不触发 click（表现为"首点只显示文本框"）。
@@ -352,11 +405,13 @@ export default function ThemeGalleryClient({
     tags: tagsFilter,
     tagsOperator,
     sort: sortByShootTime,
+    search,
     setCameras: setCameraFilter,
     setLenses: setLensFilter,
     setTags: setTagsFilter,
     setTagsOperator,
     setSort: setSortByShootTime,
+    setSearch,
     onReset: resetFilters,
   }
 
@@ -376,8 +431,8 @@ export default function ThemeGalleryClient({
         <FloatButton
           shape="circle"
           icon={currentStyle === 'waterfall' ? <UnorderedListOutlined /> : <AppstoreOutlined />}
-          tooltip={hoverTip(currentStyle === 'waterfall' ? '切换为单列' : '切换为瀑布流')}
-          aria-label={currentStyle === 'waterfall' ? '切换为单列' : '切换为瀑布流'}
+          tooltip={hoverTip(currentStyle === 'waterfall' ? t('switchToSingle') : t('switchToWaterfall'))}
+          aria-label={currentStyle === 'waterfall' ? t('switchToSingle') : t('switchToWaterfall')}
           onClick={toggleTheme}
           style={{ insetInlineEnd: 20, insetBlockEnd: 24 }}
         />
@@ -395,8 +450,8 @@ export default function ThemeGalleryClient({
           <FloatButton
             shape="circle"
             icon={currentStyle === 'waterfall' ? <UnorderedListOutlined /> : <AppstoreOutlined />}
-            tooltip={hoverTip(currentStyle === 'waterfall' ? '单列' : '瀑布流')}
-            aria-label={currentStyle === 'waterfall' ? '切换为单列' : '切换为瀑布流'}
+            tooltip={hoverTip(currentStyle === 'waterfall' ? t('single') : t('waterfall'))}
+            aria-label={currentStyle === 'waterfall' ? t('switchToSingle') : t('switchToWaterfall')}
             onClick={toggleTheme}
           />
           {props.album === '/' && (
@@ -411,8 +466,8 @@ export default function ThemeGalleryClient({
                   <BarsOutlined />
                 )
               }
-              tooltip={hoverTip(`拍摄时间排序：${sortLabel}`)}
-              aria-label={`拍摄时间排序：${sortLabel}，点击切换`}
+              tooltip={hoverTip(t('sortTooltip', { sort: sortLabel }))}
+              aria-label={t('sortToggleAria', { sort: sortLabel })}
               // 激活态：antd 官方语义 —— 主色圆钮表示当前生效项
               type={sortByShootTime !== undefined ? 'primary' : 'default'}
               onClick={cycleSort}
@@ -421,8 +476,8 @@ export default function ThemeGalleryClient({
           <FloatButton
             shape="circle"
             icon={<SlidersOutlined />}
-            tooltip={hoverTip('筛选')}
-            aria-label="筛选"
+            tooltip={hoverTip(t('filter'))}
+            aria-label={t('filter')}
             badge={activeCount > 0 ? { count: activeCount, overflowCount: 9 } : undefined}
             onClick={() => setSheetOpen(true)}
           />
@@ -436,18 +491,18 @@ export default function ThemeGalleryClient({
           onClose={() => setSheetOpen(false)}
           placement={isMobile ? 'bottom' : 'right'}
           size={isMobile ? '90dvh' : 384}
-          title="筛选 & 排序"
+          title={t('title')}
           extra={
             hasActivity && (
               <Button type="text" size="small" onClick={resetFilters}>
-                清除全部
+                {t('clearAll')}
               </Button>
             )
           }
           footer={
             isMobile ? (
               <Button block type="primary" onClick={() => setSheetOpen(false)}>
-                完成
+                {t('done')}
               </Button>
             ) : undefined
           }

@@ -5,6 +5,7 @@ export interface ImageFilters {
   lenses?: string[]
   tags?: string[]
   tagsOperator?: 'and' | 'or'
+  search?: string
 }
 
 export interface HandleProps {
@@ -21,6 +22,7 @@ export interface ImageHandleProps {
     tags?: string[],
     tagsOperator?: 'and' | 'or',
     sortByShootTime?: 'desc' | 'asc',
+    search?: string,
   ) => Promise<ImageType[]>
   totalHandle?: (
     album: string,
@@ -28,6 +30,7 @@ export interface ImageHandleProps {
     lenses?: string[],
     tags?: string[],
     tagsOperator?: 'and' | 'or',
+    search?: string,
   ) => Promise<number>
   configHandle?: () => Promise<any[]>
   album: string

@@ -334,7 +334,7 @@ export default function GuideSortPanel({ open, onClose, onSuccess }: GuideSortPa
         className="mb-4"
         type="info"
         showIcon
-        message="使用操作按钮调整攻略显示顺序，数值越小越靠前。调整完成后点击“保存排序”生效。"
+        title="使用操作按钮调整攻略显示顺序，数值越小越靠前。调整完成后点击“保存排序”生效。"
       />
 
       <Table

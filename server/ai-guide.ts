@@ -6,6 +6,8 @@ import { HTTPException } from 'hono/http-exception'
 import { fetchConfigValue, invalidateConfigsCache } from '~/lib/db/query/configs'
 import { db } from '~/lib/db'
 import { cacheInvalidateByPattern } from '~/lib/redis'
+import { AI_TAG_CONFIG_KEYS } from './ai-tag'
+import { recordAiUsage, extractUsage } from '~/lib/db/operate/ai-usage'
 
 const app = new Hono()
 
@@ -16,6 +18,10 @@ const AI_CONFIG_KEYS = [
   'ai_model_name',
   'ai_model_temperature',
   'ai_model_system_prompt',
+  ...AI_TAG_CONFIG_KEYS,
+  // 金额估算单价（元/百万 tokens），留空则不显示估算消费
+  'ai_price_input_per_m',
+  'ai_price_output_per_m',
 ]
 
 /**
@@ -408,9 +414,9 @@ app.get('/config', jwtAuth, async (c) => {
       where: { config_key: { in: AI_CONFIG_KEYS } },
       select: { config_key: true, config_value: true },
     })
-    // 对 API Key 做掩码处理
+    // 对 API Key 做掩码处理（ai_model_api_key / ai_tag_api_key 等统一按前缀判断）
     const result = configs.map(item => {
-      if (item.config_key === 'ai_model_api_key' && item.config_value) {
+      if (item.config_key.endsWith('_api_key') && item.config_value) {
         const val = item.config_value
         const masked = val.length > 8
           ? val.slice(0, 4) + '****' + val.slice(-4)
@@ -443,7 +449,7 @@ app.put('/config', jwtAuth, async (c) => {
 
     // 如果 API Key 是掩码值（包含 ****），跳过更新
     const updates = items.filter(item => {
-      if (item.config_key === 'ai_model_api_key' && item.config_value.includes('****')) {
+      if (item.config_key.endsWith('_api_key') && item.config_value.includes('****')) {
         return false
       }
       return true
@@ -487,6 +493,7 @@ app.post('/test-connection', jwtAuth, async (c) => {
       return c.json({ success: false, message: 'API Key 未配置' }, 400)
     }
 
+    const testStartedAt = Date.now()
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -504,14 +511,103 @@ app.post('/test-connection', jwtAuth, async (c) => {
 
     if (!response.ok) {
       const errText = await response.text()
+      await recordAiUsage({
+        scene: 'guide_test', model: modelName, durationMs: Date.now() - testStartedAt, success: false,
+      })
       return c.json({ success: false, message: `API 返回 ${response.status}: ${errText.slice(0, 200)}` }, 500)
     }
 
     const data = await response.json()
+    await recordAiUsage({
+      scene: 'guide_test', model: modelName,
+      ...extractUsage(data?.usage),
+      durationMs: Date.now() - testStartedAt,
+      success: true,
+    })
     const reply = data.choices?.[0]?.message?.content || ''
     return c.json({ success: true, message: `连接成功，模型回复: ${reply}` })
   } catch (error: any) {
     return c.json({ success: false, message: `连接失败: ${error.message}` }, 500)
+  }
+})
+
+/**
+ * AI 调用用量明细 + 汇总（今日/本月 tokens 与次数）
+ */
+app.get('/usage', jwtAuth, async (c) => {
+  try {
+    const limitRaw = Number(c.req.query('limit') || 100)
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 1), 200) : 100
+
+    const now = new Date()
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    const [items, todayAgg, monthAgg] = await Promise.all([
+      db.aiUsageLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      }),
+      db.aiUsageLog.aggregate({
+        where: { createdAt: { gte: todayStart } },
+        _sum: { totalTokens: true },
+        _count: true,
+      }),
+      db.aiUsageLog.aggregate({
+        where: { createdAt: { gte: monthStart } },
+        _sum: { totalTokens: true, promptTokens: true, completionTokens: true },
+        _count: true,
+      }),
+    ])
+
+    return c.json({
+      code: 200,
+      data: {
+        items,
+        summary: {
+          todayTokens: todayAgg._sum.totalTokens ?? 0,
+          todayRequests: todayAgg._count ?? 0,
+          monthTokens: monthAgg._sum.totalTokens ?? 0,
+          monthPromptTokens: monthAgg._sum.promptTokens ?? 0,
+          monthCompletionTokens: monthAgg._sum.completionTokens ?? 0,
+          monthRequests: monthAgg._count ?? 0,
+        },
+      },
+    })
+  } catch (error) {
+    console.error('Error fetching AI usage:', error)
+    throw new HTTPException(500, { message: 'Failed to fetch AI usage', cause: error })
+  }
+})
+
+/**
+ * 余额查询（主 AI 配置）
+ * DeepSeek: GET {base}/user/balance，Bearer 鉴权；base 去掉末尾 /v1（余额端点不带版本前缀）
+ */
+app.get('/balance', jwtAuth, async (c) => {
+  try {
+    const apiKey = await fetchConfigValue('ai_model_api_key')
+    const baseUrl = await fetchConfigValue('ai_model_base_url', 'https://api.deepseek.com/v1')
+    if (!apiKey) {
+      return c.json({ success: false, message: 'API Key 未配置' }, 400)
+    }
+    const balanceBase = baseUrl.replace(/\/v1\/?$/i, '')
+    const response = await fetch(`${balanceBase}/user/balance`, {
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(15000),
+    })
+    const json = await response.json().catch(() => null)
+    if (!response.ok) {
+      const msg = (json as any)?.error?.message || `API 返回 ${response.status}`
+      return c.json({ success: false, message: msg }, 502)
+    }
+    return c.json({
+      success: true,
+      is_available: !!(json as any)?.is_available,
+      balance_infos: (json as any)?.balance_infos ?? [],
+    })
+  } catch (error: any) {
+    return c.json({ success: false, message: `余额查询失败: ${error?.message ?? '未知错误'}` }, 500)
   }
 })
 
@@ -624,6 +720,9 @@ app.post('/parse-guide', jwtAuth, async (c) => {
 
     let finished = false
     let lastDataAt = Date.now()
+    // 用量统计：流式响应最后带 usage 的分块（需 stream_options.include_usage）
+    let usageCaptured: any = null
+    const parseStartedAt = Date.now()
 
     // 心跳：首 token 前长时间无输出时保持连接，避免 CDN 空闲超时；
     // 同时兜底处理上游 120 秒无任何数据的情况
@@ -659,6 +758,8 @@ app.post('/parse-guide', jwtAuth, async (c) => {
           response_format: { type: 'json_object' },
           max_tokens: 8000,
           stream: true,
+          // 流式响应附带最终 usage 分块，用于消费明细统计
+          stream_options: { include_usage: true },
         }),
         signal: upstream.signal,
       })
@@ -693,6 +794,8 @@ app.post('/parse-guide', jwtAuth, async (c) => {
           if (!payload || payload === '[DONE]') continue
           try {
             const chunk = JSON.parse(payload)
+            const usage = chunk.usage
+            if (usage) usageCaptured = usage
             const delta: string | undefined = chunk.choices?.[0]?.delta?.content
             if (typeof delta === 'string' && delta) {
               fullContent += delta
@@ -749,6 +852,14 @@ app.post('/parse-guide', jwtAuth, async (c) => {
       await send({ type: 'error', error: msg }).catch(() => {})
     } finally {
       clearInterval(heartbeat)
+      // 用量明细落库：无论成败都记录（usage 仅在正常读完流时可用）
+      await recordAiUsage({
+        scene: 'guide_parse',
+        model: modelName,
+        ...(usageCaptured ? extractUsage(usageCaptured) : {}),
+        durationMs: Date.now() - parseStartedAt,
+        success: Boolean(usageCaptured),
+      }).catch(() => {})
     }
   })
 })

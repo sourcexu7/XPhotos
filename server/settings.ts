@@ -8,7 +8,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { updateAListConfig, updateCustomInfo, updateS3Config, updateCOSConfig } from '~/lib/db/operate/configs'
 
 import { fetchTagsList, fetchTagsTree, fetchTagsByCategory } from '~/lib/db/query/tags'
-import { createTag, updateTag, deleteTag, deleteTagAndChildren, batchDeleteTags, cleanupOrphanTags, getOrphanTags } from '~/lib/db/operate/tags'
+import { createTag, updateTag, deleteTag, deleteTagAndChildren, batchDeleteTags, cleanupOrphanTags, getOrphanTags, getTagUsageCounts, mergeTags } from '~/lib/db/operate/tags'
 import { moveTag, validateTagMove } from '~/lib/services/tag-move-service'
 import { checkAndFixImageTagCompleteness } from '~/lib/services/image-tag-sync-service'
 import { getClient } from '~/lib/s3'
@@ -160,6 +160,51 @@ app.post('/tags/cleanup-orphan', async (c) => {
         cleanedTags: result.cleanedTags,
         skippedParentTags: result.skippedParentTags
       } 
+    })
+  } catch (e) {
+    throw new HTTPException(500, { message: 'Failed', cause: e })
+  }
+})
+
+// 标签使用统计接口（每标签关联的未删除图片数量）
+app.get('/tags/usage', async (c) => {
+  try {
+    const [tags, usageMap] = await Promise.all([
+      fetchTagsList(),
+      getTagUsageCounts(),
+    ])
+    const data = tags.map(tag => ({
+      id: tag.id,
+      name: tag.name,
+      category: tag.category ?? null,
+      imageCount: usageMap.get(tag.id) ?? 0,
+    }))
+    return c.json({ code: 200, data })
+  } catch (e) {
+    throw new HTTPException(500, { message: 'Failed', cause: e })
+  }
+})
+
+// 标签合并接口（源标签关联转移到目标标签后删除源标签）
+app.post('/tags/merge', async (c) => {
+  try {
+    const { sourceIds, targetId } = await c.req.json()
+
+    if (!Array.isArray(sourceIds) || sourceIds.length === 0 || !targetId) {
+      throw new HTTPException(400, { message: 'mergeParamsInvalid' })
+    }
+
+    const result = await mergeTags({ sourceIds, targetId })
+
+    if (!result.success) {
+      return c.json({ code: 400, message: result.error })
+    }
+
+    await invalidateTagsCache()
+    return c.json({
+      code: 200,
+      data: { mergedImages: result.mergedImages, deletedTags: result.deletedTags },
+      message: 'Success',
     })
   } catch (e) {
     throw new HTTPException(500, { message: 'Failed', cause: e })

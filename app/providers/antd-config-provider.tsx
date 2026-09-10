@@ -8,7 +8,7 @@ import { useTheme } from 'next-themes'
 const { defaultAlgorithm, darkAlgorithm } = theme
 
 /**
- * Button 黑白配色（对齐 style/globals.css 白瓷令牌）：
+ * Button 黑白配色（对齐 style/globals.css 白瓷令牌，仅前台使用）：
  * 浅色 --primary #0A0A0A / --primary-foreground #FFFFFF；
  * 暗色 --primary #FAFAFA / --primary-foreground #0A0A0A。
  * antd v6 FloatButton 内部渲染 Button，本配置同时覆盖普通按钮与
@@ -126,12 +126,34 @@ export function AntdConfigProvider({ children }: { children: React.ReactNode }) 
         boxShadow:
           '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
       },
-      Button: buttonColorTheme(isDark),
     },
   }
 
   return (
     <ConfigProvider theme={customTheme} locale={zhCN}>
+      {children}
+    </ConfigProvider>
+  )
+}
+
+/**
+ * 前台按钮主题 Provider：在根 Provider（antd 默认蓝）之上，仅对 Button
+ * 叠加黑白配色（buttonColorTheme）。只在前台布局（(default)/(theme)/login）
+ * 中包裹；后台 /admin/** 不包裹，保持 antd 默认蓝色系，实现前后台
+ * 按钮风格隔离——互不干扰、各自一致。
+ */
+export function FrontendAntdProvider({ children }: { children: React.ReactNode }) {
+  const { theme: currentTheme } = useTheme()
+  const isDark = currentTheme === 'dark'
+
+  return (
+    <ConfigProvider
+      theme={{
+        components: {
+          Button: buttonColorTheme(isDark),
+        },
+      }}
+    >
       {children}
     </ConfigProvider>
   )

@@ -10,7 +10,7 @@ import { useFilterStore } from '~/lib/store/filter-store'
 
 export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
   const isMobile = useIsMobile()
-  const { cameraFilter, lensFilter, tagsFilter, tagsOperator, sortByShootTime } = useFilterStore()
+  const { cameraFilter, lensFilter, tagsFilter, tagsOperator, sortByShootTime, search } = useFilterStore()
   const isHome = (props.album ?? '/') === '/'
 
   const params = useMemo(() => ({
@@ -21,7 +21,8 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
     tagsOperator: tagsFilter.length > 0 ? tagsOperator : undefined,
     sortByShootTime: isHome ? sortByShootTime : undefined,
     pageSize: isMobile ? 48 : 96,
-  }), [props.album, cameraFilter, lensFilter, tagsFilter, tagsOperator, sortByShootTime, isHome, isMobile])
+    search: search.trim() ? search.trim() : undefined,
+  }), [props.album, cameraFilter, lensFilter, tagsFilter, tagsOperator, sortByShootTime, isHome, isMobile, search])
 
   const filterKey = useMemo(
     () => [
@@ -31,6 +32,7 @@ export default function WaterfallGallery(props: Readonly<ImageHandleProps>) {
       params.tags?.join(',') ?? '',
       params.tagsOperator ?? '',
       params.sortByShootTime ?? '',
+      params.search ?? '',
     ].join('|'),
     [params],
   )

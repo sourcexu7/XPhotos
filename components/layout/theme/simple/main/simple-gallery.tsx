@@ -41,7 +41,8 @@ function SimpleGalleryImpl(props: Readonly<ImageHandleProps>) {
     const tags = (props.filters?.tags ?? []).join(',')
     const tagsOperator = props.filters?.tagsOperator ?? 'and'
     const sort = props.sortByShootTime ?? ''
-    return [cameras, lenses, tags, tagsOperator, sort].join('|')
+    const search = props.filters?.search ?? ''
+    return [cameras, lenses, tags, tagsOperator, sort, search].join('|')
   }, [props.filters, props.sortByShootTime])
 
   const { data, error, isLoading, isValidating, size, setSize, mutate } = useSWRInfinite(
@@ -57,6 +58,7 @@ function SimpleGalleryImpl(props: Readonly<ImageHandleProps>) {
           f?.tags,
           f?.tagsOperator ?? 'and',
           props.sortByShootTime,
+          f?.search || undefined,
         ) || Promise.resolve([])
       )
     },

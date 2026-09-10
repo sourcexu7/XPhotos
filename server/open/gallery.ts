@@ -16,6 +16,8 @@ const querySchema = z.object({
   tags: z.string().optional(),
   tagsOperator: z.enum(['and', 'or']).optional(),
   sortByShootTime: z.enum(['asc', 'desc']).optional(),
+  // 关键字搜索：匹配标题 / 详情 / 标签
+  search: z.string().trim().max(100).optional(),
   // 布局参数：由客户端在首次渲染后测量并附带
   containerWidth: z.coerce.number().int().min(1).optional(),
   cols: z.coerce.number().int().min(1).max(8).optional(),
@@ -81,6 +83,7 @@ app.get('/images', async (c) => {
       tags: searchParams.get('tags') ?? undefined,
       tagsOperator: searchParams.get('tagsOperator') ?? undefined,
       sortByShootTime: searchParams.get('sortByShootTime') ?? undefined,
+      search: searchParams.get('search') ?? undefined,
       containerWidth: searchParams.get('containerWidth') ?? undefined,
       cols: searchParams.get('cols') ?? undefined,
       gap: searchParams.get('gap') ?? undefined,
@@ -102,11 +105,13 @@ app.get('/images', async (c) => {
         tags && tags.length > 0 ? (q.tagsOperator ?? 'and') : 'and',
         q.sortByShootTime,
         q.pageSize,
+        q.search,
       ),
       fetchClientImagesPageTotalByAlbum(
         q.album, cameras, lenses, tags,
         tags && tags.length > 0 ? (q.tagsOperator ?? 'and') : 'and',
         q.pageSize,
+        q.search,
       ),
     ])
 
@@ -154,7 +159,7 @@ app.get('/images', async (c) => {
         : undefined,
     })
 
-    const hasFilters = q.cameras || q.lenses || q.tags
+    const hasFilters = q.cameras || q.lenses || q.tags || q.search
     const maxAge = hasFilters ? 30 : 60
     res.headers.set('Cache-Control', `public, s-maxage=${maxAge}, stale-while-revalidate=300`)
     return res

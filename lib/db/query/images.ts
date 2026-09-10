@@ -58,6 +58,7 @@ interface FilterOptions {
   labelsOperator?: 'and' | 'or'
   showStatus?: number
   featured?: number
+  search?: string
 }
 
 function buildClientFilters(options: FilterOptions) {
@@ -94,7 +95,13 @@ function buildClientFilters(options: FilterOptions) {
         )})`
     : Prisma.empty
 
-  return { cameraFilter, lensFilter, tagsFilter }
+  // 关键字搜索：匹配标题 / 详情 / 标签文本
+  const searchKw = typeof options.search === 'string' ? options.search.trim() : ''
+  const searchFilter = searchKw
+    ? Prisma.sql`AND (image.title ILIKE ${`%${searchKw}%`} OR image.detail ILIKE ${`%${searchKw}%`} OR image.labels::text ILIKE ${`%${searchKw}%`})`
+    : Prisma.empty
+
+  return { cameraFilter, lensFilter, tagsFilter, searchFilter }
 }
 
 
@@ -162,6 +169,7 @@ function buildGalleryCacheKey(prefix: string, album: string, pageNum: number | n
   tags?: string[]
   tagsOperator?: 'and' | 'or'
   sortByShootTime?: 'asc' | 'desc'
+  search?: string
 }): string {
   const norm = (arr?: string[]) => (arr && arr.length > 0 ? [...arr].sort().join(',') : '')
   const parts = [
@@ -170,6 +178,7 @@ function buildGalleryCacheKey(prefix: string, album: string, pageNum: number | n
     norm(filters.tags),
     filters.tagsOperator ?? 'and',
     filters.sortByShootTime ?? '',
+    filters.search ?? '',
   ]
   const hasAny = parts.some(p => p && p !== 'and')
   const pagePart = pageNum != null ? `:${pageNum}` : ''
@@ -189,7 +198,8 @@ export const fetchClientImagesListByAlbum = cache(async (
   tags?: string[],
   tagsOperator: 'and' | 'or' = 'and',
   sortByShootTime?: 'desc' | 'asc',
-  pageSize: number = 16
+  pageSize: number = 16,
+  search?: string
 ): Promise<ImageType[]> => {
   if (pageNum < 1) {
     pageNum = 1
@@ -210,11 +220,12 @@ export const fetchClientImagesListByAlbum = cache(async (
   }
 
   const doQuery = async () => {
-    const { cameraFilter, lensFilter, tagsFilter } = buildClientFilters({
+    const { cameraFilter, lensFilter, tagsFilter, searchFilter } = buildClientFilters({
       cameras,
       lenses,
       tags,
       tagsOperator,
+      search,
     })
 
     const selectFields = `
@@ -265,6 +276,7 @@ export const fetchClientImagesListByAlbum = cache(async (
             ${cameraFilter}
             ${lensFilter}
             ${tagsFilter}
+            ${searchFilter}
         ORDER BY
           image.shoot_at DESC NULLS LAST,
           image.created_at DESC,
@@ -294,6 +306,7 @@ export const fetchClientImagesListByAlbum = cache(async (
             ${cameraFilter}
             ${lensFilter}
             ${tagsFilter}
+            ${searchFilter}
         ORDER BY
           image.shoot_at ASC NULLS FIRST,
           image.created_at ASC,
@@ -323,6 +336,7 @@ export const fetchClientImagesListByAlbum = cache(async (
             ${cameraFilter}
             ${lensFilter}
             ${tagsFilter}
+            ${searchFilter}
         ORDER BY image.created_at DESC, image.updated_at DESC, image.sort ASC
         LIMIT ${pageSize} OFFSET ${(pageNum - 1) * pageSize}
       `
@@ -382,6 +396,7 @@ export const fetchClientImagesListByAlbum = cache(async (
             ${cameraFilter}
             ${lensFilter}
             ${tagsFilter}
+            ${searchFilter}
         ORDER BY ${orderBy}
         LIMIT ${pageSize} OFFSET ${(pageNum - 1) * pageSize}
       `
@@ -400,7 +415,7 @@ export const fetchClientImagesListByAlbum = cache(async (
   }
 
   const cacheKey = buildGalleryCacheKey('images:list', album, pageNum, {
-    cameras, lenses, tags, tagsOperator, sortByShootTime,
+    cameras, lenses, tags, tagsOperator, sortByShootTime, search,
   }) + `:ps=${pageSize}`
   return cacheWrap<ImageType[]>(cacheKey, doQuery)
 })
@@ -414,21 +429,23 @@ export async function fetchClientImagesPageTotalByAlbum(
   lenses?: string[],
   tags?: string[],
   tagsOperator: 'and' | 'or' = 'and',
-  pageSize: number = 16
+  pageSize: number = 16,
+  search?: string
 ): Promise<number> {
   if (pageSize < 1) {
     pageSize = 16
   }
   const cacheKey = buildGalleryCacheKey('images:count', album, null, {
-    cameras, lenses, tags, tagsOperator,
+    cameras, lenses, tags, tagsOperator, search,
   }) + `:ps=${pageSize}`
 
   return cacheWrap<number>(cacheKey, async () => {
-    const { cameraFilter, lensFilter, tagsFilter } = buildClientFilters({
+    const { cameraFilter, lensFilter, tagsFilter, searchFilter } = buildClientFilters({
       cameras,
       lenses,
       tags,
       tagsOperator,
+      search,
     })
 
     if (album === '/') {
@@ -456,6 +473,7 @@ export async function fetchClientImagesPageTotalByAlbum(
             ${cameraFilter}
             ${lensFilter}
             ${tagsFilter}
+            ${searchFilter}
     ) AS unique_images;
   `
       const totalCount = Array.isArray(pageTotal) && pageTotal.length > 0 ? Number((pageTotal[0] as any).total ?? 0) : 0
@@ -485,6 +503,7 @@ export async function fetchClientImagesPageTotalByAlbum(
             ${cameraFilter}
             ${lensFilter}
             ${tagsFilter}
+            ${searchFilter}
     ) AS unique_images;
   `
     const totalCount2 = Array.isArray(pageTotal) && pageTotal.length > 0 ? Number((pageTotal[0] as any).total ?? 0) : 0
