@@ -160,6 +160,42 @@ export async function fetchServerImagesPageByAlbum(
 }
 
 /**
+ * 后台：查询符合筛选条件的全部图片 ID（不分页）
+ * ——与 fetchServerImagesPageByAlbum 共用同一套筛选逻辑，供"全选筛选结果"批量操作使用
+ */
+export async function fetchServerImagesAllIdsByAlbum(
+  album: string,
+  showStatus: number = -1,
+  featured: number = -1,
+  camera?: string,
+  lens?: string,
+  exposure?: string,
+  f_number?: string,
+  iso?: string,
+  labels?: string[],
+  labelsOperator: 'and' | 'or' = 'and'
+): Promise<string[]> {
+  const normalizedAlbum = album === 'all' ? '' : album
+
+  const builder = createImageQueryBuilder({
+    album: normalizedAlbum,
+    filters: {
+      showStatus,
+      featured,
+      camera,
+      lens,
+      exposure,
+      f_number,
+      iso,
+      labels,
+      labelsOperator,
+    },
+  })
+
+  return builder.buildAllIdsQuery()
+}
+
+/**
  * 构建图片列表/总数缓存的稳定 key
  * ——过滤参数排序后拼接，等价参数命中同一 key
  */

@@ -3,7 +3,7 @@
 import React from 'react'
 import type { ImageType } from '~/types'
 import { useTranslations } from 'next-intl'
-import { Tag, Tooltip, Switch, Button, theme } from 'antd'
+import { Tag, Tooltip, Switch, Button, Checkbox, theme } from 'antd'
 import { SortAscendingOutlined } from '@ant-design/icons'
 import { EditOutlined } from '@ant-design/icons'
 
@@ -11,6 +11,9 @@ interface ImageListItemProps {
   image: ImageType
   index: number
   isLast: boolean
+  /** 多选状态（配合批量操作栏；不传则不渲染复选框） */
+  selected?: boolean
+  onSelect?: (id: string, checked: boolean) => void
   onEdit: (image: ImageType) => void
 
   // Update state
@@ -23,6 +26,8 @@ interface ImageListItemProps {
 export default function ImageListItem({
   image,
   isLast,
+  selected = false,
+  onSelect,
   onEdit,
   onUpdateShow,
   updateShowLoading,
@@ -41,8 +46,18 @@ export default function ImageListItem({
         transition: 'all 0.2s ease-out',
         borderRadius: 12,
         borderBottom: !isLast ? `1px solid ${token.colorBorderSecondary}` : undefined,
+        backgroundColor: selected ? token.colorPrimaryBg : undefined,
       }}
     >
+      {/* 多选复选框 */}
+      {onSelect && (
+        <Checkbox
+          checked={selected}
+          onChange={(e) => onSelect(image.id, e.target.checked)}
+          aria-label={t('List.selectImage')}
+        />
+      )}
+
       {/* 左侧缩略图 */}
       <div style={{
         height: 64,

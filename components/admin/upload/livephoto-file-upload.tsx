@@ -22,6 +22,8 @@ import { useStorageConfig } from '~/hooks/useStorageConfig'
 import { useTagManagement } from '~/hooks/useTagManagement'
 import { useExifData } from '~/hooks/useExifData'
 import { useExifPresets } from '~/hooks/useExifPresets'
+import { useAiTagRecommend } from '~/hooks/useAiTagRecommend'
+import AiTagSuggestionCard from '~/components/admin/upload/ai-tag-suggestion-card'
 
 const { Dragger } = AntUpload
 
@@ -55,6 +57,10 @@ export default function LivephotoFileUpload() {
   const tagManagement = useTagManagement()
   const exifDataHook = useExifData()
   const exifPresets = useExifPresets()
+
+  // AI 标签推荐：能力关闭/未配置/请求失败时不渲染任何 AI 入口，自动回退纯手动标签模式
+  const { aiTagAvailable, aiTagAvailableRef, aiStatus, aiSuggestion, recommend, reset: resetAiSuggestion } = useAiTagRecommend()
+  const [aiTagCategoryMap, setAiTagCategoryMap] = useState<Record<string, string>>({})
 
   const [album, setAlbum] = useState('')
   const [exif, setExif] = useState({} as ExifType)
@@ -137,6 +143,10 @@ export default function LivephotoFileUpload() {
         if (res?.code === 200) {
           setPreviewUrl(res?.data?.url)
           if (res?.data?.key) setPreviewKey(res.data.key)
+          // AI 标签推荐（自动通道）：基于已上传的 WebP 预览图异步分析，不阻塞提交流程
+          if (aiTagAvailableRef.current && res?.data?.url) {
+            recommend(res.data.url)
+          }
           resolve()
         } else {
           reject(new Error('Upload failed'))
@@ -213,10 +223,13 @@ export default function LivephotoFileUpload() {
         lon,
       }
 
+      // AI 推荐标签的一级归属映射 + 手动级联选择（手动优先覆盖）
+      const mergedCategoryMap: Record<string, string> = { ...aiTagCategoryMap }
       if (tagManagement.primarySelect && tagManagement.secondarySelect && tagManagement.secondarySelect.length > 0) {
-        const map: Record<string, string> = {}
-        tagManagement.secondarySelect.forEach(s => { map[s] = tagManagement.primarySelect! })
-        ;(data as any).tagCategoryMap = map
+        tagManagement.secondarySelect.forEach(s => { mergedCategoryMap[s] = tagManagement.primarySelect! })
+      }
+      if (Object.keys(mergedCategoryMap).length > 0) {
+        ;(data as any).tagCategoryMap = mergedCategoryMap
       }
 
       // 提交前验证 URL 可访问性
@@ -294,6 +307,8 @@ export default function LivephotoFileUpload() {
 
       if (res?.code === 200) {
         message.success(t('Tips.saveSuccess'))
+        resetAiSuggestion()
+        setAiTagCategoryMap({})
       } else {
         message.error(t('Tips.saveFailed'))
       }
@@ -471,6 +486,8 @@ export default function LivephotoFileUpload() {
     setOriginalKey('')
     setPreviewKey('')
     setImageFile(null)
+    resetAiSuggestion()
+    setAiTagCategoryMap({})
   }
 
   function onRemoveVideo() {
@@ -490,6 +507,16 @@ export default function LivephotoFileUpload() {
     setVideoUploadProgress(0)
     setVideoUploadStage('')
   }
+
+  // 采纳 AI 推荐标签（合并去重 + 记录一级归属，供写库 tagCategoryMap 使用）
+  const applyAiTags = React.useCallback((names: string[], categoryMap: Record<string, string>) => {
+    const current = [...tagManagement.labels]
+    names.forEach(n => {
+      if (!current.some(l => l.toLowerCase() === n.toLowerCase())) current.push(n)
+    })
+    tagManagement.handleLabelsChange(current)
+    setAiTagCategoryMap(prev => ({ ...prev, ...categoryMap }))
+  }, [tagManagement])
 
   // When an image file is selected, only read EXIF/preview/hash locally and prefill the form.
   React.useEffect(() => {
@@ -1103,6 +1130,18 @@ export default function LivephotoFileUpload() {
               <div>
                 <h4 className="text-sm font-medium text-text-secondary mb-4">{t('Upload.tagsHeading')}</h4>
                 <div className="space-y-4">
+                  {aiTagAvailable && (
+                    <AiTagSuggestionCard
+                      status={aiStatus}
+                      suggestion={aiSuggestion}
+                      appliedLabels={tagManagement.labels}
+                      onApply={applyAiTags}
+                      onDismiss={resetAiSuggestion}
+                      onRetry={() => {
+                        if (previewUrl && !previewUrl.startsWith('data:')) recommend(previewUrl)
+                      }}
+                    />
+                  )}
                   <div>
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.presetTagsClickAddRemoveHint')}</label>
                     <div className="flex flex-wrap gap-2">

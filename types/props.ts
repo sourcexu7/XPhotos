@@ -58,6 +58,8 @@ export interface ImageServerHandleProps {
   handle: (...args: any[]) => Promise<any>
   args: string
   totalHandle?: (...args: any[]) => Promise<any>
+  /** 按当前筛选条件查询全部图片 ID（供"全选筛选结果"跨页批量选择） */
+  allIdsHandle?: (...args: any[]) => Promise<string[]>
 }
 
 export interface AlbumDataProps {

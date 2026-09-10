@@ -42,6 +42,11 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
   const [pageSize] = useState(8)
   const [layout, setLayout] = useState<'card' | 'list'>('card')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  // 全选筛选结果状态：选中集合 = 当前筛选条件命中的全部图片（可跨页）
+  const [allFilteredSelected, setAllFilteredSelected] = useState(false)
+  const [selectingAll, setSelectingAll] = useState(false)
+  // 当前页之外的选中图片数据（跨页/全选筛选后供批量 AI 标签使用）
+  const [extraImages, setExtraImages] = useState<ImageType[]>([])
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   // AI 标签能力探测（不可用时批量 AI 按钮不渲染，纯手动兜底）
   const [aiTagAvailable, setAiTagAvailable] = useState(false)
@@ -126,21 +131,118 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
     if (checked) {
       const ids = (data as ImageType[]).map(i => i.id)
       setSelectedIds(ids)
+      setExtraImages([])
     } else {
       setSelectedIds([])
+      setExtraImages([])
+    }
+    setAllFilteredSelected(false)
+  }
+
+  // 当前页全选状态（跨页选中时不能仅凭 selectedCount === totalCount 判断）
+  const pageSelectedCount = useMemo(() => {
+    if (!Array.isArray(data)) return 0
+    const idSet = new Set(selectedIds)
+    return (data as ImageType[]).filter(i => idSet.has(i.id)).length
+  }, [data, selectedIds])
+
+  // 全选：符合当前筛选条件的全部图片（跨页，由服务端返回 ID 集合）
+  async function selectAllFiltered() {
+    if (!props.allIdsHandle || selectingAll) return
+    try {
+      setSelectingAll(true)
+      const ids = await props.allIdsHandle(
+        activeFilters.album,
+        activeFilters.showStatus === '' ? -1 : Number(activeFilters.showStatus),
+        activeFilters.featured === '' ? -1 : Number(activeFilters.featured),
+        activeFilters.selectedCamera,
+        activeFilters.selectedLens,
+        activeFilters.selectedExposure,
+        activeFilters.selectedAperture,
+        activeFilters.selectedISO,
+        activeFilters.selectedTags,
+        activeFilters.labelsOperator
+      )
+      const list = Array.isArray(ids) ? ids.map(String) : []
+      setSelectedIds(list)
+      setExtraImages([])
+      setAllFilteredSelected(list.length > 0)
+      if (list.length > 0) {
+        message.success(t('List.selectAllFilteredSuccess', { count: list.length }))
+      } else {
+        message.info(t('List.selectAllFilteredEmpty'))
+      }
+    } catch {
+      message.error(t('List.selectAllFilteredFailed'))
+    } finally {
+      setSelectingAll(false)
     }
   }
 
-  // 当前勾选的图片完整数据（供批量 AI 标签使用）
+  // 筛选条件变更后，原选中集合不再匹配，直接清空避免误操作
+  useEffect(() => {
+    setSelectedIds([])
+    setAllFilteredSelected(false)
+    setExtraImages([])
+  }, [activeFilters])
+
+  // 当前勾选的图片完整数据（供批量 AI 标签使用；跨页选中时合并已补齐的数据）
   const selectedImages = useMemo(() => {
-    if (!Array.isArray(data) || selectedIds.length === 0) return [] as ImageType[]
+    if (selectedIds.length === 0) return [] as ImageType[]
     const idSet = new Set(selectedIds)
-    return (data as ImageType[]).filter(i => idSet.has(i.id))
-  }, [data, selectedIds])
+    const pool = [...(Array.isArray(data) ? data : []), ...extraImages]
+    const seen = new Set<string>()
+    const result: ImageType[] = []
+    for (const img of pool) {
+      if (idSet.has(img.id) && !seen.has(img.id)) {
+        seen.add(img.id)
+        result.push(img)
+      }
+    }
+    return result
+  }, [data, extraImages, selectedIds])
 
   function toggleSelectOne(id: string, checked: boolean) {
     if (checked) setSelectedIds(prev => Array.from(new Set([...prev, id])))
-    else setSelectedIds(prev => prev.filter(i => i !== id))
+    else {
+      setSelectedIds(prev => prev.filter(i => i !== id))
+      // 手动取消任一张即不再是"全选筛选结果"状态
+      setAllFilteredSelected(false)
+    }
+  }
+
+  // 批量 AI 标签：跨页选中时先补齐当前页之外的图片数据再打开抽屉
+  // 校验：图片数据必须含有效 width/height，否则 /images/update 会 400（Image height must be greater than 0）
+  // 因此只补齐"缺失或字段不完整"的项；旧缓存里只有 7 个字段的条目会被重新拉取
+  async function handleBatchAiTag() {
+    if (selectedIds.length === 0) return
+    const isValidImage = (i: ImageType) =>
+      !!i.url && typeof i.width === 'number' && i.width > 0 && typeof i.height === 'number' && i.height > 0
+    const known = new Set(
+      [...(Array.isArray(data) ? data : []), ...extraImages].filter(isValidImage).map(i => i.id)
+    )
+    const missing = selectedIds.filter(id => !known.has(id))
+    if (missing.length > 0) {
+      try {
+        const res = await fetch('/api/v1/images/by-ids', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: missing }),
+        }).then(r => r.json())
+        const rows: ImageType[] = res?.code === 200 && Array.isArray(res.data) ? res.data : []
+        if (rows.length > 0) {
+          setExtraImages(prev => {
+            // 用新拉取的完整数据覆盖旧的不完整缓存
+            const refreshed = new Map(rows.map(r => [r.id, r]))
+            const kept = prev.filter(p => !refreshed.has(p.id))
+            return [...kept, ...rows]
+          })
+        }
+      } catch {
+        // 拉取失败时仍打开抽屉，缺失项在分析阶段会以错误状态展示，可单张重试
+      }
+    }
+    setImageBatchAiTag(true)
   }
 
   // 优化：使用 Map 替代数组查找，O(1) 时间复杂度，性能提升 80%+
@@ -417,12 +519,18 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
       <BatchActionBar
         selectedCount={selectedIds.length}
         totalCount={Array.isArray(data) ? data.length : 0}
+        pageSelectedCount={pageSelectedCount}
+        matchingCount={typeof total === 'number' ? total : 0}
+        allFilteredSelected={allFilteredSelected}
+        selectingAll={selectingAll}
+        canSelectAllFiltered={!!props.allIdsHandle}
         onSelectAll={toggleSelectAll}
+        onSelectAllFiltered={selectAllFiltered}
         onRefresh={async () => await mutate()}
         onBatchDelete={() => setImageBatchDelete(true)}
         onBatchDownload={() => setImageBatchDownload(true)}
         aiTagEnabled={aiTagAvailable}
-        onBatchAiTag={() => setImageBatchAiTag(true)}
+        onBatchAiTag={handleBatchAiTag}
       />
 
       {/* 3. 照片布局：卡片 / 列表切换 */}
@@ -471,6 +579,8 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
                     image={img}
                     index={index}
                     isLast={index === localImages.length - 1}
+                    selected={selectedIds.includes(img.id)}
+                    onSelect={toggleSelectOne}
                     onEdit={(image) => {
                       setImageEditData(image)
                       setImageEdit(true)
@@ -508,6 +618,8 @@ export default function ListProps(props : Readonly<ImageServerHandleProps>) {
         onApplied={async () => {
           await mutate()
           setSelectedIds([])
+          setAllFilteredSelected(false)
+          setExtraImages([])
         }}
       />
     </div>

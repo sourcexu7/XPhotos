@@ -424,6 +424,20 @@ export async function getImagesByIds(ids: string[]) {
       title: true,
       image_name: true,
       del: true,
+      // 以下字段供批量 AI 标签回传 /images/update 使用：
+      // validateImageData 硬校验 url/width/height；updateImage 会写入
+      // blurhash/exif/labels/detail/lat/lon（缺失时 shoot_at、lat/lon 会被置空）
+      blurhash: true,
+      exif: true,
+      labels: true,
+      detail: true,
+      sort: true,
+      show: true,
+      show_on_mainpage: true,
+      width: true,
+      height: true,
+      lat: true,
+      lon: true,
     },
   })
   return rows

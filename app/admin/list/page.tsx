@@ -1,4 +1,4 @@
-import { fetchServerImagesPageByAlbum } from '~/lib/db/query/images'
+import { fetchServerImagesPageByAlbum, fetchServerImagesAllIdsByAlbum } from '~/lib/db/query/images'
 import type { ImageServerHandleProps } from '~/types/props'
 import ListProps from '~/components/admin/list/list-props'
 import AdminPageHeader from '~/components/admin/layout/page-header'
@@ -9,6 +9,11 @@ async function getPage(pageNum: number, album: string, showStatus = -1, featured
   return await fetchServerImagesPageByAlbum(pageNum, album, showStatus, featured, camera || '', lens || '', exposure || '', f_number || '', iso || '', labels || [], labelsOperator, undefined)
 }
 
+async function getAllIds(album: string, showStatus = -1, featured = -1, camera = '', lens = '', exposure = '', f_number = '', iso = '', labels: string[] = [], labelsOperator: 'and' | 'or' = 'and') {
+  'use server'
+  return await fetchServerImagesAllIdsByAlbum(album, showStatus, featured, camera || '', lens || '', exposure || '', f_number || '', iso || '', labels || [], labelsOperator)
+}
+
 export default async function List() {
   const tLink = await getTranslations('Link')
   const tAdminHeader = await getTranslations('AdminHeader')
@@ -16,6 +21,7 @@ export default async function List() {
   const props: ImageServerHandleProps = {
     handle: getPage,
     args: 'getImages-server',
+    allIdsHandle: getAllIds,
   }
 
   return (

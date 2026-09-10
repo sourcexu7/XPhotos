@@ -20,6 +20,8 @@ import { useTagManagement } from '~/hooks/useTagManagement'
 import { useExifData } from '~/hooks/useExifData'
 import { useExifPresets } from '~/hooks/useExifPresets'
 import { useFileUpload } from '~/hooks/useFileUpload'
+import { useAiTagRecommend } from '~/hooks/useAiTagRecommend'
+import AiTagSuggestionCard from '~/components/admin/upload/ai-tag-suggestion-card'
 import { verifyUrlAccessible, fetchWithTimeout, checkDuplicate } from '~/lib/utils/uploadUtils'
 import { UploadOutlined } from '@ant-design/icons'
 
@@ -68,6 +70,7 @@ export default function SimpleFileUpload() {
   const [lon, setLon] = useState('')
   const [detail, setDetail] = useState('')
   const [autoUploadedFor, setAutoUploadedFor] = useState<string | null>(null)
+  const [uploadedForKey, setUploadedForKey] = useState<string | null>(null)
   const [presetTags, setPresetTags] = useState<string[]>([])
   const [tagTree, setTagTree] = useState<TagNode[]>([])
   const [files, setFiles] = useState<File[]>([])
@@ -81,6 +84,10 @@ export default function SimpleFileUpload() {
   const previewCompressQuality = parseFloat(configs?.find(config => config.config_key === 'preview_quality')?.config_value || '0.2')
   const previewImageMaxWidthLimitSwitchOn = configs?.find(config => config.config_key === 'preview_max_width_limit_switch')?.config_value === '1'
   const previewImageMaxWidthLimit = parseInt(configs?.find(config => config.config_key === 'preview_max_width_limit')?.config_value || '0')
+
+  // AI 标签推荐：能力关闭/未配置/请求失败时不渲染任何 AI 入口，自动回退纯手动标签模式
+  const { aiTagAvailable, aiTagAvailableRef, aiStatus, aiSuggestion, recommend, reset: resetAiSuggestion } = useAiTagRecommend()
+  const [aiTagCategoryMap, setAiTagCategoryMap] = useState<Record<string, string>>({})
 
   const fileUploadHook = useFileUpload({
     album,
@@ -97,6 +104,10 @@ export default function SimpleFileUpload() {
       setImageName(result.fileName)
       setOriginalKey(result.originalKey || '')
       setPreviewKey(result.previewKey || '')
+      // AI 标签推荐（自动通道）：基于已上传的 WebP 预览图异步分析，不阻塞提交流程
+      if (aiTagAvailableRef.current && result.previewUrl) {
+        recommend(result.previewUrl)
+      }
     },
     onError: (error) => {
       console.error(error)
@@ -155,7 +166,10 @@ export default function SimpleFileUpload() {
     tagManagementRef.current.clearTags()
     setFiles([])
     setAutoUploadedFor(null)
-  }, [])
+    setUploadedForKey(null)
+    resetAiSuggestion()
+    setAiTagCategoryMap({})
+  }, [resetAiSuggestion])
 
   // 上传 + 验证 + 入库的统一流程
   const handleUploadThenSubmit = useCallback(async (forceSubmit = false) => {
@@ -235,10 +249,13 @@ export default function SimpleFileUpload() {
         lon,
       }
 
+      // AI 推荐标签的一级归属映射 + 手动级联选择（手动优先覆盖）
+      const mergedCategoryMap: Record<string, string> = { ...aiTagCategoryMap }
       if (tagManagementRef.current.primarySelect && tagManagementRef.current.secondarySelect && tagManagementRef.current.secondarySelect.length > 0) {
-        const tagCategoryMap: Record<string, string> = {}
-        tagManagementRef.current.secondarySelect.forEach(s => { tagCategoryMap[s] = tagManagementRef.current.primarySelect! })
-        data.tagCategoryMap = tagCategoryMap
+        tagManagementRef.current.secondarySelect.forEach(s => { mergedCategoryMap[s] = tagManagementRef.current.primarySelect! })
+      }
+      if (Object.keys(mergedCategoryMap).length > 0) {
+        data.tagCategoryMap = mergedCategoryMap
       }
 
       // 作为新图片上传（重复图片确认后），跳过幂等检查
@@ -266,7 +283,7 @@ export default function SimpleFileUpload() {
     }
   }, [
     url, previewUrl, imageId, imageName, album, height, width,
-    title, videoUrl, hash, exif, lat, lon, detail,
+    title, videoUrl, hash, exif, lat, lon, detail, aiTagCategoryMap,
     files, fileUploadHook, isSubmitting, isDuplicate, resetAfterSubmit, t,
   ])
 
@@ -306,7 +323,10 @@ export default function SimpleFileUpload() {
     setIsDuplicate(false)
     tagManagementRef.current.clearTags()
     setFiles([])
-  }, [originalKey, previewKey, storageConfig.storage])
+    setUploadedForKey(null)
+    resetAiSuggestion()
+    setAiTagCategoryMap({})
+  }, [originalKey, previewKey, storageConfig.storage, resetAiSuggestion])
 
   const onBeforeUpload = useCallback(() => {
     setUrl('')
@@ -328,7 +348,10 @@ export default function SimpleFileUpload() {
     setPreviewVerified(null)
     setIsDuplicate(false)
     tagManagementRef.current.clearTags()
-  }, [])
+    setUploadedForKey(null)
+    resetAiSuggestion()
+    setAiTagCategoryMap({})
+  }, [resetAiSuggestion])
 
   const handleFileSelection = useCallback(async (file: File) => {
     onBeforeUpload()
@@ -375,6 +398,31 @@ export default function SimpleFileUpload() {
 
     return () => { cancelled = true }
   }, [files, handleFileSelection, autoUploadedFor])
+
+  // 选择文件后自动上传（相册与存储就绪时），上传完成即触发 AI 标签自动分析；未就绪时由提交按钮兜底上传
+  React.useEffect(() => {
+    const file = files[0]
+    if (!file) return
+    if (!album || !storageConfig.storage) return
+    if (url || fileUploadHook.isUploading || isSubmitting) return
+    const fileKey = (file as any).__key || file.name
+    if (uploadedForKey === fileKey) return
+    setUploadedForKey(fileKey)
+    fileUploadHook.upload(file, imageId || undefined).catch((e) => {
+      console.error('Auto upload failed', e)
+      setUploadedForKey(null)
+    })
+  }, [files, album, storageConfig.storage, url, fileUploadHook, isSubmitting, imageId, uploadedForKey])
+
+  // 采纳 AI 推荐标签（合并去重 + 记录一级归属，供写库 tagCategoryMap 使用）
+  const applyAiTags = useCallback((names: string[], categoryMap: Record<string, string>) => {
+    const current = [...tagManagementRef.current.labels]
+    names.forEach(n => {
+      if (!current.some(l => l.toLowerCase() === n.toLowerCase())) current.push(n)
+    })
+    tagManagementRef.current.handleLabelsChange(current)
+    setAiTagCategoryMap(prev => ({ ...prev, ...categoryMap }))
+  }, [])
 
   const isUploading = fileUploadHook.isUploading
   const isBusy = isUploading || isSubmitting
@@ -785,6 +833,18 @@ export default function SimpleFileUpload() {
               <div>
                 <h4 className="text-sm font-medium text-text-secondary mb-4">{t('Upload.tagsHeading')}</h4>
                 <div className="space-y-4">
+                  {aiTagAvailable && (
+                    <AiTagSuggestionCard
+                      status={aiStatus}
+                      suggestion={aiSuggestion}
+                      appliedLabels={tagManagement.labels}
+                      onApply={applyAiTags}
+                      onDismiss={resetAiSuggestion}
+                      onRetry={() => {
+                        if (previewUrl && !previewUrl.startsWith('data:')) recommend(previewUrl)
+                      }}
+                    />
+                  )}
                   <div>
                     <label className="block text-sm text-text-secondary mb-2">{t('Upload.presetTagsClickAddRemoveHint')}</label>
                     <div className="flex flex-wrap gap-2">

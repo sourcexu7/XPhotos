@@ -291,8 +291,72 @@ export class ImageQueryBuilder {
   }
 
   /**
+   * 查询符合当前筛选条件的全部图片 ID（不分页，供"全选筛选结果"批量操作使用）
+   *
+   * 排序与列表展示一致：image.sort ASC, created_at DESC, updated_at DESC
+   */
+  async buildAllIdsQuery(): Promise<string[]> {
+    const albumWhere = this.getAlbumWhere()
+
+    // 相册特定查询：INNER JOIN（单个 album_value 不会产生重复行，DISTINCT 兜底）
+    if (this.hasAlbum()) {
+      const rows = await db.$queryRaw<Array<{ id: string }>>`
+        SELECT DISTINCT
+          image.id,
+          image.sort,
+          image.created_at,
+          image.updated_at
+        FROM "public"."images" AS image
+        INNER JOIN "public"."images_albums_relation" AS relation
+          ON image.id = relation."imageId"
+        INNER JOIN "public"."albums" AS albums
+          ON relation.album_value = albums.album_value
+        WHERE
+          image.del = 0
+          ${albumWhere}
+          ${this.filters.showStatusFilter}
+          ${this.filters.featuredFilter}
+          ${this.filters.cameraFilter}
+          ${this.filters.lensFilter}
+          ${this.filters.exposureFilter}
+          ${this.filters.fNumberFilter}
+          ${this.filters.isoFilter}
+          ${this.filters.labelsFilter}
+        ORDER BY image.sort ASC, image.created_at DESC, image.updated_at DESC
+      `
+      return rows.map((r) => r.id)
+    }
+
+    // 无具体相册：LEFT JOIN，图片可能关联多个相册产生重复行，DISTINCT 去重
+    const rows = await db.$queryRaw<Array<{ id: string }>>`
+      SELECT DISTINCT
+        image.id,
+        image.sort,
+        image.created_at,
+        image.updated_at
+      FROM "public"."images" AS image
+      LEFT JOIN "public"."images_albums_relation" AS relation
+        ON image.id = relation."imageId"
+      LEFT JOIN "public"."albums" AS albums
+        ON relation.album_value = albums.album_value
+      WHERE
+        image.del = 0
+        ${this.filters.showStatusFilter}
+        ${this.filters.featuredFilter}
+        ${this.filters.cameraFilter}
+        ${this.filters.lensFilter}
+        ${this.filters.exposureFilter}
+        ${this.filters.fNumberFilter}
+        ${this.filters.isoFilter}
+        ${this.filters.labelsFilter}
+      ORDER BY image.sort ASC, image.created_at DESC, image.updated_at DESC
+    `
+    return rows.map((r) => r.id)
+  }
+
+  /**
    * 构建简单的分页列表查询（不带总数）
-   * 
+   *
    * 根据是否有相册选择不同的查询方式：
    * - 有具体相册：INNER JOIN（只保留匹配该相册的图片）
    * - 无具体相册：LEFT JOIN（保留所有图片）
