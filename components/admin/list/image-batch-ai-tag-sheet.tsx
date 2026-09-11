@@ -32,6 +32,10 @@ interface BatchItem {
 }
 
 const CONCURRENCY = 2
+/** 单张分析最大尝试次数（1 次原始 + 2 次自动重试，仅针对瞬态错误） */
+const MAX_ANALYZE_ATTEMPTS = 3
+/** 不可重试的错误码：配置缺失/参数问题，重试必然同样失败 */
+const NO_RETRY_ERRORS = new Set(['AI_TAG_DISABLED', 'AI_TAG_NOT_CONFIGURED', 'INVALID_IMAGE_URL', 'IMAGE_TOO_LARGE'])
 
 /** AI 推荐默认全选（人工可取消），与编辑抽屉行为一致 */
 function buildSelection(suggestion: AiTagSuggestion): Record<string, boolean> {
@@ -71,27 +75,42 @@ export default function ImageBatchAiTagSheet({ images, onApplied }: {
     })
   }, [])
 
+  /** 单张分析：瞬态错误（网络/超时/上游抖动）自动重试，退避 800ms×尝试序号 */
   const analyzeOne = useCallback(async (id: string, imageUrl?: string) => {
     if (!imageUrl) { setItem(id, { status: 'error' }); return }
     setItem(id, { status: 'loading' })
-    try {
-      const res = await fetch('/api/v1/ai-tag/recommend', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl }),
-      })
-      const json = await res.json().catch(() => null)
-      const data = json?.data as AiTagSuggestion | undefined
-      if (res.ok && json?.code === 200 && data && (data.matches?.length || data.newTags?.length)) {
-        setItem(id, { status: 'done', suggestion: data, selected: buildSelection(data) })
-      } else if (res.ok && json?.code === 200) {
-        // AI 正常返回但无推荐内容
-        setItem(id, { status: 'empty' })
-      } else {
-        setItem(id, { status: 'error' })
+    for (let attempt = 1; attempt <= MAX_ANALYZE_ATTEMPTS; attempt++) {
+      let retryable = true
+      try {
+        const res = await fetch('/api/v1/ai-tag/recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl }),
+        })
+        const json = await res.json().catch(() => null)
+        const data = json?.data as AiTagSuggestion | undefined
+        if (res.ok && json?.code === 200 && data && (data.matches?.length || data.newTags?.length)) {
+          setItem(id, { status: 'done', suggestion: data, selected: buildSelection(data) })
+          return
+        }
+        if (res.ok && json?.code === 200) {
+          // AI 正常返回但无推荐内容
+          setItem(id, { status: 'empty' })
+          return
+        }
+        const errCode = typeof json?.error === 'string' ? json.error : ''
+        retryable = !NO_RETRY_ERRORS.has(errCode)
+      } catch {
+        retryable = true
       }
-    } catch {
+      if (attempt < MAX_ANALYZE_ATTEMPTS && retryable) {
+        if (cancelRef.current) { setItem(id, { status: 'pending' }); return }
+        await new Promise(r => setTimeout(r, 800 * attempt))
+        if (cancelRef.current) { setItem(id, { status: 'pending' }); return }
+        continue
+      }
       setItem(id, { status: 'error' })
+      return
     }
   }, [setItem])
 
@@ -121,7 +140,11 @@ export default function ImageBatchAiTagSheet({ images, onApplied }: {
       if (q.running < CONCURRENCY) run()
       else q.queue.push(run)
     }))).then(() => {
-      if (!cancelRef.current) setPhase('reviewing')
+      if (cancelRef.current) return
+      // 全部成功（done/empty）才自动进入审核；存在失败时停留在分析阶段，
+      // 由失败汇总条提供「重试失败项 / 跳过失败进入审核」入口，避免失败项被无声跳过
+      const hasError = itemsRef.current.some(it => it.status === 'error')
+      if (!hasError) setPhase('reviewing')
     })
   }, [analyzeOne])
 
@@ -230,6 +253,15 @@ export default function ImageBatchAiTagSheet({ images, onApplied }: {
     // 单张重试：直接分析，不重建队列
     analyzeOne(id, (it.image.preview_url || it.image.url) as string | undefined)
   }
+
+  /** 重试全部分析失败项（runAnalysis 的目标过滤本身包含 error 项） */
+  const retryFailedAnalysis = () => {
+    if (analysisBusy) return
+    runAnalysis(itemsRef.current)
+  }
+
+  /** 跳过失败项，直接进入人工审核阶段 */
+  const skipToReview = () => setPhase('reviewing')
 
   /** 计算单张图最终 labels 与 tagCategoryMap */
   const computeSavePayload = (it: BatchItem) => {
@@ -397,6 +429,8 @@ export default function ImageBatchAiTagSheet({ images, onApplied }: {
   const doneCount = items.filter(it => it.status === 'done' || it.status === 'empty').length
   const finished = items.length > 0 && doneCount === items.length
   const failedItems = items.filter(it => it.applyError)
+  const analysisFailed = items.filter(it => it.status === 'error')
+  const analysisBusy = items.some(it => it.status === 'loading' || it.status === 'pending')
 
   const renderStatus = (it: BatchItem) => {
     switch (it.status) {
@@ -448,6 +482,24 @@ export default function ImageBatchAiTagSheet({ images, onApplied }: {
     >
       {phase === 'analyzing' ? (
         <Spin spinning={applying}>
+          {!analysisBusy && analysisFailed.length > 0 && (
+            <Alert
+              type="warning"
+              showIcon
+              className="!mb-3"
+              title={t('batchAiTagAnalysisFailedSummary', { count: analysisFailed.length })}
+              action={
+                <Space size={4} wrap>
+                  <Button size="small" loading={analysisBusy} onClick={retryFailedAnalysis}>
+                    {t('batchAiTagRetryFailedAnalysis')}
+                  </Button>
+                  <Button size="small" onClick={skipToReview}>
+                    {t('batchAiTagSkipFailedReview')}
+                  </Button>
+                </Space>
+              }
+            />
+          )}
           <div className="space-y-2">
             {items.map(it => (
               <div key={it.image.id} className="flex items-center gap-3 p-2 border border-border rounded-lg">
